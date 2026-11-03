@@ -1,9 +1,5 @@
-using Tachyon.Charts.Core.Data;
-using Tachyon.Charts.Core.Fluent;
-using Tachyon.Charts.Core.Instruments;
 using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Rendering;
-using Tachyon.Charts.Samples.Shared.Scenes;
 using Tachyon.Charts.ThreeD;
 using Tachyon.Charts.ThreeD.Scene;
 
@@ -22,7 +18,7 @@ public static class Surfaces3D
         .XAxis(0, 6, "x")
         .YAxis(0, 6, "y")
         .ZAxis(-1.5, 2, "z")
-        .AddSurface(new Surface3D(ContourScene.CreateField(side, withGap), new DoubleRange(0, 6), new DoubleRange(0, 6)) { Contours = contours });
+        .AddSurface(new Surface3D(ContourData.CreateField(side, withGap), new DoubleRange(0, 6), new DoubleRange(0, 6)) { Contours = contours });
 
     /// <summary>Describes a gentle hill.</summary>
     /// <param name="chart">The chart.</param>
@@ -81,5 +77,13 @@ public static class Surfaces3D
         var data = new Tachyon.Charts.Core.Data.HeatmapData(Side, Side);
         data.SetValues(values);
         return new Surface3D(data, new DoubleRange(-1, 1), new DoubleRange(-1, 1));
+    }
+
+    /// <summary>Gets the cut along the hill, as the data of a 2D chart.</summary>
+    /// <returns>The curve.</returns>
+    public static CutCurve HillCut()
+    {
+        var chart = new Chart3DBuilder().XAxis(-1, 1).YAxis(-1, 1).ZAxis(-1, 1);
+        return new ClipPlane3D(new Point3D(0, 1, 0), 0.25).Cut(CreateHillSurface(), chart.Scene);
     }
 }

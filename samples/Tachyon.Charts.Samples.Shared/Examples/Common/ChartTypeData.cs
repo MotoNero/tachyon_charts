@@ -4,7 +4,8 @@ using Tachyon.Charts.Core.Fluent;
 using Tachyon.Charts.Core.Pipeline;
 using Tachyon.Charts.Core.Series;
 using Tachyon.Charts.Core.Themes;
-using Tachyon.Charts.Samples.Shared.Scenes;
+
+using static Tachyon.Charts.Samples.Shared.Examples.Common.Surfaces3D;
 
 namespace Tachyon.Charts.Samples.Shared.Examples.Common;
 
@@ -23,7 +24,7 @@ public static class ChartTypeData
 
     internal static DataSource<double, double> Cut()
     {
-        var curve = Scenes3D.HillCut();
+        var curve = HillCut();
         var data = new DataSource<double, double>(curve.X.Length);
         for (var i = 0; i < curve.X.Length; i++)
         {

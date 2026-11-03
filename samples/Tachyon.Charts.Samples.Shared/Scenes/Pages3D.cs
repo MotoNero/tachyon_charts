@@ -1,13 +1,6 @@
-using Tachyon.Charts.Core.Axes;
 using Tachyon.Charts.Core.Fluent;
-using Tachyon.Charts.Core.Instruments;
-using Tachyon.Charts.Core.Numerics;
-using Tachyon.Charts.Core.Themes;
-using Tachyon.Charts.Rendering;
-using Tachyon.Charts.Samples.Shared.Examples.Common;
 using Tachyon.Charts.Samples.Shared.Examples.ThreeD;
 using Tachyon.Charts.ThreeD;
-using Tachyon.Charts.ThreeD.Scene;
 
 namespace Tachyon.Charts.Samples.Shared.Scenes;
 

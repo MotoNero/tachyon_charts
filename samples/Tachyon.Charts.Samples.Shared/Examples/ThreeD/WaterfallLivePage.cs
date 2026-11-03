@@ -3,7 +3,6 @@ using Tachyon.Charts.Core.Fluent;
 using Tachyon.Charts.Core.Instruments;
 using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Core.Themes;
-using Tachyon.Charts.Rendering.Skia;
 using Tachyon.Charts.Samples.Shared.Examples.Common;
 using Tachyon.Charts.ThreeD;
 

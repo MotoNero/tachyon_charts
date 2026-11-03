@@ -23,7 +23,7 @@ public static class SampleSources
     /// <summary>Gets all files by their path below <c>samples/</c>, such as <c>Tachyon.Charts.Samples.Shared/Examples/ThreeD/WaterfallLivePage.cs</c>.</summary>
     public static IReadOnlyDictionary<string, string> Files => _files.Value;
 
-    /// <summary>Gets the files of the examples, one per page, without the shared helpers.</summary>
+    /// <summary>Gets the files of the examples, one per page or gallery scene, without the shared helpers.</summary>
     public static IEnumerable<string> Examples =>
         Files.Keys.Where(name => name.StartsWith(ExampleFolder, StringComparison.Ordinal) && !name.StartsWith(CommonFolder, StringComparison.Ordinal));
 
@@ -35,10 +35,16 @@ public static class SampleSources
         ArgumentNullException.ThrowIfNull(pageId);
         var declaration = "public const string Name = \"" + pageId + "\";";
         var example = Examples.FirstOrDefault(name => Files[name].Contains(declaration, StringComparison.Ordinal));
+
+        // A scene of the gallery is a class; a few classes draw several scenes with other arguments.
+        if (example is null && SceneCatalog.Find(pageId) is { } scene)
+        {
+            example = Examples.FirstOrDefault(name => Regex.IsMatch(Files[name], @"(class|record) " + scene.GetType().Name + @"\b"));
+        }
+
         if (example is null)
         {
-            // The gallery still keeps several scenes in a file: its class is the best there is.
-            return SceneCatalog.Find(pageId) is { } scene && FindClass(scene.GetType().Name) is { } file ? [new SourceFile(file, Files[file])] : [];
+            return [];
         }
 
         var found = new List<SourceFile> { new(example, Files[example]) };
@@ -61,9 +67,6 @@ public static class SampleSources
             }
         }
     }
-
-    private static string? FindClass(string type) =>
-        Files.FirstOrDefault(file => Regex.IsMatch(file.Value, @"(class|record|struct) " + Regex.Escape(type) + @"\b")).Key;
 
     private static Dictionary<string, string> Load()
     {

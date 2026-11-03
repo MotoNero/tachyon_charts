@@ -21,6 +21,7 @@ using Tachyon.Charts.Rendering;
 using Tachyon.Charts.Rendering.Skia;
 using Tachyon.Charts.Samples.Shared;
 using Tachyon.Charts.Samples.Shared.Examples.Common;
+using Tachyon.Charts.Samples.Shared.Examples.Gallery;
 using Tachyon.Charts.Samples.Shared.Examples.Instruments;
 using Tachyon.Charts.Samples.Shared.Examples.Interactive;
 using Tachyon.Charts.Samples.Shared.Scenes;
@@ -591,7 +592,7 @@ internal sealed class SampleWindow : Window
             var time = clock.Elapsed.TotalSeconds;
             for (; _showsRaster && rows < time * SpectrogramRowsPerSecond; rows++)
             {
-                SpectrogramScene.AppendSignal(_spectrogram, _spectrogram.TotalRows, row, withPauses: false);
+                SpectrogramSignal.AppendSignal(_spectrogram, _spectrogram.TotalRows, row, withPauses: false);
             }
 
             if (!_showsRaster)

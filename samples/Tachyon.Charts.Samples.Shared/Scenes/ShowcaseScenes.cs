@@ -4,6 +4,7 @@ using Tachyon.Charts.Core.Instruments;
 using Tachyon.Charts.Core.Themes;
 using Tachyon.Charts.Rendering;
 using Tachyon.Charts.Rendering.Skia;
+using Tachyon.Charts.Samples.Shared.Examples.Common;
 
 namespace Tachyon.Charts.Samples.Shared.Scenes;
 
@@ -44,15 +45,15 @@ public static class ShowcaseScenes
         new ShowcaseScene("heatmap", c => c.Title("Heatmap, 16 million cells").Theme(BuiltInThemes.TachyonDark)
             .XAxis(a => a.Numeric("x").Range(0, 8))
             .YAxis(a => a.Numeric("y").Range(0, 8))
-            .AddHeatmap(Heatmap4kScene.CreateData(withGap: false), s => s.Cells(0, 8.0 / 4096, 0, 8.0 / 4096).ColorAxis(a => a.Colormap(Colormaps.Inferno)))),
+            .AddHeatmap(Heatmap4kData.CreateData(withGap: false), s => s.Cells(0, 8.0 / 4096, 0, 8.0 / 4096).ColorAxis(a => a.Colormap(Colormaps.Inferno)))),
         new ShowcaseScene("contour", c => c.Title("Filled contour").Theme(BuiltInThemes.TachyonDark)
             .XAxis(a => a.Numeric("x").Range(0, 6))
             .YAxis(a => a.Numeric("y").Range(0, 6))
-            .AddContour(ContourScene.CreateField(256, withGap: false), s => s.Filled().Levels(-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1, 1.25).Cells(0, 6.0 / 256, 0, 6.0 / 256))),
+            .AddContour(ContourData.CreateField(256, withGap: false), s => s.Filled().Levels(-1, -0.75, -0.5, -0.25, 0, 0.25, 0.5, 0.75, 1, 1.25).Cells(0, 6.0 / 256, 0, 6.0 / 256))),
         new ShowcaseScene("point-cloud", c => c.Title("50 million points as density").Theme(BuiltInThemes.TachyonDark)
             .XAxis(a => a.Numeric("x").Range(0, 10))
             .YAxis(a => a.Numeric("y").Range(0, 10))
-            .AddScatter(PointCloud50MScene.CreateCloud(50_000_000), s => s.Size(4).Density(1, a => a.Colormap(Colormaps.Inferno)))),
+            .AddScatter(PointCloudData.CreateCloud(50_000_000), s => s.Size(4).Density(1, a => a.Colormap(Colormaps.Inferno)))),
         Type("bars", "Bars", "Grouped bars"),
         Type("stacked-area", "Stacked area", "Stacked areas"),
         Type("bubble", "Bubble", "Bubbles"),

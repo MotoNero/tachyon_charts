@@ -1,5 +1,4 @@
 using Tachyon.Charts.Core.Instruments;
-using Tachyon.Charts.Samples.Shared.Scenes;
 
 namespace Tachyon.Charts.Samples.Shared.Examples.Common;
 
@@ -12,7 +11,7 @@ public sealed class SpectrumDemo
     private volatile bool _runs;
 
     /// <summary>Gets the display.</summary>
-    public SpectrumDisplay Display { get; } = SpectrumScene.CreateDisplay(passing: true);
+    public SpectrumDisplay Display { get; } = SpectrumData.CreateDisplay(passing: true);
 
     /// <summary>Starts the sweeps, if they do not run yet.</summary>
     public void Start()
@@ -38,7 +37,7 @@ public sealed class SpectrumDemo
         var random = new Random(1);
         while (_runs)
         {
-            SpectrumScene.Deliver(Display, frequencies, levels, random);
+            SpectrumData.Deliver(Display, frequencies, levels, random);
             Thread.Sleep(1000 / TracesPerSecond);
         }
     }

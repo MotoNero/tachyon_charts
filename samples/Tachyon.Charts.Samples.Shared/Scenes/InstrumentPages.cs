@@ -1,7 +1,4 @@
 using Tachyon.Charts.Core.Fluent;
-using Tachyon.Charts.Core.Instruments;
-using Tachyon.Charts.Core.Series;
-using Tachyon.Charts.Core.Themes;
 using Tachyon.Charts.Samples.Shared.Examples.Instruments;
 
 namespace Tachyon.Charts.Samples.Shared.Scenes;

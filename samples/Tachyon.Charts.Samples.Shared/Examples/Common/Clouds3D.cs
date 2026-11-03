@@ -1,10 +1,3 @@
-using Tachyon.Charts.Core.Data;
-using Tachyon.Charts.Core.Fluent;
-using Tachyon.Charts.Core.Instruments;
-using Tachyon.Charts.Core.Numerics;
-using Tachyon.Charts.Core.Themes;
-using Tachyon.Charts.Rendering;
-using Tachyon.Charts.Rendering.Skia;
 using Tachyon.Charts.ThreeD;
 using Tachyon.Charts.ThreeD.Scene;
 

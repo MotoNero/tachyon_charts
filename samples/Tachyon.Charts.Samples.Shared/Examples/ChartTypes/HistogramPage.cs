@@ -1,5 +1,3 @@
-using Tachyon.Charts.Core.Axes;
-using Tachyon.Charts.Core.Data;
 using Tachyon.Charts.Core.Fluent;
 using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Core.Series;

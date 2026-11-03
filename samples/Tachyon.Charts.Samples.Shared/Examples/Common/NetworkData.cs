@@ -1,14 +1,5 @@
 using System.Numerics;
-using Tachyon.Charts.Core.Colors;
-using Tachyon.Charts.Core.Data;
-using Tachyon.Charts.Core.Fluent;
 using Tachyon.Charts.Core.Instruments;
-using Tachyon.Charts.Core.Numerics;
-using Tachyon.Charts.Core.Pipeline;
-using Tachyon.Charts.Core.Series;
-using Tachyon.Charts.Core.Themes;
-using Tachyon.Charts.Rendering;
-using Tachyon.Charts.Rendering.Skia;
 
 namespace Tachyon.Charts.Samples.Shared.Examples.Common;
 

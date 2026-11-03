@@ -1,5 +1,4 @@
 using Tachyon.Charts.Core.Instruments;
-using Tachyon.Charts.Samples.Shared.Scenes;
 
 namespace Tachyon.Charts.Samples.Shared.Examples.Common;
 
@@ -15,7 +14,7 @@ public sealed class ScopeDemo
     private volatile bool _runs;
 
     /// <summary>Gets the display.</summary>
-    public ScopeDisplay Display { get; } = OscilloscopeScene.CreateDisplay();
+    public ScopeDisplay Display { get; } = ScopeData.CreateDisplay();
 
     /// <summary>Gets the trigger.</summary>
     public ScopeTrigger Trigger { get; }
@@ -51,7 +50,7 @@ public sealed class ScopeDemo
             {
                 for (var i = 0; i < Count; i++)
                 {
-                    channels[c][i] = (float)OscilloscopeScene.Signal(c, ((i * Interval) - 0.01) + (phase / (2 * Math.PI * 1000)), 0);
+                    channels[c][i] = (float)ScopeData.Signal(c, ((i * Interval) - 0.01) + (phase / (2 * Math.PI * 1000)), 0);
                 }
             }
 
