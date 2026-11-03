@@ -1438,6 +1438,8 @@ struct Tachyon.Charts.Core.Pipeline.FrameStatistics : System.IEquatable<Tachyon.
   System.TimeSpan LastPassTime { get; set; }
 interface Tachyon.Charts.Core.Pipeline.IAnimationClock
   abstract System.TimeSpan Now { get; }
+interface Tachyon.Charts.Core.Pipeline.ICsvExport
+  abstract System.Void WriteCsv(System.IO.TextWriter writer)
 enum Tachyon.Charts.Core.Pipeline.RenderMode : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Continuous = 1
   OnDemand = 0

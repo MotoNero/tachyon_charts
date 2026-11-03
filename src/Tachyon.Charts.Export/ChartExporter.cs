@@ -100,7 +100,8 @@ public static class ChartExporter
     /// <summary>
     /// Writes the visible or the given points as CSV: a header, then the series, X and Y of each point.
     /// Numbers use a dot, so that every program reads them alike. Series without points of their own, such
-    /// as bars and rasters, have no rows. Safe from any thread: it reads the state of the last frame.
+    /// as bars and rasters, have no rows. A series with a table of its own (<see cref="ICsvExport"/>), such as
+    /// a 3D chart, writes that table instead. Safe from any thread: it reads the state of the last frame.
     /// </summary>
     /// <param name="chart">The chart.</param>
     /// <param name="selection">The points, or <see langword="null"/> for all in the visible area.</param>
@@ -108,6 +109,13 @@ public static class ChartExporter
     public static byte[] ToCsv(ChartSurface chart, IReadOnlyList<SeriesSelection>? selection = null)
     {
         ArgumentNullException.ThrowIfNull(chart);
+        if (chart.Series.OfType<ICsvExport>().FirstOrDefault() is { } table)
+        {
+            using var writer = new StringWriter(CultureInfo.InvariantCulture);
+            table.WriteCsv(writer);
+            return Encoding.UTF8.GetBytes(writer.ToString());
+        }
+
         selection ??= SelectVisible(chart);
         var text = new StringBuilder("series,x,y\r\n");
         foreach (var (series, x, y) in chart.ReadPoints(selection))

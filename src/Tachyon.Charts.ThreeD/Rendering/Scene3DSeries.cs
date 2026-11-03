@@ -14,7 +14,7 @@ namespace Tachyon.Charts.ThreeD.Rendering;
 /// <param name="picker">The search for what lies under the pointer.</param>
 /// <param name="xAxis">The hidden horizontal axis of the chart.</param>
 /// <param name="yAxis">The hidden vertical axis of the chart.</param>
-internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase xAxis, AxisBase yAxis) : ChartSeries(xAxis, yAxis), IDisposable
+internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase xAxis, AxisBase yAxis) : ChartSeries(xAxis, yAxis), IDisposable, ICsvExport
 {
     private readonly List<Vector3> _grid = [];
     private readonly List<Vector3> _frame = [];
@@ -46,6 +46,10 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
     private (BoxWalls, Theme?, Tachyon.Charts.Core.Numerics.DoubleRange, Tachyon.Charts.Core.Numerics.DoubleRange, Tachyon.Charts.Core.Numerics.DoubleRange, long) _linesKey;
     private Renderer3D? _renderer;
     private IRenderDevice? _device;
+    private WebGpuRenderDevice? _exportDevice;
+    private IGpuTexture? _copy;
+    private IRenderDevice? _copyDevice;
+    private bool _drawsCopy;
     private ChartSurface? _chart;
     private long _renderedVersion = -1;
     private PixelSize _renderedSize;
@@ -81,16 +85,90 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
         }
 
         ReleaseResources();
+        _copy?.Dispose();
+        _copy = null;
+        _exportDevice?.Dispose();
+        _exportDevice = null;
     }
 
     /// <inheritdoc />
     protected override void Prepare(IRenderDevice device, in SeriesFrame frame)
     {
-        if (device is not WebGpuRenderDevice webGpu)
+        _drawsCopy = device is not WebGpuRenderDevice;
+        if (device is WebGpuRenderDevice webGpu)
+        {
+            Render(webGpu, frame);
+        }
+        else
+        {
+            PrepareCopy(device, frame);
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void Draw(ICommandList commands, in SeriesFrame frame)
+    {
+        if ((_drawsCopy ? _copy : _renderer?.Picture) is { } picture)
+        {
+            commands.DrawImage(picture, frame.Bounds);
+        }
+    }
+
+    /// <inheritdoc />
+    public void WriteCsv(TextWriter writer) => SceneCsv.Write(scene, writer);
+
+    // A device without a graphics card, as for SVG and PDF, draws a copy of the picture: the scene itself still renders on
+    // the GPU, at the size of the export, and goes into the file as an embedded image. A chart that never ran on a
+    // GPU, as in an export without a window, opens a device of its own for it.
+    private void PrepareCopy(IRenderDevice device, in SeriesFrame frame)
+    {
+        var gpu = _device as WebGpuRenderDevice ?? (_exportDevice ??= OpenExportDevice());
+        if (gpu is null)
         {
             return;
         }
 
+        Render(gpu, frame);
+        if (_renderer?.Picture is not { } picture)
+        {
+            return;
+        }
+
+        var size = picture.Size;
+        using var target = gpu.CreateOffscreenTarget(size, 1);
+        using (var commands = gpu.BeginFrame(target))
+        {
+            commands.DrawImage(picture, new PixelRect(0, 0, size.Width, size.Height));
+            commands.Submit();
+        }
+
+        var pixels = new Rgba8[size.PixelCount];
+        target.ReadPixels(pixels);
+        if (_copy is null || !ReferenceEquals(_copyDevice, device) || _copy.Size != size)
+        {
+            _copy?.Dispose();
+            _copy = device.CreateTexture(new TextureDesc(size, TextureFormat.Rgba8Unorm));
+            _copyDevice = device;
+        }
+
+        _copy.Write(System.Runtime.InteropServices.MemoryMarshal.AsBytes(pixels.AsSpan()));
+    }
+
+    private static WebGpuRenderDevice? OpenExportDevice()
+    {
+        try
+        {
+            return Gpu3d.Status.IsAvailable ? WebGpuRenderDevice.Create() : null;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or NotSupportedException)
+        {
+            return null;
+        }
+    }
+
+    private void Render(WebGpuRenderDevice webGpu, in SeriesFrame frame)
+    {
+        var device = webGpu;
         if (!ReferenceEquals(_device, device))
         {
             ReleaseResources();
@@ -171,14 +249,6 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
         }
     }
 
-    /// <inheritdoc />
-    protected override void Draw(ICommandList commands, in SeriesFrame frame)
-    {
-        if (_renderer?.Picture is { } picture)
-        {
-            commands.DrawImage(picture, frame.Bounds);
-        }
-    }
 
     /// <inheritdoc />
     protected override void ReleaseResources()

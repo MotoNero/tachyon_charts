@@ -235,7 +235,7 @@ internal sealed class ScenePicker(Scene3D scene)
         return best;
     }
 
-    private static double Across(double low, double high, int index, int count) => low + ((high - low) * index / (count - 1));
+    internal static double Across(double low, double high, int index, int count) => low + ((high - low) * index / (count - 1));
 
     // Looks through the leaves on the ray, front ones first, and stops at the first one with a point near the ray.
     private void FindOnCloud(in Ray3D ray, in PickReach reach, PointCloud3D cloud, double near, ref double far, ref Pick3D? best)

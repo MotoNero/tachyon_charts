@@ -35,3 +35,10 @@ In Avalonia, print with `ExportPdfAsync` and hand the file to the system.
 - A chart must be visible, otherwise you get an `InvalidOperationException`.
 - SVG and PDF cost one rebuild of the graphics buffers. The display stays identical but can stutter briefly.
 - Many markers without density mode make SVG and PDF large.
+
+## 3D charts
+
+A 3D chart exports with the same calls. PNG renders the scene on the graphics card at the size you ask for, 4K and more, in the theme of the options; the display does not change. SVG and PDF embed the 3D picture as an image of at least 288 dpi, with axes, title and text around it as in 2D. CSV writes one table with the columns `object, x, y, z, value`: markers, lines, points, surfaces, maps and columns inside the axes. Point clouds, volumes and waterfalls stay out of the CSV, they hold far more values than a table program opens.
+
+Your own series can write a table of its own by implementing `ICsvExport`.
+
