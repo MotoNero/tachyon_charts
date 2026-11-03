@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Readback passes a raw destination pointer to Skia. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Fonts/Roboto-Regular.ttf" LogicalName="Roboto-Regular.ttf" />
+    <InternalsVisibleTo Include="Tachyon.Charts.Rendering.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 8.3.1.3 is the version of Avalonia: two native HarfBuzz libraries would clash. -->
+    <PackageReference Include="HarfBuzzSharp" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" />
+    <PackageReference Include="SkiaSharp" />
+    <!-- Not .NoDependencies: Avalonia.Skia pulls this package, and two native libraries would clash. -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Tachyon.Charts.Rendering/Tachyon.Charts.Rendering.csproj" />
+  </ItemGroup>
+
+</Project>

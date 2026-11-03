@@ -1,0 +1,26 @@
+# Build output
+bin/
+obj/
+artifacts/
+
+# Test and benchmark results
+TestResults/
+BenchmarkDotNet.Artifacts/
+*.trx
+*.coverage
+
+# IDE
+.vs/
+*.user
+*.suo
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+*.snupkg
+
+# OS
+.DS_Store
+Thumbs.db
+
+.sonarqube/

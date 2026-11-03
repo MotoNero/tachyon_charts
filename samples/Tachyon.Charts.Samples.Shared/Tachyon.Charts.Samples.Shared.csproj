@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <!-- The showroom shows the code of each page: the sources of this project travel along. -->
+  <ItemGroup>
+    <EmbeddedResource Include="**/*.cs" Exclude="bin/**;obj/**;Spikes/**" LogicalName="Source/Shared/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Tachyon.Charts.Core/Tachyon.Charts.Core.csproj" />
+    <ProjectReference Include="../../src/Tachyon.Charts.ThreeD/Tachyon.Charts.ThreeD.csproj" />
+    <ProjectReference Include="../../src/Tachyon.Charts.Rendering.Skia/Tachyon.Charts.Rendering.Skia.csproj" />
+    <ProjectReference Include="../../src/Tachyon.Charts.Rendering.WebGPU/Tachyon.Charts.Rendering.WebGPU.csproj" />
+  </ItemGroup>
+
+</Project>

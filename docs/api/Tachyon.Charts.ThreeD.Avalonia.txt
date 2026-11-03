@@ -1,0 +1,10 @@
+sealed class Tachyon.Charts.ThreeD.Avalonia.Chart3D : Avalonia.Controls.Border, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.Controls.Templates.IDataTemplateHost, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.Input.IInputElement, Avalonia.LogicalTree.ILogical, Avalonia.Styling.ISetterValue, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  System.Boolean IsGpuAvailable { get; }
+  System.String Title { get; set; }
+  Tachyon.Charts.Avalonia.Chart Surface { get; }
+  Tachyon.Charts.Core.Themes.Theme ChartTheme { get; set; }
+  Tachyon.Charts.ThreeD.Avalonia.Chart3D Configure(System.Action<Tachyon.Charts.ThreeD.Chart3DBuilder> configure)
+  Tachyon.Charts.ThreeD.Scene.CameraProjection Projection { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Scene3D Scene { get; }
+  event System.EventHandler GpuUnavailable

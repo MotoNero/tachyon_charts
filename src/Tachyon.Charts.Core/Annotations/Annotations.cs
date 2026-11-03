@@ -1,0 +1,464 @@
+using System.Numerics;
+using Tachyon.Charts.Core.Axes;
+using Tachyon.Charts.Core.Layout;
+using Tachyon.Charts.Core.Overlays;
+using Tachyon.Charts.Rendering;
+
+namespace Tachyon.Charts.Core.Annotations;
+
+/// <summary>
+/// A mark on a chart. Coordinates are values of the axes. Without an axis, that direction uses chart
+/// coordinates in device-independent units, so the annotation stays in place while zooming.
+/// </summary>
+/// <param name="xAxis">The horizontal axis, or <see langword="null"/> for chart coordinates.</param>
+/// <param name="yAxis">The vertical axis, or <see langword="null"/> for chart coordinates.</param>
+public abstract class Annotation(AxisBase? xAxis, AxisBase? yAxis) : ChartOverlay
+{
+    private volatile StrongBounds? _bounds;
+
+    /// <summary>Gets the horizontal axis.</summary>
+    public AxisBase? XAxis { get; } = xAxis;
+
+    /// <summary>Gets the vertical axis.</summary>
+    public AxisBase? YAxis { get; } = yAxis;
+
+    /// <summary>Gets or sets the main color.</summary>
+    public Rgba8 Color { get; set; } = new(240, 190, 90, 255);
+
+    /// <summary>Gets or sets a value indicating whether an edit modifier may change it.</summary>
+    public bool IsEditable { get; set; }
+
+    /// <summary>
+    /// Gets the area of the last frame in chart coordinates, for hit tests on any thread.
+    /// </summary>
+    public DipRect? LastBounds => _bounds?.Value;
+
+    /// <summary>Occurs on the thread of the chart after a change by interaction.</summary>
+    public event Action<Annotation>? Edited;
+
+    /// <summary>Tests whether a position touches the annotation.</summary>
+    /// <param name="position">The position in chart coordinates.</param>
+    /// <param name="tolerance">The tolerance in device-independent units.</param>
+    /// <returns>Whether it does.</returns>
+    public virtual bool Contains(Vector2 position, double tolerance) =>
+        _bounds?.Value is { } bounds
+        && position.X >= bounds.X - tolerance && position.X <= bounds.Right + tolerance
+        && position.Y >= bounds.Y - tolerance && position.Y <= bounds.Bottom + tolerance;
+
+    /// <summary>Moves the annotation.</summary>
+    /// <param name="deltaX">The distance in X, in the unit of the coordinate.</param>
+    /// <param name="deltaY">The distance in Y, in the unit of the coordinate.</param>
+    public abstract void Move(double deltaX, double deltaY);
+
+    /// <summary>
+    /// Changes the size by moving the corner at the far end. The default is that the size is fixed.
+    /// </summary>
+    /// <param name="deltaX">The distance in X, in the unit of the coordinate.</param>
+    /// <param name="deltaY">The distance in Y, in the unit of the coordinate.</param>
+    /// <returns>Whether the annotation can change its size.</returns>
+    public virtual bool Resize(double deltaX, double deltaY) => false;
+
+    internal void NotifyEdited() => Edited?.Invoke(this);
+
+    /// <summary>Converts coordinates to the position in the chart.</summary>
+    /// <param name="canvas">The canvas.</param>
+    /// <param name="x">The X coordinate.</param>
+    /// <param name="y">The Y coordinate.</param>
+    /// <returns>The position.</returns>
+    protected Vector2 ToChart(OverlayCanvas canvas, double x, double y)
+    {
+        var left = XAxis is { } horizontal && canvas.TryGetPosition(horizontal, x, out var positionX) ? positionX : x;
+        var top = YAxis is { } vertical && canvas.TryGetPosition(vertical, y, out var positionY) ? positionY : y;
+        return new Vector2((float)left, (float)top);
+    }
+
+    /// <summary>Remembers the area of this frame.</summary>
+    /// <param name="bounds">The area.</param>
+    protected void SetBounds(DipRect bounds) => _bounds = new StrongBounds(bounds);
+
+    /// <summary>Spans two positions.</summary>
+    /// <param name="a">One corner.</param>
+    /// <param name="b">The other corner.</param>
+    /// <returns>The rectangle.</returns>
+    protected static DipRect Span(Vector2 a, Vector2 b)
+    {
+        var left = Math.Min(a.X, b.X);
+        var top = Math.Min(a.Y, b.Y);
+        return new DipRect(left, top, Math.Abs(a.X - b.X), Math.Abs(a.Y - b.Y));
+    }
+
+    private sealed record StrongBounds(DipRect Value);
+}
+
+/// <summary>A line across the plot at a Y value.</summary>
+/// <param name="yAxis">The vertical axis.</param>
+public sealed class HorizontalLineAnnotation(AxisBase yAxis) : Annotation(null, yAxis)
+{
+    private double _y;
+
+    /// <summary>Gets or sets the value.</summary>
+    public double Y
+    {
+        get => _y;
+        set
+        {
+            _y = value;
+            OnChanged();
+        }
+    }
+
+    /// <summary>Gets or sets a label at the right end, or <see langword="null"/> for none.</summary>
+    public string? Label { get; set; }
+
+    /// <inheritdoc />
+    public override void Move(double deltaX, double deltaY) => Y += deltaY;
+
+    /// <inheritdoc />
+    protected internal override void Draw(OverlayCanvas canvas)
+    {
+        var plot = canvas.Layout.PlotArea;
+        if (!canvas.TryGetPosition(YAxis!, _y, out var y))
+        {
+            return;
+        }
+
+        canvas.Clip = plot;
+        canvas.DrawLine(new Vector2((float)plot.X, (float)y), new Vector2((float)plot.Right, (float)y), 1, Color);
+        SetBounds(new DipRect(plot.X, y, plot.Width, 1));
+        if (Label is { } label)
+        {
+            var width = canvas.MeasureWidth(label, canvas.LabelSize) + 8;
+            canvas.DrawLabel(label, plot.Right - width - 4, y - canvas.GetLineHeight(canvas.LabelSize) - 3, Color, canvas.BackgroundColor);
+        }
+    }
+}
+
+/// <summary>A line across the plot at an X value.</summary>
+/// <param name="xAxis">The horizontal axis.</param>
+public sealed class VerticalLineAnnotation(AxisBase xAxis) : Annotation(xAxis, null)
+{
+    private double _x;
+
+    /// <summary>Gets or sets the value.</summary>
+    public double X
+    {
+        get => _x;
+        set
+        {
+            _x = value;
+            OnChanged();
+        }
+    }
+
+    /// <summary>Gets or sets a label at the top, or <see langword="null"/> for none.</summary>
+    public string? Label { get; set; }
+
+    /// <inheritdoc />
+    public override void Move(double deltaX, double deltaY) => X += deltaX;
+
+    /// <inheritdoc />
+    protected internal override void Draw(OverlayCanvas canvas)
+    {
+        var plot = canvas.Layout.PlotArea;
+        if (!canvas.TryGetPosition(XAxis!, _x, out var x))
+        {
+            return;
+        }
+
+        canvas.Clip = plot;
+        canvas.DrawLine(new Vector2((float)x, (float)plot.Y), new Vector2((float)x, (float)plot.Bottom), 1, Color);
+        SetBounds(new DipRect(x, plot.Y, 1, plot.Height));
+        if (Label is { } label)
+        {
+            canvas.DrawLabel(label, x + 4, plot.Y + 4, Color, canvas.BackgroundColor);
+        }
+    }
+}
+
+/// <summary>A rectangle between two corners.</summary>
+/// <param name="xAxis">The horizontal axis, or <see langword="null"/> for chart coordinates.</param>
+/// <param name="yAxis">The vertical axis, or <see langword="null"/> for chart coordinates.</param>
+public sealed class BoxAnnotation(AxisBase? xAxis, AxisBase? yAxis) : Annotation(xAxis, yAxis)
+{
+    private double _x1;
+    private double _y1;
+    private double _x2;
+    private double _y2;
+
+    /// <summary>Gets or sets the fill, which can be transparent.</summary>
+    public Rgba8 Fill { get; set; } = new(240, 190, 90, 40);
+
+    /// <summary>Gets the first corner.</summary>
+    public (double X, double Y) First => (_x1, _y1);
+
+    /// <summary>Gets the second corner.</summary>
+    public (double X, double Y) Second => (_x2, _y2);
+
+    /// <summary>Sets both corners.</summary>
+    /// <param name="x1">The X value of the first corner.</param>
+    /// <param name="y1">The Y value of the first corner.</param>
+    /// <param name="x2">The X value of the second corner.</param>
+    /// <param name="y2">The Y value of the second corner.</param>
+    public void SetCorners(double x1, double y1, double x2, double y2)
+    {
+        (_x1, _y1, _x2, _y2) = (x1, y1, x2, y2);
+        OnChanged();
+    }
+
+    /// <inheritdoc />
+    public override void Move(double deltaX, double deltaY) => SetCorners(_x1 + deltaX, _y1 + deltaY, _x2 + deltaX, _y2 + deltaY);
+
+    /// <inheritdoc />
+    public override bool Resize(double deltaX, double deltaY)
+    {
+        SetCorners(_x1, _y1, _x2 + deltaX, _y2 + deltaY);
+        return true;
+    }
+
+    /// <inheritdoc />
+    protected internal override void Draw(OverlayCanvas canvas)
+    {
+        var area = Span(ToChart(canvas, _x1, _y1), ToChart(canvas, _x2, _y2));
+        canvas.Clip = canvas.Layout.PlotArea;
+        canvas.FillRectangle(area, Fill);
+        canvas.DrawRectangle(area, Color);
+        SetBounds(area);
+    }
+}
+
+/// <summary>A strip across the plot between two values of an axis.</summary>
+/// <param name="axis">The axis.</param>
+public sealed class BandAnnotation(AxisBase axis) : Annotation(axis.IsHorizontal ? axis : null, axis.IsHorizontal ? null : axis)
+{
+    private double _start;
+    private double _end;
+
+    /// <summary>Gets the first value.</summary>
+    public double Start => _start;
+
+    /// <summary>Gets the second value.</summary>
+    public double End => _end;
+
+    /// <summary>Sets the values.</summary>
+    /// <param name="start">The first value.</param>
+    /// <param name="end">The second value.</param>
+    public void SetRange(double start, double end)
+    {
+        (_start, _end) = (start, end);
+        OnChanged();
+    }
+
+    /// <inheritdoc />
+    public override void Move(double deltaX, double deltaY)
+    {
+        var delta = axis.IsHorizontal ? deltaX : deltaY;
+        SetRange(_start + delta, _end + delta);
+    }
+
+    /// <inheritdoc />
+    public override bool Resize(double deltaX, double deltaY)
+    {
+        SetRange(_start, _end + (axis.IsHorizontal ? deltaX : deltaY));
+        return true;
+    }
+
+    /// <inheritdoc />
+    protected internal override void Draw(OverlayCanvas canvas)
+    {
+        var plot = canvas.Layout.PlotArea;
+        if (!canvas.TryGetPosition(axis, _start, out var first) || !canvas.TryGetPosition(axis, _end, out var second))
+        {
+            return;
+        }
+
+        var low = Math.Min(first, second);
+        var length = Math.Abs(second - first);
+        var area = axis.IsHorizontal ? new DipRect(low, plot.Y, length, plot.Height) : new DipRect(plot.X, low, plot.Width, length);
+        canvas.Clip = plot;
+        canvas.FillRectangle(area, Color);
+        SetBounds(area);
+    }
+}
+
+/// <summary>Text at a place.</summary>
+/// <param name="xAxis">The horizontal axis, or <see langword="null"/> for chart coordinates.</param>
+/// <param name="yAxis">The vertical axis, or <see langword="null"/> for chart coordinates.</param>
+public sealed class TextAnnotation(AxisBase? xAxis, AxisBase? yAxis) : Annotation(xAxis, yAxis)
+{
+    private double _x;
+    private double _y;
+
+    /// <summary>Gets or sets the text.</summary>
+    public string Text { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the font size.</summary>
+    public float FontSize { get; set; } = 13;
+
+    /// <summary>Gets the position.</summary>
+    public (double X, double Y) Position => (_x, _y);
+
+    /// <summary>Sets the position.</summary>
+    /// <param name="x">The X coordinate.</param>
+    /// <param name="y">The Y coordinate.</param>
+    public void MoveTo(double x, double y)
+    {
+        (_x, _y) = (x, y);
+        OnChanged();
+    }
+
+    /// <inheritdoc />
+    public override void Move(double deltaX, double deltaY) => MoveTo(_x + deltaX, _y + deltaY);
+
+    /// <inheritdoc />
+    protected internal override void Draw(OverlayCanvas canvas)
+    {
+        var position = ToChart(canvas, _x, _y);
+        canvas.DrawText(Text, position.X, position.Y, FontSize, Color);
+        var height = canvas.GetLineHeight(FontSize);
+        SetBounds(new DipRect(position.X, position.Y - height, canvas.MeasureWidth(Text, FontSize), height));
+    }
+}
+
+/// <summary>An arrow from one place to another.</summary>
+/// <param name="xAxis">The horizontal axis, or <see langword="null"/> for chart coordinates.</param>
+/// <param name="yAxis">The vertical axis, or <see langword="null"/> for chart coordinates.</param>
+public sealed class ArrowAnnotation(AxisBase? xAxis, AxisBase? yAxis) : Annotation(xAxis, yAxis)
+{
+    private const float HeadLength = 10;
+    private const float HeadWidth = 5;
+
+    private double _x1;
+    private double _y1;
+    private double _x2;
+    private double _y2;
+
+    /// <summary>Gets or sets the thickness.</summary>
+    public float Thickness { get; set; } = 2;
+
+    /// <summary>Gets the start.</summary>
+    public (double X, double Y) Start => (_x1, _y1);
+
+    /// <summary>Gets the tip.</summary>
+    public (double X, double Y) Tip => (_x2, _y2);
+
+    /// <summary>Sets both ends.</summary>
+    /// <param name="x1">The X value of the start.</param>
+    /// <param name="y1">The Y value of the start.</param>
+    /// <param name="x2">The X value of the tip.</param>
+    /// <param name="y2">The Y value of the tip.</param>
+    public void SetEnds(double x1, double y1, double x2, double y2)
+    {
+        (_x1, _y1, _x2, _y2) = (x1, y1, x2, y2);
+        OnChanged();
+    }
+
+    /// <inheritdoc />
+    public override void Move(double deltaX, double deltaY) => SetEnds(_x1 + deltaX, _y1 + deltaY, _x2 + deltaX, _y2 + deltaY);
+
+    /// <inheritdoc />
+    public override bool Resize(double deltaX, double deltaY)
+    {
+        SetEnds(_x1, _y1, _x2 + deltaX, _y2 + deltaY);
+        return true;
+    }
+
+    /// <inheritdoc />
+    protected internal override void Draw(OverlayCanvas canvas)
+    {
+        var start = ToChart(canvas, _x1, _y1);
+        var tip = ToChart(canvas, _x2, _y2);
+        SetBounds(Span(start, tip));
+        var delta = tip - start;
+        var length = delta.Length();
+        if (length < 1)
+        {
+            return;
+        }
+
+        var direction = delta / length;
+        var normal = new Vector2(-direction.Y, direction.X) * HeadWidth;
+        var neck = tip - (direction * Math.Min(HeadLength, length));
+        canvas.DrawLine(start, neck, Thickness, Color);
+        canvas.FillTriangle(tip, neck + normal, neck - normal, Color);
+    }
+}
+
+/// <summary>A marker at a place.</summary>
+/// <param name="xAxis">The horizontal axis, or <see langword="null"/> for chart coordinates.</param>
+/// <param name="yAxis">The vertical axis, or <see langword="null"/> for chart coordinates.</param>
+public sealed class MarkerAnnotation(AxisBase? xAxis, AxisBase? yAxis) : Annotation(xAxis, yAxis)
+{
+    private double _x;
+    private double _y;
+
+    /// <summary>Gets or sets the size.</summary>
+    public float Size { get; set; } = 12;
+
+    /// <summary>Gets the position.</summary>
+    public (double X, double Y) Position => (_x, _y);
+
+    /// <summary>Sets the position.</summary>
+    /// <param name="x">The X coordinate.</param>
+    /// <param name="y">The Y coordinate.</param>
+    public void MoveTo(double x, double y)
+    {
+        (_x, _y) = (x, y);
+        OnChanged();
+    }
+
+    /// <inheritdoc />
+    public override void Move(double deltaX, double deltaY) => MoveTo(_x + deltaX, _y + deltaY);
+
+    /// <inheritdoc />
+    protected internal override void Draw(OverlayCanvas canvas)
+    {
+        var center = ToChart(canvas, _x, _y);
+        var half = Size / 2;
+        var top = center - new Vector2(0, half);
+        var right = center + new Vector2(half, 0);
+        var bottom = center + new Vector2(0, half);
+        var left = center - new Vector2(half, 0);
+        canvas.FillTriangle(top, right, bottom, Color);
+        canvas.FillTriangle(top, bottom, left, Color);
+        SetBounds(new DipRect(center.X - half, center.Y - half, Size, Size));
+    }
+}
+
+/// <summary>An image at a place, in a fixed size on the screen.</summary>
+/// <param name="pixels">The pixels, top row first.</param>
+/// <param name="size">The size of the image in pixels.</param>
+/// <param name="xAxis">The horizontal axis, or <see langword="null"/> for chart coordinates.</param>
+/// <param name="yAxis">The vertical axis, or <see langword="null"/> for chart coordinates.</param>
+public sealed class ImageAnnotation(Rgba8[] pixels, PixelSize size, AxisBase? xAxis, AxisBase? yAxis) : Annotation(xAxis, yAxis)
+{
+    private double _x;
+    private double _y;
+
+    /// <summary>Gets the position of the top left corner.</summary>
+    public (double X, double Y) Position => (_x, _y);
+
+    /// <summary>Gets or sets the size on the screen in device-independent units, or <see langword="null"/> for one unit per pixel.</summary>
+    public (double Width, double Height)? DisplaySize { get; set; }
+
+    /// <summary>Sets the position of the top left corner.</summary>
+    /// <param name="x">The X coordinate.</param>
+    /// <param name="y">The Y coordinate.</param>
+    public void MoveTo(double x, double y)
+    {
+        (_x, _y) = (x, y);
+        OnChanged();
+    }
+
+    /// <inheritdoc />
+    public override void Move(double deltaX, double deltaY) => MoveTo(_x + deltaX, _y + deltaY);
+
+    /// <inheritdoc />
+    protected internal override void Draw(OverlayCanvas canvas)
+    {
+        var corner = ToChart(canvas, _x, _y);
+        var (width, height) = DisplaySize ?? (size.Width, size.Height);
+        var area = new DipRect(corner.X, corner.Y, width, height);
+        canvas.DrawImage(this, pixels, size, area);
+        SetBounds(area);
+    }
+}

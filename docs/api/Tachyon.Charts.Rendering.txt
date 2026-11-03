@@ -1,0 +1,220 @@
+sealed class Tachyon.Charts.Rendering.BufferDesc
+  .ctor(System.Int64 sizeInBytes, Tachyon.Charts.Rendering.BufferUsage usage)
+  System.Int64 SizeInBytes { get; }
+  Tachyon.Charts.Rendering.BufferUsage Usage { get; }
+enum Tachyon.Charts.Rendering.BufferUsage : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  None = 0
+  Storage = 4
+  Uniform = 2
+  Vertex = 1
+sealed class Tachyon.Charts.Rendering.DeviceCapabilities : System.IEquatable<Tachyon.Charts.Rendering.DeviceCapabilities>
+  .ctor()
+  System.Boolean SupportsCompute { get; set; }
+  System.Int32 MaxSampleCount { get; set; }
+  System.Int32 MaxTextureDimension { get; set; }
+  System.Int64 MaxBufferSize { get; set; }
+  System.String BackendName { get; set; }
+sealed class Tachyon.Charts.Rendering.DeviceLostException : System.Exception, System.Runtime.Serialization.ISerializable
+  .ctor()
+  .ctor(System.String message)
+  .ctor(System.String message, System.Exception innerException)
+struct Tachyon.Charts.Rendering.DipSize : System.IEquatable<Tachyon.Charts.Rendering.DipSize>
+  .ctor(System.Double Width, System.Double Height)
+  System.Double Height { get; set; }
+  System.Double Width { get; set; }
+  Tachyon.Charts.Rendering.PixelSize ToPixels(System.Double dpiScale)
+struct Tachyon.Charts.Rendering.GlyphInstance : System.IEquatable<Tachyon.Charts.Rendering.GlyphInstance>
+  .ctor(System.Numerics.Vector2 Position, System.Numerics.Vector2 Size, System.Numerics.Vector2 UvMin, System.Numerics.Vector2 UvMax, Tachyon.Charts.Rendering.Rgba8 Color, System.Single DistanceScale, System.Single Rotation = 0, System.Numerics.Vector2 Pivot = null)
+  System.Numerics.Vector2 Pivot { get; set; }
+  System.Numerics.Vector2 Position { get; set; }
+  System.Numerics.Vector2 Size { get; set; }
+  System.Numerics.Vector2 UvMax { get; set; }
+  System.Numerics.Vector2 UvMin { get; set; }
+  System.Single DistanceScale { get; set; }
+  System.Single Rotation { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+interface Tachyon.Charts.Rendering.ICommandList : System.IDisposable
+  System.Void DrawPolyline(Tachyon.Charts.Rendering.IGpuBuffer points, System.Int32 firstPoint, System.Int32 pointCount, System.Single widthInPixels, Tachyon.Charts.Rendering.Rgba8 color)
+  abstract System.Void Clear(Tachyon.Charts.Rendering.Rgba8 color)
+  abstract System.Void DrawGlyphs(Tachyon.Charts.Rendering.IGpuTexture atlas, System.ReadOnlySpan<Tachyon.Charts.Rendering.GlyphInstance> glyphs)
+  abstract System.Void DrawImage(Tachyon.Charts.Rendering.IGpuTexture image, Tachyon.Charts.Rendering.PixelRect bounds)
+  abstract System.Void DrawMarkers(Tachyon.Charts.Rendering.IGpuBuffer markers, System.Int32 firstMarker, System.Int32 markerCount, in Tachyon.Charts.Rendering.MarkerStyle style)
+  abstract System.Void DrawPolyline(Tachyon.Charts.Rendering.IGpuBuffer points, System.Int32 firstPoint, System.Int32 pointCount, in Tachyon.Charts.Rendering.PolylineStyle style)
+  abstract System.Void DrawRaster(Tachyon.Charts.Rendering.IGpuTexture values, Tachyon.Charts.Rendering.IGpuTexture colormap, Tachyon.Charts.Rendering.PixelRect bounds, in Tachyon.Charts.Rendering.RasterStyle style)
+  abstract System.Void DrawTextPlaceholder(Tachyon.Charts.Rendering.PixelRect bounds, Tachyon.Charts.Rendering.Rgba8 color)
+  abstract System.Void FillLinearGradient(Tachyon.Charts.Rendering.PixelRect bounds, Tachyon.Charts.Rendering.Rgba8 startColor, Tachyon.Charts.Rendering.Rgba8 endColor, System.Boolean vertical)
+  abstract System.Void FillMesh(System.ReadOnlySpan<Tachyon.Charts.Rendering.MeshVertex> vertices, System.Nullable<Tachyon.Charts.Rendering.PixelRect> clip)
+  abstract System.Void FillRectangle(Tachyon.Charts.Rendering.PixelRect bounds, Tachyon.Charts.Rendering.Rgba8 color)
+  abstract System.Void FillTriangle(System.Numerics.Vector2 a, System.Numerics.Vector2 b, System.Numerics.Vector2 c, Tachyon.Charts.Rendering.Rgba8 color)
+  abstract System.Void Submit()
+interface Tachyon.Charts.Rendering.IComputeOperations
+  abstract System.Int64 BinPoints(Tachyon.Charts.Rendering.IGpuBuffer points, System.Int32 count, System.Numerics.Vector2 scale, System.Numerics.Vector2 offset, Tachyon.Charts.Rendering.IGpuTexture target)
+  abstract System.Int64 GenerateContours(Tachyon.Charts.Rendering.IGpuTexture values, System.ReadOnlySpan<System.Single> levels, Tachyon.Charts.Rendering.IGpuBuffer segments)
+  abstract System.Void ReadBuffer<T>(Tachyon.Charts.Rendering.IGpuBuffer buffer, System.Span<T> destination)
+  static System.Int32 ContourSegmentSize
+interface Tachyon.Charts.Rendering.IGpuBuffer : System.IDisposable
+  abstract System.Int64 SizeInBytes { get; }
+  abstract System.Void Write<T>(System.Int64 offsetInBytes, System.ReadOnlySpan<T> data)
+  abstract Tachyon.Charts.Rendering.BufferUsage Usage { get; }
+interface Tachyon.Charts.Rendering.IGpuTexture : System.IDisposable
+  abstract System.Void Write(System.ReadOnlySpan<System.Byte> pixels)
+  abstract System.Void WriteRow(System.Int32 row, System.ReadOnlySpan<System.Byte> pixels)
+  abstract Tachyon.Charts.Rendering.PixelSize Size { get; }
+  abstract Tachyon.Charts.Rendering.TextureFormat Format { get; }
+interface Tachyon.Charts.Rendering.IOffscreenRenderTarget : System.IDisposable, Tachyon.Charts.Rendering.IRenderTarget
+  abstract System.Void ReadPixels(System.Span<Tachyon.Charts.Rendering.Rgba8> destination)
+interface Tachyon.Charts.Rendering.IRenderDevice : System.IDisposable
+  System.Void BeginBatch()
+  System.Void EndBatch()
+  abstract System.Boolean IsLost { get; }
+  abstract System.Int64 DrawCallCount { get; }
+  abstract System.Int64 UploadedByteCount { get; }
+  abstract System.Void SimulateLoss()
+  abstract System.Void WaitForIdle()
+  abstract Tachyon.Charts.Rendering.DeviceCapabilities Capabilities { get; }
+  abstract Tachyon.Charts.Rendering.ICommandList BeginFrame(Tachyon.Charts.Rendering.IRenderTarget target)
+  abstract Tachyon.Charts.Rendering.IComputeOperations Compute { get; }
+  abstract Tachyon.Charts.Rendering.IGpuBuffer CreateBuffer(Tachyon.Charts.Rendering.BufferDesc desc)
+  abstract Tachyon.Charts.Rendering.IGpuTexture CreateTexture(Tachyon.Charts.Rendering.TextureDesc desc)
+  abstract Tachyon.Charts.Rendering.IOffscreenRenderTarget CreateOffscreenTarget(Tachyon.Charts.Rendering.PixelSize size, System.Double dpiScale)
+  abstract Tachyon.Charts.Rendering.ISurfaceRenderTarget CreateSurfaceTarget(Tachyon.Charts.Rendering.NativeSurfaceHandle handle, Tachyon.Charts.Rendering.PixelSize size, System.Double dpiScale)
+interface Tachyon.Charts.Rendering.IRenderTarget : System.IDisposable
+  abstract System.Double DpiScale { get; }
+  abstract Tachyon.Charts.Rendering.PixelSize Size { get; }
+interface Tachyon.Charts.Rendering.ISurfaceRenderTarget : System.IDisposable, Tachyon.Charts.Rendering.IRenderTarget
+  abstract System.Boolean VSync { get; set; }
+  abstract System.Void Resize(Tachyon.Charts.Rendering.PixelSize size, System.Double dpiScale)
+interface Tachyon.Charts.Rendering.ITextEngine
+  abstract System.Int32 Layout(System.ReadOnlySpan<System.Char> text, System.Numerics.Vector2 baseline, System.Single size, Tachyon.Charts.Rendering.Rgba8 color, System.Span<Tachyon.Charts.Rendering.GlyphInstance> glyphs)
+  abstract System.Single GetLineHeight(System.Single size)
+  abstract System.Single MeasureWidth(System.ReadOnlySpan<System.Char> text, System.Single size)
+  abstract Tachyon.Charts.Rendering.IGpuTexture GetAtlas(Tachyon.Charts.Rendering.IRenderDevice device)
+struct Tachyon.Charts.Rendering.MarkerInstance : System.IEquatable<Tachyon.Charts.Rendering.MarkerInstance>
+  .ctor(System.Numerics.Vector2 Position, System.Single Size, Tachyon.Charts.Rendering.Rgba8 Color)
+  System.Numerics.Vector2 Position { get; set; }
+  System.Single Size { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+enum Tachyon.Charts.Rendering.MarkerShape : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Circle = 0
+  Cross = 4
+  Diamond = 3
+  Plus = 5
+  Square = 1
+  Triangle = 2
+struct Tachyon.Charts.Rendering.MarkerStyle : System.IEquatable<Tachyon.Charts.Rendering.MarkerStyle>
+  .ctor(Tachyon.Charts.Rendering.MarkerShape Shape, System.Single BorderWidthInPixels, Tachyon.Charts.Rendering.Rgba8 BorderColor)
+  System.Nullable<Tachyon.Charts.Rendering.PixelRect> Clip { get; set; }
+  System.Numerics.Vector2 Offset { get; set; }
+  System.Numerics.Vector2 Scale { get; set; }
+  System.Single BorderWidthInPixels { get; set; }
+  System.Single SizeScale { get; set; }
+  Tachyon.Charts.Rendering.MarkerShape Shape { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 BorderColor { get; set; }
+struct Tachyon.Charts.Rendering.MeshVertex : System.IEquatable<Tachyon.Charts.Rendering.MeshVertex>
+  .ctor(System.Numerics.Vector2 Position, Tachyon.Charts.Rendering.Rgba8 Color)
+  System.Numerics.Vector2 Position { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+struct Tachyon.Charts.Rendering.NativeSurfaceHandle : System.IEquatable<Tachyon.Charts.Rendering.NativeSurfaceHandle>
+  .ctor(Tachyon.Charts.Rendering.NativeSurfaceKind Kind, System.IntPtr Window, System.IntPtr Display = 0)
+  System.IntPtr Display { get; set; }
+  System.IntPtr Window { get; set; }
+  Tachyon.Charts.Rendering.NativeSurfaceKind Kind { get; set; }
+enum Tachyon.Charts.Rendering.NativeSurfaceKind : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  MetalLayer = 1
+  WaylandSurface = 3
+  Win32Window = 0
+  XlibWindow = 2
+sealed class Tachyon.Charts.Rendering.NullRenderDevice : System.IDisposable, Tachyon.Charts.Rendering.IRenderDevice
+  .ctor(Tachyon.Charts.Rendering.DeviceCapabilities capabilities = null)
+  System.Boolean IsLost { get; }
+  System.Int32 LiveResourceCount { get; }
+  System.Int32 SubmittedFrameCount { get; }
+  System.Int64 DrawCallCount { get; }
+  System.Int64 UploadedByteCount { get; }
+  System.Void Dispose()
+  System.Void SimulateLoss()
+  System.Void WaitForIdle()
+  Tachyon.Charts.Rendering.DeviceCapabilities Capabilities { get; }
+  Tachyon.Charts.Rendering.ICommandList BeginFrame(Tachyon.Charts.Rendering.IRenderTarget target)
+  Tachyon.Charts.Rendering.IComputeOperations Compute { get; }
+  Tachyon.Charts.Rendering.IGpuBuffer CreateBuffer(Tachyon.Charts.Rendering.BufferDesc desc)
+  Tachyon.Charts.Rendering.IGpuTexture CreateTexture(Tachyon.Charts.Rendering.TextureDesc desc)
+  Tachyon.Charts.Rendering.IOffscreenRenderTarget CreateOffscreenTarget(Tachyon.Charts.Rendering.PixelSize size, System.Double dpiScale)
+  Tachyon.Charts.Rendering.ISurfaceRenderTarget CreateSurfaceTarget(Tachyon.Charts.Rendering.NativeSurfaceHandle handle, Tachyon.Charts.Rendering.PixelSize size, System.Double dpiScale)
+struct Tachyon.Charts.Rendering.PixelRect : System.IEquatable<Tachyon.Charts.Rendering.PixelRect>
+  .ctor(System.Single X, System.Single Y, System.Single Width, System.Single Height)
+  System.Single Height { get; set; }
+  System.Single Width { get; set; }
+  System.Single X { get; set; }
+  System.Single Y { get; set; }
+struct Tachyon.Charts.Rendering.PixelSize : System.IEquatable<Tachyon.Charts.Rendering.PixelSize>
+  .ctor(System.Int32 Width, System.Int32 Height)
+  System.Int32 Height { get; set; }
+  System.Int32 Width { get; set; }
+  System.Int64 PixelCount { get; }
+  Tachyon.Charts.Rendering.DipSize ToDips(System.Double dpiScale)
+struct Tachyon.Charts.Rendering.PolylineStyle : System.IEquatable<Tachyon.Charts.Rendering.PolylineStyle>
+  .ctor(System.Single WidthInPixels, Tachyon.Charts.Rendering.Rgba8 Color)
+  System.Nullable<Tachyon.Charts.Rendering.PixelRect> Clip { get; set; }
+  System.Numerics.Vector2 Offset { get; set; }
+  System.Numerics.Vector2 Scale { get; set; }
+  System.Single GlowIntensity { get; set; }
+  System.Single GlowRadius { get; set; }
+  System.Single WidthInPixels { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+  static System.Single Gap
+enum Tachyon.Charts.Rendering.RasterReduction : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Maximum = 2
+  Mean = 1
+  Nearest = 0
+struct Tachyon.Charts.Rendering.RasterStyle : System.IEquatable<Tachyon.Charts.Rendering.RasterStyle>
+  .ctor(System.Single Minimum, System.Single Maximum)
+  System.Boolean IsInterpolated { get; set; }
+  System.Boolean IsLogarithmic { get; set; }
+  System.Int32 RowShift { get; set; }
+  System.Nullable<Tachyon.Charts.Rendering.Rgba8> AboveColor { get; set; }
+  System.Nullable<Tachyon.Charts.Rendering.Rgba8> BelowColor { get; set; }
+  System.Numerics.Vector2 SectionOrigin { get; set; }
+  System.Numerics.Vector2 SectionSize { get; set; }
+  System.Single Maximum { get; set; }
+  System.Single Minimum { get; set; }
+  Tachyon.Charts.Rendering.RasterReduction Reduction { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 MissingColor { get; set; }
+sealed class Tachyon.Charts.Rendering.RendererAttempt : System.IEquatable<Tachyon.Charts.Rendering.RendererAttempt>
+  .ctor(Tachyon.Charts.Rendering.RendererPreference Kind, System.String Failure)
+  System.String Failure { get; set; }
+  Tachyon.Charts.Rendering.RendererPreference Kind { get; set; }
+sealed class Tachyon.Charts.Rendering.RendererCandidate : System.IEquatable<Tachyon.Charts.Rendering.RendererCandidate>
+  .ctor(Tachyon.Charts.Rendering.RendererPreference Kind, System.Func<Tachyon.Charts.Rendering.IRenderDevice> Create)
+  System.Func<Tachyon.Charts.Rendering.IRenderDevice> Create { get; set; }
+  Tachyon.Charts.Rendering.RendererPreference Kind { get; set; }
+enum Tachyon.Charts.Rendering.RendererPreference : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Auto = 0
+  Hardware = 1
+  Skia = 3
+  Software = 2
+sealed class Tachyon.Charts.Rendering.RendererSelection : System.IEquatable<Tachyon.Charts.Rendering.RendererSelection>
+  .ctor(Tachyon.Charts.Rendering.IRenderDevice Device, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Rendering.RendererAttempt> Attempts)
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Rendering.RendererAttempt> Attempts { get; set; }
+  Tachyon.Charts.Rendering.IRenderDevice Device { get; set; }
+static class Tachyon.Charts.Rendering.RendererSelector
+  static System.Collections.Generic.IReadOnlyList<System.String> ParseBlacklist(System.String value)
+  static System.Int32 MinimumTextureDimension
+  static System.Int64 MinimumBufferSize
+  static Tachyon.Charts.Rendering.RendererPreference ParsePreference(System.String value)
+  static Tachyon.Charts.Rendering.RendererSelection Select(Tachyon.Charts.Rendering.RendererPreference preference, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Rendering.RendererCandidate> candidates, System.Collections.Generic.IReadOnlyList<System.String> blacklist = null)
+struct Tachyon.Charts.Rendering.Rgba8 : System.IEquatable<Tachyon.Charts.Rendering.Rgba8>
+  .ctor(System.Byte R, System.Byte G, System.Byte B, System.Byte A)
+  System.Byte A { get; set; }
+  System.Byte B { get; set; }
+  System.Byte G { get; set; }
+  System.Byte R { get; set; }
+sealed class Tachyon.Charts.Rendering.TextureDesc
+  .ctor(Tachyon.Charts.Rendering.PixelSize size, Tachyon.Charts.Rendering.TextureFormat format)
+  System.Int64 SizeInBytes { get; }
+  Tachyon.Charts.Rendering.PixelSize Size { get; }
+  Tachyon.Charts.Rendering.TextureFormat Format { get; }
+enum Tachyon.Charts.Rendering.TextureFormat : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  R32Float = 2
+  R8Unorm = 1
+  Rgba8Unorm = 0

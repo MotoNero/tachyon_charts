@@ -1,0 +1,30 @@
+sealed class Tachyon.Charts.Rendering.Skia.SkiaRenderDevice : System.IDisposable, Tachyon.Charts.Rendering.IRenderDevice
+  .ctor()
+  System.Boolean IsLost { get; }
+  System.Int64 DrawCallCount { get; }
+  System.Int64 UploadedByteCount { get; }
+  System.Void BeginBatch()
+  System.Void Dispose()
+  System.Void DrawLastFrame(Tachyon.Charts.Rendering.IOffscreenRenderTarget target, SkiaSharp.SKCanvas canvas)
+  System.Void EndBatch()
+  System.Void SimulateLoss()
+  System.Void WaitForIdle()
+  Tachyon.Charts.Rendering.DeviceCapabilities Capabilities { get; }
+  Tachyon.Charts.Rendering.ICommandList BeginFrame(Tachyon.Charts.Rendering.IRenderTarget target)
+  Tachyon.Charts.Rendering.IComputeOperations Compute { get; }
+  Tachyon.Charts.Rendering.IGpuBuffer CreateBuffer(Tachyon.Charts.Rendering.BufferDesc desc)
+  Tachyon.Charts.Rendering.IGpuTexture CreateTexture(Tachyon.Charts.Rendering.TextureDesc desc)
+  Tachyon.Charts.Rendering.IOffscreenRenderTarget CreateOffscreenTarget(Tachyon.Charts.Rendering.PixelSize size, System.Double dpiScale)
+  Tachyon.Charts.Rendering.IOffscreenRenderTarget CreateVectorTarget(Tachyon.Charts.Rendering.PixelSize size, System.Double dpiScale)
+  Tachyon.Charts.Rendering.ISurfaceRenderTarget CreateSurfaceTarget(Tachyon.Charts.Rendering.NativeSurfaceHandle handle, Tachyon.Charts.Rendering.PixelSize size, System.Double dpiScale)
+sealed class Tachyon.Charts.Rendering.Skia.SkiaTextEngine : System.IDisposable, Tachyon.Charts.Rendering.ITextEngine
+  .ctor(System.Byte[] fontData)
+  System.Boolean HasGlyph(System.Char character)
+  System.Int32 Layout(System.ReadOnlySpan<System.Char> text, System.Numerics.Vector2 baseline, System.Single size, Tachyon.Charts.Rendering.Rgba8 color, System.Span<Tachyon.Charts.Rendering.GlyphInstance> glyphs)
+  System.Single GetLineHeight(System.Single size)
+  System.Single MeasureWidth(System.ReadOnlySpan<System.Char> text, System.Single size)
+  System.Void Dispose()
+  System.Void ReleaseAtlas(Tachyon.Charts.Rendering.IRenderDevice device)
+  Tachyon.Charts.Rendering.IGpuTexture GetAtlas(Tachyon.Charts.Rendering.IRenderDevice device)
+  static Tachyon.Charts.Rendering.Skia.SkiaTextEngine Default { get; }
+  static Tachyon.Charts.Rendering.Skia.SkiaTextEngine FromSystemFont(System.String familyName)

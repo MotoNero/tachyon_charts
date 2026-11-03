@@ -1,0 +1,267 @@
+sealed class Tachyon.Charts.Wpf.AnnotationEditModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+sealed class Tachyon.Charts.Wpf.AxisDragModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+sealed class Tachyon.Charts.Wpf.BoxAnnotation : Tachyon.Charts.Wpf.ChartAnnotationElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Double X1 { get; set; }
+  System.Double X2 { get; set; }
+  System.Double Y1 { get; set; }
+  System.Double Y2 { get; set; }
+  static System.Windows.DependencyProperty X1Property
+  static System.Windows.DependencyProperty X2Property
+  static System.Windows.DependencyProperty Y1Property
+  static System.Windows.DependencyProperty Y2Property
+sealed class Tachyon.Charts.Wpf.CategoryAxis : Tachyon.Charts.Wpf.ChartAxis, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Collections.Generic.IReadOnlyList<System.String> Categories { get; set; }
+sealed class Tachyon.Charts.Wpf.Chart : System.Windows.FrameworkElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Boolean IsReadback { get; }
+  System.Boolean ShowsDiagnostics { get; set; }
+  System.String GroupName { get; set; }
+  System.String Title { get; set; }
+  System.Threading.Tasks.Task CopyDataAsync()
+  System.Threading.Tasks.Task CopyImageAsync(Tachyon.Charts.Core.Themes.Theme theme = null)
+  System.Threading.Tasks.Task<System.Boolean> PrintAsync(System.String description, Tachyon.Charts.Core.Themes.Theme theme = null)
+  System.Threading.Tasks.Task<System.Byte[]> ExportCsvAsync(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Input.SeriesSelection> selection = null)
+  System.Threading.Tasks.Task<System.Byte[]> ExportPdfAsync(Tachyon.Charts.Export.ExportOptions options = null)
+  System.Threading.Tasks.Task<System.Byte[]> ExportPngAsync(Tachyon.Charts.Export.ExportOptions options = null)
+  System.Threading.Tasks.Task<System.Byte[]> ExportSvgAsync(Tachyon.Charts.Export.ExportOptions options = null)
+  System.TimeSpan ThemeTransition { get; set; }
+  System.Void ToggleDiagnostics()
+  Tachyon.Charts.Core.Themes.Theme Theme { get; set; }
+  Tachyon.Charts.Wpf.Chart Configure(System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder> configure)
+  Tachyon.Charts.Wpf.ChartElementCollection<Tachyon.Charts.Wpf.ChartAnnotationElement> Annotations { get; }
+  Tachyon.Charts.Wpf.ChartElementCollection<Tachyon.Charts.Wpf.ChartAxis> XAxes { get; }
+  Tachyon.Charts.Wpf.ChartElementCollection<Tachyon.Charts.Wpf.ChartAxis> YAxes { get; }
+  Tachyon.Charts.Wpf.ChartElementCollection<Tachyon.Charts.Wpf.ChartModifierElement> Modifiers { get; }
+  Tachyon.Charts.Wpf.ChartElementCollection<Tachyon.Charts.Wpf.ChartSeriesElement> Series { get; }
+  protected virtual System.Collections.IEnumerator LogicalChildren { get; }
+  protected virtual System.Int32 VisualChildrenCount { get; }
+  protected virtual System.Void OnDpiChanged(System.Windows.DpiScale oldDpi, System.Windows.DpiScale newDpi)
+  protected virtual System.Void OnKeyDown(System.Windows.Input.KeyEventArgs e)
+  protected virtual System.Void OnKeyUp(System.Windows.Input.KeyEventArgs e)
+  protected virtual System.Void OnLostMouseCapture(System.Windows.Input.MouseEventArgs e)
+  protected virtual System.Void OnMouseDown(System.Windows.Input.MouseButtonEventArgs e)
+  protected virtual System.Void OnMouseMove(System.Windows.Input.MouseEventArgs e)
+  protected virtual System.Void OnMouseUp(System.Windows.Input.MouseButtonEventArgs e)
+  protected virtual System.Void OnMouseWheel(System.Windows.Input.MouseWheelEventArgs e)
+  protected virtual System.Void OnRenderSizeChanged(System.Windows.SizeChangedInfo sizeInfo)
+  protected virtual System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer()
+  protected virtual System.Windows.Media.Visual GetVisualChild(System.Int32 index)
+  protected virtual System.Windows.Size ArrangeOverride(System.Windows.Size finalSize)
+  protected virtual System.Windows.Size MeasureOverride(System.Windows.Size availableSize)
+  static System.Windows.DependencyProperty GroupNameProperty
+  static System.Windows.DependencyProperty ThemeProperty
+  static System.Windows.DependencyProperty TitleProperty
+  static Tachyon.Charts.Rendering.RendererPreference Renderer { get; set; }
+abstract class Tachyon.Charts.Wpf.ChartAnnotationElement : Tachyon.Charts.Wpf.ChartElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  System.Boolean IsEditable { get; set; }
+  System.String XAxisId { get; set; }
+  System.String YAxisId { get; set; }
+  System.Windows.Media.Color Color { get; set; }
+  protected .ctor()
+  static System.Windows.DependencyProperty ColorProperty
+  static System.Windows.DependencyProperty IsEditableProperty
+  static System.Windows.DependencyProperty XAxisIdProperty
+  static System.Windows.DependencyProperty YAxisIdProperty
+sealed class Tachyon.Charts.Wpf.ChartAutomationPeer : System.Windows.Automation.Peers.FrameworkElementAutomationPeer
+  .ctor(Tachyon.Charts.Wpf.Chart owner)
+  protected virtual System.String GetClassNameCore()
+  protected virtual System.String GetHelpTextCore()
+  protected virtual System.String GetNameCore()
+  protected virtual System.Windows.Automation.Peers.AutomationControlType GetAutomationControlTypeCore()
+abstract class Tachyon.Charts.Wpf.ChartAxis : Tachyon.Charts.Wpf.ChartElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  System.Boolean IsAutoRange { get; set; }
+  System.Boolean IsHidden { get; set; }
+  System.Boolean IsInverted { get; set; }
+  System.Nullable<Tachyon.Charts.Core.Axes.AxisPosition> Position { get; set; }
+  System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> Limits { get; set; }
+  System.String Id { get; set; }
+  System.String Title { get; set; }
+  Tachyon.Charts.Core.Numerics.DoubleRange VisibleRange { get; set; }
+  protected .ctor()
+  static System.Windows.DependencyProperty IdProperty
+  static System.Windows.DependencyProperty IsAutoRangeProperty
+  static System.Windows.DependencyProperty IsInvertedProperty
+  static System.Windows.DependencyProperty LimitsProperty
+  static System.Windows.DependencyProperty PositionProperty
+  static System.Windows.DependencyProperty TitleProperty
+  static System.Windows.DependencyProperty VisibleRangeProperty
+abstract class Tachyon.Charts.Wpf.ChartElement : System.Windows.FrameworkContentElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  protected .ctor()
+sealed class Tachyon.Charts.Wpf.ChartElementCollection<T> : System.Collections.ObjectModel.ObservableCollection<T>, System.Collections.Generic.ICollection<T>, System.Collections.Generic.IEnumerable<T>, System.Collections.Generic.IList<T>, System.Collections.Generic.IReadOnlyCollection<T>, System.Collections.Generic.IReadOnlyList<T>, System.Collections.ICollection, System.Collections.IEnumerable, System.Collections.IList, System.Collections.Specialized.INotifyCollectionChanged, System.ComponentModel.INotifyPropertyChanged
+abstract class Tachyon.Charts.Wpf.ChartModifierElement : Tachyon.Charts.Wpf.ChartElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  protected .ctor()
+abstract class Tachyon.Charts.Wpf.ChartSeriesElement : Tachyon.Charts.Wpf.ChartElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  System.Collections.IEnumerable ItemsSource { get; set; }
+  System.Object DataSource { get; set; }
+  System.String SeriesName { get; set; }
+  System.String XAxisId { get; set; }
+  System.String XPath { get; set; }
+  System.String YAxisId { get; set; }
+  System.String YPath { get; set; }
+  protected .ctor()
+  static System.Windows.DependencyProperty DataSourceProperty
+  static System.Windows.DependencyProperty SeriesNameProperty
+  static System.Windows.DependencyProperty XAxisIdProperty
+  static System.Windows.DependencyProperty YAxisIdProperty
+static class Tachyon.Charts.Wpf.ChartThemes
+  static Tachyon.Charts.Core.Themes.Theme FromResources(System.Windows.ResourceDictionary resources, System.String name, System.String baseName = dark)
+sealed class Tachyon.Charts.Wpf.ChartTooltipContent : System.ComponentModel.INotifyPropertyChanged
+  .ctor()
+  System.Double X { get; }
+  System.Double Y { get; }
+  System.Int64 Index { get; }
+  System.String SeriesName { get; }
+  System.String XText { get; }
+  System.String YText { get; }
+  System.Windows.Media.Brush Accent { get; }
+  System.Windows.Media.Brush Background { get; }
+  System.Windows.Media.Brush Foreground { get; }
+  event System.ComponentModel.PropertyChangedEventHandler PropertyChanged
+sealed class Tachyon.Charts.Wpf.ContourSeries : Tachyon.Charts.Wpf.RasterSeriesElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Boolean IsFilled { get; set; }
+  System.Boolean ShowsLines { get; set; }
+  System.Double XStep { get; set; }
+  System.Double YStep { get; set; }
+  System.Windows.Media.DoubleCollection Levels { get; set; }
+  static System.Windows.DependencyProperty IsFilledProperty
+  static System.Windows.DependencyProperty LevelsProperty
+  static System.Windows.DependencyProperty ShowsLinesProperty
+  static System.Windows.DependencyProperty XStepProperty
+  static System.Windows.DependencyProperty YStepProperty
+sealed class Tachyon.Charts.Wpf.CrosshairModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Boolean SnapToData { get; set; }
+  static System.Windows.DependencyProperty SnapToDataProperty
+sealed class Tachyon.Charts.Wpf.CustomModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Func<Tachyon.Charts.Core.Input.ChartModifier> Factory { get; set; }
+sealed class Tachyon.Charts.Wpf.CustomSeries : Tachyon.Charts.Wpf.ChartSeriesElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Func<Tachyon.Charts.Core.Axes.AxisBase, Tachyon.Charts.Core.Axes.AxisBase, Tachyon.Charts.Core.Pipeline.ChartSeries> Factory { get; set; }
+sealed class Tachyon.Charts.Wpf.DateTimeAxis : Tachyon.Charts.Wpf.ChartAxis, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+sealed class Tachyon.Charts.Wpf.DiagnosticsModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+sealed class Tachyon.Charts.Wpf.HeatmapSeries : Tachyon.Charts.Wpf.RasterSeriesElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Double XStart { get; set; }
+  System.Double XStep { get; set; }
+  System.Double YStart { get; set; }
+  System.Double YStep { get; set; }
+  static System.Windows.DependencyProperty XStartProperty
+  static System.Windows.DependencyProperty XStepProperty
+  static System.Windows.DependencyProperty YStartProperty
+  static System.Windows.DependencyProperty YStepProperty
+sealed class Tachyon.Charts.Wpf.HorizontalLineAnnotation : Tachyon.Charts.Wpf.ChartAnnotationElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Double Y { get; set; }
+  System.String Label { get; set; }
+  static System.Windows.DependencyProperty LabelProperty
+  static System.Windows.DependencyProperty YProperty
+sealed class Tachyon.Charts.Wpf.KeyboardNavigationModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Collections.Generic.Dictionary<Tachyon.Charts.Core.Input.ChartKeyAction, Tachyon.Charts.Core.Input.KeyBinding> Bindings { get; }
+sealed class Tachyon.Charts.Wpf.LegendModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+sealed class Tachyon.Charts.Wpf.LineSeries : Tachyon.Charts.Wpf.ChartSeriesElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Boolean IsSpline { get; set; }
+  System.Boolean IsStep { get; set; }
+  System.Double StrokeThickness { get; set; }
+  System.Windows.Media.Color Stroke { get; set; }
+  System.Windows.Media.DoubleCollection StrokeDashArray { get; set; }
+  static System.Windows.DependencyProperty IsStepProperty
+  static System.Windows.DependencyProperty StrokeDashArrayProperty
+  static System.Windows.DependencyProperty StrokeProperty
+  static System.Windows.DependencyProperty StrokeThicknessProperty
+sealed class Tachyon.Charts.Wpf.LogAxis : Tachyon.Charts.Wpf.ChartAxis, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Double Base { get; set; }
+  Tachyon.Charts.Core.Axes.NonPositiveValues NonPositive { get; set; }
+  static System.Windows.DependencyProperty BaseProperty
+  static System.Windows.DependencyProperty NonPositiveProperty
+sealed class Tachyon.Charts.Wpf.MeasureCursorModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  event System.Action<System.Nullable<Tachyon.Charts.Core.Input.MeasureResult>> Changed
+sealed class Tachyon.Charts.Wpf.NumericAxis : Tachyon.Charts.Wpf.ChartAxis, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+sealed class Tachyon.Charts.Wpf.OverviewModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  Tachyon.Charts.Wpf.Chart Target { get; set; }
+  static System.Windows.DependencyProperty TargetProperty
+abstract class Tachyon.Charts.Wpf.RasterSeriesElement : Tachyon.Charts.Wpf.ChartSeriesElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  System.Boolean IsLogarithmic { get; set; }
+  System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> ColorRange { get; set; }
+  Tachyon.Charts.Core.Colors.Colormap Colormap { get; set; }
+  protected .ctor()
+  static System.Windows.DependencyProperty ColorRangeProperty
+  static System.Windows.DependencyProperty ColormapProperty
+  static System.Windows.DependencyProperty IsLogarithmicProperty
+sealed class Tachyon.Charts.Wpf.RolloverModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+sealed class Tachyon.Charts.Wpf.RubberBandZoomModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Windows.Input.ModifierKeys ModifierKey { get; set; }
+  Tachyon.Charts.Core.Input.ChartDirection Direction { get; set; }
+  static System.Windows.DependencyProperty DirectionProperty
+  static System.Windows.DependencyProperty ModifierKeyProperty
+sealed class Tachyon.Charts.Wpf.ScatterSeries : Tachyon.Charts.Wpf.ChartSeriesElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Double DensityThreshold { get; set; }
+  System.Double MarkerSize { get; set; }
+  System.ReadOnlyMemory<System.Single> PointSizes { get; set; }
+  System.Windows.Media.Color Fill { get; set; }
+  Tachyon.Charts.Core.Colors.Colormap DensityColormap { get; set; }
+  Tachyon.Charts.Rendering.MarkerShape Marker { get; set; }
+  static System.Windows.DependencyProperty DensityColormapProperty
+  static System.Windows.DependencyProperty DensityThresholdProperty
+  static System.Windows.DependencyProperty FillProperty
+  static System.Windows.DependencyProperty MarkerProperty
+  static System.Windows.DependencyProperty MarkerSizeProperty
+sealed class Tachyon.Charts.Wpf.SelectionModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  Tachyon.Charts.Core.Input.SelectionMode Mode { get; set; }
+  event System.Action<System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Input.SeriesSelection>> SelectionChanged
+  static System.Windows.DependencyProperty ModeProperty
+sealed class Tachyon.Charts.Wpf.SpectrogramSeries : Tachyon.Charts.Wpf.RasterSeriesElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Double XStart { get; set; }
+  System.Double XStep { get; set; }
+  System.Double YStep { get; set; }
+  static System.Windows.DependencyProperty XStartProperty
+  static System.Windows.DependencyProperty XStepProperty
+  static System.Windows.DependencyProperty YStepProperty
+sealed class Tachyon.Charts.Wpf.TextAnnotation : Tachyon.Charts.Wpf.ChartAnnotationElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Double X { get; set; }
+  System.Double Y { get; set; }
+  System.String Text { get; set; }
+  static System.Windows.DependencyProperty TextProperty
+  static System.Windows.DependencyProperty XProperty
+  static System.Windows.DependencyProperty YProperty
+sealed class Tachyon.Charts.Wpf.ThemeExtension : System.Windows.Markup.MarkupExtension
+  .ctor()
+  .ctor(System.String name)
+  System.String Name { get; set; }
+  virtual System.Object ProvideValue(System.IServiceProvider serviceProvider)
+sealed class Tachyon.Charts.Wpf.TooltipModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Windows.DataTemplate ItemTemplate { get; set; }
+  static System.Windows.DependencyProperty ItemTemplateProperty
+sealed class Tachyon.Charts.Wpf.VerticalLineAnnotation : Tachyon.Charts.Wpf.ChartAnnotationElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Double X { get; set; }
+  System.String Label { get; set; }
+  static System.Windows.DependencyProperty LabelProperty
+  static System.Windows.DependencyProperty XProperty
+sealed class Tachyon.Charts.Wpf.ZoomPanModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  Tachyon.Charts.Core.Input.ChartDirection PanDirection { get; set; }
+  Tachyon.Charts.Core.Input.ChartDirection ZoomDirection { get; set; }
+  static System.Windows.DependencyProperty PanDirectionProperty
+  static System.Windows.DependencyProperty ZoomDirectionProperty

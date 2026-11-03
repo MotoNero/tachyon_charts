@@ -1,0 +1,6 @@
+# LF everywhere: dotnet format runs on all platforms and would otherwise flag core.autocrlf checkouts.
+* text=auto eol=lf
+
+*.png binary
+*.sln text eol=crlf
+*.ttf binary

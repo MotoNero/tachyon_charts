@@ -1,0 +1,214 @@
+# Tachyon Charts
+
+GPU-accelerated 2D and 3D charts for .NET 10, built for test and measurement, laboratory and scientific work. Runs in WPF and Avalonia on WebGPU, with a CPU fallback through Skia.
+
+![The showroom app with a four-channel oscilloscope](docs/images/app-oscilloscope.png)
+
+> **Status:** preview, see [Releases](../../releases). The API can still change.
+
+## Highlights
+
+- **Fast:** 100 million points per line, 10 million scatter points, 4096 × 4096 spectrograms, all at interactive rates
+- **Live:** stream from any thread without blocking the display
+- **Instruments included:** oscilloscope with trigger and persistence, spectrum analyzer with spectrogram and masks, network analyzer
+- **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap, contour
+- **3D as an add-on:** surfaces, waterfalls, antenna patterns, point clouds of 100 million points and volumes, live and with values under the pointer
+- **Runs everywhere:** GPU, software adapter or CPU, chosen automatically, also over remote desktop
+- **Ready for reports:** export to PNG, SVG, PDF and CSV, clipboard and printing
+
+## Gallery
+
+### Instruments
+
+| Spectrum analyzer | Network analyzer |
+|---|---|
+| ![Spectrum analyzer with a spectrogram below it](docs/images/app-spectrum.png) | ![S-parameters of a band-pass filter with limit lines and markers](docs/images/network.png) |
+
+| Color grading | Smith chart |
+|---|---|
+| ![Oscilloscope trace with a color-graded density](docs/images/color-grade.png) | ![Smith chart with a marker](docs/images/smith.png) |
+
+### Large data
+
+| Heatmap | Filled contour | 50 million points |
+|---|---|---|
+| ![Heatmap of 4096 by 4096 cells](docs/images/heatmap.png) | ![Filled contour plot](docs/images/contour.png) | ![Point cloud shown as density](docs/images/point-cloud.png) |
+
+### Chart types
+
+| Bars | Stacked areas | Bubbles |
+|---|---|---|
+| ![Grouped bars](docs/images/bars.png) | ![Stacked areas](docs/images/stacked-area.png) | ![Bubble chart](docs/images/bubble.png) |
+
+| Violin | Error bars | Parallel coordinates |
+|---|---|---|
+| ![Violin plot](docs/images/violin.png) | ![Measurements with error bars](docs/images/error-bars.png) | ![Parallel coordinates with 20,000 rows](docs/images/app-parallel.png) |
+
+| Polar | Radar | Ternary |
+|---|---|---|
+| ![Polar chart](docs/images/polar.png) | ![Radar chart](docs/images/radar.png) | ![Ternary plot](docs/images/ternary.png) |
+
+### 3D
+
+| Surface with height lines | Waterfall | Antenna pattern |
+|---|---|---|
+| ![Surface of 4096 by 4096 values with height lines](docs/images/3d-surface.png) | ![Waterfall of a spectrum](docs/images/3d-waterfall.png) | ![Antenna gain as a shape with main lobe and half-power ring](docs/images/3d-antenna.png) |
+
+| Map from measurements | Lines | Scatter |
+|---|---|---|
+| ![Temperature over speed and load from uneven measured points](docs/images/3d-map.png) | ![Path of a particle as a line in space](docs/images/3d-lines.png) | ![Three clouds with a size and color per point](docs/images/3d-scatter.png) |
+
+| Columns | Point cloud | Cut planes |
+|---|---|---|
+| ![Columns over a raster with a color by value](docs/images/3d-bars.png) | ![Scanned landscape as a point cloud](docs/images/3d-cloud.png) | ![One plane cuts a line, a cloud and columns](docs/images/3d-cut-planes.png) |
+
+| Volume slices | Through a volume | Objects inside a volume |
+|---|---|---|
+| ![Three draggable slices through a body](docs/images/3d-volume-slices.png) | ![Looking through a body with bright spots inside](docs/images/3d-volume-through.png) | ![A surface and a line inside a volume](docs/images/3d-volume-objects.png) |
+
+### Themes
+
+Seven built-in themes, plus your own from JSON or XAML resources. Themes apply to every chart type, including the instruments.
+
+| Neon | Paper | Instrument |
+|---|---|---|
+| ![Neon theme](docs/images/theme-neon.png) | ![Paper theme](docs/images/theme-paper.png) | ![Instrument theme](docs/images/theme-instrument.png) |
+
+## Features
+
+- Lines, scatter and density, bubbles, area, band, bars, error bars, stems, histogram, box plot, violin
+- Numeric, time, logarithmic and category axes, stacked panes, linked charts
+- Zoom, pan, crosshair, tooltip, lasso selection, measuring cursors, annotations, undo
+- Signal tools without dependencies: FFT, FIR and biquad filters, generators
+- English and German texts in the instruments, switchable at runtime
+
+### 3D
+
+3D is an add-on: the packages `Tachyon.Charts.ThreeD`, `.ThreeD.Wpf` and `.ThreeD.Avalonia` build on the 2D charts, and the 2D packages know nothing about them. It needs a real GPU. Without one, the chart shows a clear note.
+
+- **Surfaces:** up to 4096 × 4096 values, gaps, light and gloss, transparent surfaces without sorting, height lines on the surface, the floor and the walls
+- **Waterfall:** live from the spectrum analyzer, as a surface or as single lines
+- **Antenna pattern:** gain over azimuth and elevation as a closed shape, dB scale with an adjustable floor, main lobe and half-power marks, cuts for 2D polar charts
+- **Maps from measurements:** uneven points become a surface through a triangulation of its own
+- **Lines:** constant width on the screen, clean bends, gaps at `NaN`, live streams
+- **Scatter:** a size and color per point, a million new points per second from a measuring thread, oldest points fall out
+- **Columns:** over a raster, with a color by value and the same light as surfaces
+- **Point clouds:** an octree forms in the background, a coarse picture shows at once, and the density never jumps. Files in XYZ, PLY and LAS through `Tachyon.Charts.ThreeD.Files`
+- **Volumes:** 8 bit, 16 bit and floating point, three draggable slices, looking through with a transfer function that you edit in the chart, correct depth against other objects
+- **Operation:** turn, move and zoom in perspective or parallel view, values under the pointer with unit and language, markers, up to four cut planes at any angle, cuts as data for 2D charts
+
+## Quick start
+
+```csharp
+using Tachyon.Charts.Core.Data;
+using Tachyon.Charts.Wpf; // or Tachyon.Charts.Avalonia
+
+var data = new DataSource<double, double>();
+for (var i = 0; i < 1000; i++)
+{
+    data.Append(i * 0.01, Math.Sin(i * 0.01));
+}
+
+var chart = new Chart().Configure(c => c
+    .Title("Signal")
+    .XAxis(a => a.Numeric("x").Title("Time in s").AutoRange())
+    .YAxis(a => a.Numeric("y").Title("Value").AutoRange())
+    .AddLine(data, s => s.Thickness(2))
+    .Modifiers(m => m.ZoomPan().RubberBand().Crosshair().Tooltip()));
+```
+
+An oscilloscope is just as short:
+
+```csharp
+var display = new ScopeDisplay { TimePerDivision = 1e-3 };
+var channel = display.AddChannel();
+chart.Configure(c => c.Oscilloscope(display).Theme(BuiltInThemes.Instrument));
+
+channel.SetWaveform(time, volts); // from your measuring thread
+```
+
+A surface in 3D:
+
+```csharp
+using Tachyon.Charts.Core.Data;
+using Tachyon.Charts.Core.Numerics;
+using Tachyon.Charts.ThreeD.Scene;
+using Tachyon.Charts.ThreeD.Wpf; // or Tachyon.Charts.ThreeD.Avalonia
+
+var heights = new HeatmapData(512, 512);
+heights.SetValues(values); // 512 × 512 floats
+
+var chart = new Chart3D().Configure(c => c
+    .Title("Surface")
+    .XAxis(0, 10, "x in mm").YAxis(0, 10, "y in mm").ZAxis(-1, 1, "Height in µm")
+    .AddSurface(new Surface3D(heights, new DoubleRange(0, 10), new DoubleRange(0, 10))
+    {
+        Contours = Contours3D.Even(new DoubleRange(-1, 1), 12),
+    }));
+```
+
+## Try it
+
+The easiest way: download the showroom from [Releases](../../releases), unpack the zip and start the `.exe`. No .NET needed.
+
+From source, with the .NET 10 SDK:
+
+```bash
+dotnet run --project samples/Tachyon.Charts.Samples.Wpf -c Release
+dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
+```
+
+The showroom lists the interactive pages, the instruments and all scenes. Theme and language are at the top right.
+
+## Performance
+
+Offscreen on an RTX 4070 Laptop GPU at 4K.
+
+| Scenario | Result |
+|---|---:|
+| Line, 100 million points, zoom and pan | 158 FPS |
+| Scatter, 10 million points with own colors | 79 FPS |
+| Streaming, 10 series at 100k points/s | 147 FPS |
+| Spectrogram 4096 × 4096 | 270 FPS |
+| Nearest point, 100 million points | 0.4 ms |
+
+3D, offscreen on the same GPU at full HD while the view turns:
+
+| Scenario | Result |
+|---|---:|
+| Surface 4096 × 4096 | 7.1 ms per frame |
+| Lines, 10 million points | 83 FPS |
+| Scatter, 10 million points with own colors | 85 FPS |
+| Columns, 1 million | 102 FPS |
+| Point cloud, 100 million points | 60 FPS, in a real window as well |
+| Live cloud, 20 million points, a million new per second | 67 FPS |
+| Through a volume, 512³ with 16 bits | 185 FPS |
+| Value under the pointer, surface of 4096 × 4096 | 25 µs |
+
+Measured on a laptop GPU only. A point cloud draws at most 30 million points per frame and lowers this number by itself when the GPU needs more time than a frame has.
+
+To measure a window on your own machine, set `TACHYON_FRAME_LOG` to a file and start the showroom with a page and `--turn`, which turns the view without a mouse. `--near` zooms in first.
+
+In real windows with 8 live charts: 56 FPS on the GPU, 21.6 FPS on the CPU.
+
+Known gaps: a dashboard of 50 charts that all change per frame reaches 7 FPS instead of the targeted 60, and the CPU fallback misses its targets for streaming and for large scatter plots.
+
+## Build
+
+```bash
+dotnet build Tachyon.Charts.sln -c Release
+dotnet run --project samples/Tachyon.Charts.Samples.Wpf -c Release
+dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
+```
+
+## Documentation
+
+| Document | Content |
+|---|---|
+| [docs/guide](docs/guide/README.md) | User guide |
+| [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
+| [docs/api](docs/api) | Public API lists |
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE).

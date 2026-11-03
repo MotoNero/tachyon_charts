@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Tachyon.Charts.Rendering/Tachyon.Charts.Rendering.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Tachyon.Charts.Core.Tests" />
+    <InternalsVisibleTo Include="Tachyon.Charts.Benchmarks" />
+  </ItemGroup>
+
+</Project>

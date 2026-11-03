@@ -1,0 +1,197 @@
+sealed class Tachyon.Charts.Avalonia.AnnotationEditModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+static class Tachyon.Charts.Avalonia.AvaloniaAssemblyMarker
+  static System.String AssemblyName { get; }
+sealed class Tachyon.Charts.Avalonia.AxisDragModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+sealed class Tachyon.Charts.Avalonia.CategoryAxis : Tachyon.Charts.Avalonia.ChartAxis, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  System.Collections.Generic.IReadOnlyList<System.String> Categories { get; set; }
+sealed class Tachyon.Charts.Avalonia.Chart : Avalonia.Controls.Control, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.Controls.Templates.IDataTemplateHost, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.Input.IInputElement, Avalonia.LogicalTree.ILogical, Avalonia.Styling.ISetterValue, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  System.Boolean IsReadback { get; }
+  System.Boolean ShowsDiagnostics { get; set; }
+  System.String GroupName { get; set; }
+  System.String Title { get; set; }
+  System.Threading.Tasks.Task CopyDataAsync()
+  System.Threading.Tasks.Task CopyImageAsync(Tachyon.Charts.Core.Themes.Theme theme = null)
+  System.Threading.Tasks.Task<System.Byte[]> ExportCsvAsync(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Input.SeriesSelection> selection = null)
+  System.Threading.Tasks.Task<System.Byte[]> ExportPdfAsync(Tachyon.Charts.Export.ExportOptions options = null)
+  System.Threading.Tasks.Task<System.Byte[]> ExportPngAsync(Tachyon.Charts.Export.ExportOptions options = null)
+  System.Threading.Tasks.Task<System.Byte[]> ExportSvgAsync(Tachyon.Charts.Export.ExportOptions options = null)
+  System.TimeSpan ThemeTransition { get; set; }
+  System.Void ToggleDiagnostics()
+  Tachyon.Charts.Avalonia.Chart Configure(System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder> configure)
+  Tachyon.Charts.Avalonia.ChartElementCollection<Tachyon.Charts.Avalonia.ChartAxis> XAxes { get; }
+  Tachyon.Charts.Avalonia.ChartElementCollection<Tachyon.Charts.Avalonia.ChartAxis> YAxes { get; }
+  Tachyon.Charts.Avalonia.ChartElementCollection<Tachyon.Charts.Avalonia.ChartModifierElement> Modifiers { get; }
+  Tachyon.Charts.Avalonia.ChartElementCollection<Tachyon.Charts.Avalonia.ChartSeriesElement> Series { get; }
+  Tachyon.Charts.Core.Themes.Theme ChartTheme { get; set; }
+  protected virtual Avalonia.Automation.Peers.AutomationPeer OnCreateAutomationPeer()
+  protected virtual System.Void OnKeyDown(Avalonia.Input.KeyEventArgs e)
+  protected virtual System.Void OnKeyUp(Avalonia.Input.KeyEventArgs e)
+  protected virtual System.Void OnLoaded(Avalonia.Interactivity.RoutedEventArgs e)
+  protected virtual System.Void OnPointerCaptureLost(Avalonia.Input.PointerCaptureLostEventArgs e)
+  protected virtual System.Void OnPointerExited(Avalonia.Input.PointerEventArgs e)
+  protected virtual System.Void OnPointerMoved(Avalonia.Input.PointerEventArgs e)
+  protected virtual System.Void OnPointerPressed(Avalonia.Input.PointerPressedEventArgs e)
+  protected virtual System.Void OnPointerReleased(Avalonia.Input.PointerReleasedEventArgs e)
+  protected virtual System.Void OnPointerWheelChanged(Avalonia.Input.PointerWheelEventArgs e)
+  protected virtual System.Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs change)
+  protected virtual System.Void OnSizeChanged(Avalonia.Controls.SizeChangedEventArgs e)
+  protected virtual System.Void OnUnloaded(Avalonia.Interactivity.RoutedEventArgs e)
+  static Avalonia.StyledProperty<System.String> GroupNameProperty
+  static Avalonia.StyledProperty<System.String> TitleProperty
+  static Avalonia.StyledProperty<Tachyon.Charts.Core.Themes.Theme> ChartThemeProperty
+  static Tachyon.Charts.Rendering.RendererPreference Renderer { get; set; }
+  virtual System.Void Render(Avalonia.Media.DrawingContext context)
+sealed class Tachyon.Charts.Avalonia.ChartAutomationPeer : Avalonia.Automation.Peers.ControlAutomationPeer
+  .ctor(Tachyon.Charts.Avalonia.Chart owner)
+  protected virtual Avalonia.Automation.Peers.AutomationControlType GetAutomationControlTypeCore()
+  protected virtual System.String GetClassNameCore()
+  protected virtual System.String GetHelpTextCore()
+  protected virtual System.String GetNameCore()
+abstract class Tachyon.Charts.Avalonia.ChartAxis : Tachyon.Charts.Avalonia.ChartElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  System.Boolean IsAutoRange { get; set; }
+  System.Boolean IsHidden { get; set; }
+  System.Boolean IsInverted { get; set; }
+  System.Nullable<Tachyon.Charts.Core.Axes.AxisPosition> Position { get; set; }
+  System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> Limits { get; set; }
+  System.String Id { get; set; }
+  System.String Title { get; set; }
+  Tachyon.Charts.Core.Numerics.DoubleRange VisibleRange { get; set; }
+  protected .ctor()
+  protected virtual System.Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs change)
+  static Avalonia.StyledProperty<System.Boolean> IsAutoRangeProperty
+  static Avalonia.StyledProperty<System.Boolean> IsInvertedProperty
+  static Avalonia.StyledProperty<System.Nullable<Tachyon.Charts.Core.Axes.AxisPosition>> PositionProperty
+  static Avalonia.StyledProperty<System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange>> LimitsProperty
+  static Avalonia.StyledProperty<System.String> IdProperty
+  static Avalonia.StyledProperty<System.String> TitleProperty
+  static Avalonia.StyledProperty<Tachyon.Charts.Core.Numerics.DoubleRange> VisibleRangeProperty
+abstract class Tachyon.Charts.Avalonia.ChartElement : Avalonia.StyledElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  protected .ctor()
+sealed class Tachyon.Charts.Avalonia.ChartElementCollection<T> : System.Collections.ObjectModel.ObservableCollection<T>, System.Collections.Generic.ICollection<T>, System.Collections.Generic.IEnumerable<T>, System.Collections.Generic.IList<T>, System.Collections.Generic.IReadOnlyCollection<T>, System.Collections.Generic.IReadOnlyList<T>, System.Collections.ICollection, System.Collections.IEnumerable, System.Collections.IList, System.Collections.Specialized.INotifyCollectionChanged, System.ComponentModel.INotifyPropertyChanged
+abstract class Tachyon.Charts.Avalonia.ChartModifierElement : Tachyon.Charts.Avalonia.ChartElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  protected .ctor()
+  protected virtual System.Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs change)
+abstract class Tachyon.Charts.Avalonia.ChartSeriesElement : Tachyon.Charts.Avalonia.ChartElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  System.Collections.IEnumerable ItemsSource { get; set; }
+  System.Object DataSource { get; set; }
+  System.String SeriesName { get; set; }
+  System.String XAxisId { get; set; }
+  System.String XPath { get; set; }
+  System.String YAxisId { get; set; }
+  System.String YPath { get; set; }
+  protected .ctor()
+  protected virtual System.Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs change)
+  static Avalonia.StyledProperty<System.Object> DataSourceProperty
+  static Avalonia.StyledProperty<System.String> SeriesNameProperty
+  static Avalonia.StyledProperty<System.String> XAxisIdProperty
+  static Avalonia.StyledProperty<System.String> YAxisIdProperty
+static class Tachyon.Charts.Avalonia.ChartThemes
+  static Tachyon.Charts.Core.Themes.Theme FromResources(Avalonia.Controls.IResourceDictionary resources, System.String name, System.String baseName = dark)
+sealed class Tachyon.Charts.Avalonia.ContourSeries : Tachyon.Charts.Avalonia.RasterSeriesElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  System.Boolean IsFilled { get; set; }
+  System.Boolean ShowsLines { get; set; }
+  System.Collections.Generic.IReadOnlyList<System.Double> Levels { get; set; }
+  static Avalonia.StyledProperty<System.Boolean> IsFilledProperty
+  static Avalonia.StyledProperty<System.Boolean> ShowsLinesProperty
+sealed class Tachyon.Charts.Avalonia.CrosshairModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  System.Boolean SnapToData { get; set; }
+  static Avalonia.StyledProperty<System.Boolean> SnapToDataProperty
+sealed class Tachyon.Charts.Avalonia.CustomModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  System.Func<Tachyon.Charts.Core.Input.ChartModifier> Factory { get; set; }
+sealed class Tachyon.Charts.Avalonia.CustomSeries : Tachyon.Charts.Avalonia.ChartSeriesElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  System.Func<Tachyon.Charts.Core.Axes.AxisBase, Tachyon.Charts.Core.Axes.AxisBase, Tachyon.Charts.Core.Pipeline.ChartSeries> Factory { get; set; }
+sealed class Tachyon.Charts.Avalonia.DateTimeAxis : Tachyon.Charts.Avalonia.ChartAxis, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+sealed class Tachyon.Charts.Avalonia.DiagnosticsModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+sealed class Tachyon.Charts.Avalonia.HeatmapSeries : Tachyon.Charts.Avalonia.RasterSeriesElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  System.Double XStart { get; set; }
+  System.Double YStart { get; set; }
+sealed class Tachyon.Charts.Avalonia.KeyboardNavigationModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  System.Collections.Generic.Dictionary<Tachyon.Charts.Core.Input.ChartKeyAction, Tachyon.Charts.Core.Input.KeyBinding> Bindings { get; }
+sealed class Tachyon.Charts.Avalonia.LegendModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+sealed class Tachyon.Charts.Avalonia.LineSeries : Tachyon.Charts.Avalonia.ChartSeriesElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  Avalonia.Media.Color Stroke { get; set; }
+  System.Boolean IsSpline { get; set; }
+  System.Boolean IsStep { get; set; }
+  System.Collections.Generic.IReadOnlyList<System.Single> StrokeDashArray { get; set; }
+  System.Double StrokeThickness { get; set; }
+  static Avalonia.StyledProperty<Avalonia.Media.Color> StrokeProperty
+  static Avalonia.StyledProperty<System.Boolean> IsStepProperty
+  static Avalonia.StyledProperty<System.Double> StrokeThicknessProperty
+sealed class Tachyon.Charts.Avalonia.LogAxis : Tachyon.Charts.Avalonia.ChartAxis, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  System.Double Base { get; set; }
+  Tachyon.Charts.Core.Axes.NonPositiveValues NonPositive { get; set; }
+  static Avalonia.StyledProperty<System.Double> BaseProperty
+  static Avalonia.StyledProperty<Tachyon.Charts.Core.Axes.NonPositiveValues> NonPositiveProperty
+sealed class Tachyon.Charts.Avalonia.MeasureCursorModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  event System.Action<System.Nullable<Tachyon.Charts.Core.Input.MeasureResult>> Changed
+sealed class Tachyon.Charts.Avalonia.NumericAxis : Tachyon.Charts.Avalonia.ChartAxis, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+sealed class Tachyon.Charts.Avalonia.OverviewModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  Tachyon.Charts.Avalonia.Chart Target { get; set; }
+  static Avalonia.StyledProperty<Tachyon.Charts.Avalonia.Chart> TargetProperty
+abstract class Tachyon.Charts.Avalonia.RasterSeriesElement : Tachyon.Charts.Avalonia.ChartSeriesElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  System.Boolean IsLogarithmic { get; set; }
+  System.Double XStep { get; set; }
+  System.Double YStep { get; set; }
+  System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> ColorRange { get; set; }
+  Tachyon.Charts.Core.Colors.Colormap Colormap { get; set; }
+  protected .ctor()
+  static Avalonia.StyledProperty<System.Boolean> IsLogarithmicProperty
+  static Avalonia.StyledProperty<System.Double> XStepProperty
+  static Avalonia.StyledProperty<System.Double> YStepProperty
+  static Avalonia.StyledProperty<System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange>> ColorRangeProperty
+  static Avalonia.StyledProperty<Tachyon.Charts.Core.Colors.Colormap> ColormapProperty
+sealed class Tachyon.Charts.Avalonia.RolloverModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+sealed class Tachyon.Charts.Avalonia.RubberBandZoomModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  Tachyon.Charts.Core.Input.ChartDirection Direction { get; set; }
+  Tachyon.Charts.Core.Input.InputModifiers ModifierKey { get; set; }
+  static Avalonia.StyledProperty<Tachyon.Charts.Core.Input.ChartDirection> DirectionProperty
+  static Avalonia.StyledProperty<Tachyon.Charts.Core.Input.InputModifiers> ModifierKeyProperty
+sealed class Tachyon.Charts.Avalonia.ScatterSeries : Tachyon.Charts.Avalonia.ChartSeriesElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  Avalonia.Media.Color Fill { get; set; }
+  System.Double DensityThreshold { get; set; }
+  System.Double MarkerSize { get; set; }
+  System.ReadOnlyMemory<System.Single> PointSizes { get; set; }
+  Tachyon.Charts.Core.Colors.Colormap DensityColormap { get; set; }
+  Tachyon.Charts.Rendering.MarkerShape Marker { get; set; }
+  static Avalonia.StyledProperty<Avalonia.Media.Color> FillProperty
+  static Avalonia.StyledProperty<System.Double> DensityThresholdProperty
+  static Avalonia.StyledProperty<System.Double> MarkerSizeProperty
+  static Avalonia.StyledProperty<Tachyon.Charts.Core.Colors.Colormap> DensityColormapProperty
+  static Avalonia.StyledProperty<Tachyon.Charts.Rendering.MarkerShape> MarkerProperty
+sealed class Tachyon.Charts.Avalonia.SelectionModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  Tachyon.Charts.Core.Input.SelectionMode Mode { get; set; }
+  event System.Action<System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Input.SeriesSelection>> SelectionChanged
+  static Avalonia.StyledProperty<Tachyon.Charts.Core.Input.SelectionMode> ModeProperty
+sealed class Tachyon.Charts.Avalonia.SpectrogramSeries : Tachyon.Charts.Avalonia.RasterSeriesElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  System.Double XStart { get; set; }
+sealed class Tachyon.Charts.Avalonia.TooltipModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+sealed class Tachyon.Charts.Avalonia.ZoomPanModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  Tachyon.Charts.Core.Input.ChartDirection PanDirection { get; set; }
+  Tachyon.Charts.Core.Input.ChartDirection ZoomDirection { get; set; }
+  static Avalonia.StyledProperty<Tachyon.Charts.Core.Input.ChartDirection> PanDirectionProperty
+  static Avalonia.StyledProperty<Tachyon.Charts.Core.Input.ChartDirection> ZoomDirectionProperty

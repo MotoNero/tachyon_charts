@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- The WebGPU bindings expose raw native pointers. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Shaders/*.wgsl" LogicalName="%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Tachyon.Charts.Rendering.Tests" />
+    <InternalsVisibleTo Include="Tachyon.Charts.VisualTests" />
+    <InternalsVisibleTo Include="Tachyon.Charts.Spikes.WebGpu3d" />
+    <InternalsVisibleTo Include="Tachyon.Charts.ThreeD" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Silk.NET.WebGPU" />
+    <PackageReference Include="Silk.NET.WebGPU.Extensions.WGPU" />
+    <PackageReference Include="Silk.NET.WebGPU.Native.WGPU" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Tachyon.Charts.Rendering/Tachyon.Charts.Rendering.csproj" />
+  </ItemGroup>
+
+</Project>

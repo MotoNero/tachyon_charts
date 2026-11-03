@@ -1,0 +1,322 @@
+sealed class Tachyon.Charts.ThreeD.Chart3DBuilder
+  .ctor()
+  System.Void Apply(Tachyon.Charts.Core.Fluent.ChartBuilder builder)
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddAntenna(Tachyon.Charts.ThreeD.Scene.AntennaPattern3D antenna)
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddBars(Tachyon.Charts.ThreeD.Scene.Bars3D bars)
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddCloud(Tachyon.Charts.ThreeD.Scene.PointCloud3D cloud)
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddCut(Tachyon.Charts.ThreeD.Scene.CutCurveFeed feed)
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddLine(Tachyon.Charts.ThreeD.Scene.Line3D line)
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddMap(Tachyon.Charts.ThreeD.Scene.MeasuredMap3D map)
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddMesh(Tachyon.Charts.ThreeD.Scene.Mesh3D mesh)
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddPlane(Tachyon.Charts.ThreeD.Scene.ClipPlane3D plane)
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddScatter(Tachyon.Charts.ThreeD.Scene.Scatter3D scatter)
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddSurface(Tachyon.Charts.ThreeD.Scene.Surface3D surface)
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddVolume(Tachyon.Charts.ThreeD.Scene.Volume3D volume)
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddWaterfall(Tachyon.Charts.ThreeD.Scene.Waterfall3D waterfall)
+  Tachyon.Charts.ThreeD.Chart3DBuilder Group(System.String name)
+  Tachyon.Charts.ThreeD.Chart3DBuilder Projection(Tachyon.Charts.ThreeD.Scene.CameraProjection projection)
+  Tachyon.Charts.ThreeD.Chart3DBuilder Theme(Tachyon.Charts.Core.Themes.Theme theme)
+  Tachyon.Charts.ThreeD.Chart3DBuilder Title(System.String title)
+  Tachyon.Charts.ThreeD.Chart3DBuilder XAxis(System.Double minimum, System.Double maximum, System.String title = null)
+  Tachyon.Charts.ThreeD.Chart3DBuilder XAxis(Tachyon.Charts.Core.Axes.AxisBase axis)
+  Tachyon.Charts.ThreeD.Chart3DBuilder YAxis(System.Double minimum, System.Double maximum, System.String title = null)
+  Tachyon.Charts.ThreeD.Chart3DBuilder YAxis(Tachyon.Charts.Core.Axes.AxisBase axis)
+  Tachyon.Charts.ThreeD.Chart3DBuilder ZAxis(System.Double minimum, System.Double maximum, System.String title = null)
+  Tachyon.Charts.ThreeD.Chart3DBuilder ZAxis(Tachyon.Charts.Core.Axes.AxisBase axis)
+  Tachyon.Charts.ThreeD.Scene.Scene3D Scene { get; }
+sealed class Tachyon.Charts.ThreeD.CutMarkerModifier : Tachyon.Charts.Core.Input.ChartModifier
+  .ctor(Tachyon.Charts.ThreeD.Scene.CutCurveFeed feed)
+  protected virtual System.Void OnCaptureLost(Tachyon.Charts.Core.Input.InputCapture capture)
+  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnKey(in Tachyon.Charts.Core.Input.KeyInputEvent input)
+  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
+  static System.Int32 DefaultPriority
+sealed class Tachyon.Charts.ThreeD.CutMarkerOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
+  .ctor(Tachyon.Charts.ThreeD.Scene.CutCurveFeed feed, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  protected virtual System.Int64 ExternalVersion { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
+  static Tachyon.Charts.ThreeD.CutMarkerOverlay For(Tachyon.Charts.ThreeD.Scene.CutCurveFeed feed, Tachyon.Charts.Core.Pipeline.ChartSurface chart)
+static class Tachyon.Charts.ThreeD.Gpu3d
+  static System.String UnavailableText { get; }
+  static Tachyon.Charts.ThreeD.Gpu3dStatus Status { get; }
+sealed class Tachyon.Charts.ThreeD.Gpu3dStatus : System.IEquatable<Tachyon.Charts.ThreeD.Gpu3dStatus>
+  .ctor(System.Boolean IsAvailable, System.String Adapter)
+  System.Boolean IsAvailable { get; set; }
+  System.String Adapter { get; set; }
+struct Tachyon.Charts.ThreeD.Scene.AntennaCut : System.IEquatable<Tachyon.Charts.ThreeD.Scene.AntennaCut>
+  .ctor(System.Double[] Angles, System.Double[] Values)
+  System.Double[] Angles { get; set; }
+  System.Double[] Values { get; set; }
+struct Tachyon.Charts.ThreeD.Scene.AntennaLobe : System.IEquatable<Tachyon.Charts.ThreeD.Scene.AntennaLobe>
+  .ctor(System.Double Azimuth, System.Double Elevation, System.Double Gain, System.Double AzimuthWidth, System.Double ElevationWidth)
+  System.Double Azimuth { get; set; }
+  System.Double AzimuthWidth { get; set; }
+  System.Double Elevation { get; set; }
+  System.Double ElevationWidth { get; set; }
+  System.Double Gain { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.AntennaPattern3D
+  .ctor(System.Double[] azimuths, System.Double[] elevations, System.Double[] gains)
+  System.Double DynamicRange { get; set; }
+  System.Double Floor { get; }
+  System.Double[] Azimuths { get; }
+  System.Double[] Elevations { get; }
+  System.Double[] Gains { get; }
+  Tachyon.Charts.Core.Colors.Colormap Colormap { get; set; }
+  Tachyon.Charts.ThreeD.Scene.AntennaCut AzimuthCut(System.Double elevation)
+  Tachyon.Charts.ThreeD.Scene.AntennaCut ElevationCut(System.Double azimuth)
+  Tachyon.Charts.ThreeD.Scene.AntennaLobe MainLobe { get; }
+  Tachyon.Charts.ThreeD.Scene.Material3D Material { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.Bars3D
+  .ctor(Tachyon.Charts.Core.Data.HeatmapData data, Tachyon.Charts.Core.Numerics.DoubleRange x, Tachyon.Charts.Core.Numerics.DoubleRange y)
+  System.Double Baseline { get; set; }
+  System.Double Width { get; set; }
+  System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> ColorRange { get; set; }
+  Tachyon.Charts.Core.Colors.Colormap Colormap { get; set; }
+  Tachyon.Charts.Core.Data.HeatmapData Data { get; }
+  Tachyon.Charts.Core.Numerics.DoubleRange X { get; }
+  Tachyon.Charts.Core.Numerics.DoubleRange Y { get; }
+  Tachyon.Charts.ThreeD.Scene.Material3D Material { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.Camera3D
+  .ctor()
+  System.Double Azimuth { get; }
+  System.Double Distance { get; }
+  System.Double Elevation { get; }
+  System.Int64 Version { get; }
+  System.Void Orbit(System.Double azimuth, System.Double elevation)
+  System.Void Pan(System.Double right, System.Double up)
+  System.Void Show(Tachyon.Charts.ThreeD.Scene.CameraView view)
+  System.Void Zoom(System.Double factor)
+  Tachyon.Charts.ThreeD.Scene.CameraProjection Projection { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Eye { get; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Target { get; }
+enum Tachyon.Charts.ThreeD.Scene.CameraProjection : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Orthographic = 1
+  Perspective = 0
+enum Tachyon.Charts.ThreeD.Scene.CameraView : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Default = 0
+  Front = 1
+  Side = 2
+  Top = 3
+sealed class Tachyon.Charts.ThreeD.Scene.ClipPlane3D
+  .ctor(Tachyon.Charts.ThreeD.Scene.Point3D normal, System.Double offset = 0)
+  System.Boolean Hides { get; set; }
+  System.Double Offset { get; set; }
+  Tachyon.Charts.ThreeD.Scene.CutCurve Cut(Tachyon.Charts.ThreeD.Scene.Bars3D bars, Tachyon.Charts.ThreeD.Scene.Scene3D scene)
+  Tachyon.Charts.ThreeD.Scene.CutCurve Cut(Tachyon.Charts.ThreeD.Scene.Surface3D surface, Tachyon.Charts.ThreeD.Scene.Scene3D scene)
+  Tachyon.Charts.ThreeD.Scene.Point3D Normal { get; }
+struct Tachyon.Charts.ThreeD.Scene.CloudMemory : System.IEquatable<Tachyon.Charts.ThreeD.Scene.CloudMemory>
+  .ctor(System.Int64 Gpu, System.Int64 Cpu)
+  System.Int64 Cpu { get; set; }
+  System.Int64 Gpu { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.Contours3D : System.IEquatable<Tachyon.Charts.ThreeD.Scene.Contours3D>
+  .ctor(System.Collections.Generic.IReadOnlyList<System.Double> Levels)
+  System.Boolean OnFloor { get; set; }
+  System.Boolean OnWalls { get; set; }
+  System.Collections.Generic.IReadOnlyList<System.Double> Levels { get; set; }
+  System.Double Width { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+  static Tachyon.Charts.ThreeD.Scene.Contours3D Even(Tachyon.Charts.Core.Numerics.DoubleRange range, System.Int32 count)
+struct Tachyon.Charts.ThreeD.Scene.CutCurve : System.IEquatable<Tachyon.Charts.ThreeD.Scene.CutCurve>
+  .ctor(System.Double[] Along, System.Double[] X, System.Double[] Y, System.Double[] Values)
+  System.Double[] Along { get; set; }
+  System.Double[] Values { get; set; }
+  System.Double[] X { get; set; }
+  System.Double[] Y { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.CutCurveFeed
+  .ctor(Tachyon.Charts.ThreeD.Scene.ClipPlane3D plane, Tachyon.Charts.ThreeD.Scene.Surface3D surface)
+  System.Boolean AddMarker(System.Double along)
+  System.Boolean RemoveMarkerNear(System.Double along, System.Double reach)
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.CutMarker> Markers { get; }
+  System.Void RemoveNewestMarker()
+  Tachyon.Charts.Core.Data.DataSource<System.Double, System.Double> Data { get; }
+  Tachyon.Charts.ThreeD.Scene.ClipPlane3D Plane { get; }
+  Tachyon.Charts.ThreeD.Scene.Surface3D Surface { get; }
+struct Tachyon.Charts.ThreeD.Scene.CutMarker : System.IEquatable<Tachyon.Charts.ThreeD.Scene.CutMarker>
+  .ctor(System.Int32 Number, System.Double Along, System.Double Value)
+  System.Double Along { get; set; }
+  System.Double Value { get; set; }
+  System.Int32 Number { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.Line3D
+  .ctor(Tachyon.Charts.ThreeD.Scene.Points3D points)
+  System.Double Width { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Points3D Points { get; }
+sealed class Tachyon.Charts.ThreeD.Scene.Material3D : System.IEquatable<Tachyon.Charts.ThreeD.Scene.Material3D>
+  .ctor()
+  System.Boolean IsLit { get; set; }
+  System.Double Gloss { get; set; }
+  System.Double Opacity { get; set; }
+  System.Double Sharpness { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.MeasuredMap3D
+  .ctor(System.Double[] x, System.Double[] y, System.Double[] z)
+  System.Boolean ShowsPoints { get; set; }
+  System.Double[] X { get; }
+  System.Double[] Y { get; }
+  System.Double[] Z { get; }
+  System.Nullable<System.Double> LongestEdge { get; set; }
+  Tachyon.Charts.Core.Colors.Colormap Colormap { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Material3D Material { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.Mesh3D
+  .ctor(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Vertex3D> vertices, System.Collections.Generic.IReadOnlyList<System.Int32> indices)
+  System.Collections.Generic.IReadOnlyList<System.Int32> Indices { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Vertex3D> Vertices { get; }
+  Tachyon.Charts.ThreeD.Scene.Material3D Material { get; set; }
+struct Tachyon.Charts.ThreeD.Scene.Pick3D : System.IEquatable<Tachyon.Charts.ThreeD.Scene.Pick3D>
+  .ctor(Tachyon.Charts.ThreeD.Scene.Point3D Position, System.Object Source)
+  System.Nullable<System.Double> Value { get; set; }
+  System.Object Source { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Position { get; set; }
+static class Tachyon.Charts.ThreeD.Scene.Pick3DProbe
+  static System.Nullable<Tachyon.Charts.ThreeD.Scene.Pick3D> Find(Tachyon.Charts.ThreeD.Scene.Scene3D scene, System.Double x, System.Double y)
+struct Tachyon.Charts.ThreeD.Scene.Point3D : System.IEquatable<Tachyon.Charts.ThreeD.Scene.Point3D>
+  .ctor(System.Double X, System.Double Y, System.Double Z)
+  System.Double Length { get; }
+  System.Double X { get; set; }
+  System.Double Y { get; set; }
+  System.Double Z { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Normalized()
+  static System.Double Dot(Tachyon.Charts.ThreeD.Scene.Point3D a, Tachyon.Charts.ThreeD.Scene.Point3D b)
+  static Tachyon.Charts.ThreeD.Scene.Point3D Cross(Tachyon.Charts.ThreeD.Scene.Point3D a, Tachyon.Charts.ThreeD.Scene.Point3D b)
+  static Tachyon.Charts.ThreeD.Scene.Point3D op_Addition(Tachyon.Charts.ThreeD.Scene.Point3D a, Tachyon.Charts.ThreeD.Scene.Point3D b)
+  static Tachyon.Charts.ThreeD.Scene.Point3D op_Multiply(Tachyon.Charts.ThreeD.Scene.Point3D a, System.Double factor)
+  static Tachyon.Charts.ThreeD.Scene.Point3D op_Subtraction(Tachyon.Charts.ThreeD.Scene.Point3D a, Tachyon.Charts.ThreeD.Scene.Point3D b)
+sealed class Tachyon.Charts.ThreeD.Scene.PointCloud3D
+  .ctor(System.Double[] x, System.Double[] y, System.Double[] z, Tachyon.Charts.Rendering.Rgba8[] colors = null)
+  .ctor(System.Func<System.IProgress<System.Double>, Tachyon.Charts.ThreeD.Scene.PointCloudArrays> load)
+  System.Boolean IsReady { get; }
+  System.Double PointSize { get; set; }
+  System.Double Progress { get; }
+  System.Double[] X { get; }
+  System.Double[] Y { get; }
+  System.Double[] Z { get; }
+  System.Int32 Count { get; }
+  System.Int32 PointBudget { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+  Tachyon.Charts.Rendering.Rgba8[] Colors { get; }
+  static System.Int32 PreviewLimit { get; }
+  static Tachyon.Charts.ThreeD.Scene.CloudMemory EstimateMemory(System.Int32 count)
+sealed class Tachyon.Charts.ThreeD.Scene.PointCloudArrays : System.IEquatable<Tachyon.Charts.ThreeD.Scene.PointCloudArrays>
+  .ctor(System.Double[] X, System.Double[] Y, System.Double[] Z, Tachyon.Charts.Rendering.Rgba8[] Colors = null)
+  System.Double[] X { get; set; }
+  System.Double[] Y { get; set; }
+  System.Double[] Z { get; set; }
+  Tachyon.Charts.Rendering.Rgba8[] Colors { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.Points3D
+  .ctor(System.Int32 capacity)
+  System.Int32 Capacity { get; }
+  System.Int32 Count { get; }
+  System.Int64 Total { get; }
+  System.Void Append(System.Double x, System.Double y, System.Double z, Tachyon.Charts.Rendering.Rgba8 color = null)
+  System.Void Append(System.Double x, System.Double y, System.Double z, Tachyon.Charts.Rendering.Rgba8 color, System.Double size)
+  System.Void Append(System.ReadOnlySpan<System.Double> x, System.ReadOnlySpan<System.Double> y, System.ReadOnlySpan<System.Double> z, System.ReadOnlySpan<Tachyon.Charts.Rendering.Rgba8> colors = null)
+  System.Void AppendGap()
+  static Tachyon.Charts.ThreeD.Scene.Points3D From(System.Double[] x, System.Double[] y, System.Double[] z, Tachyon.Charts.Rendering.Rgba8[] colors = null)
+sealed class Tachyon.Charts.ThreeD.Scene.Scatter3D
+  .ctor(Tachyon.Charts.ThreeD.Scene.Points3D points)
+  System.Double Size { get; set; }
+  System.Int32 PointBudget { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Points3D Points { get; }
+sealed class Tachyon.Charts.ThreeD.Scene.Scene3D
+  .ctor()
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.AntennaPattern3D> Antennas { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Bars3D> Bars { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.ClipPlane3D> Planes { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Line3D> Lines { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.MeasuredMap3D> Maps { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Mesh3D> Meshes { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Pick3D> Markers { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.PointCloud3D> Clouds { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Scatter3D> Scatters { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Surface3D> Surfaces { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Volume3D> Volumes { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Waterfall3D> Waterfalls { get; }
+  System.Int64 Version { get; }
+  System.Nullable<System.Double> Cursor { get; set; }
+  System.Void Add(Tachyon.Charts.ThreeD.Scene.AntennaPattern3D antenna)
+  System.Void Add(Tachyon.Charts.ThreeD.Scene.Bars3D bars)
+  System.Void Add(Tachyon.Charts.ThreeD.Scene.ClipPlane3D plane)
+  System.Void Add(Tachyon.Charts.ThreeD.Scene.CutCurveFeed feed)
+  System.Void Add(Tachyon.Charts.ThreeD.Scene.Line3D line)
+  System.Void Add(Tachyon.Charts.ThreeD.Scene.MeasuredMap3D map)
+  System.Void Add(Tachyon.Charts.ThreeD.Scene.Mesh3D mesh)
+  System.Void Add(Tachyon.Charts.ThreeD.Scene.PointCloud3D cloud)
+  System.Void Add(Tachyon.Charts.ThreeD.Scene.Scatter3D scatter)
+  System.Void Add(Tachyon.Charts.ThreeD.Scene.Surface3D surface)
+  System.Void Add(Tachyon.Charts.ThreeD.Scene.Volume3D volume)
+  System.Void Add(Tachyon.Charts.ThreeD.Scene.Waterfall3D waterfall)
+  System.Void AddMarker(Tachyon.Charts.ThreeD.Scene.Pick3D marker)
+  System.Void RemoveLastMarker()
+  System.Void RemoveMarker(System.Int32 index)
+  Tachyon.Charts.Core.Axes.AxisBase XAxis { get; set; }
+  Tachyon.Charts.Core.Axes.AxisBase YAxis { get; set; }
+  Tachyon.Charts.Core.Axes.AxisBase ZAxis { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Camera3D Camera { get; }
+sealed class Tachyon.Charts.ThreeD.Scene.Surface3D
+  .ctor(Tachyon.Charts.Core.Data.HeatmapData data, Tachyon.Charts.Core.Numerics.DoubleRange x, Tachyon.Charts.Core.Numerics.DoubleRange y)
+  System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> ColorRange { get; set; }
+  Tachyon.Charts.Core.Colors.Colormap Colormap { get; set; }
+  Tachyon.Charts.Core.Data.HeatmapData Data { get; }
+  Tachyon.Charts.Core.Numerics.DoubleRange X { get; }
+  Tachyon.Charts.Core.Numerics.DoubleRange Y { get; }
+  Tachyon.Charts.ThreeD.Scene.Contours3D Contours { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Material3D Material { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.TransferFunction3D
+  .ctor(Tachyon.Charts.ThreeD.Scene.TransferPoint3D[] points)
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.TransferPoint3D> Points { get; }
+  System.Double OpacityAt(System.Double share)
+  System.Void Move(System.Int32 index, System.Double share, System.Double opacity)
+struct Tachyon.Charts.ThreeD.Scene.TransferPoint3D : System.IEquatable<Tachyon.Charts.ThreeD.Scene.TransferPoint3D>
+  .ctor(System.Double Share, Tachyon.Charts.Rendering.Rgba8 Color, System.Double Opacity)
+  System.Double Opacity { get; set; }
+  System.Double Share { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+struct Tachyon.Charts.ThreeD.Scene.Vertex3D : System.IEquatable<Tachyon.Charts.ThreeD.Scene.Vertex3D>
+  .ctor(Tachyon.Charts.ThreeD.Scene.Point3D Position, Tachyon.Charts.Rendering.Rgba8 Color)
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Position { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.Volume3D
+  .ctor(Tachyon.Charts.ThreeD.Scene.VolumeData data, Tachyon.Charts.Core.Numerics.DoubleRange x, Tachyon.Charts.Core.Numerics.DoubleRange y, Tachyon.Charts.Core.Numerics.DoubleRange z)
+  System.Boolean IsReady { get; }
+  System.Boolean ShowsSlices { get; set; }
+  System.Double IsoValue { get; set; }
+  System.Double SliceThreshold { get; set; }
+  Tachyon.Charts.Core.Colors.Colormap Colormap { get; set; }
+  Tachyon.Charts.Core.Numerics.DoubleRange X { get; }
+  Tachyon.Charts.Core.Numerics.DoubleRange Y { get; }
+  Tachyon.Charts.Core.Numerics.DoubleRange Z { get; }
+  Tachyon.Charts.ThreeD.Scene.ClipPlane3D SliceX { get; }
+  Tachyon.Charts.ThreeD.Scene.ClipPlane3D SliceY { get; }
+  Tachyon.Charts.ThreeD.Scene.ClipPlane3D SliceZ { get; }
+  Tachyon.Charts.ThreeD.Scene.Material3D Material { get; set; }
+  Tachyon.Charts.ThreeD.Scene.TransferFunction3D Transfer { get; set; }
+  Tachyon.Charts.ThreeD.Scene.VolumeData Data { get; }
+  Tachyon.Charts.ThreeD.Scene.VolumeMode Mode { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.VolumeData
+  .ctor(System.Byte[] values, System.Int32 width, System.Int32 height, System.Int32 depth)
+  .ctor(System.Single[] values, System.Int32 width, System.Int32 height, System.Int32 depth)
+  .ctor(System.UInt16[] values, System.Int32 width, System.Int32 height, System.Int32 depth)
+  System.Double Item[System.Int32, System.Int32, System.Int32] { get; }
+  System.Int32 Depth { get; }
+  System.Int32 Height { get; }
+  System.Int32 Width { get; }
+  Tachyon.Charts.Core.Numerics.DoubleRange ValueRange { get; }
+  static System.Int64 EstimateMemory(System.Int32 width, System.Int32 height, System.Int32 depth, System.Int32 bytesPerValue)
+enum Tachyon.Charts.ThreeD.Scene.VolumeMode : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Maximum = 1
+  Surface = 2
+  Transfer = 0
+sealed class Tachyon.Charts.ThreeD.Scene.Waterfall3D
+  .ctor(Tachyon.Charts.Core.Data.SpectrogramData data, Tachyon.Charts.Core.Numerics.DoubleRange x, Tachyon.Charts.Core.Numerics.DoubleRange y)
+  System.Int32 LineSpacing { get; set; }
+  System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> ColorRange { get; set; }
+  Tachyon.Charts.Core.Colors.Colormap Colormap { get; set; }
+  Tachyon.Charts.Core.Data.SpectrogramData Data { get; }
+  Tachyon.Charts.Core.Instruments.SpectrumDisplay Display { get; set; }
+  Tachyon.Charts.Core.Numerics.DoubleRange X { get; }
+  Tachyon.Charts.Core.Numerics.DoubleRange Y { get; }
+  Tachyon.Charts.ThreeD.Scene.Material3D Material { get; set; }
+  Tachyon.Charts.ThreeD.Scene.WaterfallStyle Style { get; set; }
+  static Tachyon.Charts.ThreeD.Scene.Waterfall3D From(Tachyon.Charts.Core.Instruments.SpectrumDisplay display, Tachyon.Charts.Core.Numerics.DoubleRange depth)
+enum Tachyon.Charts.ThreeD.Scene.WaterfallStyle : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Lines = 1
+  Surface = 0

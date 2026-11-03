@@ -1,0 +1,41 @@
+static class Tachyon.Charts.ThreeD.Files.PointFile
+  static Tachyon.Charts.ThreeD.Files.PointFileData Read(System.String path)
+  static Tachyon.Charts.ThreeD.Files.PointFileData ReadLas(System.IO.Stream stream)
+  static Tachyon.Charts.ThreeD.Files.PointFileData ReadPly(System.IO.Stream stream)
+  static Tachyon.Charts.ThreeD.Files.PointFileData ReadXyz(System.IO.Stream stream)
+sealed class Tachyon.Charts.ThreeD.Files.PointFileData
+  .ctor(System.Double[] x, System.Double[] y, System.Double[] z, Tachyon.Charts.Rendering.Rgba8[] colors)
+  System.Double[] X { get; }
+  System.Double[] Y { get; }
+  System.Double[] Z { get; }
+  Tachyon.Charts.Rendering.Rgba8[] Colors { get; }
+  Tachyon.Charts.ThreeD.Scene.PointCloud3D ToCloud()
+sealed class Tachyon.Charts.ThreeD.Files.PointFileException : System.Exception, System.Runtime.Serialization.ISerializable
+  .ctor()
+  .ctor(System.String message)
+  .ctor(System.String message, System.Exception innerException)
+struct Tachyon.Charts.ThreeD.Files.RawVolumeLayout : System.IEquatable<Tachyon.Charts.ThreeD.Files.RawVolumeLayout>
+  .ctor(System.Int32 Width, System.Int32 Height, System.Int32 Depth, Tachyon.Charts.ThreeD.Files.VolumeValueType Type)
+  System.Boolean IsBigEndian { get; set; }
+  System.Int32 Depth { get; set; }
+  System.Int32 Height { get; set; }
+  System.Int32 Width { get; set; }
+  System.Int64 Offset { get; set; }
+  System.ValueTuple<System.Double, System.Double, System.Double> Spacing { get; set; }
+  Tachyon.Charts.ThreeD.Files.VolumeValueType Type { get; set; }
+static class Tachyon.Charts.ThreeD.Files.VolumeFile
+  static Tachyon.Charts.ThreeD.Files.VolumeFileData Read(System.String path)
+  static Tachyon.Charts.ThreeD.Files.VolumeFileData ReadNifti(System.IO.Stream stream)
+  static Tachyon.Charts.ThreeD.Files.VolumeFileData ReadRaw(System.IO.Stream stream, Tachyon.Charts.ThreeD.Files.RawVolumeLayout layout)
+sealed class Tachyon.Charts.ThreeD.Files.VolumeFileData
+  .ctor(Tachyon.Charts.ThreeD.Scene.VolumeData data, System.ValueTuple<System.Double, System.Double, System.Double> spacing)
+  System.ValueTuple<System.Double, System.Double, System.Double> Extent { get; }
+  System.ValueTuple<System.Double, System.Double, System.Double> Spacing { get; }
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddToScale(Tachyon.Charts.ThreeD.Chart3DBuilder chart, Tachyon.Charts.ThreeD.Scene.Volume3D volume = null, System.String unit = mm)
+  Tachyon.Charts.ThreeD.Scene.Volume3D ToVolume()
+  Tachyon.Charts.ThreeD.Scene.VolumeData Data { get; }
+enum Tachyon.Charts.ThreeD.Files.VolumeValueType : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Float32 = 3
+  Int16 = 2
+  UInt16 = 1
+  UInt8 = 0

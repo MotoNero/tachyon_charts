@@ -1,0 +1,11 @@
+static class Tachyon.Charts.Export.ChartExporter
+  static System.Byte[] ToCsv(Tachyon.Charts.Core.Pipeline.ChartSurface chart, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Input.SeriesSelection> selection = null)
+  static System.Byte[] ToPdf(Tachyon.Charts.Core.Pipeline.ChartSurface chart, Tachyon.Charts.Export.ExportOptions options)
+  static System.Byte[] ToPng(Tachyon.Charts.Core.Pipeline.ChartSurface chart, Tachyon.Charts.Rendering.IRenderDevice device, Tachyon.Charts.Export.ExportOptions options)
+  static System.Byte[] ToSvg(Tachyon.Charts.Core.Pipeline.ChartSurface chart, Tachyon.Charts.Export.ExportOptions options)
+sealed class Tachyon.Charts.Export.ExportOptions : System.IEquatable<Tachyon.Charts.Export.ExportOptions>
+  .ctor()
+  System.Double Dpi { get; set; }
+  System.Double Height { get; set; }
+  System.Double Width { get; set; }
+  Tachyon.Charts.Core.Themes.Theme Theme { get; set; }

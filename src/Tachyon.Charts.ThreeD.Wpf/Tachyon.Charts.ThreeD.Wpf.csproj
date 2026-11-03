@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <RootNamespace>Tachyon.Charts.ThreeD.Wpf</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Tachyon.Charts.ThreeD/Tachyon.Charts.ThreeD.csproj" />
+    <ProjectReference Include="../Tachyon.Charts.Wpf/Tachyon.Charts.Wpf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../ThreeDShared/*.cs" Link="Shared/%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Tachyon.Charts.Wpf.Tests" />
+  </ItemGroup>
+
+</Project>

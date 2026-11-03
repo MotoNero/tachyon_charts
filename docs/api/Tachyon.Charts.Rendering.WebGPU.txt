@@ -1,0 +1,28 @@
+sealed class Tachyon.Charts.Rendering.WebGPU.ShaderCompilationException : System.Exception, System.Runtime.Serialization.ISerializable
+  .ctor(System.String fileName, System.Int32 line, System.Int32 column, System.String compilerMessage)
+  System.Int32 Column { get; }
+  System.Int32 Line { get; }
+  System.String FileName { get; }
+enum Tachyon.Charts.Rendering.WebGPU.WebGpuAdapterPreference : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Hardware = 0
+  Software = 1
+static class Tachyon.Charts.Rendering.WebGPU.WebGpuAssemblyMarker
+  static System.String AssemblyName { get; }
+sealed class Tachyon.Charts.Rendering.WebGPU.WebGpuRenderDevice : System.IDisposable, Tachyon.Charts.Rendering.IRenderDevice
+  System.Boolean IsLost { get; }
+  System.Int64 DrawCallCount { get; }
+  System.Int64 UploadedByteCount { get; }
+  System.Void BeginBatch()
+  System.Void Dispose()
+  System.Void EndBatch()
+  System.Void SimulateLoss()
+  System.Void WaitForIdle()
+  Tachyon.Charts.Rendering.DeviceCapabilities Capabilities { get; }
+  Tachyon.Charts.Rendering.ICommandList BeginFrame(Tachyon.Charts.Rendering.IRenderTarget target)
+  Tachyon.Charts.Rendering.IComputeOperations Compute { get; }
+  Tachyon.Charts.Rendering.IGpuBuffer CreateBuffer(Tachyon.Charts.Rendering.BufferDesc desc)
+  Tachyon.Charts.Rendering.IGpuTexture CreateTexture(Tachyon.Charts.Rendering.TextureDesc desc)
+  Tachyon.Charts.Rendering.IOffscreenRenderTarget CreateOffscreenTarget(Tachyon.Charts.Rendering.PixelSize size, System.Double dpiScale)
+  Tachyon.Charts.Rendering.ISurfaceRenderTarget CreateSurfaceTarget(Tachyon.Charts.Rendering.NativeSurfaceHandle handle, Tachyon.Charts.Rendering.PixelSize size, System.Double dpiScale)
+  static Tachyon.Charts.Rendering.WebGPU.WebGpuRenderDevice Create()
+  static Tachyon.Charts.Rendering.WebGPU.WebGpuRenderDevice Create(Tachyon.Charts.Rendering.WebGPU.WebGpuAdapterPreference preference)

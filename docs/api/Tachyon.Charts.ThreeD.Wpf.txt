@@ -1,0 +1,10 @@
+sealed class Tachyon.Charts.ThreeD.Wpf.Chart3D : System.Windows.Controls.Border, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IAddChild, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Boolean IsGpuAvailable { get; }
+  System.String Title { get; set; }
+  Tachyon.Charts.Core.Themes.Theme ChartTheme { get; set; }
+  Tachyon.Charts.ThreeD.Scene.CameraProjection Projection { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Scene3D Scene { get; }
+  Tachyon.Charts.ThreeD.Wpf.Chart3D Configure(System.Action<Tachyon.Charts.ThreeD.Chart3DBuilder> configure)
+  Tachyon.Charts.Wpf.Chart Surface { get; }
+  event System.EventHandler GpuUnavailable
