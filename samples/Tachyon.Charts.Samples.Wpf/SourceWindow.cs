@@ -116,6 +116,7 @@ internal sealed class SourceWindow : Window
         {
             File.WriteAllText(dialog.FileName, file.Text);
             _status.Text = SampleText.T("Saved: ") + dialog.FileName;
+            SavedDialog.Show(this, dialog.FileName);
         }
     }
 }

@@ -399,6 +399,7 @@ internal sealed class SampleWindow : Window
             var path = Path.Combine(folder, $"chart-{DateTime.Now:yyyyMMdd-HHmmss}.{extension}");
             await File.WriteAllBytesAsync(path, await export(ExportedChart));
             _hint.Text = SampleText.T("Saved: ") + path;
+            SavedDialog.Show(this, path);
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
         {

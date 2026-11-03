@@ -142,5 +142,6 @@ internal sealed class SourceWindow : Window
         var path = Path.Combine(folder, Path.GetFileName(file.Name));
         await File.WriteAllTextAsync(path, file.Text);
         _status.Text = SampleText.T("Saved: ") + path;
+        await SavedDialog.Show(this, path);
     }
 }

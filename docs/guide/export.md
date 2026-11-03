@@ -38,7 +38,7 @@ In Avalonia, print with `ExportPdfAsync` and hand the file to the system.
 
 ## 3D charts
 
-A 3D chart exports with the same calls. PNG renders the scene on the graphics card at the size you ask for, 4K and more, in the theme of the options; the display does not change. SVG and PDF embed the 3D picture as an image of at least 288 dpi, with axes, title and text around it as in 2D. CSV writes one table with the columns `object, x, y, z, value`: markers, lines, points, surfaces, maps and columns inside the axes. Point clouds, volumes and waterfalls stay out of the CSV, they hold far more values than a table program opens.
+A 3D chart exports with the same calls. PNG renders the scene on the graphics card at the size you ask for, 4K and more, in the theme of the options; the display does not change. SVG and PDF embed the 3D picture as an image of at least 288 dpi, with axes, title and text around it as in 2D. CSV writes one table with the columns `object, x, y, z, value`: markers, lines, points, surfaces, meshes, maps, columns, waterfalls and point clouds of up to five million points, all inside the axes, and antenna patterns with azimuth, elevation and gain in x, y and z. Volumes and larger clouds stay out, they hold far more values than a table program opens.
 
 Your own series can write a table of its own by implementing `ICsvExport`.
 
