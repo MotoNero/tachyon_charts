@@ -227,7 +227,7 @@ To measure a window on your own machine, set `TACHYON_FRAME_LOG` to a file and s
 
 In real windows with 8 live charts: 56 FPS on the GPU, 21.6 FPS on the CPU.
 
-Known gaps: a dashboard of 50 charts that all change per frame reaches 7 FPS instead of the targeted 60, and the CPU fallback misses its targets for streaming and for large scatter plots.
+Known gaps: a stress test of 50 charts that all change per frame reaches about 21 FPS in a real window instead of the targeted 60, and the CPU fallback misses its targets for streaming (23 instead of 30 FPS at full HD) and for large scatter plots (9 instead of 10 FPS). Both are planned.
 
 ## Build
 
