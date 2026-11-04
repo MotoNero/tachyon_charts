@@ -1696,6 +1696,8 @@ abstract class Tachyon.Charts.Core.Series.MarkSeries : Tachyon.Charts.Core.Serie
   protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
   protected virtual System.Void ReleaseResources()
   virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
+static class Tachyon.Charts.Core.Series.MarketProfiles
+  static Tachyon.Charts.Core.Fluent.ChartBuilder VolumeProfile(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Data.CandleData data, System.Action<Tachyon.Charts.Core.Series.VolumeProfileSeries> configure = null, System.String yAxis = null)
 static class Tachyon.Charts.Core.Series.MeshShapes
   static System.Void AddRoundedRectangle(System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh, System.Single x, System.Single y, System.Single width, System.Single height, System.Single radius, Tachyon.Charts.Rendering.PixelRect pane, Tachyon.Charts.Core.Series.SeriesFill fill, System.Double value)
   static System.Void AddSoftRectangle(System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh, System.Single x, System.Single y, System.Single width, System.Single height, System.Single blur, Tachyon.Charts.Rendering.Rgba8 color)
@@ -1795,6 +1797,9 @@ sealed class Tachyon.Charts.Core.Series.PositionGradientFill : Tachyon.Charts.Co
   Tachyon.Charts.Rendering.Rgba8 Bottom { get; set; }
   Tachyon.Charts.Rendering.Rgba8 Top { get; set; }
   virtual Tachyon.Charts.Rendering.Rgba8 GetColor(System.Double position, System.Double value)
+enum Tachyon.Charts.Core.Series.ProfileSide : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Left = 1
+  Right = 0
 sealed class Tachyon.Charts.Core.Series.RadialZoomModifier : Tachyon.Charts.Core.Input.ChartModifier
   .ctor()
   .ctor(Tachyon.Charts.Core.Axes.AxisBase radialAxis)
@@ -1969,6 +1974,29 @@ sealed class Tachyon.Charts.Core.Series.ValueGradientFill : Tachyon.Charts.Core.
 sealed class Tachyon.Charts.Core.Series.ViolinSeries : Tachyon.Charts.Core.Series.SampleSeries
   .ctor(System.Collections.Generic.IReadOnlyList<System.Double[]> samples, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   protected virtual System.Void Build(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh)
+sealed class Tachyon.Charts.Core.Series.VolumeProfileModifier : Tachyon.Charts.Core.Input.ChartModifier
+  .ctor()
+  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
+sealed class Tachyon.Charts.Core.Series.VolumeProfileOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
+  .ctor(Tachyon.Charts.Core.Series.VolumeProfileSeries series)
+  protected virtual System.Int64 ExternalVersion { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
+sealed class Tachyon.Charts.Core.Series.VolumeProfileSeries : Tachyon.Charts.Core.Pipeline.ChartSeries
+  .ctor(Tachyon.Charts.Core.Data.CandleData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  System.Double ValueAreaShare { get; set; }
+  System.Double Width { get; set; }
+  System.Int32 HoveredLevel { get; set; }
+  System.Int32 Levels { get; set; }
+  Tachyon.Charts.Core.Series.ProfileSide Side { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 PointOfControlColor { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 ValueAreaColor { get; set; }
+  protected virtual System.Boolean TryFindPoint(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Numerics.Vector2 pixel, System.Double maximumDistance, Tachyon.Charts.Core.HitTesting.HitTestMode mode, out System.Int64 index, out System.Double x, out System.Double y)
+  protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Int64 Version { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
 sealed class Tachyon.Charts.Core.Series.VolumeSeries : Tachyon.Charts.Core.Pipeline.ChartSeries
   .ctor(Tachyon.Charts.Core.Data.CandleData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   Tachyon.Charts.Rendering.Rgba8 FallingColor { get; set; }

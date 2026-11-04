@@ -40,6 +40,21 @@ When several periods share a pixel column, the column draws them as one candle: 
 
 Under the pointer the top left of the chart shows date, open, high, low, close and volume of the candle; without a pointer, of the last candle.
 
+## Market profile
+
+```csharp
+c.Candles(data, yAxis: "price")
+ .VolumeProfile(data, profile =>
+ {
+     profile.Levels = 40;                 // price levels across the visible price range
+     profile.Side = ProfileSide.Right;    // or Left
+     profile.Width = 0.25;                // longest bar as a share of the width
+     profile.ValueAreaShare = 0.7;
+ }, yAxis: "price");
+```
+
+The profile shows the volume traded at each price level of the visible candles; each candle spreads its volume evenly from its low to its high. Zooming or panning recomputes it for what is visible. The level with the most volume, the point of control, and the value area around it, which holds 70 % of the volume, stand out in their own colors (`PointOfControlColor`, `ValueAreaColor`, `Color`). Under the pointer a bar shows its price range, its volume and its share.
+
 Gaps for weekends and trading pauses come with axes that skip ranges, which are planned.
 
-In the showroom: *Candles* (the last day trades live), *OHLC bars*, *1 million candles*.
+In the showroom: *Candles* (the last day trades live), *OHLC bars*, *1 million candles*, *Market profile*.

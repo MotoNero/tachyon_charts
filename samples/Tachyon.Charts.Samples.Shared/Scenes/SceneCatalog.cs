@@ -79,6 +79,7 @@ public static class SceneCatalog
         new PieScene("DonutLight", BuiltInThemes.TachyonLight, 0.55),
         new CandleScene("Candles", BuiltInThemes.TachyonDark, CandleStyle.Candles),
         new CandleScene("OhlcLight", BuiltInThemes.TachyonLight, CandleStyle.Ohlc),
+        new MarketProfileScene(),
         new GlowNeonScene(),
         new GradientsScene(),
         new ThemeGalleryScene("ThemeHighContrast", BuiltInThemes.HighContrast),

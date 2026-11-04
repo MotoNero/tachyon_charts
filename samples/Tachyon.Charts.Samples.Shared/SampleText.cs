@@ -81,6 +81,8 @@ public static class SampleText
         ["Candles"] = "Kerzen",
         ["OHLC bars"] = "OHLC-Balken",
         ["1 million candles"] = "1 Mio. Kerzen",
+        ["Market profile"] = "Market Profile",
+        ["Wheel: zoom | Drag: pan, the profile follows | Pointer on a bar: price and volume | Double click: all"] = "Rad: Zoom | Ziehen: Pan, das Profil folgt | Zeiger auf einem Balken: Preis und Volumen | Doppelklick: alles",
         ["Wheel: zoom | Drag: pan | Pointer: open, high, low, close and volume | Double click: all"] = "Rad: Zoom | Ziehen: Pan | Zeiger: Eröffnung, Hoch, Tief, Schluss und Volumen | Doppelklick: alles",
         ["Pointer: name, value and share | Click: pull a slice out, again: back"] = "Zeiger: Name, Wert und Anteil | Klick: Segment herausziehen, erneut: zurück",
         ["Ternary"] = "Ternary",
