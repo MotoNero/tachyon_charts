@@ -15,7 +15,7 @@ public sealed record NumericLabelFormat
         ["y", "z", "a", "f", "p", "n", "µ", "m", string.Empty, "k", "M", "G", "T", "P", "E", "Z", "Y"];
 
     /// <summary>
-    /// Gets the culture of the numbers, or <see langword="null"/> for the current culture.
+    /// Gets the culture of the numbers, or <see langword="null"/> for the language of the charts, <see cref="Instruments.ChartText.Language"/>.
     /// </summary>
     public CultureInfo? Culture { get; init; }
 
@@ -43,7 +43,7 @@ public sealed record NumericLabelFormat
             largest = Math.Max(largest, Math.Abs(value));
         }
 
-        var culture = Culture ?? CultureInfo.CurrentCulture;
+        var culture = Culture ?? Instruments.ChartText.Culture;
         var magnitude = largest > 0 ? (int)Math.Floor(Math.Log10(largest)) : 0;
         var stepExponent = (int)Math.Floor(Math.Log10(step) + 1e-9);
 

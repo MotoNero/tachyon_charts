@@ -59,7 +59,7 @@ public sealed class DateTimeAxis : AxisBase
     public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Utc;
 
     /// <summary>
-    /// Gets or sets the culture of names and dates, or <see langword="null"/> for the current culture.
+    /// Gets or sets the culture of names and dates, or <see langword="null"/> for the language of the charts, <see cref="Instruments.ChartText.Language"/>.
     /// </summary>
     public CultureInfo? Culture { get; set; }
 
@@ -376,7 +376,7 @@ public sealed class DateTimeAxis : AxisBase
 
     private string[] CreateLabels(TickStep step, List<long> times)
     {
-        var culture = Culture ?? CultureInfo.CurrentCulture;
+        var culture = Culture ?? Instruments.ChartText.Culture;
         var labels = new string[times.Count];
         for (var i = 0; i < labels.Length; i++)
         {
@@ -473,7 +473,7 @@ public sealed class DateTimeAxis : AxisBase
 
     private TickSet SingleTick(long time)
     {
-        var culture = Culture ?? CultureInfo.CurrentCulture;
+        var culture = Culture ?? Instruments.ChartText.Culture;
         var label = ToLocal(time).ToString("d MMM yyyy HH:mm:ss", culture);
         return new TickSet([new AxisTick(time - OriginTicks, label)], [], 0);
     }

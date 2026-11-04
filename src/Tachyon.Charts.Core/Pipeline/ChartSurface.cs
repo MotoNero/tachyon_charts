@@ -951,9 +951,10 @@ public sealed class ChartSurface
     }
 
     // The versions only grow, so a sum changes whenever one of them does.
+    // The labels of the axes follow the language of the charts, so a change of language lays them out anew.
     private long SumAxisVersions()
     {
-        var sum = 0L;
+        var sum = Instruments.ChartText.Version;
         foreach (var axis in _axes)
         {
             sum += axis.Version;
