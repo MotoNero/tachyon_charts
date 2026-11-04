@@ -62,6 +62,7 @@ public static class ShowcaseScenes
         Type("radar", "Radar", "Radar chart"),
         Type("pie", "Pie", "Pie chart"),
         Type("donut", "Donut", "Donut chart"),
+        Type("candles", "OHLC bars", "Share price as OHLC bars"),
         Type("ternary", "Ternary", "Ternary plot"),
         Type("error-bars", "Error bars", "Measurements with error bars"),
         Theme("theme-neon", "Neon", BuiltInThemes.Neon),

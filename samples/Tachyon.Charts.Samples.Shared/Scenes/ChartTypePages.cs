@@ -33,6 +33,9 @@ public static class ChartTypePages
         (RadarPage.Name, RadarPage.Hint, RadarPage.Configure),
         (PiePage.Name, PiePage.Hint, PiePage.Configure),
         (DonutPage.Name, DonutPage.Hint, DonutPage.Configure),
+        (CandlesPage.Name, CandlesPage.Hint, CandlesPage.Configure),
+        (OhlcBarsPage.Name, OhlcBarsPage.Hint, OhlcBarsPage.Configure),
+        (MillionCandlesPage.Name, MillionCandlesPage.Hint, MillionCandlesPage.Configure),
         (TernaryPage.Name, TernaryPage.Hint, TernaryPage.Configure),
         (AnnotationsPage.Name, AnnotationsPage.Hint, AnnotationsPage.Configure),
     ];

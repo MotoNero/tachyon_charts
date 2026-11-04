@@ -203,6 +203,25 @@ static class Tachyon.Charts.Core.Colors.Colormaps
   static Tachyon.Charts.Core.Colors.Colormap Plasma { get; }
   static Tachyon.Charts.Core.Colors.Colormap Turbo { get; }
   static Tachyon.Charts.Core.Colors.Colormap Viridis { get; }
+struct Tachyon.Charts.Core.Data.Candle : System.IEquatable<Tachyon.Charts.Core.Data.Candle>
+  .ctor(System.Double Time, System.Double Open, System.Double High, System.Double Low, System.Double Close, System.Double Volume)
+  System.Boolean IsRising { get; }
+  System.Double Close { get; set; }
+  System.Double High { get; set; }
+  System.Double Low { get; set; }
+  System.Double Open { get; set; }
+  System.Double Time { get; set; }
+  System.Double Volume { get; set; }
+sealed class Tachyon.Charts.Core.Data.CandleData
+  .ctor(System.Int32 capacity = 0)
+  System.Int32 Count { get; }
+  System.Int64 Version { get; }
+  System.Void AddTick(System.Double price, System.Double volume = 0)
+  System.Void Append(System.Double time, System.Double open, System.Double high, System.Double low, System.Double close, System.Double volume = 0)
+  System.Void Append(in Tachyon.Charts.Core.Data.Candle candle)
+  System.Void Clear()
+  System.Void UpdateLast(in Tachyon.Charts.Core.Data.Candle candle)
+  Tachyon.Charts.Core.Data.Candle Item[System.Int32] { get; }
 struct Tachyon.Charts.Core.Data.DataMetadata : System.IEquatable<Tachyon.Charts.Core.Data.DataMetadata>
   .ctor(System.Int32 Count, System.Boolean IsSortedX, System.Nullable<System.Double> UniformXStep, Tachyon.Charts.Core.Numerics.DoubleRange XRange, Tachyon.Charts.Core.Numerics.DoubleRange YRange)
   System.Boolean IsSortedX { get; set; }
@@ -309,6 +328,7 @@ sealed class Tachyon.Charts.Core.Fluent.AxisBuilder
   Tachyon.Charts.Core.Fluent.AxisBuilder Limits(System.Double min, System.Double max)
   Tachyon.Charts.Core.Fluent.AxisBuilder Log(System.String id = null, System.Double logBase = 10, Tachyon.Charts.Core.Axes.NonPositiveValues nonPositive = Hide)
   Tachyon.Charts.Core.Fluent.AxisBuilder Numeric(System.String id = null)
+  Tachyon.Charts.Core.Fluent.AxisBuilder Pane(System.Int32 index, System.Double weight = 1)
   Tachyon.Charts.Core.Fluent.AxisBuilder Position(Tachyon.Charts.Core.Axes.AxisPosition position)
   Tachyon.Charts.Core.Fluent.AxisBuilder Range(System.Double min, System.Double max)
   Tachyon.Charts.Core.Fluent.AxisBuilder Title(System.String title)
@@ -319,6 +339,8 @@ sealed class Tachyon.Charts.Core.Fluent.AxisDefinition : System.IEquatable<Tachy
   System.Boolean IsInverted { get; set; }
   System.Collections.Generic.IReadOnlyList<System.String> Categories { get; set; }
   System.Double LogBase { get; set; }
+  System.Double PaneWeight { get; set; }
+  System.Int32 Pane { get; set; }
   System.Nullable<Tachyon.Charts.Core.Axes.AxisPosition> Position { get; set; }
   System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> Limits { get; set; }
   System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> Range { get; set; }
@@ -1552,6 +1574,38 @@ sealed class Tachyon.Charts.Core.Series.BoxStatistics : System.IEquatable<Tachyo
   System.Double UpperWhisker { get; set; }
   System.Double[] Outliers { get; set; }
   static Tachyon.Charts.Core.Series.BoxStatistics Compute(System.ReadOnlySpan<System.Double> values)
+struct Tachyon.Charts.Core.Series.CandleLook : System.IEquatable<Tachyon.Charts.Core.Series.CandleLook>
+  .ctor(Tachyon.Charts.Rendering.Rgba8 Body, Tachyon.Charts.Rendering.Rgba8 Line, System.Boolean IsHollow = False)
+  System.Boolean IsHollow { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Body { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Line { get; set; }
+sealed class Tachyon.Charts.Core.Series.CandleModifier : Tachyon.Charts.Core.Input.ChartModifier
+  .ctor()
+  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
+sealed class Tachyon.Charts.Core.Series.CandleReadoutOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
+  .ctor(Tachyon.Charts.Core.Series.CandleSeries series)
+  protected virtual System.Int64 ExternalVersion { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
+sealed class Tachyon.Charts.Core.Series.CandleSeries : Tachyon.Charts.Core.Pipeline.ChartSeries
+  .ctor(Tachyon.Charts.Core.Data.CandleData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  System.Double BodyWidth { get; set; }
+  System.Int32 HoveredIndex { get; set; }
+  Tachyon.Charts.Core.Data.CandleData Data { get; }
+  Tachyon.Charts.Core.Series.CandleLook Falling { get; set; }
+  Tachyon.Charts.Core.Series.CandleLook Rising { get; set; }
+  Tachyon.Charts.Core.Series.CandleStyle Style { get; set; }
+  protected virtual System.Boolean TryFindPoint(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Numerics.Vector2 pixel, System.Double maximumDistance, Tachyon.Charts.Core.HitTesting.HitTestMode mode, out System.Int64 index, out System.Double x, out System.Double y)
+  protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Boolean TryReadPoint(System.Int64 index, out System.Double x, out System.Double y)
+  protected virtual System.Int32 DrawnPointCount { get; }
+  protected virtual System.Int64 SourcePointCount { get; }
+  protected virtual System.Int64 Version { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
+enum Tachyon.Charts.Core.Series.CandleStyle : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Candles = 0
+  Ohlc = 1
 sealed class Tachyon.Charts.Core.Series.ContourSeries : Tachyon.Charts.Core.Series.RasterSeries, System.IDisposable
   .ctor(Tachyon.Charts.Core.Data.HeatmapData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis, Tachyon.Charts.Core.Axes.ColorAxis colorAxis)
   System.Boolean IsFilled { get; set; }
@@ -1578,6 +1632,9 @@ sealed class Tachyon.Charts.Core.Series.ErrorBarSeries : Tachyon.Charts.Core.Ser
   System.Void SetErrors(System.ReadOnlyMemory<System.Double> lower, System.ReadOnlyMemory<System.Double> upper)
   protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
   protected virtual System.Void Build(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh)
+static class Tachyon.Charts.Core.Series.FinanceCharts
+  static Tachyon.Charts.Core.Fluent.ChartBuilder Candles(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Data.CandleData data, System.Action<Tachyon.Charts.Core.Series.CandleSeries> configure = null, System.String yAxis = null)
+  static Tachyon.Charts.Core.Fluent.ChartBuilder Volume(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Data.CandleData data, System.String yAxis = null)
 sealed class Tachyon.Charts.Core.Series.HeatmapSeries : Tachyon.Charts.Core.Series.RasterSeries, System.IDisposable
   .ctor(Tachyon.Charts.Core.Data.HeatmapData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis, Tachyon.Charts.Core.Axes.ColorAxis colorAxis)
   System.Collections.Generic.IReadOnlyList<System.Double> XEdges { get; set; }
@@ -1912,6 +1969,16 @@ sealed class Tachyon.Charts.Core.Series.ValueGradientFill : Tachyon.Charts.Core.
 sealed class Tachyon.Charts.Core.Series.ViolinSeries : Tachyon.Charts.Core.Series.SampleSeries
   .ctor(System.Collections.Generic.IReadOnlyList<System.Double[]> samples, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   protected virtual System.Void Build(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh)
+sealed class Tachyon.Charts.Core.Series.VolumeSeries : Tachyon.Charts.Core.Pipeline.ChartSeries
+  .ctor(Tachyon.Charts.Core.Data.CandleData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  Tachyon.Charts.Rendering.Rgba8 FallingColor { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 RisingColor { get; set; }
+  protected virtual System.Boolean TryFindPoint(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Numerics.Vector2 pixel, System.Double maximumDistance, Tachyon.Charts.Core.HitTesting.HitTestMode mode, out System.Int64 index, out System.Double x, out System.Double y)
+  protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Int64 Version { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
 sealed class Tachyon.Charts.Core.Themes.AnimationTokens : System.IEquatable<Tachyon.Charts.Core.Themes.AnimationTokens>
   .ctor()
   System.Nullable<System.Int32> DurationMs { get; set; }

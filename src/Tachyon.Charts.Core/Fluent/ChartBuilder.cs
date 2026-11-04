@@ -57,6 +57,12 @@ public sealed record AxisDefinition(AxisKind Kind, string Id)
     /// <summary>Gets a value indicating whether the axis takes no room and shows nothing.</summary>
     public bool IsHidden { get; init; }
 
+    /// <summary>Gets the pane of a vertical axis, counted from the top; 0 is the first.</summary>
+    public int Pane { get; init; }
+
+    /// <summary>Gets the height of the pane relative to the others.</summary>
+    public double PaneWeight { get; init; } = 1;
+
     /// <summary>Gets the base of a logarithmic axis.</summary>
     public double LogBase { get; init; } = 10;
 
@@ -470,7 +476,7 @@ public sealed record ChartDefinition(
         var xAxes = XAxes.Select(axis => CreateAxis(axis, AxisPosition.Bottom)).ToArray();
         var yAxes = YAxes.Select(axis => CreateAxis(axis, AxisPosition.Left)).ToArray();
         var colorAxes = Series.Where(series => series.ColorScale is not null).Select((series, index) => (Series: series, Axis: series.ColorScale!.Create($"color{index}"))).ToArray();
-        var surface = new ChartSurface(xAxes, [new LayoutPane([.. yAxes, .. colorAxes.Select(item => item.Axis)])], textEngine) { Title = Title, Theme = Theme };
+        var surface = new ChartSurface(xAxes, CreatePanes(yAxes, colorAxes.Select(item => item.Axis)), textEngine) { Title = Title, Theme = Theme };
         foreach (var series in Series)
         {
             var x = Find(xAxes, series.XAxisId, "X");
@@ -492,6 +498,35 @@ public sealed record ChartDefinition(
         }
 
         return new BuiltChart(surface, modifiers);
+    }
+
+    // Vertical axes go into the pane they name, from the top; color axes join the first pane.
+    private LayoutPane[] CreatePanes(AxisBase[] yAxes, IEnumerable<AxisBase> colorAxes)
+    {
+        var count = YAxes.Count == 0 ? 1 : YAxes.Max(axis => axis.Pane) + 1;
+        var panes = new LayoutPane[count];
+        for (var pane = 0; pane < count; pane++)
+        {
+            var axes = new List<AxisBase>();
+            var weight = 1.0;
+            for (var i = 0; i < yAxes.Length; i++)
+            {
+                if (YAxes[i].Pane == pane)
+                {
+                    axes.Add(yAxes[i]);
+                    weight = YAxes[i].PaneWeight;
+                }
+            }
+
+            if (pane == 0)
+            {
+                axes.AddRange(colorAxes);
+            }
+
+            panes[pane] = new LayoutPane(axes, weight);
+        }
+
+        return panes;
     }
 
     private static AxisBase CreateAxis(AxisDefinition definition, AxisPosition fallback)
@@ -776,6 +811,18 @@ public sealed class AxisBuilder
     /// <summary>Hides the axis: it takes no room and shows nothing.</summary>
     /// <returns>This builder.</returns>
     public AxisBuilder Hidden() => Change(Definition with { IsHidden = true });
+
+    /// <summary>Puts a vertical axis and its series into a pane of their own, below the first one.</summary>
+    /// <param name="index">The pane, counted from the top; 0 is the first.</param>
+    /// <param name="weight">The height of the pane relative to the others.</param>
+    /// <returns>This builder.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">The index is negative or the weight not positive.</exception>
+    public AxisBuilder Pane(int index, double weight = 1)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(weight, 0);
+        return Change(Definition with { Pane = index, PaneWeight = weight });
+    }
 
     private AxisBuilder Change(AxisDefinition definition)
     {
