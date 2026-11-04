@@ -22,3 +22,23 @@ Series choose their axis by name. Several Y axes are allowed. `LayoutPane` descr
 For labels instead of numbers use `.Category(["Jan", "Feb"])` or `CategoryAxis`, with rotated labels and automatic thinning.
 
 Log axes define what happens to values ≤ 0 (`NonPositiveValues`).
+
+## Breaks and gaps
+
+A numeric axis can leave ranges out, for example to show a high peak and the small values beside it:
+
+```csharp
+c.YAxis(a => a.Numeric("y").Range(0, 1010).Breaks(new DoubleRange(45, 960)));
+```
+
+A break keeps only a narrow band of 1 % of its length, so a line that passes through it crosses steeply. A faint line across the plot and two slanted strokes on the axis mark it; no tick lies inside it.
+
+A time axis hides times with a `TimeGapMap`, for example weekends or nights:
+
+```csharp
+c.XAxis(a => a.DateTime("time").AutoRange().Gaps(TimeGapMap.Weekends(firstDay, lastDay, TimeZoneInfo.Local)));
+```
+
+Hidden times take no room at all; candles on working days stand evenly. Zooming, panning and the value under the pointer go across breaks and gaps, and series draw as fast as without them, also with 100 million points.
+
+In code, set `NumericAxis.Breaks` and `DateTimeAxis.Gaps`. In the showroom: *Scale break*, *Candles without weekends*.

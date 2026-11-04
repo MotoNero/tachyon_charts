@@ -87,6 +87,8 @@ public static class SceneCatalog
         new GanttScene("GanttCollapsedLight", BuiltInThemes.TachyonLight, "Vibration"),
         new SweepScene("Sweep", Tachyon.Charts.Core.Data.SweepMode.Sweep),
         new SweepScene("Stepping", Tachyon.Charts.Core.Data.SweepMode.Stepping),
+        new AxisBreakScene("ScaleBreak", Examples.ChartTypes.ScaleBreakPage.Configure),
+        new AxisBreakScene("CandlesWithoutWeekends", Examples.ChartTypes.CandlesWithoutWeekendsPage.Configure),
         new GlowNeonScene(),
         new GradientsScene(),
         new ThemeGalleryScene("ThemeHighContrast", BuiltInThemes.HighContrast),

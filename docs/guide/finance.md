@@ -55,6 +55,6 @@ c.Candles(data, yAxis: "price")
 
 The profile shows the volume traded at each price level of the visible candles; each candle spreads its volume evenly from its low to its high. Zooming or panning recomputes it for what is visible. The level with the most volume, the point of control, and the value area around it, which holds 70 % of the volume, stand out in their own colors (`PointOfControlColor`, `ValueAreaColor`, `Color`). Under the pointer a bar shows its price range, its volume and its share.
 
-Gaps for weekends and trading pauses come with axes that skip ranges, which are planned.
+For weekends and trading pauses, hide the times on the axis: `.XAxis(a => a.DateTime("time").Gaps(TimeGapMap.Weekends(first, last, zone)))`, see [axes](axes.md#breaks-and-gaps).
 
 In the showroom: *Candles* (the last day trades live), *OHLC bars*, *1 million candles*, *Market profile*.

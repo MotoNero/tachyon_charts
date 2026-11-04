@@ -35,6 +35,8 @@ public sealed class DateTimeAxis : AxisBase
     private static readonly TickStep[] _steps = CreateSteps();
 
     private readonly TimeResolution _resolution;
+    private TimeGapMap? _gaps;
+    private TimeGapScaling? _gapScaling;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DateTimeAxis"/> class.
@@ -66,7 +68,39 @@ public sealed class DateTimeAxis : AxisBase
     /// <summary>
     /// Gets or sets the hidden intervals, in the unit of the time values.
     /// </summary>
-    public TimeGapMap? Gaps { get; set; }
+    public TimeGapMap? Gaps
+    {
+        get => _gaps;
+        set
+        {
+            _gaps = value;
+            _gapScaling = null;
+            OnChanged();
+        }
+    }
+
+    /// <inheritdoc />
+    /// <remarks>With <see cref="Gaps"/>, the hidden intervals take no room; zooming, panning and the values under the pointer go across them.</remarks>
+    public override AxisScaling? Scaling
+    {
+        get
+        {
+            if (_gaps is null)
+            {
+                return null;
+            }
+
+            // The scale counts from the origin like the values of the axis, so it follows a new origin.
+            var scaling = _gapScaling;
+            if (scaling is null || scaling.Origin != OriginTicks || scaling.Gaps != _gaps)
+            {
+                scaling = new TimeGapScaling(_gaps, OriginTicks);
+                _gapScaling = scaling;
+            }
+
+            return scaling;
+        }
+    }
 
     internal long NanosecondsPerUnit => _resolution == TimeResolution.Ticks ? 100 : 1;
 
@@ -132,17 +166,6 @@ public sealed class DateTimeAxis : AxisBase
         return new DateTimeAxisTransform(first, last, pixelStart, pixelEnd, Gaps, OriginTicks);
     }
 
-    /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">Gaps are set. Use <see cref="CreateTimeTransform"/>.</exception>
-    public override LinearAxisTransform CreateTransform(double start, double length)
-    {
-        if (Gaps is not null)
-        {
-            throw new InvalidOperationException("An axis with gaps needs CreateTimeTransform.");
-        }
-
-        return base.CreateTransform(start, length);
-    }
 
     /// <inheritdoc />
     /// <exception cref="ArgumentOutOfRangeException">The length is negative or not finite.</exception>

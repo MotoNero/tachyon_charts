@@ -183,7 +183,7 @@ sealed class Tachyon.Charts.Core.Axes.DateTimeAxis : Tachyon.Charts.Core.Axes.Ax
   Tachyon.Charts.Core.Axes.TimeGapMap Gaps { get; set; }
   virtual System.String FormatCursorValue(System.Double value)
   virtual Tachyon.Charts.Core.Axes.TickSet GenerateTicks(System.Double length, Tachyon.Charts.Core.Axes.ITextMeasurer measurer)
-  virtual Tachyon.Charts.Core.Numerics.LinearAxisTransform CreateTransform(System.Double start, System.Double length)
+  virtual Tachyon.Charts.Core.Numerics.AxisScaling Scaling { get; }
 struct Tachyon.Charts.Core.Axes.DateTimeAxisTransform : Tachyon.Charts.Core.Numerics.IAxisTransform
   System.Double ToData(System.Double pixel)
   System.Double ToPixel(System.Double value)
@@ -209,8 +209,10 @@ enum Tachyon.Charts.Core.Axes.NonPositiveValues : System.IComparable, System.ICo
   SymLog = 2
 sealed class Tachyon.Charts.Core.Axes.NumericAxis : Tachyon.Charts.Core.Axes.AxisBase
   .ctor(System.String id, Tachyon.Charts.Core.Axes.AxisPosition position)
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Numerics.DoubleRange> Breaks { get; set; }
   Tachyon.Charts.Core.Axes.NumericLabelFormat LabelFormat { get; set; }
   virtual Tachyon.Charts.Core.Axes.TickSet GenerateTicks(System.Double length, Tachyon.Charts.Core.Axes.ITextMeasurer measurer)
+  virtual Tachyon.Charts.Core.Numerics.AxisScaling Scaling { get; }
 sealed class Tachyon.Charts.Core.Axes.NumericLabelFormat : System.IEquatable<Tachyon.Charts.Core.Axes.NumericLabelFormat>
   .ctor()
   System.Boolean UseSiPrefixes { get; set; }
@@ -410,8 +412,10 @@ sealed class Tachyon.Charts.Core.Fluent.AnnotationEditDefinition : Tachyon.Chart
   virtual Tachyon.Charts.Core.Input.ChartModifier Create()
 sealed class Tachyon.Charts.Core.Fluent.AxisBuilder
   Tachyon.Charts.Core.Fluent.AxisBuilder AutoRange()
+  Tachyon.Charts.Core.Fluent.AxisBuilder Breaks(Tachyon.Charts.Core.Numerics.DoubleRange[] breaks)
   Tachyon.Charts.Core.Fluent.AxisBuilder Category(System.Collections.Generic.IReadOnlyList<System.String> categories, System.String id = null)
   Tachyon.Charts.Core.Fluent.AxisBuilder DateTime(System.String id = null)
+  Tachyon.Charts.Core.Fluent.AxisBuilder Gaps(Tachyon.Charts.Core.Axes.TimeGapMap gaps)
   Tachyon.Charts.Core.Fluent.AxisBuilder Hidden()
   Tachyon.Charts.Core.Fluent.AxisBuilder Inverted()
   Tachyon.Charts.Core.Fluent.AxisBuilder Limits(System.Double min, System.Double max)
@@ -427,6 +431,7 @@ sealed class Tachyon.Charts.Core.Fluent.AxisDefinition : System.IEquatable<Tachy
   System.Boolean IsHidden { get; set; }
   System.Boolean IsInverted { get; set; }
   System.Collections.Generic.IReadOnlyList<System.String> Categories { get; set; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Numerics.DoubleRange> Breaks { get; set; }
   System.Double LogBase { get; set; }
   System.Double PaneWeight { get; set; }
   System.Int32 Pane { get; set; }
@@ -436,6 +441,7 @@ sealed class Tachyon.Charts.Core.Fluent.AxisDefinition : System.IEquatable<Tachy
   System.String Id { get; set; }
   System.String Title { get; set; }
   Tachyon.Charts.Core.Axes.NonPositiveValues NonPositive { get; set; }
+  Tachyon.Charts.Core.Axes.TimeGapMap Gaps { get; set; }
   Tachyon.Charts.Core.Fluent.AxisKind Kind { get; set; }
 sealed class Tachyon.Charts.Core.Fluent.AxisDragDefinition : Tachyon.Charts.Core.Fluent.ModifierDefinition, System.IEquatable<Tachyon.Charts.Core.Fluent.AxisDragDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.ModifierDefinition>
   .ctor()

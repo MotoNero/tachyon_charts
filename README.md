@@ -81,6 +81,10 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|---|
 | ![Daily candles of a share with volume bars in a pane below](docs/images/candles.png) | ![The same prices as OHLC bars in the light theme](docs/images/ohlc.png) |
 
+| Scale break | Candles without weekends |
+|---|---|
+| ![A line with small values and one high peak, the empty range between left out](docs/images/scale-break.png) | ![Daily candles on working days, the weekends take no room](docs/images/candles-weekends.png) |
+
 | Market profile | Drawing tools |
 |---|---|
 | ![Volume per price level of the visible days with point of control and value area](docs/images/market-profile.png) | ![Fibonacci retracement, trend channel, pitchfork and a harmonic pattern on candles](docs/images/drawings.png) |
@@ -121,7 +125,7 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 - Gantt and time lines: rows in collapsible groups, dependencies, milestones, 100 000 tasks at 60 frames per second
 - Finance: candles and OHLC bars from a thread-safe candle store, a million candles at 60 frames per second, volume in a pane of its own, market profile with point of control and value area
 - Drawing tools: trend line, Fibonacci retracement and extension, channel, pitchfork, Elliott waves, XABCD, head and shoulders and a free brush, fixed to values, saved as JSON
-- Numeric, time, logarithmic and category axes, stacked panes, linked charts
+- Numeric, time, logarithmic and category axes, stacked panes, linked charts, scale breaks and hidden times such as weekends
 - Zoom, pan, crosshair, tooltip, lasso selection, measuring cursors, annotations, one undo chain for navigation and drawings
 - Signal tools without dependencies: FFT, FIR and biquad filters, generators
 - English and German texts, numbers and month names, switchable at runtime

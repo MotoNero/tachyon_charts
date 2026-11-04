@@ -801,12 +801,23 @@ public sealed class ChartSurface
 
     private void DrawOverlays(IRenderDevice device, ICommandList frame, double scale, double chartWidth)
     {
-        if (_overlays.Length == 0 || _currentLayout is not { } layout)
+        if (_currentLayout is not { } layout)
+        {
+            return;
+        }
+
+        var hasBreaks = Tachyon.Charts.Core.Overlays.AxisBreakMarks.Any(layout);
+        if (_overlays.Length == 0 && !hasBreaks)
         {
             return;
         }
 
         _canvas.Begin(device, frame, layout, scale, chartWidth, _tickColor, _labelColor, _style.BackgroundColor, _labelSize);
+        if (hasBreaks)
+        {
+            Tachyon.Charts.Core.Overlays.AxisBreakMarks.Draw(_canvas, layout);
+        }
+
         foreach (var overlay in _overlays)
         {
             overlay.Draw(_canvas);

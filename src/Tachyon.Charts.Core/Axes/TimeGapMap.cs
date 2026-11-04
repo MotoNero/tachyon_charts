@@ -61,6 +61,9 @@ public sealed class TimeGapMap
     /// </summary>
     public int Count => _starts.Length;
 
+    /// <summary>Gets the start of a gap, for marking it on the axis.</summary>
+    internal long StartOf(int index) => _starts[index];
+
     /// <summary>
     /// Creates the gaps from Saturday 00:00 to Monday 00:00 local time for a period.
     /// </summary>

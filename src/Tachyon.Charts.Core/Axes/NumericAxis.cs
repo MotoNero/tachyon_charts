@@ -20,6 +20,26 @@ public sealed class NumericAxis(string id, AxisPosition position) : AxisBase(id,
     /// </summary>
     public NumericLabelFormat LabelFormat { get; set; } = new();
 
+    private BreakScaling? _breaks;
+
+    /// <summary>
+    /// Gets or sets the ranges the axis leaves out, for example to show a peak and the small values below it.
+    /// The breaks take no room and are marked on the axis; zooming, panning and the values under the pointer go across them.
+    /// </summary>
+    public IReadOnlyList<DoubleRange> Breaks
+    {
+        get => _breaks?.Breaks ?? [];
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            _breaks = value.Count == 0 ? null : new BreakScaling(value);
+            OnChanged();
+        }
+    }
+
+    /// <inheritdoc />
+    public override AxisScaling? Scaling => _breaks;
+
     /// <inheritdoc />
     /// <exception cref="ArgumentOutOfRangeException">The length is negative or not finite.</exception>
     public override TickSet GenerateTicks(double length, ITextMeasurer measurer)
@@ -41,12 +61,19 @@ public sealed class NumericAxis(string id, AxisPosition position) : AxisBase(id,
             return SingleTick(range.Min);
         }
 
+        // With breaks, the visible length leaves out the breaks, and no tick lies inside one.
+        var span = _breaks is { } breaks ? breaks.Forward(range.Max) - breaks.Forward(range.Min) : range.Length;
+        if (!(span > 0))
+        {
+            return SingleTick(range.Min);
+        }
+
         var intervals = Math.Max((int)(length / Math.Max(MinimumTickSpacing, measurer.LineHeight + LabelGap)), 1);
-        var step = NiceNumbers.Step(range.Length, intervals);
+        var step = NiceNumbers.Step(span, intervals);
 
         for (var attempt = 0; attempt < MaximumCoarsening; attempt++)
         {
-            var values = CreateTicks(range, step);
+            var values = OutsideBreaks(CreateTicks(range, step));
             if (values.Length == 0)
             {
                 return SingleTick(range.Center);
@@ -54,15 +81,26 @@ public sealed class NumericAxis(string id, AxisPosition position) : AxisBase(id,
 
             var labels = new string[values.Length];
             LabelFormat.FormatTicks(values, step, labels);
-            if (Fits(values, labels, step, length / range.Length, measurer))
+            if (Fits(values, labels, step, length / span, measurer))
             {
-                return new TickSet(ToTicks(values, labels), CreateMinorTicks(range, step, length), step);
+                return new TickSet(ToTicks(values, labels), OutsideBreaks(CreateMinorTicks(range, step, length)), step);
             }
 
             step = NextStep(step);
         }
 
         return SingleTick(range.Center);
+    }
+
+    private double[] OutsideBreaks(double[] values)
+    {
+        if (_breaks is not { } breaks)
+        {
+            return values;
+        }
+
+        var ranges = breaks.Breaks;
+        return [.. values.Where(value => !ranges.Any(range => value > range.Min && value < range.Max))];
     }
 
     private static double NextStep(double step)

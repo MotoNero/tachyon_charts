@@ -376,8 +376,7 @@ internal static class CandleColumns
             return;
         }
 
-        var period = Period(state, start, end);
-        var slot = Math.Abs(frame.X.PixelsPerUnit) * period;
+        var slot = Slot(state, frame.X, origin, start, end);
         if (slot >= ColumnPixels)
         {
             for (var i = start; i < end; i++)
@@ -424,7 +423,7 @@ internal static class CandleColumns
         var after = Math.Min(state.FindFirst(time), state.Count - 1);
         var before = Math.Max(after - 1, 0);
         var nearest = Math.Abs(state.Time[after] - time) < Math.Abs(state.Time[before] - time) ? after : before;
-        var reach = Math.Max(maximumDistance, Math.Abs(x.PixelsPerUnit) * Period(state, 0, state.Count) / 2);
+        var reach = Math.Max(maximumDistance, Slot(state, x, origin, 0, state.Count) / 2);
         return Math.Abs(x.ToPixel(state.Time[nearest] - origin) - pixel) <= reach ? nearest : -1;
     }
 
@@ -442,9 +441,12 @@ internal static class CandleColumns
         return (start, end);
     }
 
-    // The usual length of a period: the visible time divided by the visible periods.
-    private static double Period(CandleData.State state, int start, int end) =>
-        end - start > 1 ? (state.Time[end - 1] - state.Time[start]) / (end - start - 1) : 1;
+    // The room of one period on the screen: the distance from the first to the last candle divided by the periods
+    // between them. Measured in pixels, it stays right on an axis that hides nights or weekends.
+    private static double Slot(CandleData.State state, LinearAxisTransform x, double origin, int start, int end) =>
+        end - start > 1
+            ? Math.Abs(x.ToPixel(state.Time[end - 1] - origin) - x.ToPixel(state.Time[start] - origin)) / (end - start - 1)
+            : Math.Abs(x.PixelsPerUnit);
 
     internal readonly record struct Column(float Center, float Width, double Open, double High, double Low, double Close, double Volume, int Last);
 }

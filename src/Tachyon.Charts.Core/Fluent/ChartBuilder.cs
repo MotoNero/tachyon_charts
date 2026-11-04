@@ -63,6 +63,12 @@ public sealed record AxisDefinition(AxisKind Kind, string Id)
     /// <summary>Gets the height of the pane relative to the others.</summary>
     public double PaneWeight { get; init; } = 1;
 
+    /// <summary>Gets the ranges a numeric axis leaves out.</summary>
+    public IReadOnlyList<DoubleRange> Breaks { get; init; } = [];
+
+    /// <summary>Gets the hidden times of a time axis, or <see langword="null"/> for none.</summary>
+    public TimeGapMap? Gaps { get; init; }
+
     /// <summary>Gets the base of a logarithmic axis.</summary>
     public double LogBase { get; init; } = 10;
 
@@ -534,10 +540,10 @@ public sealed record ChartDefinition(
         var position = definition.Position ?? fallback;
         AxisBase axis = definition.Kind switch
         {
-            AxisKind.DateTime => new DateTimeAxis(definition.Id, position),
+            AxisKind.DateTime => new DateTimeAxis(definition.Id, position) { Gaps = definition.Gaps },
             AxisKind.Category => new CategoryAxis(definition.Id, position, definition.Categories),
             AxisKind.Log => new LogAxis(definition.Id, position) { Base = definition.LogBase, NonPositive = definition.NonPositive },
-            _ => new NumericAxis(definition.Id, position),
+            _ => new NumericAxis(definition.Id, position) { Breaks = definition.Breaks },
         };
         axis.Title = definition.Title;
         axis.Limits = definition.Limits;
@@ -811,6 +817,16 @@ public sealed class AxisBuilder
     /// <summary>Hides the axis: it takes no room and shows nothing.</summary>
     /// <returns>This builder.</returns>
     public AxisBuilder Hidden() => Change(Definition with { IsHidden = true });
+
+    /// <summary>Leaves ranges out of a numeric axis; they take no room and are marked.</summary>
+    /// <param name="breaks">The ranges to leave out.</param>
+    /// <returns>This builder.</returns>
+    public AxisBuilder Breaks(params DoubleRange[] breaks) => Change(Definition with { Breaks = [.. breaks] });
+
+    /// <summary>Hides times on a time axis, for example nights and weekends; they take no room and are marked.</summary>
+    /// <param name="gaps">The hidden times.</param>
+    /// <returns>This builder.</returns>
+    public AxisBuilder Gaps(TimeGapMap gaps) => Change(Definition with { Gaps = gaps ?? throw new ArgumentNullException(nameof(gaps)) });
 
     /// <summary>Puts a vertical axis and its series into a pane of their own, below the first one.</summary>
     /// <param name="index">The pane, counted from the top; 0 is the first.</param>
