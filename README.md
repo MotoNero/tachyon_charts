@@ -6,9 +6,23 @@ GPU-accelerated 2D and 3D charts for .NET 10, built for test and measurement, la
 
 > **Status:** preview, see [Releases](../../releases). The API can still change.
 
+## At a glance
+
+Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance):
+
+| | |
+|---|---:|
+| Line with 100 million points, zoom and pan (4K) | **158 FPS** |
+| Spectrogram 4096 × 4096 (4K) | **270 FPS** |
+| Point cloud of 100 million points, turning, full-screen window | **115 FPS** |
+| Surface of 4096 × 4096 values, turning, full-screen window | **115 FPS** |
+| Volume 512³, turning, full-screen window | **up to 118 FPS** |
+| Nearest of 100 million points under the pointer | **0.4 ms** |
+| Chart at rest | **no frames, 0.02 % CPU** |
+
 ## Highlights
 
-- **Fast:** 100 million points per line, 10 million scatter points, 4096 × 4096 spectrograms, all at interactive rates
+- **Fast:** 100 million points per line, 10 million scatter points, 4096 × 4096 spectrograms, all at interactive rates; every 3D type above 60 frames per second in a full-screen window
 - **Live:** stream from any thread without blocking the display
 - **Instruments included:** oscilloscope with trigger and persistence, spectrum analyzer with spectrogram and masks, network analyzer
 - **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap, contour
