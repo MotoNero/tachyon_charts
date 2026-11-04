@@ -390,6 +390,21 @@ sealed class Tachyon.Charts.Core.Data.SpectrogramData
   System.Int64 TotalRows { get; }
   System.Void AppendRow(System.ReadOnlySpan<System.Single> row)
   Tachyon.Charts.Core.Numerics.DoubleRange ValueRange { get; }
+sealed class Tachyon.Charts.Core.Data.SweepData
+  .ctor(System.Int32 channels, System.Int32 capacity, System.Double window)
+  System.Double GapShare { get; set; }
+  System.Double Head { get; }
+  System.Double Window { get; set; }
+  System.Int32 Capacity { get; }
+  System.Int32 Channels { get; }
+  System.Int64 Version { get; }
+  System.Void Append(System.Double time, System.ReadOnlySpan<System.Single> values)
+  System.Void Append(System.ReadOnlySpan<System.Double> times, System.ReadOnlySpan<System.Single> values)
+  System.Void Clear()
+  Tachyon.Charts.Core.Data.SweepMode Mode { get; set; }
+enum Tachyon.Charts.Core.Data.SweepMode : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Stepping = 1
+  Sweep = 0
 sealed class Tachyon.Charts.Core.Fluent.AnnotationEditDefinition : Tachyon.Charts.Core.Fluent.ModifierDefinition, System.IEquatable<Tachyon.Charts.Core.Fluent.AnnotationEditDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.ModifierDefinition>
   .ctor()
   virtual Tachyon.Charts.Core.Input.ChartModifier Create()
@@ -2050,6 +2065,23 @@ sealed class Tachyon.Charts.Core.Series.StemSeries : Tachyon.Charts.Core.Series.
   System.Double HeadSize { get; set; }
   protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
   protected virtual System.Void Build(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh)
+static class Tachyon.Charts.Core.Series.SweepCharts
+  static Tachyon.Charts.Core.Fluent.ChartBuilder Sweep(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Data.SweepData data, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Numerics.DoubleRange> ranges, System.Collections.Generic.IReadOnlyList<System.String> titles = null)
+sealed class Tachyon.Charts.Core.Series.SweepSeries : Tachyon.Charts.Core.Pipeline.ChartSeries, System.IDisposable
+  .ctor(Tachyon.Charts.Core.Data.SweepData data, System.Int32 channel, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  System.Double Thickness { get; set; }
+  System.Int32 Channel { get; }
+  System.Void Dispose()
+  Tachyon.Charts.Core.Data.SweepData Data { get; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+  protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Int32 DrawnPointCount { get; }
+  protected virtual System.Int64 Version { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void OnPalette(System.ReadOnlySpan<Tachyon.Charts.Rendering.Rgba8> palette)
+  protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void ReleaseResources()
+  virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
 sealed class Tachyon.Charts.Core.Series.TernaryGridOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
   .ctor(System.String labelA, System.String labelB, System.String labelC)
   protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)

@@ -12,6 +12,8 @@ public static class InstrumentPages
         [NetworkPage.Name] = (NetworkPage.Hint, NetworkPage.Configure),
         [SmithPage.Name] = (SmithPage.Hint, SmithPage.Configure),
         [ParallelPage.Name] = (ParallelPage.Hint, ParallelPage.Configure),
+        [SweepMonitorPage.Name] = (SweepMonitorPage.Hint, SweepMonitorPage.Configure),
+        [SteppingMonitorPage.Name] = (SteppingMonitorPage.Hint, SteppingMonitorPage.Configure),
     };
 
     /// <summary>Gets the configuration of a page, of the instruments or of a chart type.</summary>

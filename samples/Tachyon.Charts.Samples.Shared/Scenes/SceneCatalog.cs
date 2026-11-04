@@ -85,6 +85,8 @@ public static class SceneCatalog
         new DrawingsScene("DrawingPatterns", DrawingDemo.Second),
         new GanttScene("Gantt", BuiltInThemes.TachyonDark, null),
         new GanttScene("GanttCollapsedLight", BuiltInThemes.TachyonLight, "Vibration"),
+        new SweepScene("Sweep", Tachyon.Charts.Core.Data.SweepMode.Sweep),
+        new SweepScene("Stepping", Tachyon.Charts.Core.Data.SweepMode.Stepping),
         new GlowNeonScene(),
         new GradientsScene(),
         new ThemeGalleryScene("ThemeHighContrast", BuiltInThemes.HighContrast),

@@ -84,6 +84,10 @@ public static class SampleText
         ["Market profile"] = "Market Profile",
         ["Drawing tools"] = "Zeichenwerkzeuge",
         ["Gantt"] = "Gantt",
+        ["Sweep monitor"] = "Sweep-Monitor",
+        ["Stepping monitor"] = "Stepping-Monitor",
+        ["The trace writes from the left over the previous one | Wheel on an axis: zoom the values"] = "Die Kurve schreibt von links über die vorige | Rad auf einer Achse: Werte zoomen",
+        ["The trace fills a page from the left, then the next page begins | Wheel on an axis: zoom the values"] = "Die Kurve füllt eine Seite von links, dann beginnt die nächste | Rad auf einer Achse: Werte zoomen",
         ["Gantt, 100 000 tasks"] = "Gantt, 100 000 Aufgaben",
         ["Wheel: zoom | Drag: pan | Click on a group: collapse or expand | Pointer: start, end and duration"] = "Rad: Zoom | Ziehen: Pan | Klick auf eine Gruppe: zu- oder aufklappen | Zeiger: Beginn, Ende und Dauer",
         ["Keys 1 to 9: trend line, Fibonacci, extension, channel, pitchfork, Elliott, XABCD, head and shoulders, brush | Click: place points | Drag: move a drawing or its point | Delete | Ctrl+Z: undo | Esc, 0: stop"] = "Tasten 1 bis 9: Trendlinie, Fibonacci, Extension, Kanal, Pitchfork, Elliott, XABCD, Kopf-Schulter, Pinsel | Klick: Punkte setzen | Ziehen: Zeichnung oder Punkt verschieben | Entf | Strg+Z: rückgängig | Esc, 0: beenden",
@@ -213,6 +217,8 @@ public static class SampleText
         pages.Add(new SamplePage("Network (interaktiv)", "Network analyzer"));
         pages.Add(new SamplePage("Smith (interaktiv)", "Smith chart"));
         pages.Add(new SamplePage("Parallel (interaktiv)", "Parallel coordinates"));
+        pages.Add(new SamplePage("Sweep monitor", "Sweep monitor"));
+        pages.Add(new SamplePage("Stepping monitor", "Stepping monitor"));
         pages.Add(new SamplePage("Chart types", "Chart types", true));
         pages.AddRange(ChartTypePages.All.Select(page => new SamplePage(page.Name, page.Name)));
         pages.Add(new SamplePage("3D", "3D", true));

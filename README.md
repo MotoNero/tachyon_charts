@@ -24,7 +24,7 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 
 - **Fast:** 100 million points per line, 10 million scatter points, 4096 × 4096 spectrograms, all at interactive rates; every 3D type above 60 frames per second in a full-screen window
 - **Live:** stream from any thread without blocking the display
-- **Instruments included:** oscilloscope with trigger and persistence, spectrum analyzer with spectrogram and masks, network analyzer
+- **Instruments included:** oscilloscope with trigger and persistence, spectrum analyzer with spectrogram and masks, network analyzer, sweep and stepping monitors
 - **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap, contour
 - **Finance:** candles, OHLC bars, volume, market profile and drawing tools
 - **3D as an add-on:** surfaces, waterfalls, antenna patterns, point clouds of 100 million points and volumes, live and with values under the pointer
@@ -42,6 +42,10 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 | Color grading | Smith chart |
 |---|---|
 | ![Oscilloscope trace with a color-graded density](docs/images/color-grade.png) | ![Smith chart with a marker](docs/images/smith.png) |
+
+| Sweep monitor |
+|---|
+| ![Four channels of a patient monitor writing over the previous pass with a gap ahead](docs/images/sweep.png) |
 
 ### Large data
 
@@ -269,6 +273,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Finance](docs/guide/finance.md) | Candles, OHLC bars, volume and market profile |
 | [Drawing tools](docs/guide/drawings.md) | Fibonacci, channels, pitchfork, patterns, saving as JSON |
 | [Gantt](docs/guide/gantt.md) | Rows, groups, dependencies, milestones |
+| [Sweep monitors](docs/guide/sweep.md) | Writing over the previous pass or page by page, channels in step |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
 | [docs/api](docs/api) | Public API lists |
 
