@@ -95,6 +95,9 @@ internal sealed class SampleWindow : Window
 
     /// <summary>Gets or sets a value indicating whether a recording of six seconds runs at the start, to measure it without a mouse.</summary>
     public static bool RecordsAtStart { get; set; }
+
+    /// <summary>Gets or sets the theme chosen at the start, by its name, as if picked in the list.</summary>
+    public static string? ThemeAtStart { get; set; }
     private readonly Chart _chart = new();
     private readonly Chart _overview = new() { Height = 110 };
     private readonly DockPanel _livePanel = new();
@@ -114,6 +117,7 @@ internal sealed class SampleWindow : Window
     private readonly List<(MenuItem Item, string Text)> _menuItems = [];
     private readonly Dictionary<string, FrameworkElement> _views3D = [];
     private readonly Dictionary<string, Tachyon.Charts.ThreeD.Wpf.Chart3D> _hosts3D = [];
+    private readonly Dictionary<string, Chart> _companions = [];
     private readonly Tachyon.Charts.Core.Input.SelectionModifier _selection = new() { Mode = Tachyon.Charts.Core.Input.SelectionMode.Lasso };
     private readonly Button _select = new() { Margin = new Thickness(0, 0, 6, 0) };
     private bool _isSelecting;
@@ -251,6 +255,11 @@ internal sealed class SampleWindow : Window
             if (RecordsAtStart)
             {
                 _ = RecordAtStart();
+            }
+
+            if (ThemeAtStart is { } themeName && BuiltInThemes.All.ToList().FindIndex(item => item.Name.Equals(themeName, StringComparison.OrdinalIgnoreCase)) is >= 0 and var chosen)
+            {
+                _theme.SelectedIndex = chosen + 1;
             }
         };
     }
@@ -531,6 +540,7 @@ internal sealed class SampleWindow : Window
             _stage.Children.Remove(_views3D[name]);
             _views3D.Remove(name);
             _hosts3D.Remove(name);
+            _companions.Remove(name);
             _pages.Remove(name);
             isReleased = true;
         }
@@ -562,6 +572,12 @@ internal sealed class SampleWindow : Window
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(3, GridUnitType.Star) });
                 grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(2, GridUnitType.Star) });
                 var below = new Chart().Configure(companion);
+                if (SelectedTheme is { } chosen)
+                {
+                    below.Theme = chosen;
+                }
+
+                _companions[page.Name] = below;
                 Grid.SetRow(below, 1);
                 grid.Children.Add(host);
                 grid.Children.Add(below);
@@ -844,7 +860,7 @@ internal sealed class SampleWindow : Window
             chart.Theme = theme ?? BuiltInThemes.TachyonDark;
         }
 
-        foreach (var chart in _pages.Values.Append(_scope).Append(_spectrum).Append(_spectrumHistory))
+        foreach (var chart in _pages.Values.Concat(_companions.Values).Append(_scope).Append(_spectrum).Append(_spectrumHistory))
         {
             chart.Theme = theme ?? BuiltInThemes.Instrument;
         }
@@ -1019,6 +1035,8 @@ internal static class Program
         SampleWindow.ShowsDiagnosticsAtStart = args.Contains("--diagnostics");
         SampleWindow.ShowsSourceAtStart = args.Contains("--source");
         SampleWindow.RecordsAtStart = args.Contains("--record");
+        var theme = Array.IndexOf(args, "--theme");
+        SampleWindow.ThemeAtStart = theme >= 0 && theme + 1 < args.Length ? args[theme + 1] : null;
         application.Run(new SampleWindow(args.FirstOrDefault()));
     }
 }

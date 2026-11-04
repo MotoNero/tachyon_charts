@@ -74,6 +74,7 @@ internal sealed class SampleWindow : Window
     private readonly List<(MenuItem Item, string Text)> _menuItems = [];
     private readonly Dictionary<string, Control> _views3D = [];
     private readonly Dictionary<string, Tachyon.Charts.ThreeD.Avalonia.Chart3D> _hosts3D = [];
+    private readonly Dictionary<string, Chart> _companions = [];
     private readonly Tachyon.Charts.Core.Input.SelectionModifier _selection = new() { Mode = SelectionMode.Lasso };
     private readonly Button _select = new() { Margin = new Thickness(0, 0, 6, 0), Padding = new Thickness(12, 6), CornerRadius = new CornerRadius(7) };
     private bool _isSelecting;
@@ -103,6 +104,9 @@ internal sealed class SampleWindow : Window
 
     /// <summary>Gets or sets a value indicating whether a recording of six seconds runs at the start, to measure it without a mouse.</summary>
     public static bool RecordsAtStart { get; set; }
+
+    /// <summary>Gets or sets the theme chosen at the start, by its name, as if picked in the list.</summary>
+    public static string? ThemeAtStart { get; set; }
 
     public static bool ZoomsIn { get; set; }
     private volatile bool _closing;
@@ -217,6 +221,11 @@ internal sealed class SampleWindow : Window
         if (RecordsAtStart)
         {
             Opened += (_, _) => _ = RecordAtStart();
+        }
+
+        if (ThemeAtStart is { } themeName && BuiltInThemes.All.ToList().FindIndex(item => item.Name.Equals(themeName, StringComparison.OrdinalIgnoreCase)) is >= 0 and var chosen)
+        {
+            _theme.SelectedIndex = chosen + 1;
         }
 
         _producer = new Thread(Produce) { IsBackground = true, Name = "Sample data" };
@@ -419,7 +428,7 @@ internal sealed class SampleWindow : Window
             chart.ChartTheme = theme ?? BuiltInThemes.TachyonDark;
         }
 
-        foreach (var chart in _pages.Values.Append(_scope).Append(_spectrum).Append(_spectrumHistory))
+        foreach (var chart in _pages.Values.Concat(_companions.Values).Append(_scope).Append(_spectrum).Append(_spectrumHistory))
         {
             chart.ChartTheme = theme ?? BuiltInThemes.Instrument;
         }
@@ -580,6 +589,7 @@ internal sealed class SampleWindow : Window
             _content.Children.Remove(_views3D[name]);
             _views3D.Remove(name);
             _hosts3D.Remove(name);
+            _companions.Remove(name);
             _pages.Remove(name);
             isReleased = true;
         }
@@ -609,6 +619,12 @@ internal sealed class SampleWindow : Window
                 // The 2D chart sits below in the same group, so ranges and cursor stay in step.
                 var grid = new Grid { RowDefinitions = new RowDefinitions("3*,2*") };
                 var below = new Chart().Configure(companion);
+                if (SelectedTheme is { } chosen)
+                {
+                    below.ChartTheme = chosen;
+                }
+
+                _companions[page.Name] = below;
                 Grid.SetRow(below, 1);
                 grid.Children.Add(host);
                 grid.Children.Add(below);
@@ -905,6 +921,8 @@ internal static class Program
         SampleWindow.ShowsDiagnosticsAtStart = args.Contains("--diagnostics");
         SampleWindow.ShowsSourceAtStart = args.Contains("--source");
         SampleWindow.RecordsAtStart = args.Contains("--record");
+        var theme = Array.IndexOf(args, "--theme");
+        SampleWindow.ThemeAtStart = theme >= 0 && theme + 1 < args.Length ? args[theme + 1] : null;
         return AppBuilder.Configure<SampleApplication>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);
     }
 }

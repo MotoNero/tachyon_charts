@@ -25,7 +25,13 @@ public static class ChartAreaRecorder
     public static IChartRecording Start(Control area, string path, VideoOptions? options = null)
     {
         var (charts, size) = Find(area);
-        return AreaRecording.Start(charts, size, path, options);
+
+        // The charts are looked up again while the recording runs: one that gets its size only now, or a page that changes.
+        var search = new global::Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        var recording = AreaRecording.Start(charts, size, path, options, search.Stop);
+        search.Tick += (_, _) => recording.Update(Find(area, needsChart: false).Charts);
+        search.Start();
+        return recording;
     }
 
     /// <summary>Records a planned video of the area, frame by frame at fixed times.</summary>
@@ -42,26 +48,47 @@ public static class ChartAreaRecorder
         return AreaRecording.ExportVideoAsync(charts, size, path, options, step);
     }
 
-    // The visible charts that run, with their places in pixels of the area.
-    private static (List<(ChartController Controller, PixelRect Bounds)> Charts, PixelSize Size) Find(Control area)
+    // The visible charts, with their places in pixels of the area; one that does not run yet joins once it runs.
+    private static (List<(Func<ChartController?> Controller, PixelRect Bounds)> Charts, PixelSize Size) Find(Control area, bool needsChart = true)
     {
         ArgumentNullException.ThrowIfNull(area);
         var scale = TopLevel.GetTopLevel(area)?.RenderScaling ?? 1;
-        var charts = new List<(ChartController Controller, PixelRect Bounds)>();
-        foreach (var chart in area.GetVisualDescendants().OfType<Chart>())
+        var charts = new List<(Func<ChartController?> Controller, PixelRect Bounds)>();
+        foreach (var chart in Visible(area).OfType<Chart>())
         {
-            if (chart.IsEffectivelyVisible && chart.Controller is { } controller && chart.TranslatePoint(new Point(0, 0), area) is { } origin)
+            if (chart.TranslatePoint(new Point(0, 0), area) is { } origin)
             {
-                charts.Add((controller, new PixelRect((float)Math.Round(origin.X * scale), (float)Math.Round(origin.Y * scale), (float)Math.Round(chart.Bounds.Width * scale), (float)Math.Round(chart.Bounds.Height * scale))));
+                charts.Add((() => chart.Controller, new PixelRect((float)Math.Round(origin.X * scale), (float)Math.Round(origin.Y * scale), (float)Math.Round(chart.Bounds.Width * scale), (float)Math.Round(chart.Bounds.Height * scale))));
             }
         }
 
-        if (charts.Count == 0)
+        if (charts.Count == 0 && needsChart)
         {
             throw new InvalidOperationException("The area shows no chart to record.");
         }
 
         var size = new PixelSize(Math.Max((int)Math.Round(area.Bounds.Width * scale), 2), Math.Max((int)Math.Round(area.Bounds.Height * scale), 2));
         return (charts, size);
+    }
+
+    // The elements below the area that are not hidden themselves or by a parent; a chart is not searched inside.
+    private static IEnumerable<Visual> Visible(Visual parent)
+    {
+        foreach (var child in parent.GetVisualChildren())
+        {
+            if (!child.IsVisible)
+            {
+                continue;
+            }
+
+            yield return child;
+            if (child is not Chart)
+            {
+                foreach (var below in Visible(child))
+                {
+                    yield return below;
+                }
+            }
+        }
     }
 }

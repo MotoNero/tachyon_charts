@@ -206,6 +206,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | Document | Content |
 |---|---|
 | [docs/guide](docs/guide/README.md) | User guide |
+| [3D charts](docs/guide/3d.md) | 3D types, one page each: surfaces, waterfall, lines and points, columns, point clouds, volumes, antennas, cuts |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
 | [docs/api](docs/api) | Public API lists |
 

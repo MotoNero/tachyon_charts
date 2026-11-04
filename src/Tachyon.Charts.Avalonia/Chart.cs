@@ -248,7 +248,7 @@ public sealed class Chart : Control, IRecordableChart
         }
 
         var size = options is null ? _size : new PixelSize(options.Width, options.Height);
-        _recording = AreaRecording.Start([(controller, new Tachyon.Charts.Rendering.PixelRect(0, 0, size.Width, size.Height))], size, path, options);
+        _recording = AreaRecording.Start([(() => _controller, new Tachyon.Charts.Rendering.PixelRect(0, 0, size.Width, size.Height))], size, path, options);
     }
 
     /// <summary>Stops the recording and completes the file.</summary>

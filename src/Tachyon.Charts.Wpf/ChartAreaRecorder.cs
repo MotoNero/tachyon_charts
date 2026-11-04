@@ -22,7 +22,13 @@ public static class ChartAreaRecorder
     public static IChartRecording Start(FrameworkElement area, string path, VideoOptions? options = null)
     {
         var (charts, size) = Find(area);
-        return AreaRecording.Start(charts, size, path, options);
+
+        // The charts are looked up again while the recording runs: one that gets its size only now, or a page that changes.
+        var search = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        var recording = AreaRecording.Start(charts, size, path, options, search.Stop);
+        search.Tick += (_, _) => recording.Update(Find(area, needsChart: false).Charts);
+        search.Start();
+        return recording;
     }
 
     /// <summary>Records a planned video of the area, frame by frame at fixed times.</summary>
@@ -39,14 +45,14 @@ public static class ChartAreaRecorder
         return AreaRecording.ExportVideoAsync(charts, size, path, options, step);
     }
 
-    // The visible charts that run, with their places in pixels of the area.
-    private static (List<(ChartController Controller, PixelRect Bounds)> Charts, PixelSize Size) Find(FrameworkElement area)
+    // The visible charts, with their places in pixels of the area; one that does not run yet joins once it runs.
+    private static (List<(Func<ChartController?> Controller, PixelRect Bounds)> Charts, PixelSize Size) Find(FrameworkElement area, bool needsChart = true)
     {
         ArgumentNullException.ThrowIfNull(area);
         var scale = VisualTreeHelper.GetDpi(area).DpiScaleX;
-        var charts = new List<(ChartController Controller, PixelRect Bounds)>();
+        var charts = new List<(Func<ChartController?> Controller, PixelRect Bounds)>();
         Collect(area, area, scale, charts);
-        if (charts.Count == 0)
+        if (charts.Count == 0 && needsChart)
         {
             throw new InvalidOperationException("The area shows no chart to record.");
         }
@@ -55,20 +61,20 @@ public static class ChartAreaRecorder
         return (charts, size);
     }
 
-    private static void Collect(DependencyObject parent, FrameworkElement area, double scale, List<(ChartController Controller, PixelRect Bounds)> charts)
+    private static void Collect(DependencyObject parent, FrameworkElement area, double scale, List<(Func<ChartController?> Controller, PixelRect Bounds)> charts)
     {
         for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
         {
             var child = VisualTreeHelper.GetChild(parent, i);
-            if (child is UIElement { IsVisible: false })
+            if (child is UIElement { Visibility: not Visibility.Visible })
             {
                 continue;
             }
 
-            if (child is Chart { Controller: { } controller } chart)
+            if (child is Chart chart)
             {
                 var origin = chart.TransformToAncestor(area).Transform(new Point(0, 0));
-                charts.Add((controller, new PixelRect((float)Math.Round(origin.X * scale), (float)Math.Round(origin.Y * scale), (float)Math.Round(chart.ActualWidth * scale), (float)Math.Round(chart.ActualHeight * scale))));
+                charts.Add((() => chart.Controller, new PixelRect((float)Math.Round(origin.X * scale), (float)Math.Round(origin.Y * scale), (float)Math.Round(chart.ActualWidth * scale), (float)Math.Round(chart.ActualHeight * scale))));
                 continue;
             }
 
