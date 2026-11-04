@@ -31,6 +31,8 @@ public static class ChartTypePages
         (AntennaCutPage.Name, AntennaCutPage.Hint, AntennaCutPage.Configure),
         (CutThroughASurfacePage.Name, CutThroughASurfacePage.Hint, CutThroughASurfacePage.Configure),
         (RadarPage.Name, RadarPage.Hint, RadarPage.Configure),
+        (PiePage.Name, PiePage.Hint, PiePage.Configure),
+        (DonutPage.Name, DonutPage.Hint, DonutPage.Configure),
         (TernaryPage.Name, TernaryPage.Hint, TernaryPage.Configure),
         (AnnotationsPage.Name, AnnotationsPage.Hint, AnnotationsPage.Configure),
     ];

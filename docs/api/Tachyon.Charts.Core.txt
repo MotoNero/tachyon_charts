@@ -1663,6 +1663,43 @@ sealed class Tachyon.Charts.Core.Series.ParallelCoordinatesSeries : Tachyon.Char
   protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
   protected virtual System.Void ReleaseResources()
   virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
+static class Tachyon.Charts.Core.Series.PieCharts
+  static Tachyon.Charts.Core.Fluent.ChartBuilder Pie(Tachyon.Charts.Core.Fluent.ChartBuilder builder, System.Collections.Generic.IReadOnlyList<System.Double> values, System.Collections.Generic.IReadOnlyList<System.String> names = null, System.Action<Tachyon.Charts.Core.Series.PieSeries> configure = null)
+sealed class Tachyon.Charts.Core.Series.PieLabelOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
+  .ctor(Tachyon.Charts.Core.Series.PieSeries series)
+  protected virtual System.Int64 ExternalVersion { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
+enum Tachyon.Charts.Core.Series.PieLabels : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Name = 1
+  NameAndPercent = 4
+  None = 0
+  Percent = 2
+  Value = 3
+sealed class Tachyon.Charts.Core.Series.PieModifier : Tachyon.Charts.Core.Input.ChartModifier
+  .ctor()
+  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
+sealed class Tachyon.Charts.Core.Series.PieSeries : Tachyon.Charts.Core.Pipeline.ChartSeries
+  .ctor(System.Collections.Generic.IReadOnlyList<System.Double> values, System.Collections.Generic.IReadOnlyList<System.String> names, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Rendering.Rgba8> Colors { get; set; }
+  System.Double ExplodeDistance { get; set; }
+  System.Double Gap { get; set; }
+  System.Double GetShare(System.Int32 index)
+  System.Double GetValue(System.Int32 index)
+  System.Double InnerRadius { get; set; }
+  System.Int32 Count { get; }
+  System.Int32 ExplodedIndex { get; set; }
+  System.Int32 HighlightedIndex { get; set; }
+  System.String GetName(System.Int32 index)
+  System.Void SetValues(System.Collections.Generic.IReadOnlyList<System.Double> values, System.Collections.Generic.IReadOnlyList<System.String> names = null)
+  Tachyon.Charts.Core.Series.PieLabels Labels { get; set; }
+  protected virtual System.Boolean TryFindPoint(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Numerics.Vector2 pixel, System.Double maximumDistance, Tachyon.Charts.Core.HitTesting.HitTestMode mode, out System.Int64 index, out System.Double x, out System.Double y)
+  protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Boolean TryReadPoint(System.Int64 index, out System.Double x, out System.Double y)
+  protected virtual System.Int64 Version { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void OnPalette(System.ReadOnlySpan<Tachyon.Charts.Rendering.Rgba8> palette)
+  protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
 static class Tachyon.Charts.Core.Series.PolarChart
   static System.ValueTuple<Tachyon.Charts.Core.Pipeline.ChartSurface, Tachyon.Charts.Core.Axes.NumericAxis, Tachyon.Charts.Core.Axes.NumericAxis> Create(Tachyon.Charts.Rendering.ITextEngine textEngine, Tachyon.Charts.Core.Numerics.DoubleRange range, System.Collections.Generic.IReadOnlyList<System.String> spokes = null)
 sealed class Tachyon.Charts.Core.Series.PolarGridOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay

@@ -75,6 +75,8 @@ public static class SceneCatalog
         new BoxViolinScene(),
         new PolarScene(),
         new RadarScene(),
+        new PieScene("Pie", BuiltInThemes.TachyonDark, 0),
+        new PieScene("DonutLight", BuiltInThemes.TachyonLight, 0.55),
         new GlowNeonScene(),
         new GradientsScene(),
         new ThemeGalleryScene("ThemeHighContrast", BuiltInThemes.HighContrast),

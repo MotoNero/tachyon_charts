@@ -15,6 +15,7 @@ Tachyon Charts draws large amounts of data in real time, in WPF and Avalonia, on
 | Areas and bars | [areas-bars.md](areas-bars.md) |
 | Histogram, box plot, violin | [statistics.md](statistics.md) |
 | Polar and radar | [polar.md](polar.md) |
+| Pie and donut | [pie.md](pie.md) |
 | Heatmap, spectrogram, contour | [rasters.md](rasters.md) |
 | Axes | [axes.md](axes.md) |
 | Mouse and keyboard | [interaction.md](interaction.md) |

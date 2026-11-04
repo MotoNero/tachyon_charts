@@ -60,6 +60,8 @@ public static class ShowcaseScenes
         Type("violin", "Violin", "Violin plot"),
         Type("polar", "Polar", "Polar chart"),
         Type("radar", "Radar", "Radar chart"),
+        Type("pie", "Pie", "Pie chart"),
+        Type("donut", "Donut", "Donut chart"),
         Type("ternary", "Ternary", "Ternary plot"),
         Type("error-bars", "Error bars", "Measurements with error bars"),
         Theme("theme-neon", "Neon", BuiltInThemes.Neon),
