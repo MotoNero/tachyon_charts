@@ -15,21 +15,25 @@ sealed class Tachyon.Charts.Wpf.BoxAnnotation : Tachyon.Charts.Wpf.ChartAnnotati
 sealed class Tachyon.Charts.Wpf.CategoryAxis : Tachyon.Charts.Wpf.ChartAxis, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
   .ctor()
   System.Collections.Generic.IReadOnlyList<System.String> Categories { get; set; }
-sealed class Tachyon.Charts.Wpf.Chart : System.Windows.FrameworkElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+sealed class Tachyon.Charts.Wpf.Chart : System.Windows.FrameworkElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable, Tachyon.Charts.Export.IRecordableChart
   .ctor()
   System.Boolean IsReadback { get; }
+  System.Boolean IsRecording { get; }
   System.Boolean ShowsDiagnostics { get; set; }
   System.String GroupName { get; set; }
   System.String Title { get; set; }
   System.Threading.Tasks.Task CopyDataAsync()
   System.Threading.Tasks.Task CopyImageAsync(Tachyon.Charts.Core.Themes.Theme theme = null)
   System.Threading.Tasks.Task ExportVideoAsync(System.String path, Tachyon.Charts.Export.VideoOptions options = null, System.Action<System.Int32, System.TimeSpan> step = null)
+  System.Threading.Tasks.Task StopRecordingAsync()
   System.Threading.Tasks.Task<System.Boolean> PrintAsync(System.String description, Tachyon.Charts.Core.Themes.Theme theme = null)
   System.Threading.Tasks.Task<System.Byte[]> ExportCsvAsync(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Input.SeriesSelection> selection = null)
   System.Threading.Tasks.Task<System.Byte[]> ExportPdfAsync(Tachyon.Charts.Export.ExportOptions options = null)
   System.Threading.Tasks.Task<System.Byte[]> ExportPngAsync(Tachyon.Charts.Export.ExportOptions options = null)
   System.Threading.Tasks.Task<System.Byte[]> ExportSvgAsync(Tachyon.Charts.Export.ExportOptions options = null)
+  System.TimeSpan RecordingTime { get; }
   System.TimeSpan ThemeTransition { get; set; }
+  System.Void StartRecording(System.String path, Tachyon.Charts.Export.VideoOptions options = null)
   System.Void ToggleDiagnostics()
   Tachyon.Charts.Core.Themes.Theme Theme { get; set; }
   Tachyon.Charts.Wpf.Chart Configure(System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder> configure)
@@ -67,6 +71,9 @@ abstract class Tachyon.Charts.Wpf.ChartAnnotationElement : Tachyon.Charts.Wpf.Ch
   static System.Windows.DependencyProperty IsEditableProperty
   static System.Windows.DependencyProperty XAxisIdProperty
   static System.Windows.DependencyProperty YAxisIdProperty
+static class Tachyon.Charts.Wpf.ChartAreaRecorder
+  static System.Threading.Tasks.Task ExportVideoAsync(System.Windows.FrameworkElement area, System.String path, Tachyon.Charts.Export.VideoOptions options = null, System.Action<System.Int32, System.TimeSpan> step = null)
+  static Tachyon.Charts.Export.IChartRecording Start(System.Windows.FrameworkElement area, System.String path, Tachyon.Charts.Export.VideoOptions options = null)
 sealed class Tachyon.Charts.Wpf.ChartAutomationPeer : System.Windows.Automation.Peers.FrameworkElementAutomationPeer
   .ctor(Tachyon.Charts.Wpf.Chart owner)
   protected virtual System.String GetClassNameCore()

@@ -3,8 +3,18 @@ static class Tachyon.Charts.Export.ChartExporter
   static System.Byte[] ToPdf(Tachyon.Charts.Core.Pipeline.ChartSurface chart, Tachyon.Charts.Export.ExportOptions options)
   static System.Byte[] ToPng(Tachyon.Charts.Core.Pipeline.ChartSurface chart, Tachyon.Charts.Rendering.IRenderDevice device, Tachyon.Charts.Export.ExportOptions options)
   static System.Byte[] ToSvg(Tachyon.Charts.Core.Pipeline.ChartSurface chart, Tachyon.Charts.Export.ExportOptions options)
+sealed class Tachyon.Charts.Export.ChartRecorder : System.IDisposable, Tachyon.Charts.Export.IChartRecording
+  System.Int64 Frames { get; }
+  System.Threading.Tasks.Task StopAsync()
+  System.TimeSpan Elapsed { get; }
+  System.Void Capture(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Export.RecordedChart> charts, Tachyon.Charts.Rendering.IRenderDevice device)
+  System.Void Capture(Tachyon.Charts.Core.Pipeline.ChartSurface chart, Tachyon.Charts.Rendering.IRenderDevice device)
+  System.Void Dispose()
+  Tachyon.Charts.Rendering.PixelSize Size { get; }
+  static Tachyon.Charts.Export.ChartRecorder Start(System.String path, Tachyon.Charts.Rendering.PixelSize size, Tachyon.Charts.Export.VideoOptions options)
 static class Tachyon.Charts.Export.ChartVideo
   static System.String MissingFFmpeg
+  static System.Void Write(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Export.RecordedChart> charts, Tachyon.Charts.Rendering.IRenderDevice device, System.String path, Tachyon.Charts.Rendering.PixelSize size, Tachyon.Charts.Export.VideoOptions options, System.Action<System.Int32, System.TimeSpan> step = null)
   static System.Void Write(Tachyon.Charts.Core.Pipeline.ChartSurface chart, Tachyon.Charts.Rendering.IRenderDevice device, System.String path, Tachyon.Charts.Export.VideoOptions options, System.Action<System.Int32, System.TimeSpan> step = null)
 sealed class Tachyon.Charts.Export.ExportOptions : System.IEquatable<Tachyon.Charts.Export.ExportOptions>
   .ctor()
@@ -12,6 +22,19 @@ sealed class Tachyon.Charts.Export.ExportOptions : System.IEquatable<Tachyon.Cha
   System.Double Height { get; set; }
   System.Double Width { get; set; }
   Tachyon.Charts.Core.Themes.Theme Theme { get; set; }
+interface Tachyon.Charts.Export.IChartRecording
+  abstract System.Threading.Tasks.Task StopAsync()
+  abstract System.TimeSpan Elapsed { get; }
+interface Tachyon.Charts.Export.IRecordableChart
+  abstract System.Boolean IsRecording { get; }
+  abstract System.Threading.Tasks.Task ExportVideoAsync(System.String path, Tachyon.Charts.Export.VideoOptions options = null, System.Action<System.Int32, System.TimeSpan> step = null)
+  abstract System.Threading.Tasks.Task StopRecordingAsync()
+  abstract System.TimeSpan RecordingTime { get; }
+  abstract System.Void StartRecording(System.String path, Tachyon.Charts.Export.VideoOptions options = null)
+struct Tachyon.Charts.Export.RecordedChart : System.IEquatable<Tachyon.Charts.Export.RecordedChart>
+  .ctor(Tachyon.Charts.Core.Pipeline.ChartSurface Chart, Tachyon.Charts.Rendering.PixelRect Bounds)
+  Tachyon.Charts.Core.Pipeline.ChartSurface Chart { get; set; }
+  Tachyon.Charts.Rendering.PixelRect Bounds { get; set; }
 enum Tachyon.Charts.Export.VideoEncoder : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Auto = 0
   FFmpeg = 2

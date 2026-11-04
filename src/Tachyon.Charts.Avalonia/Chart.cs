@@ -33,7 +33,7 @@ namespace Tachyon.Charts.Avalonia;
 /// popups can, because they are windows of their own. Elsewhere, and without a usable swapchain, it
 /// copies its image into a bitmap, which removes this limit at the price of speed.
 /// </remarks>
-public sealed class Chart : Control
+public sealed class Chart : Control, IRecordableChart
 {
     private const string NotShown = "The chart is not shown yet.";
 
@@ -54,6 +54,7 @@ public sealed class Chart : Control
     private IReadOnlyList<Func<Core.Pipeline.ChartSurface, Core.Overlays.ChartOverlay>> _overlayFactories = [];
     private bool _showsDiagnostics;
     private ChartController? _controller;
+    private IChartRecording? _recording;
     private ChartWindowHost? _host;
     private ISurfaceRenderTarget? _surfaceTarget;
     private IOffscreenRenderTarget? _readbackTarget;
@@ -222,6 +223,42 @@ public sealed class Chart : Control
             ChartVideo.Write(surface, device, path, options ?? new VideoOptions(), step);
             return true;
         });
+    }
+
+    /// <inheritdoc />
+    public bool IsRecording => _recording is not null;
+
+    /// <inheritdoc />
+    public TimeSpan RecordingTime => _recording?.Elapsed ?? TimeSpan.Zero;
+
+    /// <summary>
+    /// Starts to record what the chart shows while the user works with it, like a video recorder. Without options the
+    /// video has the size of the chart and 30 frames per second.
+    /// </summary>
+    /// <param name="path">The MP4 file.</param>
+    /// <param name="options">The size, frame rate and encoding, or <see langword="null"/>. The length comes from the recording.</param>
+    /// <exception cref="InvalidOperationException">The chart is not shown yet, or a recording runs already.</exception>
+    /// <exception cref="FileNotFoundException">FFmpeg is needed and was not found.</exception>
+    public void StartRecording(string path, VideoOptions? options = null)
+    {
+        var controller = _controller ?? throw new InvalidOperationException(NotShown);
+        if (_recording is not null)
+        {
+            throw new InvalidOperationException("A recording runs already.");
+        }
+
+        var size = options is null ? _size : new PixelSize(options.Width, options.Height);
+        _recording = AreaRecording.Start([(controller, new Tachyon.Charts.Rendering.PixelRect(0, 0, size.Width, size.Height))], size, path, options);
+    }
+
+    /// <summary>Stops the recording and completes the file.</summary>
+    /// <returns>When the file is written.</returns>
+    /// <exception cref="InvalidOperationException">No recording runs, or the encoder failed.</exception>
+    public Task StopRecordingAsync()
+    {
+        var recording = _recording ?? throw new InvalidOperationException("No recording runs.");
+        _recording = null;
+        return recording.StopAsync();
     }
 
     /// <summary>Gets the last image shown, for tests.</summary>

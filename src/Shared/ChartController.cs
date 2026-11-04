@@ -6,6 +6,7 @@ using Tachyon.Charts.Core.Input;
 using Tachyon.Charts.Core.Layout;
 using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Core.Pipeline;
+using Tachyon.Charts.Export;
 using Tachyon.Charts.Core.Themes;
 using Tachyon.Charts.Rendering;
 
@@ -166,6 +167,9 @@ internal sealed class ChartController : IChartElementHost, IDisposable
             return result!;
         });
     }
+
+    /// <summary>Gets the render thread of the chart, which charts with the same renderer share.</summary>
+    public RenderScheduler Scheduler => _scheduler;
 
     /// <summary>Sets the title.</summary>
     public void SetTitle(string? title)

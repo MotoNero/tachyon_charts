@@ -43,6 +43,7 @@ public static class Pages3D
         new(Surface40964096Page.Name, Surface40964096Page.Hint, Surface40964096Page.Configure),
         new(SurfaceWithLightPage.Name, SurfaceWithLightPage.Hint, SurfaceWithLightPage.Configure),
         new(AxisBoxPage.Name, AxisBoxPage.Hint, AxisBoxPage.Configure),
+        new(VideoRecordingPage.Name, VideoRecordingPage.Hint, VideoRecordingPage.Configure),
     ];
 
     /// <summary>Finds a page.</summary>

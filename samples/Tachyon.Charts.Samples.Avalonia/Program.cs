@@ -24,6 +24,7 @@ using Tachyon.Charts.Samples.Shared.Examples.Common;
 using Tachyon.Charts.Samples.Shared.Examples.Gallery;
 using Tachyon.Charts.Samples.Shared.Examples.Instruments;
 using Tachyon.Charts.Samples.Shared.Examples.Interactive;
+using Tachyon.Charts.Samples.Shared.Examples.ThreeD;
 using Tachyon.Charts.Samples.Shared.Scenes;
 using AvaloniaPixelSize = Avalonia.PixelSize;
 using PixelFormat = Avalonia.Platform.PixelFormat;
@@ -77,6 +78,10 @@ internal sealed class SampleWindow : Window
     private readonly Button _select = new() { Margin = new Thickness(0, 0, 6, 0), Padding = new Thickness(12, 6), CornerRadius = new CornerRadius(7) };
     private bool _isSelecting;
     private bool _showsDiagnostics = ShowsDiagnosticsAtStart;
+    private readonly Button _record = new() { Margin = new Thickness(0, 0, 6, 0), Foreground = new SolidColorBrush(Color.FromRgb(239, 68, 68)) };
+    private readonly global::Avalonia.Threading.DispatcherTimer _recordingClock = new global::Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(0.5) };
+    private IChartRecording? _recording;
+    private string? _recordingPath;
     private readonly TextBlock _stillInfo = new() { FontSize = 12, Margin = new Thickness(8), Padding = new Thickness(6, 3, 6, 3), Background = new SolidColorBrush(Color.FromArgb(200, 20, 24, 32)), Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, IsVisible = false };
     private readonly IReadOnlyList<SamplePage> _pageList;
     private SamplePage? _selected;
@@ -95,6 +100,9 @@ internal sealed class SampleWindow : Window
 
     /// <summary>Gets or sets a value indicating whether the code of the start page opens at once, as after F11.</summary>
     public static bool ShowsSourceAtStart { get; set; }
+
+    /// <summary>Gets or sets a value indicating whether a recording of six seconds runs at the start, to measure it without a mouse.</summary>
+    public static bool RecordsAtStart { get; set; }
 
     public static bool ZoomsIn { get; set; }
     private volatile bool _closing;
@@ -204,6 +212,11 @@ internal sealed class SampleWindow : Window
         if (ShowsSourceAtStart)
         {
             Opened += (_, _) => ShowSource();
+        }
+
+        if (RecordsAtStart)
+        {
+            Opened += (_, _) => _ = RecordAtStart();
         }
 
         _producer = new Thread(Produce) { IsBackground = true, Name = "Sample data" };
@@ -440,19 +453,13 @@ internal sealed class SampleWindow : Window
         }
     }
 
-    // Six seconds: a 3D page turns once around, a 2D page records what keeps arriving.
+    // The code of both ways lives in Examples/ThreeD/VideoRecordingPage.cs, which the source window shows.
     private async Task ExportVideo()
     {
         try
         {
-            var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "Tachyon Export");
-            Directory.CreateDirectory(folder);
-            var path = Path.Combine(folder, $"chart-{DateTime.Now:yyyyMMdd-HHmmss}.mp4");
-            var options = new VideoOptions { Duration = TimeSpan.FromSeconds(6) };
-            var frames = (int)(options.Duration.TotalSeconds * options.FrameRate);
-            var step = SelectedId is { } id && _hosts3D.TryGetValue(id, out var host) ? VideoMoves.Orbit(host.Scene.Camera, frames) : null;
             _hint.Text = SampleText.T("Recording the video …");
-            await ExportedChart.ExportVideoAsync(path, options, step);
+            var path = await VideoRecordingPage.RecordTurnAsync((file, options, step) => ChartAreaRecorder.ExportVideoAsync(_content, file, options, step), SelectedId is { } id && _hosts3D.TryGetValue(id, out var host) ? host.Scene.Camera : null);
             _hint.Text = SampleText.T("Saved: ") + path;
             await SavedDialog.Show(this, path);
         }
@@ -461,6 +468,53 @@ internal sealed class SampleWindow : Window
             _hint.Text = SampleText.T("Export failed: ") + exception.Message;
         }
     }
+
+    // --record: two seconds to settle, six seconds of recording, then the dialog.
+    private async Task RecordAtStart()
+    {
+        await Task.Delay(TimeSpan.FromSeconds(2));
+        await ToggleRecording();
+        await Task.Delay(TimeSpan.FromSeconds(6));
+        await ToggleRecording();
+    }
+
+    // Like a video recorder: the first press starts, the second stops. The chart can be operated freely in between.
+    private async Task ToggleRecording()
+    {
+        try
+        {
+            if (_recording is null)
+            {
+                // The whole stage: a spectrum with its history, a 3D chart with the 2D chart below it, all rasters.
+                _recording = VideoRecordingPage.StartRecording(file => ChartAreaRecorder.Start(_content, file), out var path);
+                _recordingPath = path;
+                _recordingClock.Start();
+                ShowRecording();
+                return;
+            }
+
+            var recording = _recording;
+            _recording = null;
+            _recordingClock.Stop();
+            ShowRecording();
+            await VideoRecordingPage.StopRecordingAsync(recording);
+            _hint.Text = SampleText.T("Saved: ") + _recordingPath;
+            await SavedDialog.Show(this, _recordingPath!);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            _recording = null;
+            _recordingClock.Stop();
+            ShowRecording();
+            _hint.Text = SampleText.T("Export failed: ") + exception.Message;
+        }
+    }
+
+    // A red circle while ready, a square with the time while recording.
+    private void ShowRecording() => _record.Content = _recording is { } recording
+        ? $"■ {SampleText.T("Recording ")}{recording.Elapsed:mm\\:ss}"
+        : "● " + SampleText.T("Record");
+
 
     private async Task ExportTo(string extension, Func<Chart, Task<byte[]>> export)
     {
@@ -508,6 +562,10 @@ internal sealed class SampleWindow : Window
         bar.Children.Add(CreateAction("PDF", () => ExportTo("pdf", chart => chart.ExportPdfAsync(options))));
         bar.Children.Add(CreateAction("CSV", () => ExportTo("csv", ExportCsv)));
         bar.Children.Add(CreateAction("Video", ExportVideo));
+        _record.Click += async (_, _) => await ToggleRecording();
+        _recordingClock.Tick += (_, _) => ShowRecording();
+        ShowRecording();
+        bar.Children.Add(_record);
         bar.Children.Add(CreateAction("Copy image", () => Run(chart => chart.CopyImageAsync(), "The image is on the clipboard")));
         bar.Children.Add(CreateAction("Copy data", () => Run(chart => chart.CopyDataAsync(), "The CSV is on the clipboard")));
     }
@@ -707,6 +765,12 @@ internal sealed class SampleWindow : Window
 
     private void ShowSelection()
     {
+        // A page that goes away ends its recording, and the file is completed.
+        if (_recording is not null)
+        {
+            _ = ToggleRecording();
+        }
+
         var isLive = SelectedId is LiveEntry;
         var isRaster = SelectedId is RasterEntry;
         var isScope = SelectedId is ScopeEntry;
@@ -840,6 +904,7 @@ internal static class Program
         SampleWindow.ZoomsIn = args.Contains("--near");
         SampleWindow.ShowsDiagnosticsAtStart = args.Contains("--diagnostics");
         SampleWindow.ShowsSourceAtStart = args.Contains("--source");
+        SampleWindow.RecordsAtStart = args.Contains("--record");
         return AppBuilder.Configure<SampleApplication>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);
     }
 }

@@ -7,20 +7,24 @@ sealed class Tachyon.Charts.Avalonia.AxisDragModifier : Tachyon.Charts.Avalonia.
 sealed class Tachyon.Charts.Avalonia.CategoryAxis : Tachyon.Charts.Avalonia.ChartAxis, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
   .ctor()
   System.Collections.Generic.IReadOnlyList<System.String> Categories { get; set; }
-sealed class Tachyon.Charts.Avalonia.Chart : Avalonia.Controls.Control, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.Controls.Templates.IDataTemplateHost, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.Input.IInputElement, Avalonia.LogicalTree.ILogical, Avalonia.Styling.ISetterValue, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+sealed class Tachyon.Charts.Avalonia.Chart : Avalonia.Controls.Control, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.Controls.Templates.IDataTemplateHost, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.Input.IInputElement, Avalonia.LogicalTree.ILogical, Avalonia.Styling.ISetterValue, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize, Tachyon.Charts.Export.IRecordableChart
   .ctor()
   System.Boolean IsReadback { get; }
+  System.Boolean IsRecording { get; }
   System.Boolean ShowsDiagnostics { get; set; }
   System.String GroupName { get; set; }
   System.String Title { get; set; }
   System.Threading.Tasks.Task CopyDataAsync()
   System.Threading.Tasks.Task CopyImageAsync(Tachyon.Charts.Core.Themes.Theme theme = null)
   System.Threading.Tasks.Task ExportVideoAsync(System.String path, Tachyon.Charts.Export.VideoOptions options = null, System.Action<System.Int32, System.TimeSpan> step = null)
+  System.Threading.Tasks.Task StopRecordingAsync()
   System.Threading.Tasks.Task<System.Byte[]> ExportCsvAsync(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Input.SeriesSelection> selection = null)
   System.Threading.Tasks.Task<System.Byte[]> ExportPdfAsync(Tachyon.Charts.Export.ExportOptions options = null)
   System.Threading.Tasks.Task<System.Byte[]> ExportPngAsync(Tachyon.Charts.Export.ExportOptions options = null)
   System.Threading.Tasks.Task<System.Byte[]> ExportSvgAsync(Tachyon.Charts.Export.ExportOptions options = null)
+  System.TimeSpan RecordingTime { get; }
   System.TimeSpan ThemeTransition { get; set; }
+  System.Void StartRecording(System.String path, Tachyon.Charts.Export.VideoOptions options = null)
   System.Void ToggleDiagnostics()
   Tachyon.Charts.Avalonia.Chart Configure(System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder> configure)
   Tachyon.Charts.Avalonia.ChartElementCollection<Tachyon.Charts.Avalonia.ChartAxis> XAxes { get; }
@@ -46,6 +50,9 @@ sealed class Tachyon.Charts.Avalonia.Chart : Avalonia.Controls.Control, Avalonia
   static Avalonia.StyledProperty<Tachyon.Charts.Core.Themes.Theme> ChartThemeProperty
   static Tachyon.Charts.Rendering.RendererPreference Renderer { get; set; }
   virtual System.Void Render(Avalonia.Media.DrawingContext context)
+static class Tachyon.Charts.Avalonia.ChartAreaRecorder
+  static System.Threading.Tasks.Task ExportVideoAsync(Avalonia.Controls.Control area, System.String path, Tachyon.Charts.Export.VideoOptions options = null, System.Action<System.Int32, System.TimeSpan> step = null)
+  static Tachyon.Charts.Export.IChartRecording Start(Avalonia.Controls.Control area, System.String path, Tachyon.Charts.Export.VideoOptions options = null)
 sealed class Tachyon.Charts.Avalonia.ChartAutomationPeer : Avalonia.Automation.Peers.ControlAutomationPeer
   .ctor(Tachyon.Charts.Avalonia.Chart owner)
   protected virtual Avalonia.Automation.Peers.AutomationControlType GetAutomationControlTypeCore()
