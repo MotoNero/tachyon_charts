@@ -83,6 +83,8 @@ public static class SceneCatalog
         new MarketProfileScene(),
         new DrawingsScene("Drawings", DrawingDemo.First),
         new DrawingsScene("DrawingPatterns", DrawingDemo.Second),
+        new GanttScene("Gantt", BuiltInThemes.TachyonDark, null),
+        new GanttScene("GanttCollapsedLight", BuiltInThemes.TachyonLight, "Vibration"),
         new GlowNeonScene(),
         new GradientsScene(),
         new ThemeGalleryScene("ThemeHighContrast", BuiltInThemes.HighContrast),

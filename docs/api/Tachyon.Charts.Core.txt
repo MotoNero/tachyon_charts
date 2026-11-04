@@ -331,6 +331,33 @@ sealed class Tachyon.Charts.Core.Data.FifoDataSource<TX, TY> : Tachyon.Charts.Co
   Tachyon.Charts.Core.Data.DataMetadata Metadata { get; }
   Tachyon.Charts.Core.Data.DataSnapshot<TX, TY> GetSnapshot()
   Tachyon.Charts.Core.Data.FifoChanges GetChangesSince(System.Int64 version)
+sealed class Tachyon.Charts.Core.Data.GanttData
+  .ctor()
+  System.Boolean IsCollapsed(System.String group)
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.GanttRow> Rows { get; }
+  System.Int32 Add(in Tachyon.Charts.Core.Data.GanttTask task)
+  System.Int32 AddRow(System.String name, System.String group = null)
+  System.Int32 Count { get; }
+  System.Int64 Version { get; }
+  System.Void Link(System.Int32 from, System.Int32 to)
+  System.Void SetCollapsed(System.String group, System.Boolean isCollapsed)
+  Tachyon.Charts.Core.Data.GanttTask Item[System.Int32] { get; }
+struct Tachyon.Charts.Core.Data.GanttLink : System.IEquatable<Tachyon.Charts.Core.Data.GanttLink>
+  .ctor(System.Int32 From, System.Int32 To)
+  System.Int32 From { get; set; }
+  System.Int32 To { get; set; }
+sealed class Tachyon.Charts.Core.Data.GanttRow : System.IEquatable<Tachyon.Charts.Core.Data.GanttRow>
+  .ctor(System.String Name, System.String Group = null)
+  System.String Group { get; set; }
+  System.String Name { get; set; }
+struct Tachyon.Charts.Core.Data.GanttTask : System.IEquatable<Tachyon.Charts.Core.Data.GanttTask>
+  .ctor(System.Int32 Row, System.Double Start, System.Double End, System.String Label = , Tachyon.Charts.Rendering.Rgba8 Color = null)
+  System.Boolean IsMilestone { get; }
+  System.Double End { get; set; }
+  System.Double Start { get; set; }
+  System.Int32 Row { get; set; }
+  System.String Label { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
 sealed class Tachyon.Charts.Core.Data.HeatmapData
   .ctor(System.Int32 width, System.Int32 height)
   System.Int32 Height { get; }
@@ -1686,6 +1713,29 @@ sealed class Tachyon.Charts.Core.Series.ErrorBarSeries : Tachyon.Charts.Core.Ser
 static class Tachyon.Charts.Core.Series.FinanceCharts
   static Tachyon.Charts.Core.Fluent.ChartBuilder Candles(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Data.CandleData data, System.Action<Tachyon.Charts.Core.Series.CandleSeries> configure = null, System.String yAxis = null)
   static Tachyon.Charts.Core.Fluent.ChartBuilder Volume(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Data.CandleData data, System.String yAxis = null)
+static class Tachyon.Charts.Core.Series.GanttCharts
+  static Tachyon.Charts.Core.Fluent.ChartBuilder Gantt(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Data.GanttData data, System.Action<Tachyon.Charts.Core.Series.GanttSeries> configure = null)
+sealed class Tachyon.Charts.Core.Series.GanttModifier : Tachyon.Charts.Core.Input.ChartModifier
+  .ctor()
+  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
+sealed class Tachyon.Charts.Core.Series.GanttOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
+  .ctor(Tachyon.Charts.Core.Series.GanttSeries series)
+  protected virtual System.Int64 ExternalVersion { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
+sealed class Tachyon.Charts.Core.Series.GanttSeries : Tachyon.Charts.Core.Pipeline.ChartSeries
+  .ctor(Tachyon.Charts.Core.Data.GanttData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  System.Collections.Generic.IReadOnlyList<System.String> LineNames()
+  System.Double BarHeight { get; set; }
+  System.Int32 HoveredTask { get; set; }
+  Tachyon.Charts.Core.Data.GanttData Data { get; }
+  protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Int32 DrawnPointCount { get; }
+  protected virtual System.Int64 SourcePointCount { get; }
+  protected virtual System.Int64 Version { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void OnPalette(System.ReadOnlySpan<Tachyon.Charts.Rendering.Rgba8> palette)
+  protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
 sealed class Tachyon.Charts.Core.Series.HeatmapSeries : Tachyon.Charts.Core.Series.RasterSeries, System.IDisposable
   .ctor(Tachyon.Charts.Core.Data.HeatmapData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis, Tachyon.Charts.Core.Axes.ColorAxis colorAxis)
   System.Collections.Generic.IReadOnlyList<System.Double> XEdges { get; set; }

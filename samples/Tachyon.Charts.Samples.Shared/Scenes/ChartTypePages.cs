@@ -38,6 +38,8 @@ public static class ChartTypePages
         (MillionCandlesPage.Name, MillionCandlesPage.Hint, MillionCandlesPage.Configure),
         (MarketProfilePage.Name, MarketProfilePage.Hint, MarketProfilePage.Configure),
         (DrawingToolsPage.Name, DrawingToolsPage.Hint, DrawingToolsPage.Configure),
+        (GanttPage.Name, GanttPage.Hint, GanttPage.Configure),
+        (GanttTestHallPage.Name, GanttTestHallPage.Hint, GanttTestHallPage.Configure),
         (TernaryPage.Name, TernaryPage.Hint, TernaryPage.Configure),
         (AnnotationsPage.Name, AnnotationsPage.Hint, AnnotationsPage.Configure),
     ];

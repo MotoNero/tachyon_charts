@@ -67,6 +67,10 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|---|
 | ![Pie of a power mix with a pulled-out slice and small slices labelled on lines](docs/images/pie.png) | ![Donut of the same power mix](docs/images/donut.png) |
 
+| Gantt |
+|---|
+| ![Test plan over three stations with groups, dependencies and milestones](docs/images/gantt.png) |
+
 ### Finance
 
 | Candles and volume | OHLC bars |
@@ -110,6 +114,7 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 ## Features
 
 - Lines, scatter and density, bubbles, area, band, bars, error bars, stems, histogram, box plot, violin, pie and donut
+- Gantt and time lines: rows in collapsible groups, dependencies, milestones, 100 000 tasks at 60 frames per second
 - Finance: candles and OHLC bars from a thread-safe candle store, a million candles at 60 frames per second, volume in a pane of its own, market profile with point of control and value area
 - Drawing tools: trend line, Fibonacci retracement and extension, channel, pitchfork, Elliott waves, XABCD, head and shoulders and a free brush, fixed to values, saved as JSON
 - Numeric, time, logarithmic and category axes, stacked panes, linked charts
@@ -263,6 +268,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Pie and donut](docs/guide/pie.md) | Slices, labels on lines, pulling a slice out |
 | [Finance](docs/guide/finance.md) | Candles, OHLC bars, volume and market profile |
 | [Drawing tools](docs/guide/drawings.md) | Fibonacci, channels, pitchfork, patterns, saving as JSON |
+| [Gantt](docs/guide/gantt.md) | Rows, groups, dependencies, milestones |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
 | [docs/api](docs/api) | Public API lists |
 

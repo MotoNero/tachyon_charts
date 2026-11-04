@@ -68,7 +68,7 @@ public sealed class DateTimeAxis : AxisBase
     /// </summary>
     public TimeGapMap? Gaps { get; set; }
 
-    private long NanosecondsPerUnit => _resolution == TimeResolution.Ticks ? 100 : 1;
+    internal long NanosecondsPerUnit => _resolution == TimeResolution.Ticks ? 100 : 1;
 
     /// <summary>
     /// Sets the visible time. Like setting the range, this ends the automatic range.
