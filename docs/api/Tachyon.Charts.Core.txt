@@ -500,12 +500,14 @@ sealed class Tachyon.Charts.Core.Fluent.ContourBuilder
   Tachyon.Charts.Core.Fluent.ContourBuilder Cells(System.Double xStart, System.Double xStep, System.Double yStart, System.Double yStep)
   Tachyon.Charts.Core.Fluent.ContourBuilder ColorAxis(System.Action<Tachyon.Charts.Core.Fluent.ColorAxisBuilder> configure)
   Tachyon.Charts.Core.Fluent.ContourBuilder Filled()
+  Tachyon.Charts.Core.Fluent.ContourBuilder Labels()
   Tachyon.Charts.Core.Fluent.ContourBuilder Levels(System.Collections.Generic.IReadOnlyList<System.Double> levels)
   Tachyon.Charts.Core.Fluent.ContourBuilder Name(System.String name)
   Tachyon.Charts.Core.Fluent.ContourBuilder WithoutLines()
 sealed class Tachyon.Charts.Core.Fluent.ContourDefinition : Tachyon.Charts.Core.Fluent.RasterDefinition, System.IEquatable<Tachyon.Charts.Core.Fluent.ContourDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.RasterDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.SeriesDefinition>
   .ctor()
   System.Boolean IsFilled { get; set; }
+  System.Boolean ShowsLabels { get; set; }
   System.Boolean ShowsLines { get; set; }
   System.Collections.Generic.IReadOnlyList<System.Double> Levels { get; set; }
   System.Double XStart { get; set; }
@@ -1708,6 +1710,7 @@ enum Tachyon.Charts.Core.Series.CandleStyle : System.IComparable, System.IConver
 sealed class Tachyon.Charts.Core.Series.ContourSeries : Tachyon.Charts.Core.Series.RasterSeries, System.IDisposable
   .ctor(Tachyon.Charts.Core.Data.HeatmapData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis, Tachyon.Charts.Core.Axes.ColorAxis colorAxis)
   System.Boolean IsFilled { get; set; }
+  System.Boolean ShowsLabels { get; set; }
   System.Boolean ShowsLines { get; set; }
   System.Collections.Generic.IReadOnlyList<System.Double> Levels { get; set; }
   System.Double LineThickness { get; set; }

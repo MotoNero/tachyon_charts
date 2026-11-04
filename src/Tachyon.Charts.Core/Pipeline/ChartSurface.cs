@@ -62,6 +62,7 @@ public sealed class ChartSurface
     private volatile HitTestState? _hitTestState;
 
     private ChartSeries[] _series = [];
+    private bool _usedCanvas;
     private ChartOverlay[] _overlays = [];
     private long _renderedOverlayVersions = -1;
     private readonly OverlayCanvas _canvas = null!;
@@ -657,7 +658,7 @@ public sealed class ChartSurface
     private void DrawText(IRenderDevice device, ICommandList frame, IGpuTexture atlas)
     {
         frame.DrawGlyphs(atlas, _glyphs.AsSpan(0, _glyphCount));
-        if (_overlays.Length > 0)
+        if (_usedCanvas)
         {
             // Overlays may have asked for new glyphs, which reach the texture only with this call.
             frame.DrawGlyphs(_textEngine.GetAtlas(device), _canvas.Glyphs);
@@ -801,21 +802,29 @@ public sealed class ChartSurface
 
     private void DrawOverlays(IRenderDevice device, ICommandList frame, double scale, double chartWidth)
     {
+        _usedCanvas = false;
         if (_currentLayout is not { } layout)
         {
             return;
         }
 
         var hasBreaks = Tachyon.Charts.Core.Overlays.AxisBreakMarks.Any(layout);
-        if (_overlays.Length == 0 && !hasBreaks)
+        var hasLabels = Tachyon.Charts.Core.Overlays.ContourLabels.Any(_series);
+        if (_overlays.Length == 0 && !hasBreaks && !hasLabels)
         {
             return;
         }
 
         _canvas.Begin(device, frame, layout, scale, chartWidth, _tickColor, _labelColor, _style.BackgroundColor, _labelSize);
+        _usedCanvas = true;
         if (hasBreaks)
         {
             Tachyon.Charts.Core.Overlays.AxisBreakMarks.Draw(_canvas, layout);
+        }
+
+        if (hasLabels)
+        {
+            Tachyon.Charts.Core.Overlays.ContourLabels.Draw(_canvas, layout, _series);
         }
 
         foreach (var overlay in _overlays)

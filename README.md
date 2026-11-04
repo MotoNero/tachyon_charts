@@ -25,7 +25,7 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 - **Fast:** 100 million points per line, 10 million scatter points, 4096 × 4096 spectrograms, all at interactive rates; every 3D type above 60 frames per second in a full-screen window
 - **Live:** stream from any thread without blocking the display
 - **Instruments included:** oscilloscope with trigger and persistence, spectrum analyzer with spectrogram and masks, network analyzer, sweep and stepping monitors
-- **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap, contour
+- **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap with cells of their own sizes, contour with labels along the lines
 - **Finance:** candles, OHLC bars, volume, market profile and drawing tools
 - **3D as an add-on:** surfaces, waterfalls, antenna patterns, point clouds of 100 million points and volumes, live and with values under the pointer
 - **Runs everywhere:** GPU, software adapter or CPU, chosen automatically, also over remote desktop
@@ -52,6 +52,10 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 | Heatmap | Filled contour | 50 million points |
 |---|---|---|
 | ![Heatmap of 4096 by 4096 cells](docs/images/heatmap.png) | ![Filled contour plot](docs/images/contour.png) | ![Point cloud shown as density](docs/images/point-cloud.png) |
+
+| Labelled contour lines |
+|---|
+| ![Filled contours with the value of each line written along the line](docs/images/contour-labels.png) |
 
 ### Chart types
 

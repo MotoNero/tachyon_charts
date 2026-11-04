@@ -232,6 +232,24 @@ public sealed class OverlayCanvas
         _commands.DrawImage(texture, area.ToPixels(_scale));
     }
 
+    /// <summary>Draws text centered on a point and turned by an angle, for labels along a line.</summary>
+    /// <param name="text">The text.</param>
+    /// <param name="center">The middle of the text.</param>
+    /// <param name="angle">The angle in radians, clockwise on the screen.</param>
+    /// <param name="size">The font size.</param>
+    /// <param name="color">The color.</param>
+    internal void DrawTurnedText(string text, Vector2 center, float angle, float size, Rgba8 color)
+    {
+        var first = _glyphCount;
+        var width = MeasureWidth(text, size);
+        DrawText(text, center.X - (width / 2), center.Y + (GetLineHeight(size) * 0.3), size, color);
+        var pivot = center * (float)_scale;
+        for (var i = first; i < _glyphCount; i++)
+        {
+            _glyphs[i] = _glyphs[i] with { Rotation = angle, Pivot = pivot };
+        }
+    }
+
     /// <summary>Draws text.</summary>
     /// <param name="text">The text.</param>
     /// <param name="x">The left edge.</param>

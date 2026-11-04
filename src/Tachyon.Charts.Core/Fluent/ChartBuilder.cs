@@ -214,6 +214,9 @@ public sealed record ContourDefinition : RasterDefinition
     /// <summary>Gets a value indicating whether the lines are drawn.</summary>
     public bool ShowsLines { get; init; } = true;
 
+    /// <summary>Gets a value indicating whether the lines carry their values.</summary>
+    public bool ShowsLabels { get; init; }
+
     /// <summary>Gets the left edge of the first column.</summary>
     public double XStart { get; init; }
 
@@ -232,6 +235,7 @@ public sealed record ContourDefinition : RasterDefinition
         Levels = Levels,
         IsFilled = IsFilled,
         ShowsLines = ShowsLines,
+        ShowsLabels = ShowsLabels,
         XStart = XStart,
         XStep = XStep,
         YStart = YStart,
@@ -719,6 +723,10 @@ public sealed class ContourBuilder
     /// <summary>Leaves out the lines.</summary>
     /// <returns>This builder.</returns>
     public ContourBuilder WithoutLines() => Change(Definition with { ShowsLines = false });
+
+    /// <summary>Writes the value of each line along the line.</summary>
+    /// <returns>This builder.</returns>
+    public ContourBuilder Labels() => Change(Definition with { ShowsLabels = true });
 
     /// <summary>Sets the size of the cells.</summary>
     /// <param name="xStart">The left edge of the first column.</param>

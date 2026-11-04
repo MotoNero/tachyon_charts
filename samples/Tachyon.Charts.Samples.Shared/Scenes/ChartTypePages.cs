@@ -28,6 +28,8 @@ public static class ChartTypePages
         (CategoriesPage.Name, CategoriesPage.Hint, CategoriesPage.Configure),
         (LogarithmicAxisPage.Name, LogarithmicAxisPage.Hint, LogarithmicAxisPage.Configure),
         (ScaleBreakPage.Name, ScaleBreakPage.Hint, ScaleBreakPage.Configure),
+        (UnevenHeatmapPage.Name, UnevenHeatmapPage.Hint, UnevenHeatmapPage.Configure),
+        (LabelledContoursPage.Name, LabelledContoursPage.Hint, LabelledContoursPage.Configure),
         (PolarPage.Name, PolarPage.Hint, PolarPage.Configure),
         (AntennaCutPage.Name, AntennaCutPage.Hint, AntennaCutPage.Configure),
         (CutThroughASurfacePage.Name, CutThroughASurfacePage.Hint, CutThroughASurfacePage.Configure),

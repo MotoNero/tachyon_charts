@@ -27,6 +27,8 @@ public sealed class ContourSeries : RasterSeries
     private float[]? _levels;
     private bool _isFilled;
     private bool _showsLines = true;
+    private bool _showsLabels;
+    private float[] _levelsInUse = [];
     private Rgba8 _lineColor = new(240, 240, 240, 255);
     private double _lineThickness = 1.5;
     private long _layoutVersion;
@@ -105,6 +107,26 @@ public sealed class ContourSeries : RasterSeries
             Touch();
         }
     }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the lines carry their values: along the line, upright, on a plate
+    /// that hides the line beneath, and never on top of each other.
+    /// </summary>
+    public bool ShowsLabels
+    {
+        get => _showsLabels;
+        set
+        {
+            _showsLabels = value;
+            Touch();
+        }
+    }
+
+    /// <summary>Gets the levels of the last frame, for the labels.</summary>
+    internal float[] LevelsInUse => _levelsInUse;
+
+    /// <summary>Gets the place of a grid point in values of the axes: the middle of its cell.</summary>
+    internal (double X, double Y) GridPoint(double column, double row) => (_xStart + ((column + 0.5) * _xStep), _yStart + ((row + 0.5) * _yStep));
 
     /// <summary>Gets or sets the color of the lines.</summary>
     public Rgba8 LineColor
@@ -206,6 +228,7 @@ public sealed class ContourSeries : RasterSeries
         base.Prepare(device, frame);
         var version = Version;
         var levels = _levels ?? CreateLevels();
+        _levelsInUse = levels;
         var values = Data.Values;
         if (_values is null)
         {
