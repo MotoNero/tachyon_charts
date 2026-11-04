@@ -23,6 +23,7 @@ sealed class Tachyon.Charts.Wpf.Chart : System.Windows.FrameworkElement, System.
   System.String Title { get; set; }
   System.Threading.Tasks.Task CopyDataAsync()
   System.Threading.Tasks.Task CopyImageAsync(Tachyon.Charts.Core.Themes.Theme theme = null)
+  System.Threading.Tasks.Task ExportVideoAsync(System.String path, Tachyon.Charts.Export.VideoOptions options = null, System.Action<System.Int32, System.TimeSpan> step = null)
   System.Threading.Tasks.Task<System.Boolean> PrintAsync(System.String description, Tachyon.Charts.Core.Themes.Theme theme = null)
   System.Threading.Tasks.Task<System.Byte[]> ExportCsvAsync(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Input.SeriesSelection> selection = null)
   System.Threading.Tasks.Task<System.Byte[]> ExportPdfAsync(Tachyon.Charts.Export.ExportOptions options = null)

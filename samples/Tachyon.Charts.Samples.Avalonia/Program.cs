@@ -440,6 +440,28 @@ internal sealed class SampleWindow : Window
         }
     }
 
+    // Six seconds: a 3D page turns once around, a 2D page records what keeps arriving.
+    private async Task ExportVideo()
+    {
+        try
+        {
+            var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "Tachyon Export");
+            Directory.CreateDirectory(folder);
+            var path = Path.Combine(folder, $"chart-{DateTime.Now:yyyyMMdd-HHmmss}.mp4");
+            var options = new VideoOptions { Duration = TimeSpan.FromSeconds(6) };
+            var frames = (int)(options.Duration.TotalSeconds * options.FrameRate);
+            var step = SelectedId is { } id && _hosts3D.TryGetValue(id, out var host) ? VideoMoves.Orbit(host.Scene.Camera, frames) : null;
+            _hint.Text = SampleText.T("Recording the video …");
+            await ExportedChart.ExportVideoAsync(path, options, step);
+            _hint.Text = SampleText.T("Saved: ") + path;
+            await SavedDialog.Show(this, path);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException or PlatformNotSupportedException)
+        {
+            _hint.Text = SampleText.T("Export failed: ") + exception.Message;
+        }
+    }
+
     private async Task ExportTo(string extension, Func<Chart, Task<byte[]>> export)
     {
         try
@@ -485,6 +507,7 @@ internal sealed class SampleWindow : Window
         bar.Children.Add(CreateAction("SVG", () => ExportTo("svg", chart => chart.ExportSvgAsync(options))));
         bar.Children.Add(CreateAction("PDF", () => ExportTo("pdf", chart => chart.ExportPdfAsync(options))));
         bar.Children.Add(CreateAction("CSV", () => ExportTo("csv", ExportCsv)));
+        bar.Children.Add(CreateAction("Video", ExportVideo));
         bar.Children.Add(CreateAction("Copy image", () => Run(chart => chart.CopyImageAsync(), "The image is on the clipboard")));
         bar.Children.Add(CreateAction("Copy data", () => Run(chart => chart.CopyDataAsync(), "The CSV is on the clipboard")));
     }

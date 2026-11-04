@@ -42,3 +42,12 @@ A 3D chart exports with the same calls. PNG renders the scene on the graphics ca
 
 Your own series can write a table of its own by implementing `ICsvExport`.
 
+## Video
+
+```csharp
+await chart.ExportVideoAsync("orbit.mp4", new VideoOptions { Width = 1920, Height = 1080, FrameRate = 30, Duration = TimeSpan.FromSeconds(6) },
+    (frame, time) => chart3D.Scene.Camera.Orbit(2, 0)); // turn the camera a little before each frame
+```
+
+Each frame belongs to a fixed time, frame number divided by frame rate, so the video plays evenly however long a frame takes to render. The step before each frame moves a camera, adds data or shifts a range; it runs on the render thread. On Windows Media Foundation encodes H.264 in MP4, which every Windows desktop has. Elsewhere the video needs an FFmpeg that you install yourself: put it on the PATH or set `VideoOptions.FFmpegPath`; without it you get a `FileNotFoundException` that says so. FFmpeg is not part of the package. Odd sizes are rounded down to even ones, as H.264 needs them. In the showroom the button **Video** records six seconds: a 3D page turns once around, a 2D page records what keeps arriving.
+

@@ -112,6 +112,8 @@ public static class SampleText
         ["Saved: "] = "Gespeichert: ",
         ["Saved"] = "Gespeichert",
         ["Show"] = "Anzeigen",
+        ["Video"] = "Video",
+        ["Recording the video …"] = "Video wird aufgenommen …",
         ["OK"] = "OK",
         ["The file is saved:"] = "Die Datei ist gespeichert:",
         ["Source code (F11)"] = "Quellcode (F11)",

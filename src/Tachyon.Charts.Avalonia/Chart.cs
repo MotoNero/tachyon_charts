@@ -204,6 +204,26 @@ public sealed class Chart : Control
         return controller.ExportAsync((surface, device) => ChartExporter.ToPng(surface, device, options ?? new ExportOptions()));
     }
 
+    /// <summary>
+    /// Records the chart as an MP4 video, frame by frame at fixed times, so that it plays evenly. On Windows Media
+    /// Foundation encodes it, elsewhere an FFmpeg the user installed.
+    /// </summary>
+    /// <param name="path">The file.</param>
+    /// <param name="options">The size, length and encoding, or <see langword="null"/> for the defaults.</param>
+    /// <param name="step">Called before each frame with its number and time, to move a camera or to add data. It runs on the render thread.</param>
+    /// <returns>When the file is written.</returns>
+    /// <exception cref="InvalidOperationException">The chart is not shown yet, or the encoder failed.</exception>
+    /// <exception cref="FileNotFoundException">FFmpeg is needed and was not found.</exception>
+    public Task ExportVideoAsync(string path, VideoOptions? options = null, Action<int, TimeSpan>? step = null)
+    {
+        var controller = _controller ?? throw new InvalidOperationException(NotShown);
+        return controller.ExportAsync((surface, device) =>
+        {
+            ChartVideo.Write(surface, device, path, options ?? new VideoOptions(), step);
+            return true;
+        });
+    }
+
     /// <summary>Gets the last image shown, for tests.</summary>
     internal WriteableBitmap? Bitmap => _bitmap;
 

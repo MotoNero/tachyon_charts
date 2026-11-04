@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Tachyon.Charts.VisualTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../Tachyon.Charts.Core/Tachyon.Charts.Core.csproj" />
     <ProjectReference Include="../Tachyon.Charts.Rendering.Skia/Tachyon.Charts.Rendering.Skia.csproj" />
   </ItemGroup>

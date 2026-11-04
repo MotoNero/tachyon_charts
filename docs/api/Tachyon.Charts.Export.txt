@@ -3,9 +3,26 @@ static class Tachyon.Charts.Export.ChartExporter
   static System.Byte[] ToPdf(Tachyon.Charts.Core.Pipeline.ChartSurface chart, Tachyon.Charts.Export.ExportOptions options)
   static System.Byte[] ToPng(Tachyon.Charts.Core.Pipeline.ChartSurface chart, Tachyon.Charts.Rendering.IRenderDevice device, Tachyon.Charts.Export.ExportOptions options)
   static System.Byte[] ToSvg(Tachyon.Charts.Core.Pipeline.ChartSurface chart, Tachyon.Charts.Export.ExportOptions options)
+static class Tachyon.Charts.Export.ChartVideo
+  static System.String MissingFFmpeg
+  static System.Void Write(Tachyon.Charts.Core.Pipeline.ChartSurface chart, Tachyon.Charts.Rendering.IRenderDevice device, System.String path, Tachyon.Charts.Export.VideoOptions options, System.Action<System.Int32, System.TimeSpan> step = null)
 sealed class Tachyon.Charts.Export.ExportOptions : System.IEquatable<Tachyon.Charts.Export.ExportOptions>
   .ctor()
   System.Double Dpi { get; set; }
   System.Double Height { get; set; }
   System.Double Width { get; set; }
   Tachyon.Charts.Core.Themes.Theme Theme { get; set; }
+enum Tachyon.Charts.Export.VideoEncoder : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Auto = 0
+  FFmpeg = 2
+  MediaFoundation = 1
+sealed class Tachyon.Charts.Export.VideoOptions : System.IEquatable<Tachyon.Charts.Export.VideoOptions>
+  .ctor()
+  System.Int32 BitRate { get; set; }
+  System.Int32 FrameRate { get; set; }
+  System.Int32 Height { get; set; }
+  System.Int32 Width { get; set; }
+  System.String FFmpegPath { get; set; }
+  System.TimeSpan Duration { get; set; }
+  Tachyon.Charts.Core.Themes.Theme Theme { get; set; }
+  Tachyon.Charts.Export.VideoEncoder Encoder { get; set; }
