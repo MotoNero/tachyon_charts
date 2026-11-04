@@ -18,6 +18,8 @@ public static class SampleSources
     private const string ExampleFolder = "Tachyon.Charts.Samples.Shared/Examples/";
     private const string CommonFolder = ExampleFolder + "Common/";
 
+    // The sources are short and the patterns simple; the limit only guards against a pattern gone wrong.
+    private static readonly TimeSpan _matchTimeout = TimeSpan.FromSeconds(1);
     private static readonly Lazy<Dictionary<string, string>> _files = new(Load);
 
     /// <summary>Gets all files by their path below <c>samples/</c>, such as <c>Tachyon.Charts.Samples.Shared/Examples/ThreeD/WaterfallLivePage.cs</c>.</summary>
@@ -39,7 +41,7 @@ public static class SampleSources
         // A scene of the gallery is a class; a few classes draw several scenes with other arguments.
         if (example is null && SceneCatalog.Find(pageId) is { } scene)
         {
-            example = Examples.FirstOrDefault(name => Regex.IsMatch(Files[name], @"(class|record) " + scene.GetType().Name + @"\b"));
+            example = Examples.FirstOrDefault(name => Regex.IsMatch(Files[name], @"(class|record) " + scene.GetType().Name + @"\b", RegexOptions.None, _matchTimeout));
         }
 
         if (example is null)
@@ -60,7 +62,7 @@ public static class SampleSources
         {
             var type = Path.GetFileNameWithoutExtension(file);
             if (found.TrueForAll(item => item.Name != file)
-                && (Regex.IsMatch(code, @"\b" + type + @"\b") || text.Contains("using static Tachyon.Charts.Samples.Shared.Examples.Common." + type + ";", StringComparison.Ordinal)))
+                && (Regex.IsMatch(code, @"\b" + type + @"\b", RegexOptions.None, _matchTimeout) || text.Contains("using static Tachyon.Charts.Samples.Shared.Examples.Common." + type + ";", StringComparison.Ordinal)))
             {
                 found.Add(new SourceFile(file, Files[file]));
                 AddHelpers(found, Files[file]);

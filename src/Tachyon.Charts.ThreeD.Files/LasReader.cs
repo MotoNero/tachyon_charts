@@ -21,8 +21,8 @@ internal static class LasReader
     {
         var header = new byte[LongHeaderBytes];
         var length = stream.Length;
-        stream.ReadAtLeast(header, Math.Min(LongHeaderBytes, (int)Math.Min(length, LongHeaderBytes)), false);
-        if (length < HeaderBytes || !header.AsSpan(0, 4).SequenceEqual("LASF"u8))
+        var read = stream.ReadAtLeast(header, Math.Min(LongHeaderBytes, (int)Math.Min(length, LongHeaderBytes)), false);
+        if (read < HeaderBytes || !header.AsSpan(0, 4).SequenceEqual("LASF"u8))
         {
             throw new PointFileException("This is no LAS file: it does not start with 'LASF'.");
         }

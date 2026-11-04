@@ -89,18 +89,24 @@ public sealed class ClipPlane3D
         var offset = Offset;
         for (var corner = 0; corner < 8; corner++)
         {
-            var a = new Point3D((corner & 1) == 0 ? -1 : 1, (corner & 2) == 0 ? -1 : 1, (corner & 4) == 0 ? -1 : 1);
+            var a = Corner(corner);
             for (var axis = 1; axis <= 4; axis *= 2)
             {
+                // Each edge of the box once: from the corner on its low side.
                 if ((corner & axis) == 0)
                 {
-                    AddCrossing(corners, a, new Point3D(a.X + (axis == 1 ? 2 : 0), a.Y + (axis == 2 ? 2 : 0), a.Z + (axis == 4 ? 2 : 0)), offset);
+                    AddCrossing(corners, a, Corner(corner | axis), offset);
                 }
             }
         }
 
         SortAround(corners);
     }
+
+    // The corners of the box from -1 to 1, one bit per axis.
+    private static Point3D Corner(int bits) => new(Side(bits, 1), Side(bits, 2), Side(bits, 4));
+
+    private static double Side(int bits, int axis) => (bits & axis) == 0 ? -1 : 1;
 
     private static double Value(Surface3D surface, int column, int row) => surface.Data[column, row];
 

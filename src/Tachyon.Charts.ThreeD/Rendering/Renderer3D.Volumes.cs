@@ -243,7 +243,7 @@ internal sealed unsafe partial class Renderer3D
         private readonly Native.BindGroup* _sliceGroup;
         private readonly Native.Buffer* _transfer;
         private Native.BindGroup* _marchGroup;
-        private ulong _colorBytes;
+        private readonly ulong _colorBytes;
         private Half[] _halves = [];
         private VolumeUniforms _values;
 

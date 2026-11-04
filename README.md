@@ -14,7 +14,7 @@ GPU-accelerated 2D and 3D charts for .NET 10, built for test and measurement, la
 - **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap, contour
 - **3D as an add-on:** surfaces, waterfalls, antenna patterns, point clouds of 100 million points and volumes, live and with values under the pointer
 - **Runs everywhere:** GPU, software adapter or CPU, chosen automatically, also over remote desktop
-- **Ready for reports:** export to PNG, SVG, PDF and CSV, clipboard and printing
+- **Ready for reports:** export to PNG, SVG, PDF and CSV, clipboard and printing, MP4 videos of 2D and 3D charts
 
 ## Gallery
 
@@ -66,6 +66,10 @@ GPU-accelerated 2D and 3D charts for .NET 10, built for test and measurement, la
 |---|---|---|
 | ![Three draggable slices through a body](docs/images/3d-volume-slices.png) | ![Looking through a body with bright spots inside](docs/images/3d-volume-through.png) | ![A surface and a line inside a volume](docs/images/3d-volume-objects.png) |
 
+| Maximum projection | Surface of equal value | Waterfall with mask and markers |
+|---|---|---|
+| ![The highest value along each ray of a volume](docs/images/3d-volume-maximum.png) | ![A lit surface where the values of a volume cross a level, cut open by a plane](docs/images/3d-volume-surface.png) | ![Waterfall of a spectrum with the limit line of the 2D chart as a fence and two markers](docs/images/3d-waterfall-mask.png) |
+
 ### Themes
 
 Seven built-in themes, plus your own from JSON or XAML resources. Themes apply to every chart type, including the instruments.
@@ -94,8 +98,10 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 - **Scatter:** a size and color per point, a million new points per second from a measuring thread, oldest points fall out
 - **Columns:** over a raster, with a color by value and the same light as surfaces
 - **Point clouds:** an octree forms in the background, a coarse picture shows at once, and the density never jumps. Files in XYZ, PLY and LAS through `Tachyon.Charts.ThreeD.Files`
-- **Volumes:** 8 bit, 16 bit and floating point, three draggable slices, looking through with a transfer function that you edit in the chart, correct depth against other objects
+- **Volumes:** 8 bit, 16 bit and floating point, three draggable slices, looking through with a transfer function that you edit in the chart, the highest value along each ray, lit surfaces of equal value, correct depth against other objects. Files in NIfTI-1 and raw through `Tachyon.Charts.ThreeD.Files`
 - **Operation:** turn, move and zoom in perspective or parallel view, values under the pointer with unit and language, markers, up to four cut planes at any angle, cuts as data for 2D charts
+- **Together with 2D:** markers and the limit mask of the spectrum analyzer appear in the 2D and the 3D chart at once; a 2D chart narrows the range of a 3D chart
+- **Export:** PNG, SVG and PDF with the 3D picture, CSV with all data of the scene, MP4 videos that turn the view or record what the user does
 
 ## Quick start
 
@@ -158,7 +164,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Wpf -c Release
 dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 ```
 
-The showroom lists the interactive pages, the instruments and all scenes. Theme and language are at the top right.
+The showroom lists the interactive pages, the instruments and all scenes. Theme and language are at the top right. F11 shows the source code of a page, the red button records what the page shows as an MP4 video.
 
 ## Performance
 
@@ -171,6 +177,22 @@ Offscreen on an RTX 4070 Laptop GPU at 4K.
 | Streaming, 10 series at 100k points/s | 147 FPS |
 | Spectrogram 4096 × 4096 | 270 FPS |
 | Nearest point, 100 million points | 0.4 ms |
+
+3D in a real full-screen window (2560 × 1440) on the same GPU while the view turns, with the frame rate cap of the chart raised from 60 to 120:
+
+| Scenario | Result |
+|---|---:|
+| Point cloud, 100 million points | 115 FPS |
+| Surface 4096 × 4096 | 115 FPS |
+| Waterfall, 60 new rows per second | 117 FPS |
+| Volume 512³, slices, look-through, maximum or surface | 114 to 118 FPS |
+| Lines, 10 million points | 95 FPS |
+| Scatter, 10 million points | 117 FPS |
+| Columns, 1 million | 99 FPS |
+| Four large 3D charts at once | 52 FPS |
+| Chart at rest | no frames, 0.02 % CPU |
+
+By default a chart draws at most 60 frames per second, which every single scenario above reaches.
 
 3D, offscreen on the same GPU at full HD while the view turns:
 

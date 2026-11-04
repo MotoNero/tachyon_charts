@@ -15,7 +15,7 @@ public static class FileLocation
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
         using var process = OperatingSystem.IsWindows()
-            ? Process.Start(new ProcessStartInfo("explorer.exe", "/select,\"" + path + "\"") { UseShellExecute = true })
+            ? Process.Start(new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe"), "/select,\"" + path + "\"") { UseShellExecute = true })
             : Process.Start(new ProcessStartInfo(Path.GetDirectoryName(path) ?? path) { UseShellExecute = true });
     }
 }

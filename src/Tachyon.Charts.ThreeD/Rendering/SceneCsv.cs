@@ -40,38 +40,17 @@ internal static class SceneCsv
 
         for (var i = 0; i < scene.Surfaces.Count; i++)
         {
-            var surface = scene.Surfaces[i];
-            var name = "surface " + (i + 1).ToString(CultureInfo.InvariantCulture);
-            var (columns, rows) = (surface.Data.Width, surface.Data.Height);
-            for (var row = 0; row < rows; row++)
-            {
-                for (var column = 0; column < columns; column++)
-                {
-                    double value = surface.Data[column, row];
-                    var place = new Point3D(ScenePicker.Across(surface.X.Min, surface.X.Max, column, columns), ScenePicker.Across(surface.Y.Min, surface.Y.Max, row, rows), value);
-                    Row(writer, area, name, place, value);
-                }
-            }
+            Surface(writer, area, "surface " + (i + 1).ToString(CultureInfo.InvariantCulture), scene.Surfaces[i]);
         }
 
         for (var i = 0; i < scene.Maps.Count; i++)
         {
-            var map = scene.Maps[i];
-            var name = "map " + (i + 1).ToString(CultureInfo.InvariantCulture);
-            for (var j = 0; j < map.X.Length; j++)
-            {
-                Row(writer, area, name, new Point3D(map.X[j], map.Y[j], map.Z[j]), map.Z[j]);
-            }
+            Map(writer, area, "map " + (i + 1).ToString(CultureInfo.InvariantCulture), scene.Maps[i]);
         }
 
         for (var i = 0; i < scene.Meshes.Count; i++)
         {
-            var name = "mesh " + (i + 1).ToString(CultureInfo.InvariantCulture);
-            var vertices = scene.Meshes[i].Vertices;
-            for (var j = 0; j < vertices.Count; j++)
-            {
-                Row(writer, area, name, vertices[j].Position, vertices[j].Position.Z);
-            }
+            Mesh(writer, area, "mesh " + (i + 1).ToString(CultureInfo.InvariantCulture), scene.Meshes[i]);
         }
 
         for (var i = 0; i < scene.Waterfalls.Count; i++)
@@ -81,48 +60,89 @@ internal static class SceneCsv
 
         for (var i = 0; i < scene.Clouds.Count; i++)
         {
-            var cloud = scene.Clouds[i];
-            if (!cloud.IsLoaded || cloud.Count > MostCloudPoints)
-            {
-                continue;
-            }
-
-            var name = "cloud " + (i + 1).ToString(CultureInfo.InvariantCulture);
-            for (var j = 0; j < cloud.Count; j++)
-            {
-                Row(writer, area, name, new Point3D(cloud.X[j], cloud.Y[j], cloud.Z[j]), double.NaN);
-            }
+            Cloud(writer, area, "cloud " + (i + 1).ToString(CultureInfo.InvariantCulture), scene.Clouds[i]);
         }
 
-        // An antenna pattern has its own coordinates: the angles and the gain, not places in the box.
         for (var i = 0; i < scene.Antennas.Count; i++)
         {
-            var antenna = scene.Antennas[i];
-            var name = "antenna " + (i + 1).ToString(CultureInfo.InvariantCulture);
-            for (var e = 0; e < antenna.Elevations.Length; e++)
-            {
-                for (var a = 0; a < antenna.Azimuths.Length; a++)
-                {
-                    var gain = antenna.Gains[e, a];
-                    Row(writer, Area.Everything, name, new Point3D(antenna.Azimuths[a], antenna.Elevations[e], gain), gain);
-                }
-            }
+            Antenna(writer, "antenna " + (i + 1).ToString(CultureInfo.InvariantCulture), scene.Antennas[i]);
         }
 
         for (var i = 0; i < scene.Bars.Count; i++)
         {
-            var bars = scene.Bars[i];
-            var name = "columns " + (i + 1).ToString(CultureInfo.InvariantCulture);
-            var (columns, rows) = (bars.Data.Width, bars.Data.Height);
-            for (var row = 0; row < rows; row++)
+            Columns(writer, area, "columns " + (i + 1).ToString(CultureInfo.InvariantCulture), scene.Bars[i]);
+        }
+    }
+
+    private static void Surface(TextWriter writer, in Area area, string name, Surface3D surface)
+    {
+        var (columns, rows) = (surface.Data.Width, surface.Data.Height);
+        for (var row = 0; row < rows; row++)
+        {
+            for (var column = 0; column < columns; column++)
             {
-                for (var column = 0; column < columns; column++)
-                {
-                    double value = bars.Data[column, row];
-                    var x = bars.X.Min + ((column + 0.5) * (bars.X.Max - bars.X.Min) / columns);
-                    var y = bars.Y.Min + ((row + 0.5) * (bars.Y.Max - bars.Y.Min) / rows);
-                    Row(writer, area, name, new Point3D(x, y, value), value);
-                }
+                double value = surface.Data[column, row];
+                var place = new Point3D(ScenePicker.Across(surface.X.Min, surface.X.Max, column, columns), ScenePicker.Across(surface.Y.Min, surface.Y.Max, row, rows), value);
+                Row(writer, area, name, place, value);
+            }
+        }
+    }
+
+    private static void Map(TextWriter writer, in Area area, string name, MeasuredMap3D map)
+    {
+        for (var j = 0; j < map.X.Length; j++)
+        {
+            Row(writer, area, name, new Point3D(map.X[j], map.Y[j], map.Z[j]), map.Z[j]);
+        }
+    }
+
+    private static void Mesh(TextWriter writer, in Area area, string name, Mesh3D mesh)
+    {
+        var vertices = mesh.Vertices;
+        for (var j = 0; j < vertices.Count; j++)
+        {
+            Row(writer, area, name, vertices[j].Position, vertices[j].Position.Z);
+        }
+    }
+
+    // Clouds that still load or are too large for a table stay out.
+    private static void Cloud(TextWriter writer, in Area area, string name, PointCloud3D cloud)
+    {
+        if (!cloud.IsLoaded || cloud.Count > MostCloudPoints)
+        {
+            return;
+        }
+
+        for (var j = 0; j < cloud.Count; j++)
+        {
+            Row(writer, area, name, new Point3D(cloud.X[j], cloud.Y[j], cloud.Z[j]), double.NaN);
+        }
+    }
+
+    // An antenna pattern has its own coordinates: the angles and the gain, not places in the box.
+    private static void Antenna(TextWriter writer, string name, AntennaPattern3D antenna)
+    {
+        for (var e = 0; e < antenna.Elevations.Length; e++)
+        {
+            for (var a = 0; a < antenna.Azimuths.Length; a++)
+            {
+                var gain = antenna.Gains[e, a];
+                Row(writer, Area.Everything, name, new Point3D(antenna.Azimuths[a], antenna.Elevations[e], gain), gain);
+            }
+        }
+    }
+
+    private static void Columns(TextWriter writer, in Area area, string name, Bars3D bars)
+    {
+        var (columns, rows) = (bars.Data.Width, bars.Data.Height);
+        for (var row = 0; row < rows; row++)
+        {
+            for (var column = 0; column < columns; column++)
+            {
+                double value = bars.Data[column, row];
+                var x = bars.X.Min + ((column + 0.5) * (bars.X.Max - bars.X.Min) / columns);
+                var y = bars.Y.Min + ((row + 0.5) * (bars.Y.Max - bars.Y.Min) / rows);
+                Row(writer, area, name, new Point3D(x, y, value), value);
             }
         }
     }

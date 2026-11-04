@@ -9,4 +9,10 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
+  <!-- The 3D add-on has a version of its own; tools/release/release.sh sets it with -p:ThreeDVersion. -->
+  <PropertyGroup Condition="'$(ThreeDVersion)' != '' and $(MSBuildProjectName.StartsWith('Tachyon.Charts.ThreeD'))">
+    <PackageVersion>$(ThreeDVersion)</PackageVersion>
+    <InformationalVersion>$(ThreeDVersion)</InformationalVersion>
+  </PropertyGroup>
+
 </Project>

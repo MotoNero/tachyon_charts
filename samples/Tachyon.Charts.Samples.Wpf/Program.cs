@@ -548,7 +548,7 @@ internal sealed class SampleWindow : Window
         // Arrays of this size wait long for a collection, and the next large page needs the memory at once.
         if (isReleased)
         {
-            Dispatcher.BeginInvoke(() => GC.Collect(), System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            Dispatcher.BeginInvoke(() => GC.Collect(), System.Windows.Threading.DispatcherPriority.ApplicationIdle); // NOSONAR: arrays of several GB wait long for a collection, see the comment above
         }
     }
 
@@ -593,6 +593,7 @@ internal sealed class SampleWindow : Window
                 // From a thread of its own, faster than frames come: a UI timer would set the pace itself.
                 var camera = host.Scene.Camera;
                 camera.Zoom(ZoomsIn ? 0.25 : 1);
+                _turning?.Dispose();
                 _turning = new System.Threading.Timer(_ => camera.Orbit(0.1, 0), null, 0, 2);
             }
         }
@@ -888,7 +889,7 @@ internal sealed class SampleWindow : Window
         }
 
         Release3DPages();
-        foreach (var (name3D, host) in _hosts3D)
+        foreach (var name3D in _hosts3D.Keys)
         {
             _views3D[name3D].Visibility = Show(name3D == SelectedId);
             Pages3D.Find(name3D)?.Run?.Invoke(name3D == SelectedId);

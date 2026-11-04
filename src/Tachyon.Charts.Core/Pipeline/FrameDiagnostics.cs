@@ -68,10 +68,10 @@ internal sealed class FrameDiagnostics
         }
 
         text.Add("CPU", ToMilliseconds(_cpuTicks) / frames, "F2", "ms per frame");
-        text.Add("Draw calls", _drawCalls / frames, "N0", string.Empty);
+        text.Add("Draw calls", _drawCalls / (double)frames, "N0", string.Empty);
         text.Add("Points drawn", drawnPoints, "N0", string.Empty);
         text.Add("Points in data", sourcePoints, "N0", string.Empty);
-        text.Add("Upload", _uploadedBytes / frames, "N0", "B per frame");
+        text.Add("Upload", _uploadedBytes / (double)frames, "N0", "B per frame");
         text.Add(backend);
 
         _windowStart = now;

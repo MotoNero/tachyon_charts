@@ -43,11 +43,9 @@ internal sealed class SampleWindow : Window
     private const string RasterEntry = "Raster (interaktiv)";
     private const string ScopeEntry = "Oszilloskop (interaktiv)";
     private const string SpectrumEntry = "Spektrum (interaktiv)";
-    private const int LiveCapacity = 1_000_000;
     private const int SpectrogramColumns = 1024;
     private const int SpectrogramRows = 1024;
     private const int SpectrogramRowsPerSecond = 60;
-    private const int PointsPerSecond = 50_000;
 
     private static readonly Color _ink = Color.Parse("#E8EDF4");
     private readonly ListBox _list = new() { Background = Brushes.Transparent, Margin = new Thickness(10, 0, 6, 10) };
@@ -112,6 +110,32 @@ internal sealed class SampleWindow : Window
     private volatile bool _closing;
     private volatile bool _showsRaster;
 
+    private void ApplyTrigger()
+    {
+        if (_trigger.SelectedIndex >= 0)
+        {
+            _scopeDemo.Trigger.Mode = (TriggerMode)_trigger.SelectedIndex;
+            _scopeDemo.Trigger.Arm();
+        }
+    }
+
+    private void ApplyPersistence()
+    {
+        if (_persistence.SelectedIndex >= 0)
+        {
+            _scopeDemo.Display.Persistence = (ScopePersistence)_persistence.SelectedIndex;
+        }
+    }
+
+    private void SelectLanguage()
+    {
+        if (_language.SelectedIndex >= 0)
+        {
+            ChartText.Language = (ChartLanguage)_language.SelectedIndex;
+            ApplyLanguage();
+        }
+    }
+
     public SampleWindow(string? startPage)
     {
         RequestedThemeVariant = ThemeVariant.Dark;
@@ -141,35 +165,15 @@ internal sealed class SampleWindow : Window
         _colormap.SelectedIndex = 0;
         _colormap.SelectionChanged += (_, _) => ApplyColormap();
 
-        _trigger.SelectionChanged += (_, _) =>
-        {
-            if (_trigger.SelectedIndex >= 0)
-            {
-                _scopeDemo.Trigger.Mode = (TriggerMode)_trigger.SelectedIndex;
-                _scopeDemo.Trigger.Arm();
-            }
-        };
-        _persistence.SelectionChanged += (_, _) =>
-        {
-            if (_persistence.SelectedIndex >= 0)
-            {
-                _scopeDemo.Display.Persistence = (ScopePersistence)_persistence.SelectedIndex;
-            }
-        };
+        _trigger.SelectionChanged += (_, _) => ApplyTrigger();
+        _persistence.SelectionChanged += (_, _) => ApplyPersistence();
         _scopeControls.Children.Add(_trigger);
         _scopeControls.Children.Add(_persistence);
 
         _theme.SelectionChanged += (_, _) => ApplyTheme();
         _language.ItemsSource = SampleText.Languages;
         _language.SelectedIndex = 0;
-        _language.SelectionChanged += (_, _) =>
-        {
-            if (_language.SelectedIndex >= 0)
-            {
-                ChartText.Language = (ChartLanguage)_language.SelectedIndex;
-                ApplyLanguage();
-            }
-        };
+        _language.SelectionChanged += (_, _) => SelectLanguage();
 
         var bar = new WrapPanel();
         _select.Content = SampleText.T("Select points: off");
@@ -597,7 +601,7 @@ internal sealed class SampleWindow : Window
         // Arrays of this size wait long for a collection, and the next large page needs the memory at once.
         if (isReleased)
         {
-            global::Avalonia.Threading.Dispatcher.UIThread.Post(() => GC.Collect(), global::Avalonia.Threading.DispatcherPriority.Background);
+            global::Avalonia.Threading.Dispatcher.UIThread.Post(() => GC.Collect(), global::Avalonia.Threading.DispatcherPriority.Background); // NOSONAR: arrays of several GB wait long for a collection, see the comment above
         }
     }
 
@@ -640,6 +644,7 @@ internal sealed class SampleWindow : Window
                 // From a thread of its own, faster than frames come: a UI timer would set the pace itself.
                 var camera = host.Scene.Camera;
                 camera.Zoom(ZoomsIn ? 0.25 : 1);
+                _turning?.Dispose();
                 _turning = new System.Threading.Timer(_ => camera.Orbit(0.1, 0), null, 0, 2);
             }
         }
@@ -798,7 +803,7 @@ internal sealed class SampleWindow : Window
         }
 
         Release3DPages();
-        foreach (var (name3D, host) in _hosts3D)
+        foreach (var name3D in _hosts3D.Keys)
         {
             _views3D[name3D].IsVisible = name3D == SelectedId;
             Pages3D.Find(name3D)?.Run?.Invoke(name3D == SelectedId);

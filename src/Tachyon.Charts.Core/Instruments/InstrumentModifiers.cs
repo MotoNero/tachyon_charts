@@ -283,20 +283,7 @@ public sealed class SpectrumModifier(SpectrumDisplay display) : ChartModifier(Zo
         var pane = layout.Panes[0];
         if (input.Kind == PointerEventKind.Pressed && input.ChangedButton == PointerButton.Primary)
         {
-            if (input.ClickCount == 2)
-            {
-                display.MarkerFrequency = null;
-                return ModifierResult.Handled;
-            }
-
-            _isDragging = true;
-            _hasMoved = false;
-            _movedMask = IsOnMask(display, pane, input.Position) ? display.Mask : null;
-            _isAdding = (input.Modifiers & InputModifiers.Control) != 0;
-            _start = input.Position;
-            _startFrequency = display.Start;
-            _stopFrequency = display.Stop;
-            return ModifierResult.Capture;
+            return Press(input, pane);
         }
 
         if (!_isDragging)
@@ -306,18 +293,7 @@ public sealed class SpectrumModifier(SpectrumDisplay display) : ChartModifier(Zo
 
         if (input.Kind == PointerEventKind.Moved)
         {
-            _hasMoved |= Vector2.Distance(input.Position, _start) > ClickDistance;
-            if (_hasMoved && _movedMask is { } mask)
-            {
-                var span = display.PerDivision * ScopeDisplay.VerticalDivisions;
-                display.Mask = mask.Shift((_start.Y - input.Position.Y) / pane.Height * span);
-            }
-            else if (_hasMoved)
-            {
-                var shift = (_start.X - input.Position.X) / pane.Width * (_stopFrequency - _startFrequency);
-                display.SetView(_startFrequency + shift, _stopFrequency + shift, display.ReferenceLevel, display.PerDivision);
-            }
-
+            Move(input, pane);
             return ModifierResult.Handled;
         }
 
@@ -333,6 +309,40 @@ public sealed class SpectrumModifier(SpectrumDisplay display) : ChartModifier(Zo
         }
 
         return ModifierResult.Ignored;
+    }
+
+    private ModifierResult Press(in PointerInputEvent input, DipRect pane)
+    {
+        if (input.ClickCount == 2)
+        {
+            display.MarkerFrequency = null;
+            return ModifierResult.Handled;
+        }
+
+        _isDragging = true;
+        _hasMoved = false;
+        _movedMask = IsOnMask(display, pane, input.Position) ? display.Mask : null;
+        _isAdding = (input.Modifiers & InputModifiers.Control) != 0;
+        _start = input.Position;
+        _startFrequency = display.Start;
+        _stopFrequency = display.Stop;
+        return ModifierResult.Capture;
+    }
+
+    // Dragging the mask moves it up or down; dragging elsewhere moves the frequencies.
+    private void Move(in PointerInputEvent input, DipRect pane)
+    {
+        _hasMoved |= Vector2.Distance(input.Position, _start) > ClickDistance;
+        if (_hasMoved && _movedMask is { } mask)
+        {
+            var span = display.PerDivision * ScopeDisplay.VerticalDivisions;
+            display.Mask = mask.Shift((_start.Y - input.Position.Y) / pane.Height * span);
+        }
+        else if (_hasMoved)
+        {
+            var shift = (_start.X - input.Position.X) / pane.Width * (_stopFrequency - _startFrequency);
+            display.SetView(_startFrequency + shift, _stopFrequency + shift, display.ReferenceLevel, display.PerDivision);
+        }
     }
 
     /// <summary>Finds whether a point lies on the line of the mask.</summary>

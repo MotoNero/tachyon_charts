@@ -271,7 +271,11 @@ public sealed class Chart : FrameworkElement, IRecordableChart
     /// <exception cref="FileNotFoundException">FFmpeg is needed and was not found.</exception>
     public void StartRecording(string path, VideoOptions? options = null)
     {
-        var controller = _controller ?? throw new InvalidOperationException(NotShown);
+        if (_controller is null)
+        {
+            throw new InvalidOperationException(NotShown);
+        }
+
         if (_recording is not null)
         {
             throw new InvalidOperationException("A recording runs already.");

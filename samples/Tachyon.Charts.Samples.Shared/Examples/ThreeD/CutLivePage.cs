@@ -21,12 +21,16 @@ public static class CutLivePage
 
     /// <summary>Builds the 2D chart below the 3D chart.</summary>
     /// <param name="c">The 2D chart.</param>
-    public static void Companion(ChartBuilder c) => c
-        .Title("Height at the plane")
-        .XAxis(a => a.Numeric("x").Range(-1, 1).Title("x"))
-        .YAxis(a => a.Numeric("z").Range(-1, 1).Title("z"))
-        .AddLine(LastCut!.Data, s => s.Thickness(2))
-        .AddOverlay(chart => CutMarkerOverlay.For(LastCut!, chart))
-        .Group(CutGroup)
-        .Modifiers(m => m.Custom(() => new CutMarkerModifier(LastCut!)).ZoomPan().Crosshair());
+    /// <exception cref="InvalidOperationException">The 3D chart was not built yet.</exception>
+    public static void Companion(ChartBuilder c)
+    {
+        var cut = LastCut ?? throw new InvalidOperationException("Build the 3D chart first, the 2D chart shows its cut.");
+        c.Title("Height at the plane")
+            .XAxis(a => a.Numeric("x").Range(-1, 1).Title("x"))
+            .YAxis(a => a.Numeric("z").Range(-1, 1).Title("z"))
+            .AddLine(cut.Data, s => s.Thickness(2))
+            .AddOverlay(chart => CutMarkerOverlay.For(cut, chart))
+            .Group(CutGroup)
+            .Modifiers(m => m.Custom(() => new CutMarkerModifier(cut)).ZoomPan().Crosshair());
+    }
 }

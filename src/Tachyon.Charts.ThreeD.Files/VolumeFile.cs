@@ -168,6 +168,27 @@ public static class VolumeFile
             throw new PointFileException("The file is shorter than a NIfTI header.");
         }
 
+        var isLittle = CheckNiftiStart(header);
+        var dims = ReadDims(header, isLittle);
+        var type = (NiftiType)Short(header, 70, isLittle);
+        var bytes = BytesOf(type);
+        var offset = (long)Single(header, 108, isLittle);
+        var count = CheckSize(dims[1], dims[2], dims[3]);
+        if (offset < NiftiHeader || (length is { } total && offset + (count * bytes) > total))
+        {
+            throw new PointFileException($"The file is cut off: the values start at byte {offset} and need {count * bytes} bytes.");
+        }
+
+        Skip(source, offset - NiftiHeader);
+        var (slope, intercept) = (Single(header, 112, isLittle), Single(header, 116, isLittle));
+        var scale = double.IsFinite(slope) && slope != 0 && (slope != 1 || intercept != 0) ? ((double)slope, (double)intercept) : (0, 0);
+        var spacing = (Spacing(Single(header, 80, isLittle)), Spacing(Single(header, 84, isLittle)), Spacing(Single(header, 88, isLittle)));
+        return new VolumeFileData(ReadValues(source, (dims[1], dims[2], dims[3]), type, isLittle, scale), spacing);
+    }
+
+    // Whether the header is little endian, after the checks that it is a single NIfTI-1 file.
+    private static bool CheckNiftiStart(byte[] header)
+    {
         var size = BinaryPrimitives.ReadInt32LittleEndian(header);
         var isLittle = size == NiftiHeader;
         if (!isLittle && BinaryPrimitives.ReverseEndianness(size) != NiftiHeader)
@@ -188,6 +209,11 @@ public static class VolumeFile
             throw new PointFileException("This is no NIfTI-1 file: the mark 'n+1' is missing.");
         }
 
+        return isLittle;
+    }
+
+    private static int[] ReadDims(byte[] header, bool isLittle)
+    {
         var dims = new int[8];
         for (var i = 0; i < 8; i++)
         {
@@ -199,20 +225,7 @@ public static class VolumeFile
             throw new PointFileException($"A volume needs three sizes of at least 2, the header says {dims[0]} sizes: {dims[1]} × {dims[2]} × {dims[3]}.");
         }
 
-        var type = (NiftiType)Short(header, 70, isLittle);
-        var bytes = BytesOf(type);
-        var offset = (long)Single(header, 108, isLittle);
-        var count = CheckSize(dims[1], dims[2], dims[3]);
-        if (offset < NiftiHeader || (length is { } total && offset + (count * bytes) > total))
-        {
-            throw new PointFileException($"The file is cut off: the values start at byte {offset} and need {count * bytes} bytes.");
-        }
-
-        Skip(source, offset - NiftiHeader);
-        var (slope, intercept) = (Single(header, 112, isLittle), Single(header, 116, isLittle));
-        var scale = double.IsFinite(slope) && slope != 0 && (slope != 1 || intercept != 0) ? ((double)slope, (double)intercept) : (0, 0);
-        var spacing = (Spacing(Single(header, 80, isLittle)), Spacing(Single(header, 84, isLittle)), Spacing(Single(header, 88, isLittle)));
-        return new VolumeFileData(ReadValues(source, (dims[1], dims[2], dims[3]), type, isLittle, scale), spacing);
+        return dims;
     }
 
     private static int BytesOf(NiftiType type) => type switch
@@ -263,7 +276,6 @@ public static class VolumeFile
     private static VolumeData ReadValues(Stream stream, (int X, int Y, int Z) size, NiftiType type, bool isLittle, (double Slope, double Intercept) scale)
     {
         var count = (int)((long)size.X * size.Y * size.Z);
-        var bytes = BytesOf(type);
         var isScaled = scale.Slope != 0;
         try
         {
@@ -276,32 +288,44 @@ public static class VolumeFile
 
             if (type == NiftiType.UInt16 && !isScaled)
             {
-                var words = new ushort[count];
-                ReadChunks(stream, count, bytes, (chunk, first) =>
-                {
-                    for (var i = 0; i < chunk.Length / 2; i++)
-                    {
-                        words[first + i] = isLittle ? BinaryPrimitives.ReadUInt16LittleEndian(chunk[(2 * i)..]) : BinaryPrimitives.ReadUInt16BigEndian(chunk[(2 * i)..]);
-                    }
-                });
-                return new VolumeData(words, size.X, size.Y, size.Z);
+                return new VolumeData(ReadWords(stream, count, isLittle), size.X, size.Y, size.Z);
             }
 
-            var floats = new float[count];
-            ReadChunks(stream, count, bytes, (chunk, first) =>
-            {
-                for (var i = 0; i < chunk.Length / bytes; i++)
-                {
-                    var value = Decode(chunk[(i * bytes)..], type, isLittle);
-                    floats[first + i] = (float)(isScaled ? (value * scale.Slope) + scale.Intercept : value);
-                }
-            });
-            return new VolumeData(floats, size.X, size.Y, size.Z);
+            return new VolumeData(ReadFloats(stream, count, type, isLittle, scale), size.X, size.Y, size.Z);
         }
         catch (OutOfMemoryException exception)
         {
             throw new PointFileException($"There is not enough memory for {count} values.", exception);
         }
+    }
+
+    private static ushort[] ReadWords(Stream stream, int count, bool isLittle)
+    {
+        var words = new ushort[count];
+        ReadChunks(stream, count, 2, (chunk, first) =>
+        {
+            for (var i = 0; i < chunk.Length / 2; i++)
+            {
+                words[first + i] = isLittle ? BinaryPrimitives.ReadUInt16LittleEndian(chunk[(2 * i)..]) : BinaryPrimitives.ReadUInt16BigEndian(chunk[(2 * i)..]);
+            }
+        });
+        return words;
+    }
+
+    private static float[] ReadFloats(Stream stream, int count, NiftiType type, bool isLittle, (double Slope, double Intercept) scale)
+    {
+        var bytes = BytesOf(type);
+        var isScaled = scale.Slope != 0;
+        var floats = new float[count];
+        ReadChunks(stream, count, bytes, (chunk, first) =>
+        {
+            for (var i = 0; i < chunk.Length / bytes; i++)
+            {
+                var value = Decode(chunk[(i * bytes)..], type, isLittle);
+                floats[first + i] = (float)(isScaled ? (value * scale.Slope) + scale.Intercept : value);
+            }
+        });
+        return floats;
     }
 
     private static double Decode(ReadOnlySpan<byte> at, NiftiType type, bool isLittle) => (type, isLittle) switch
@@ -335,7 +359,7 @@ public static class VolumeFile
         var buffer = new byte[ChunkBytes - (ChunkBytes % bytes)];
         for (var done = 0; done < count;)
         {
-            var values = (int)Math.Min(count - done, buffer.Length / bytes);
+            var values = Math.Min(count - done, buffer.Length / bytes);
             if (stream.ReadAtLeast(buffer.AsSpan(0, values * bytes), values * bytes, false) < values * bytes)
             {
                 throw new PointFileException($"The file is cut off: it holds {done} of {count} values.");
@@ -379,9 +403,9 @@ public static class VolumeFile
             set => throw new NotSupportedException();
         }
 
-        public override int Read(byte[] buffer, int offset, int count) => Read(buffer.AsSpan(offset, count));
+        public override int Read(byte[] buffer, int offset, int count) => Read(buffer.AsSpan(offset, count)); // NOSONAR: overrides Stream.Read, the name is given
 
-        public override int Read(Span<byte> buffer)
+        public override int Read(Span<byte> buffer) // NOSONAR: overrides Stream.Read, the name is given
         {
             if (_taken < prefix.Length)
             {

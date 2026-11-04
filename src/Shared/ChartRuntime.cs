@@ -31,6 +31,7 @@ internal sealed partial class ChartRuntime
     private readonly RendererPreference _kind;
     private int _users;
     private int _surfaces;
+    private System.IO.StreamWriter? _frameLog;
 
     private ChartRuntime(IRenderDevice device, RendererPreference kind)
     {
@@ -94,6 +95,7 @@ internal sealed partial class ChartRuntime
             Scheduler.Invoke(Device.WaitForIdle);
             Scheduler.Dispose();
             Device.Dispose();
+            _frameLog?.Dispose();
             if (OperatingSystem.IsWindows())
             {
                 timeEndPeriod(TimerPeriodMilliseconds);
@@ -110,13 +112,13 @@ internal sealed partial class ChartRuntime
             return;
         }
 
-        var log = new System.IO.StreamWriter(path) { AutoFlush = true };
+        var log = _frameLog = new System.IO.StreamWriter(path) { AutoFlush = true };
         log.WriteLine("time_ms;pass_ms;points;upload_bytes");
         var clock = System.Diagnostics.Stopwatch.StartNew();
         Scheduler.PassCompleted += () =>
         {
             var pass = Scheduler.Statistics;
-            log.WriteLine(FormattableString.Invariant($"{clock.Elapsed.TotalMilliseconds:F1};{pass.LastPassTime.TotalMilliseconds:F2};{pass.LastPointCount};{pass.LastUploadedBytes}"));
+            log.WriteLine(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{clock.Elapsed.TotalMilliseconds:F1};{pass.LastPassTime.TotalMilliseconds:F2};{pass.LastPointCount};{pass.LastUploadedBytes}"));
         };
     }
 

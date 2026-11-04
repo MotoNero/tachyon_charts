@@ -286,7 +286,14 @@ public sealed class RenderScheduler : IDisposable
                 now = Stopwatch.GetTimestamp();
                 var interval = (long)(FrameInterval.TotalSeconds * Stopwatch.Frequency);
                 var planned = nextPass + interval;
-                nextPass = rendered ? (planned > passStart ? planned : passStart + interval) : now + Math.Max(interval, _minimumIdleWait);
+                if (!rendered)
+                {
+                    nextPass = now + Math.Max(interval, _minimumIdleWait);
+                }
+                else
+                {
+                    nextPass = planned > passStart ? planned : passStart + interval;
+                }
             }
 
             var wait = nextPass - now;

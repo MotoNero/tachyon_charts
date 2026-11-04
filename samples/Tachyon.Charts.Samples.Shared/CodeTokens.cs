@@ -106,48 +106,71 @@ public static class CodeTokens
             return (Until(code, i + 2, "*/", include: true) - i, CodeKind.Comment);
         }
 
-        if (c == '"' || (c is '@' or '$' && next == '"') || (c == '$' && next == '@'))
+        if (IsStringStart(c, next))
         {
             return (ReadString(code, i) - i, CodeKind.Text);
         }
 
         if (c == '\'')
         {
-            var end = i + 1;
-            while (end < code.Length && code[end] != '\'' && code[end] != '\n')
-            {
-                end += code[end] == '\\' ? 2 : 1;
-            }
-
-            return (Math.Min(end + 1, code.Length) - i, CodeKind.Text);
+            return (ReadChar(code, i) - i, CodeKind.Text);
         }
 
-        var isWordStart = i == 0 || !(char.IsLetterOrDigit(code[i - 1]) || code[i - 1] == '_');
+        var isWordStart = IsWordStart(code, i);
         if (char.IsDigit(c) && isWordStart)
         {
-            var end = i;
-            while (end < code.Length && (char.IsLetterOrDigit(code[end]) || code[end] is '.' or '_') && !(code[end] == '.' && (end + 1 >= code.Length || !char.IsDigit(code[end + 1]))))
-            {
-                end++;
-            }
-
-            return (end - i, CodeKind.Number);
+            return (ReadNumber(code, i) - i, CodeKind.Number);
         }
 
         if ((char.IsLetter(c) || c == '_') && isWordStart)
         {
-            var end = i;
-            while (end < code.Length && (char.IsLetterOrDigit(code[end]) || code[end] == '_'))
-            {
-                end++;
-            }
-
-            var word = code[i..end];
-            var kind = _keywords.Contains(word) ? CodeKind.Keyword : char.IsUpper(c) ? CodeKind.Name : CodeKind.Plain;
-            return kind == CodeKind.Plain ? (end - i, CodeKind.Plain) : (end - i, kind);
+            return ReadWord(code, i);
         }
 
         return (1, CodeKind.Plain);
+    }
+
+    private static bool IsStringStart(char c, char next) => c == '"' || (c is '@' or '$' && next == '"') || (c == '$' && next == '@');
+
+    private static bool IsWordStart(string code, int i) => i == 0 || !(char.IsLetterOrDigit(code[i - 1]) || code[i - 1] == '_');
+
+    private static int ReadChar(string code, int i)
+    {
+        var end = i + 1;
+        while (end < code.Length && code[end] != '\'' && code[end] != '\n')
+        {
+            end += code[end] == '\\' ? 2 : 1;
+        }
+
+        return Math.Min(end + 1, code.Length);
+    }
+
+    // Digits, letters for suffixes and a point only when a digit follows it.
+    private static int ReadNumber(string code, int i)
+    {
+        var end = i;
+        while (end < code.Length && (char.IsLetterOrDigit(code[end]) || code[end] is '.' or '_') && !(code[end] == '.' && (end + 1 >= code.Length || !char.IsDigit(code[end + 1]))))
+        {
+            end++;
+        }
+
+        return end;
+    }
+
+    private static (int Length, CodeKind Kind) ReadWord(string code, int i)
+    {
+        var end = i;
+        while (end < code.Length && (char.IsLetterOrDigit(code[end]) || code[end] == '_'))
+        {
+            end++;
+        }
+
+        if (_keywords.Contains(code[i..end]))
+        {
+            return (end - i, CodeKind.Keyword);
+        }
+
+        return (end - i, char.IsUpper(code[i]) ? CodeKind.Name : CodeKind.Plain);
     }
 
     // A string with its prefix; verbatim strings double their quotes, the others escape them.
@@ -194,6 +217,11 @@ public static class CodeTokens
     private static int Until(string code, int from, string end, bool include)
     {
         var index = code.IndexOf(end, from, StringComparison.Ordinal);
-        return index < 0 ? code.Length : include ? index + end.Length : index;
+        if (index < 0)
+        {
+            return code.Length;
+        }
+
+        return include ? index + end.Length : index;
     }
 }

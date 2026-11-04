@@ -347,7 +347,7 @@ internal sealed class CloudTree
     private void Finish(int index)
     {
         ref var leaf = ref Leaves[index];
-        var random = new Random(index);
+        var random = new Random(index); // NOSONAR: mixes the points of a leaf for drawing, the same way on every run; no security
         var span = Order.AsSpan(leaf.First, leaf.Count);
         random.Shuffle(span);
         var (low, high) = (Get(leaf.First), Get(leaf.First));

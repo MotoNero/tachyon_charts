@@ -200,13 +200,7 @@ internal sealed class ScenePicker(Scene3D scene)
             FindOnBars(ray, bars, near, ref far, ref best);
         }
 
-        foreach (var (mesh, entry) in _meshes)
-        {
-            if (entry.Tree.IsCompletedSuccessfully && entry.Tree.Result.Find(ray, near, ref far, out var triangle, out var u, out var v))
-            {
-                best = new Pick3D(entry.Tree.Result.ToData(mesh, triangle, u, v), entry.Source) { Box = ray.At(far) };
-            }
-        }
+        FindOnMeshes(ray, near, ref far, ref best);
 
         if (scene.Lines.Count > 0)
         {
@@ -223,6 +217,24 @@ internal sealed class ScenePicker(Scene3D scene)
             FindOnCloud(ray, reach, cloud, near, ref far, ref best);
         }
 
+        FindInVolumes(ray, near, ref far, ref best);
+        return best;
+    }
+
+    private void FindOnMeshes(in Ray3D ray, double near, ref double far, ref Pick3D? best)
+    {
+        foreach (var (mesh, entry) in _meshes)
+        {
+            if (entry.Tree.IsCompletedSuccessfully && entry.Tree.Result.Find(ray, near, ref far, out var triangle, out var u, out var v))
+            {
+                best = new Pick3D(entry.Tree.Result.ToData(mesh, triangle, u, v), entry.Source) { Box = ray.At(far) };
+            }
+        }
+    }
+
+    // A slice in view wins over the inside of the volume behind it.
+    private void FindInVolumes(in Ray3D ray, double near, ref double far, ref Pick3D? best)
+    {
         foreach (var volume in scene.Volumes)
         {
             if ((volume.ShowsSlices && volume.FindOnSlice(ray, scene, near, ref far, out var box, out var place))
@@ -231,8 +243,6 @@ internal sealed class ScenePicker(Scene3D scene)
                 best = new Pick3D(volume.ToData(place), volume) { Box = box, Value = volume.Data[place.X, place.Y, place.Z] };
             }
         }
-
-        return best;
     }
 
     internal static double Across(double low, double high, int index, int count) => low + ((high - low) * index / (count - 1));
