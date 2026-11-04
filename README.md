@@ -26,6 +26,7 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 - **Live:** stream from any thread without blocking the display
 - **Instruments included:** oscilloscope with trigger and persistence, spectrum analyzer with spectrogram and masks, network analyzer
 - **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap, contour
+- **Finance:** candles, OHLC bars, volume, market profile and drawing tools
 - **3D as an add-on:** surfaces, waterfalls, antenna patterns, point clouds of 100 million points and volumes, live and with values under the pointer
 - **Runs everywhere:** GPU, software adapter or CPU, chosen automatically, also over remote desktop
 - **Ready for reports:** export to PNG, SVG, PDF and CSV, clipboard and printing, MP4 videos of 2D and 3D charts
@@ -62,6 +63,20 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|---|---|
 | ![Polar chart](docs/images/polar.png) | ![Radar chart](docs/images/radar.png) | ![Ternary plot](docs/images/ternary.png) |
 
+| Pie | Donut |
+|---|---|
+| ![Pie of a power mix with a pulled-out slice and small slices labelled on lines](docs/images/pie.png) | ![Donut of the same power mix](docs/images/donut.png) |
+
+### Finance
+
+| Candles and volume | OHLC bars |
+|---|---|
+| ![Daily candles of a share with volume bars in a pane below](docs/images/candles.png) | ![The same prices as OHLC bars in the light theme](docs/images/ohlc.png) |
+
+| Market profile | Drawing tools |
+|---|---|
+| ![Volume per price level of the visible days with point of control and value area](docs/images/market-profile.png) | ![Fibonacci retracement, trend channel, pitchfork and a harmonic pattern on candles](docs/images/drawings.png) |
+
 ### 3D
 
 | Surface with height lines | Waterfall | Antenna pattern |
@@ -94,11 +109,13 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 
 ## Features
 
-- Lines, scatter and density, bubbles, area, band, bars, error bars, stems, histogram, box plot, violin
+- Lines, scatter and density, bubbles, area, band, bars, error bars, stems, histogram, box plot, violin, pie and donut
+- Finance: candles and OHLC bars from a thread-safe candle store, a million candles at 60 frames per second, volume in a pane of its own, market profile with point of control and value area
+- Drawing tools: trend line, Fibonacci retracement and extension, channel, pitchfork, Elliott waves, XABCD, head and shoulders and a free brush, fixed to values, saved as JSON
 - Numeric, time, logarithmic and category axes, stacked panes, linked charts
-- Zoom, pan, crosshair, tooltip, lasso selection, measuring cursors, annotations, undo
+- Zoom, pan, crosshair, tooltip, lasso selection, measuring cursors, annotations, one undo chain for navigation and drawings
 - Signal tools without dependencies: FFT, FIR and biquad filters, generators
-- English and German texts in the instruments, switchable at runtime
+- English and German texts, numbers and month names, switchable at runtime
 
 ### 3D
 
@@ -243,6 +260,9 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 |---|---|
 | [docs/guide](docs/guide/README.md) | User guide |
 | [3D charts](docs/guide/3d.md) | 3D types, one page each: surfaces, waterfall, lines and points, columns, point clouds, volumes, antennas, cuts |
+| [Pie and donut](docs/guide/pie.md) | Slices, labels on lines, pulling a slice out |
+| [Finance](docs/guide/finance.md) | Candles, OHLC bars, volume and market profile |
+| [Drawing tools](docs/guide/drawings.md) | Fibonacci, channels, pitchfork, patterns, saving as JSON |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
 | [docs/api](docs/api) | Public API lists |
 
