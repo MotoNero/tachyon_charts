@@ -82,6 +82,8 @@ public static class SampleText
         ["OHLC bars"] = "OHLC-Balken",
         ["1 million candles"] = "1 Mio. Kerzen",
         ["Market profile"] = "Market Profile",
+        ["Drawing tools"] = "Zeichenwerkzeuge",
+        ["Keys 1 to 9: trend line, Fibonacci, extension, channel, pitchfork, Elliott, XABCD, head and shoulders, brush | Click: place points | Drag: move a drawing or its point | Delete | Ctrl+Z: undo | Esc, 0: stop"] = "Tasten 1 bis 9: Trendlinie, Fibonacci, Extension, Kanal, Pitchfork, Elliott, XABCD, Kopf-Schulter, Pinsel | Klick: Punkte setzen | Ziehen: Zeichnung oder Punkt verschieben | Entf | Strg+Z: rückgängig | Esc, 0: beenden",
         ["Wheel: zoom | Drag: pan, the profile follows | Pointer on a bar: price and volume | Double click: all"] = "Rad: Zoom | Ziehen: Pan, das Profil folgt | Zeiger auf einem Balken: Preis und Volumen | Doppelklick: alles",
         ["Wheel: zoom | Drag: pan | Pointer: open, high, low, close and volume | Double click: all"] = "Rad: Zoom | Ziehen: Pan | Zeiger: Eröffnung, Hoch, Tief, Schluss und Volumen | Doppelklick: alles",
         ["Pointer: name, value and share | Click: pull a slice out, again: back"] = "Zeiger: Name, Wert und Anteil | Klick: Segment herausziehen, erneut: zurück",

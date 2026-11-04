@@ -1,5 +1,6 @@
 using Tachyon.Charts.Core.Series;
 using Tachyon.Charts.Core.Themes;
+using Tachyon.Charts.Samples.Shared.Examples.Common;
 using Tachyon.Charts.Samples.Shared.Examples.Gallery;
 
 namespace Tachyon.Charts.Samples.Shared.Scenes;
@@ -80,6 +81,8 @@ public static class SceneCatalog
         new CandleScene("Candles", BuiltInThemes.TachyonDark, CandleStyle.Candles),
         new CandleScene("OhlcLight", BuiltInThemes.TachyonLight, CandleStyle.Ohlc),
         new MarketProfileScene(),
+        new DrawingsScene("Drawings", DrawingDemo.First),
+        new DrawingsScene("DrawingPatterns", DrawingDemo.Second),
         new GlowNeonScene(),
         new GradientsScene(),
         new ThemeGalleryScene("ThemeHighContrast", BuiltInThemes.HighContrast),

@@ -17,6 +17,7 @@ Tachyon Charts draws large amounts of data in real time, in WPF and Avalonia, on
 | Polar and radar | [polar.md](polar.md) |
 | Pie and donut | [pie.md](pie.md) |
 | Candles, OHLC bars, volume, market profile | [finance.md](finance.md) |
+| Drawing tools: Fibonacci, channels, pitchfork, patterns | [drawings.md](drawings.md) |
 | Heatmap, spectrogram, contour | [rasters.md](rasters.md) |
 | Axes | [axes.md](axes.md) |
 | Mouse and keyboard | [interaction.md](interaction.md) |

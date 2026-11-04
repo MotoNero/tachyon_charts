@@ -37,6 +37,7 @@ public static class ChartTypePages
         (OhlcBarsPage.Name, OhlcBarsPage.Hint, OhlcBarsPage.Configure),
         (MillionCandlesPage.Name, MillionCandlesPage.Hint, MillionCandlesPage.Configure),
         (MarketProfilePage.Name, MarketProfilePage.Hint, MarketProfilePage.Configure),
+        (DrawingToolsPage.Name, DrawingToolsPage.Hint, DrawingToolsPage.Configure),
         (TernaryPage.Name, TernaryPage.Hint, TernaryPage.Configure),
         (AnnotationsPage.Name, AnnotationsPage.Hint, AnnotationsPage.Configure),
     ];

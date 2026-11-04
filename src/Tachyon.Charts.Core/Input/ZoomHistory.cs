@@ -5,14 +5,25 @@ using Tachyon.Charts.Core.Pipeline;
 
 namespace Tachyon.Charts.Core.Input;
 
+/// <summary>A change that the undo chain of a chart can take back and repeat, for example a drawing.</summary>
+public interface IChartEdit
+{
+    /// <summary>Takes the change back.</summary>
+    void Undo();
+
+    /// <summary>Makes the change again.</summary>
+    void Redo();
+}
+
 /// <summary>
-/// Remembers the ranges of all axes before navigation, for undo and redo. Steps in quick succession,
-/// such as wheel notches or the moves of one drag, count as one. It belongs to the thread of the chart.
+/// Remembers the ranges of all axes before navigation, and other edits such as drawings, for undo and redo in one
+/// order. Navigation steps in quick succession, such as wheel notches or the moves of one drag, count as one.
+/// It belongs to the thread of the chart.
 /// </summary>
 public sealed class ZoomHistory
 {
-    private readonly List<AxisState[]> _undo = [];
-    private readonly List<AxisState[]> _redo = [];
+    private readonly List<Step> _undo = [];
+    private readonly List<Step> _redo = [];
     private long _lastRecord;
 
     /// <summary>Gets or sets how many steps are kept.</summary>
@@ -42,23 +53,29 @@ public sealed class ZoomHistory
             return;
         }
 
-        _undo.Add(Capture(chart));
-        _redo.Clear();
-        if (_undo.Count > Capacity)
-        {
-            _undo.RemoveAt(0);
-        }
+        Push(new Step(Capture(chart), null));
+    }
+
+    /// <summary>Records an edit that already happened, as a step of its own.</summary>
+    /// <param name="edit">The edit.</param>
+    public void Record(IChartEdit edit)
+    {
+        ArgumentNullException.ThrowIfNull(edit);
+        Push(new Step(null, edit));
+
+        // The next navigation is a step of its own.
+        _lastRecord = long.MinValue / 2;
     }
 
     /// <summary>Goes back one step.</summary>
     /// <param name="chart">The chart.</param>
     /// <returns>Whether there was a step.</returns>
-    public bool Undo(ChartSurface chart) => Step(chart, _undo, _redo);
+    public bool Undo(ChartSurface chart) => Move(chart, _undo, _redo, isUndo: true);
 
     /// <summary>Goes forward one step.</summary>
     /// <param name="chart">The chart.</param>
     /// <returns>Whether there was a step.</returns>
-    public bool Redo(ChartSurface chart) => Step(chart, _redo, _undo);
+    public bool Redo(ChartSurface chart) => Move(chart, _redo, _undo, isUndo: false);
 
     /// <summary>Forgets all steps.</summary>
     public void Clear()
@@ -70,7 +87,17 @@ public sealed class ZoomHistory
     private static AxisState[] Capture(ChartSurface chart) =>
         [.. chart.HorizontalAxes.Concat(chart.Panes.SelectMany(pane => pane.Axes)).Select(axis => new AxisState(axis, axis.VisibleRange, axis.IsAutoRange))];
 
-    private bool Step(ChartSurface chart, List<AxisState[]> from, List<AxisState[]> to)
+    private void Push(Step step)
+    {
+        _undo.Add(step);
+        _redo.Clear();
+        if (_undo.Count > Capacity)
+        {
+            _undo.RemoveAt(0);
+        }
+    }
+
+    private bool Move(ChartSurface chart, List<Step> from, List<Step> to, bool isUndo)
     {
         ArgumentNullException.ThrowIfNull(chart);
         if (from.Count == 0)
@@ -78,10 +105,26 @@ public sealed class ZoomHistory
             return false;
         }
 
-        var state = from[^1];
+        var step = from[^1];
         from.RemoveAt(from.Count - 1);
-        to.Add(Capture(chart));
-        foreach (var item in state)
+        if (step.Edit is { } edit)
+        {
+            if (isUndo)
+            {
+                edit.Undo();
+            }
+            else
+            {
+                edit.Redo();
+            }
+
+            to.Add(step);
+            _lastRecord = long.MinValue / 2;
+            return true;
+        }
+
+        to.Add(new Step(Capture(chart), null));
+        foreach (var item in step.Axes!)
         {
             item.Axis.VisibleRange = item.Range;
             item.Axis.IsAutoRange = item.IsAutoRange;
@@ -93,6 +136,8 @@ public sealed class ZoomHistory
     }
 
     private readonly record struct AxisState(AxisBase Axis, DoubleRange Range, bool IsAutoRange);
+
+    private sealed record Step(AxisState[]? Axes, IChartEdit? Edit);
 }
 
 /// <summary>What a key can do.</summary>
