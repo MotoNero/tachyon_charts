@@ -182,6 +182,22 @@ public sealed class FifoDataSource<TX, TY> : IDataSource<TX, TY>
             version >= oldest);
     }
 
+    /// <inheritdoc />
+    public bool TryGetLatest(out TY y)
+    {
+        // The newest slot, then a check that no writer went round the ring meanwhile.
+        var total = Version;
+        if (total == 0)
+        {
+            y = default;
+            return false;
+        }
+
+        y = _y[(int)((total - 1) % Capacity)];
+        Interlocked.MemoryBarrier();
+        return Volatile.Read(ref _announced) - Capacity <= total - 1;
+    }
+
     /// <summary>
     /// Tests after reading whether the points of the changes were still unchanged during the read.
     /// </summary>

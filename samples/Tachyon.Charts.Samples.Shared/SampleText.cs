@@ -85,6 +85,8 @@ public static class SampleText
         ["Drawing tools"] = "Zeichenwerkzeuge",
         ["Gantt"] = "Gantt",
         ["Scale break"] = "Skalenbruch",
+        ["Last value at the axis"] = "Letzter Wert an der Achse",
+        ["The marks at the axis show the newest value of each line and move apart when they meet | Wheel: zoom | Drag: pan"] = "Die Marken an der Achse zeigen den neuesten Wert jeder Linie und weichen einander aus | Rad: Zoom | Ziehen: Pan",
         ["Uneven heatmap 4096²"] = "Ungleiche Heatmap 4096²",
         ["Labelled contours"] = "Beschriftete Höhenlinien",
         ["Wheel: zoom | Drag: pan | Pointer: the cell and its value | Double click: all"] = "Rad: Zoom | Ziehen: Pan | Zeiger: die Zelle und ihr Wert | Doppelklick: alles",

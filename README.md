@@ -23,7 +23,7 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 ## Highlights
 
 - **Fast:** 100 million points per line, 10 million scatter points, 4096 × 4096 spectrograms, all at interactive rates; every 3D type above 60 frames per second in a full-screen window
-- **Live:** stream from any thread without blocking the display
+- **Live:** stream from any thread without blocking the display; the newest value of each series as a mark at the axis
 - **Instruments included:** oscilloscope with trigger and persistence, spectrum analyzer with spectrogram and masks, network analyzer, sweep and stepping monitors
 - **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap with cells of their own sizes, contour with labels along the lines
 - **Finance:** candles, OHLC bars, volume, market profile and drawing tools
@@ -84,6 +84,10 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 | Candles and volume | OHLC bars |
 |---|---|
 | ![Daily candles of a share with volume bars in a pane below](docs/images/candles.png) | ![The same prices as OHLC bars in the light theme](docs/images/ohlc.png) |
+
+| Last value at the axis |
+|---|
+| ![Three live temperatures with their newest values as colored marks at the axis, moved apart where they meet](docs/images/last-value.png) |
 
 | Scale break | Candles without weekends |
 |---|---|

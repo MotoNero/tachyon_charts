@@ -63,6 +63,8 @@ public sealed class ChartSurface
 
     private ChartSeries[] _series = [];
     private bool _usedCanvas;
+    private bool _drawsLastValues;
+    private readonly Tachyon.Charts.Core.Overlays.LastValueMarks _lastValues = new();
     private ChartOverlay[] _overlays = [];
     private long _renderedOverlayVersions = -1;
     private readonly OverlayCanvas _canvas = null!;
@@ -658,6 +660,11 @@ public sealed class ChartSurface
     private void DrawText(IRenderDevice device, ICommandList frame, IGpuTexture atlas)
     {
         frame.DrawGlyphs(atlas, _glyphs.AsSpan(0, _glyphCount));
+        if (_drawsLastValues && _currentLayout is { } layout)
+        {
+            _lastValues.Draw(_canvas, layout, _series);
+        }
+
         if (_usedCanvas)
         {
             // Overlays may have asked for new glyphs, which reach the texture only with this call.
@@ -803,6 +810,7 @@ public sealed class ChartSurface
     private void DrawOverlays(IRenderDevice device, ICommandList frame, double scale, double chartWidth)
     {
         _usedCanvas = false;
+        _drawsLastValues = false;
         if (_currentLayout is not { } layout)
         {
             return;
@@ -810,7 +818,8 @@ public sealed class ChartSurface
 
         var hasBreaks = Tachyon.Charts.Core.Overlays.AxisBreakMarks.Any(layout);
         var hasLabels = Tachyon.Charts.Core.Overlays.ContourLabels.Any(_series);
-        if (_overlays.Length == 0 && !hasBreaks && !hasLabels)
+        var hasLastValues = Tachyon.Charts.Core.Overlays.LastValueMarks.Any(_series);
+        if (_overlays.Length == 0 && !hasBreaks && !hasLabels && !hasLastValues)
         {
             return;
         }
@@ -826,6 +835,9 @@ public sealed class ChartSurface
         {
             Tachyon.Charts.Core.Overlays.ContourLabels.Draw(_canvas, layout, _series);
         }
+
+        // The marks of the last values come after the labels of the axes, which they cover; see DrawText.
+        _drawsLastValues = hasLastValues;
 
         foreach (var overlay in _overlays)
         {

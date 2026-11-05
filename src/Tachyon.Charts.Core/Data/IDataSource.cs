@@ -44,6 +44,16 @@ public interface IDataSource<TX, TY> : IDataSource
     /// </summary>
     /// <returns>The snapshot.</returns>
     DataSnapshot<TX, TY> GetSnapshot();
+
+    /// <summary>Reads the newest point without copying the data. Safe from any thread.</summary>
+    /// <param name="y">Receives the value of the newest point.</param>
+    /// <returns>Whether there is a point.</returns>
+    bool TryGetLatest(out TY y)
+    {
+        var snapshot = GetSnapshot();
+        y = snapshot.Y.Length > 0 ? snapshot.Y.Span[^1] : default;
+        return snapshot.Y.Length > 0;
+    }
 }
 
 /// <summary>

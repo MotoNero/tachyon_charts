@@ -79,6 +79,21 @@ public sealed class OverlayCanvas
     /// <returns>The width.</returns>
     public float MeasureWidth(string text, float size) => _textEngine.MeasureWidth(text, size);
 
+    /// <summary>Measures text from a buffer, without a string.</summary>
+    internal float MeasureWidth(ReadOnlySpan<char> text, float size) => _textEngine.MeasureWidth(text, size);
+
+    /// <summary>Draws text from a buffer, without a string, for marks that change every frame.</summary>
+    internal void DrawText(ReadOnlySpan<char> text, double x, double baseline, float size, Rgba8 color)
+    {
+        if (_glyphCount + text.Length > _glyphs.Length)
+        {
+            Array.Resize(ref _glyphs, Math.Max(_glyphs.Length * 2, _glyphCount + text.Length));
+        }
+
+        var position = new Vector2((float)(x * _scale), (float)(baseline * _scale));
+        _glyphCount += _textEngine.Layout(text, position, (float)(size * _scale), color, _glyphs.AsSpan(_glyphCount));
+    }
+
     /// <summary>Finds where a value lies on an axis.</summary>
     /// <param name="axis">The axis.</param>
     /// <param name="value">The value.</param>

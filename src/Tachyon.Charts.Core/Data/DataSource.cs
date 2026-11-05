@@ -183,6 +183,14 @@ public sealed class DataSource<TX, TY> : IDataSource<TX, TY>
         Volatile.Write(ref _sequence, sequence + 2);
     }
 
+    /// <inheritdoc />
+    public bool TryGetLatest(out TY y)
+    {
+        var state = ReadState(out _);
+        y = state.Count > 0 ? state.Y[state.Count - 1] : default;
+        return state.Count > 0;
+    }
+
     private PublishedState ReadState(out long version)
     {
         var spinner = default(SpinWait);

@@ -85,6 +85,9 @@ public abstract record SeriesDefinition
     /// <summary>Gets the name shown in rollovers and legends.</summary>
     public string? Name { get; init; }
 
+    /// <summary>Gets a value indicating whether the newest value shows as a mark at the vertical axis.</summary>
+    public bool ShowsLastValue { get; init; }
+
     /// <summary>Gets the name of the X axis, or <see langword="null"/> for the first one.</summary>
     public string? XAxisId { get; init; }
 
@@ -493,6 +496,7 @@ public sealed record ChartDefinition(
             var y = Find(yAxes, series.YAxisId, "Y");
             var created = series.Create(x, y, Array.Find(colorAxes, item => ReferenceEquals(item.Series, series)).Axis);
             created.Name = series.Name;
+            created.ShowsLastValue |= series.ShowsLastValue;
             surface.AddSeries(created);
         }
 
@@ -878,6 +882,10 @@ public sealed class LineBuilder<TX, TY>
     /// <param name="name">The name.</param>
     /// <returns>This builder.</returns>
     public LineBuilder<TX, TY> Name(string name) => Change(Definition with { Name = name });
+
+    /// <summary>Shows the newest value as a mark at the vertical axis, live.</summary>
+    /// <returns>This builder.</returns>
+    public LineBuilder<TX, TY> LastValue() => Change(Definition with { ShowsLastValue = true });
 
     /// <summary>Selects the Y axis.</summary>
     /// <param name="id">The name of the axis.</param>

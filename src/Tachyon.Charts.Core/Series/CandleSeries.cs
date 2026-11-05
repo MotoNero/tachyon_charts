@@ -142,6 +142,15 @@ public sealed class CandleSeries : ChartSeries
     }
 
     /// <inheritdoc />
+    /// <remarks>The close of the last candle.</remarks>
+    protected internal override bool TryGetLatestValue(out double value)
+    {
+        var state = _data.Current;
+        value = state.Count > 0 ? state.Close[state.Count - 1] : double.NaN;
+        return state.Count > 0;
+    }
+
+    /// <inheritdoc />
     protected internal override bool TryFindPoint(in SeriesFrame frame, Vector2 pixel, double maximumDistance, HitTestMode mode, out long index, out double x, out double y)
     {
         var state = _data.Current;

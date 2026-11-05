@@ -287,6 +287,7 @@ struct Tachyon.Charts.Core.Data.DataSnapshot<TX, TY> : System.IEquatable<Tachyon
   Tachyon.Charts.Core.Data.DataMetadata Metadata { get; set; }
 sealed class Tachyon.Charts.Core.Data.DataSource<TX, TY> : Tachyon.Charts.Core.Data.IDataSource, Tachyon.Charts.Core.Data.IDataSource<TX, TY>
   .ctor(System.Int32 capacity = 0)
+  System.Boolean TryGetLatest(out TY y)
   System.Int64 Version { get; }
   System.Void Append(System.ReadOnlySpan<TX> x, System.ReadOnlySpan<TY> y)
   System.Void Append(TX x, TY y)
@@ -323,6 +324,7 @@ sealed class Tachyon.Charts.Core.Data.FifoDataSource<TX, TY> : Tachyon.Charts.Co
   .ctor(System.Int32 capacity, System.Boolean singleProducer = False)
   System.Boolean IsIntact(in Tachyon.Charts.Core.Data.FifoChanges changes)
   System.Boolean TryCopy(in Tachyon.Charts.Core.Data.FifoChanges changes, System.Span<TX> x, System.Span<TY> y)
+  System.Boolean TryGetLatest(out TY y)
   System.Int32 Capacity { get; }
   System.Int32 Count { get; }
   System.Int64 Version { get; }
@@ -372,6 +374,7 @@ interface Tachyon.Charts.Core.Data.IDataSource
   abstract System.Int64 Version { get; }
   abstract Tachyon.Charts.Core.Data.DataMetadata Metadata { get; }
 interface Tachyon.Charts.Core.Data.IDataSource<TX, TY> : Tachyon.Charts.Core.Data.IDataSource
+  System.Boolean TryGetLatest(out TY y)
   abstract Tachyon.Charts.Core.Data.DataSnapshot<TX, TY> GetSnapshot()
 sealed class Tachyon.Charts.Core.Data.ItemsDataSource : System.IDisposable
   .ctor(System.Collections.IEnumerable items, System.String xPath, System.String yPath)
@@ -549,6 +552,7 @@ sealed class Tachyon.Charts.Core.Fluent.LegendDefinition : Tachyon.Charts.Core.F
   virtual Tachyon.Charts.Core.Input.ChartModifier Create()
 sealed class Tachyon.Charts.Core.Fluent.LineBuilder<TX, TY>
   Tachyon.Charts.Core.Fluent.LineBuilder<TX, TY> Dash(System.Single[] lengths)
+  Tachyon.Charts.Core.Fluent.LineBuilder<TX, TY> LastValue()
   Tachyon.Charts.Core.Fluent.LineBuilder<TX, TY> Name(System.String name)
   Tachyon.Charts.Core.Fluent.LineBuilder<TX, TY> Spline()
   Tachyon.Charts.Core.Fluent.LineBuilder<TX, TY> Step()
@@ -621,6 +625,7 @@ sealed class Tachyon.Charts.Core.Fluent.SelectionDefinition : Tachyon.Charts.Cor
   Tachyon.Charts.Core.Input.SelectionMode Mode { get; set; }
   virtual Tachyon.Charts.Core.Input.ChartModifier Create()
 abstract class Tachyon.Charts.Core.Fluent.SeriesDefinition : System.IEquatable<Tachyon.Charts.Core.Fluent.SeriesDefinition>
+  System.Boolean ShowsLastValue { get; set; }
   System.Object Source { get; set; }
   System.String Name { get; set; }
   System.String XAxisId { get; set; }
@@ -1454,6 +1459,7 @@ sealed class Tachyon.Charts.Core.Pipeline.ChartGroup
 abstract class Tachyon.Charts.Core.Pipeline.ChartSeries
   System.Boolean IsHighlighted { get; set; }
   System.Boolean IsVisible { get; set; }
+  System.Boolean ShowsLastValue { get; set; }
   System.String DiagnosticWarning { get; set; }
   System.String Name { get; set; }
   Tachyon.Charts.Core.Axes.AxisBase XAxis { get; }
@@ -1463,6 +1469,7 @@ abstract class Tachyon.Charts.Core.Pipeline.ChartSeries
   protected abstract System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
   protected virtual System.Boolean TryFindPoint(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Numerics.Vector2 pixel, System.Double maximumDistance, Tachyon.Charts.Core.HitTesting.HitTestMode mode, out System.Int64 index, out System.Double x, out System.Double y)
   protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Boolean TryGetLatestValue(out System.Double value)
   protected virtual System.Boolean TryGetValueRange(out Tachyon.Charts.Core.Numerics.DoubleRange range)
   protected virtual System.Boolean TryReadPoint(System.Int64 index, out System.Double x, out System.Double y)
   protected virtual System.Boolean TryReadValue(System.Int64 index, out System.Double value)
@@ -1528,6 +1535,7 @@ abstract class Tachyon.Charts.Core.Pipeline.DataSeries<TX, TY> : Tachyon.Charts.
   protected System.Void OnAppearanceChanged()
   protected Tachyon.Charts.Core.Data.DataSnapshot<TX, TY> Snapshot { get; }
   protected virtual System.Boolean TryFindPoint(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Numerics.Vector2 pixel, System.Double maximumDistance, Tachyon.Charts.Core.HitTesting.HitTestMode mode, out System.Int64 index, out System.Double x, out System.Double y)
+  protected virtual System.Boolean TryGetLatestValue(out System.Double value)
   protected virtual System.Boolean TryReadPoint(System.Int64 index, out System.Double x, out System.Double y)
   protected virtual System.Int64 SourcePointCount { get; }
   protected virtual System.Int64 Version { get; }
@@ -1697,6 +1705,7 @@ sealed class Tachyon.Charts.Core.Series.CandleSeries : Tachyon.Charts.Core.Pipel
   Tachyon.Charts.Core.Series.CandleStyle Style { get; set; }
   protected virtual System.Boolean TryFindPoint(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Numerics.Vector2 pixel, System.Double maximumDistance, Tachyon.Charts.Core.HitTesting.HitTestMode mode, out System.Int64 index, out System.Double x, out System.Double y)
   protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Boolean TryGetLatestValue(out System.Double value)
   protected virtual System.Boolean TryReadPoint(System.Int64 index, out System.Double x, out System.Double y)
   protected virtual System.Int32 DrawnPointCount { get; }
   protected virtual System.Int64 SourcePointCount { get; }
@@ -1797,6 +1806,7 @@ sealed class Tachyon.Charts.Core.Series.LineSeries<TX, TY> : Tachyon.Charts.Core
   Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
   protected virtual System.Boolean TryFindPoint(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Numerics.Vector2 pixel, System.Double maximumDistance, Tachyon.Charts.Core.HitTesting.HitTestMode mode, out System.Int64 index, out System.Double x, out System.Double y)
   protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Boolean TryGetLatestValue(out System.Double value)
   protected virtual System.Boolean TryReadPoint(System.Int64 index, out System.Double x, out System.Double y)
   protected virtual System.Int32 DrawnPointCount { get; }
   protected virtual System.Int64 SourcePointCount { get; }

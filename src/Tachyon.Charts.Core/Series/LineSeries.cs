@@ -182,6 +182,14 @@ public sealed class LineSeries<TX, TY> : ChartSeries, IDisposable
     protected internal override long Version => _source.Version + Volatile.Read(ref _appearanceVersion);
 
     /// <inheritdoc />
+    protected internal override bool TryGetLatestValue(out double value)
+    {
+        var found = _source.TryGetLatest(out var y);
+        value = found ? double.CreateTruncating(y) : double.NaN;
+        return found && double.IsFinite(value);
+    }
+
+    /// <inheritdoc />
     protected internal override int DrawnPointCount => ActivePath.DrawnPointCount;
 
     /// <inheritdoc />

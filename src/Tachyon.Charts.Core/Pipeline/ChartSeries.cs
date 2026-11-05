@@ -183,6 +183,21 @@ public abstract class ChartSeries(AxisBase xAxis, AxisBase yAxis)
     }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the newest value shows as a colored mark at the vertical axis, live.
+    /// Marks of several series move apart so that they never overlap.
+    /// </summary>
+    public bool ShowsLastValue { get; set; }
+
+    /// <summary>Reads the newest value for the mark at the axis. Runs on the render thread.</summary>
+    /// <param name="value">Receives the value.</param>
+    /// <returns>Whether there is one. The default is that a series has none.</returns>
+    protected internal virtual bool TryGetLatestValue(out double value)
+    {
+        value = double.NaN;
+        return false;
+    }
+
+    /// <summary>
     /// Finds the data range for axes that follow the data.
     /// </summary>
     /// <param name="x">Receives the X range in units of the X axis.</param>
@@ -270,6 +285,14 @@ public abstract class DataSeries<TX, TY>(IDataSource<TX, TY> source, AxisBase xA
 
     /// <inheritdoc />
     protected internal override long SourcePointCount => Snapshot.X.Length;
+
+    /// <inheritdoc />
+    protected internal override bool TryGetLatestValue(out double value)
+    {
+        var found = Source.TryGetLatest(out var y);
+        value = found ? double.CreateTruncating(y) : double.NaN;
+        return found && double.IsFinite(value);
+    }
 
     /// <inheritdoc />
     protected internal override void TakeSnapshot()

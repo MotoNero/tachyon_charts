@@ -90,6 +90,7 @@ public static class SceneCatalog
         new AxisBreakScene("ScaleBreak", Examples.ChartTypes.ScaleBreakPage.Configure),
         new AxisBreakScene("CandlesWithoutWeekends", Examples.ChartTypes.CandlesWithoutWeekendsPage.Configure),
         new AxisBreakScene("ContourLabels", Examples.ChartTypes.LabelledContoursPage.Configure),
+        new LastValueScene(),
         new GlowNeonScene(),
         new GradientsScene(),
         new ThemeGalleryScene("ThemeHighContrast", BuiltInThemes.HighContrast),
