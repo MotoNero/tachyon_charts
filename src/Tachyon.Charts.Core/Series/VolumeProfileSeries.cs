@@ -207,7 +207,7 @@ public sealed class VolumeProfileSeries : ChartSeries
             }
 
             var (left, top, right, bottom) = profile.BarOf(level);
-            var color = level == profile.PointOfControl ? _pointOfControl : profile.IsInValueArea(level) ? _valueAreaColor : _color;
+            var color = ColorOf(profile, level);
             if (level == hovered)
             {
                 color = color with { A = (byte)Math.Min(255, color.A + 60) };
@@ -225,6 +225,17 @@ public sealed class VolumeProfileSeries : ChartSeries
         commands.FillMesh(CollectionsMarshal.AsSpan(_mesh), frame.Bounds);
 
     private void Touch() => Interlocked.Increment(ref _appearance);
+
+    // The point of control stands out most, the value area less, the rest least.
+    private Rgba8 ColorOf(Profile profile, int level)
+    {
+        if (level == profile.PointOfControl)
+        {
+            return _pointOfControl;
+        }
+
+        return profile.IsInValueArea(level) ? _valueAreaColor : _color;
+    }
 
     /// <summary>The volume of each price level and where its bar lies, in the pixels of the frame it was built for.</summary>
     internal sealed class Profile
@@ -304,7 +315,7 @@ public sealed class VolumeProfileSeries : ChartSeries
             _top = bounds.Y;
             _levelHeight = bounds.Height / (float)levels;
             var length = (float)(bounds.Width * width);
-            (_left, _right) = side == ProfileSide.Right ? (bounds.X + bounds.Width - length, (float)(bounds.X + bounds.Width)) : (bounds.X, bounds.X + length);
+            (_left, _right) = side == ProfileSide.Right ? (bounds.X + bounds.Width - length, bounds.X + bounds.Width) : (bounds.X, bounds.X + length);
             var (low, high) = (frame.Y.ToData(bounds.Y + bounds.Height), frame.Y.ToData(bounds.Y));
             Prices = new DoubleRange(Math.Min(low, high), Math.Max(low, high));
             Total = 0;

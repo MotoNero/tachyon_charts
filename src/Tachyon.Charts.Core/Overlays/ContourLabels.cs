@@ -117,21 +117,7 @@ internal static class ContourLabels
 
     private static void DrawOne(OverlayCanvas canvas, ChartLayoutResult layout, ContourSeries series)
     {
-        var cache = _caches.GetOrCreateValue(series);
-        var levels = series.LevelsInUse;
-        if (cache.Version != series.Data.Version || cache.Levels != levels)
-        {
-            cache.Places = FindPlaces(series);
-            cache.Version = series.Data.Version;
-            cache.Levels = levels;
-        }
-
-        if (cache.Language != ChartText.Version)
-        {
-            cache.Texts.Clear();
-            cache.Language = ChartText.Version;
-        }
-
+        var cache = Refresh(series);
         var pane = layout.Panes[0];
         cache.Taken.Clear();
         cache.Placed.Clear();
@@ -143,20 +129,12 @@ internal static class ContourLabels
                 break;
             }
 
-            var (x, y) = series.GridPoint(place.Grid.X, place.Grid.Y);
-            var (x2, y2) = series.GridPoint(place.Grid.X + place.Direction.X, place.Grid.Y + place.Direction.Y);
-            if (!canvas.TryGetPosition(series.XAxis, x, out var left) || !canvas.TryGetPosition(series.YAxis, y, out var top)
-                || !canvas.TryGetPosition(series.XAxis, x2, out var right) || !canvas.TryGetPosition(series.YAxis, y2, out var bottom))
+            if (!TryLocate(canvas, series, place, out var left, out var top, out var right, out var bottom))
             {
                 continue;
             }
 
-            if (!cache.Texts.TryGetValue(place.Level, out var text))
-            {
-                text = place.Level.ToString("G4", ChartText.Culture);
-                cache.Texts[place.Level] = text;
-            }
-
+            var text = TextOf(cache, place.Level);
             var half = (canvas.MeasureWidth(text, Size) / 2) + 2;
             var center = new Vector2((float)left, (float)top);
             if (center.X < pane.X + half || center.X > pane.Right - half || center.Y < pane.Y + half || center.Y > pane.Bottom - half)
@@ -176,6 +154,47 @@ internal static class ContourLabels
             Plate(canvas, center, angle, half, (line / 2) + 1);
             canvas.DrawTurnedText(text, center, angle, Size, canvas.TextColor);
         }
+    }
+
+    private static Cache Refresh(ContourSeries series)
+    {
+        var cache = _caches.GetOrCreateValue(series);
+        var levels = series.LevelsInUse;
+        if (cache.Version != series.Data.Version || cache.Levels != levels)
+        {
+            cache.Places = FindPlaces(series);
+            cache.Version = series.Data.Version;
+            cache.Levels = levels;
+        }
+
+        if (cache.Language != ChartText.Version)
+        {
+            cache.Texts.Clear();
+            cache.Language = ChartText.Version;
+        }
+
+        return cache;
+    }
+
+    private static string TextOf(Cache cache, float level)
+    {
+        if (!cache.Texts.TryGetValue(level, out var text))
+        {
+            text = level.ToString("G4", ChartText.Culture);
+            cache.Texts[level] = text;
+        }
+
+        return text;
+    }
+
+    // The place of a label and a second place along its line, which gives the angle.
+    private static bool TryLocate(OverlayCanvas canvas, ContourSeries series, Place place, out double left, out double top, out double right, out double bottom)
+    {
+        var (x, y) = series.GridPoint(place.Grid.X, place.Grid.Y);
+        var (x2, y2) = series.GridPoint(place.Grid.X + place.Direction.X, place.Grid.Y + place.Direction.Y);
+        (top, right, bottom) = (0, 0, 0);
+        return canvas.TryGetPosition(series.XAxis, x, out left) && canvas.TryGetPosition(series.YAxis, y, out top)
+            && canvas.TryGetPosition(series.XAxis, x2, out right) && canvas.TryGetPosition(series.YAxis, y2, out bottom);
     }
 
     // Labels never touch, and labels of the same line keep a wide distance.

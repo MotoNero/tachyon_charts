@@ -71,7 +71,7 @@ public static class SweepDemo
         var values = new float[times.Length * Names.Length];
         var clock = System.Diagnostics.Stopwatch.StartNew();
         long written = 0;
-        while (true)
+        while (!Environment.HasShutdownStarted)
         {
             var due = (long)(clock.Elapsed.TotalSeconds * Rate);
             while (written + times.Length <= due)

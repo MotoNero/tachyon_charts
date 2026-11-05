@@ -1096,12 +1096,9 @@ public sealed class ChartSurface
         var transform = axis.CreateTransform(isHorizontal ? bounds.X : bounds.Y, length);
         var drawsGrid = OwnsGrid(axis);
 
-        // Ticks and labels start after a color bar.
         if (axis is ColorAxis colorAxis)
         {
-            var band = axis.BandThickness;
-            ArrangeColorBar(colorAxis, new DipRect(axis.Position == AxisPosition.Left ? bounds.Right - band : bounds.X, bounds.Y, band, bounds.Height), scale);
-            bounds = axis.Position == AxisPosition.Left ? bounds with { Width = bounds.Width - band } : bounds with { X = bounds.X + band, Width = bounds.Width - band };
+            bounds = PlaceColorBar(colorAxis, bounds, scale);
         }
 
         var ticks = axis.GenerateTicks(length, _measurer);
@@ -1127,6 +1124,20 @@ public sealed class ChartSurface
         {
             ArrangeAxisTitle(title, axis, bounds, scale);
         }
+    }
+
+    // Ticks and labels start after a color bar.
+    private DipRect PlaceColorBar(ColorAxis axis, DipRect bounds, double scale)
+    {
+        var band = axis.BandThickness;
+        if (axis.Position == AxisPosition.Left)
+        {
+            ArrangeColorBar(axis, new DipRect(bounds.Right - band, bounds.Y, band, bounds.Height), scale);
+            return bounds with { Width = bounds.Width - band };
+        }
+
+        ArrangeColorBar(axis, new DipRect(bounds.X, bounds.Y, band, bounds.Height), scale);
+        return bounds with { X = bounds.X + band, Width = bounds.Width - band };
     }
 
     // Moves an axis onto the line through the plot where the other axis has the value, and draws that line.
@@ -1156,7 +1167,7 @@ public sealed class ChartSurface
     // The place of a horizontal axis that runs through the plot, for a vertical axis that must leave its label out there.
     private static double Origin(AxisBase axis, ChartLayoutResult layout)
     {
-        if (axis.IsHorizontal || Other(axis, layout) is not { Axis.CrossesAt: { } value } other)
+        if (axis.IsHorizontal || Other(axis, layout) is not { Axis.CrossesAt: { } value })
         {
             return double.NaN;
         }

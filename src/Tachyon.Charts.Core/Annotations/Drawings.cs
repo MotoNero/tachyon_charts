@@ -329,16 +329,7 @@ public sealed class DrawingLayer : ChartOverlay
         _bands.Clear();
         DrawingShapes.Build(this, layout, kind, points, _segments, _labels, _bands);
         var area = layout.PlotArea;
-        Span<Vector2> corners = stackalloc Vector2[8];
-        foreach (var band in _bands)
-        {
-            var count = DrawingShapes.ClipPolygon([band.A, band.B, band.C, band.D], area, corners);
-            for (var i = 2; i < count; i++)
-            {
-                canvas.FillTriangle(corners[0], corners[i - 1], corners[i], color with { A = 28 });
-            }
-        }
-
+        DrawBands(canvas, area, color);
         foreach (var segment in _segments)
         {
             var (from, to) = (segment.From, segment.To);
@@ -364,6 +355,19 @@ public sealed class DrawingLayer : ChartOverlay
             {
                 canvas.FillRectangle(new DipRect(at.X - HandleSize, at.Y - HandleSize, HandleSize * 2, HandleSize * 2), canvas.BackgroundColor);
                 canvas.DrawRectangle(new DipRect(at.X - HandleSize, at.Y - HandleSize, HandleSize * 2, HandleSize * 2), color);
+            }
+        }
+    }
+
+    private void DrawBands(OverlayCanvas canvas, DipRect area, Rgba8 color)
+    {
+        Span<Vector2> corners = stackalloc Vector2[8];
+        foreach (var band in _bands)
+        {
+            var count = DrawingShapes.ClipPolygon([band.A, band.B, band.C, band.D], area, corners);
+            for (var i = 2; i < count; i++)
+            {
+                canvas.FillTriangle(corners[0], corners[i - 1], corners[i], color with { A = 28 });
             }
         }
     }
@@ -663,7 +667,16 @@ internal static class DrawingShapes
             return;
         }
 
-        var neighbour = i > 0 ? at[i - 1].Y : i + 1 < at.Length ? at[i + 1].Y : at[i].Y;
+        var neighbour = at[i].Y;
+        if (i > 0)
+        {
+            neighbour = at[i - 1].Y;
+        }
+        else if (i + 1 < at.Length)
+        {
+            neighbour = at[i + 1].Y;
+        }
+
         var isPeak = at[i].Y <= neighbour;
         labels.Add(new Label(text, new Vector2(at[i].X - 4, isPeak ? at[i].Y - 8 : at[i].Y + 16)));
     }
@@ -705,18 +718,18 @@ internal static class DrawingJson
             throw new FormatException("The text is no list of drawings: " + exception.Message, exception);
         }
 
-        if (file?.Drawings is null)
+        if (file?.Items is null)
         {
             throw new FormatException("The text holds no drawings.");
         }
 
-        if (file.Version > Version)
+        if (file.FileVersion > Version)
         {
-            throw new FormatException($"The drawings were saved by a newer version ({file.Version}).");
+            throw new FormatException($"The drawings were saved by a newer version ({file.FileVersion}).");
         }
 
         var drawings = new List<Drawing>();
-        foreach (var dto in file.Drawings)
+        foreach (var dto in file.Items)
         {
             try
             {
@@ -740,7 +753,8 @@ internal static class DrawingJson
         return drawings;
     }
 
-    private sealed record FileDto(int Version, DrawingDto[]? Drawings);
+    // The names in the file stay „version“ and „drawings“, so that saved files keep loading.
+    private sealed record FileDto([property: JsonPropertyName("version")] int FileVersion, [property: JsonPropertyName("drawings")] DrawingDto[]? Items);
 
     private sealed record DrawingDto(DrawingKind Kind, string? Color, float Thickness, PointDto[]? Points);
 

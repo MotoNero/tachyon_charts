@@ -8,93 +8,120 @@ internal static class ObjReader
 {
     public static ModelFileData Read(Stream stream)
     {
-        var positions = new List<Point3D>();
-        var colors = new List<Rgba8>();
-        var triangles = new List<int>();
-        var corners = new List<int>();
-        var (highest, highestLine) = (-1, 0L);
+        var model = new Model();
         try
         {
-            TextLines.ForEach(stream, (line, number) =>
-            {
-                if (line.Length < 2 || line[1] is not ((byte)' ' or (byte)'\t'))
-                {
-                    return;
-                }
-
-                var rest = line[2..];
-                if (line[0] == (byte)'v')
-                {
-                    AddPoint(rest, number, positions, colors);
-                }
-                else if (line[0] == (byte)'f')
-                {
-                    ReadCorners(rest, number, positions.Count, corners);
-                    for (var i = 1; i + 1 < corners.Count; i++)
-                    {
-                        triangles.Add(corners[0]);
-                        triangles.Add(corners[i]);
-                        triangles.Add(corners[i + 1]);
-                    }
-
-                    foreach (var corner in corners)
-                    {
-                        if (corner > highest)
-                        {
-                            (highest, highestLine) = (corner, number);
-                        }
-                    }
-                }
-            });
+            TextLines.ForEach(stream, model.ReadLine);
         }
         catch (OutOfMemoryException exception)
         {
             throw new PointFileException("There is not enough memory for the model.", exception);
         }
 
-        if (triangles.Count == 0)
-        {
-            throw new PointFileException("The file holds no faces.");
-        }
-
-        if (highest >= positions.Count)
-        {
-            throw new PointFileException($"The face in line {highestLine} uses point {highest + 1}, but the file holds only {positions.Count} points.");
-        }
-
-        var hasColors = colors.Count == positions.Count && colors.Count > 0;
-        return Creases.Split([.. positions], [.. triangles], hasColors ? [.. colors] : null);
+        return model.Finish();
     }
 
-    private static void AddPoint(ReadOnlySpan<byte> rest, long number, List<Point3D> positions, List<Rgba8> colors)
+    /// <summary>What the lines read so far hold.</summary>
+    private sealed class Model
     {
-        if (!TextLines.TryTake(ref rest, out var x) || !TextLines.TryTake(ref rest, out var y) || !TextLines.TryTake(ref rest, out var z)
-            || !double.IsFinite(x) || !double.IsFinite(y) || !double.IsFinite(z))
-        {
-            throw new PointFileException($"Line {number} needs three finite numbers after 'v'.");
-        }
+        private readonly List<Point3D> _positions = [];
+        private readonly List<Rgba8> _colors = [];
+        private readonly List<int> _triangles = [];
+        private readonly List<int> _corners = [];
+        private int _highest = -1;
+        private long _highestLine;
 
-        positions.Add(new Point3D(x, y, z));
-        if (TextLines.TryTake(ref rest, out var red) && TextLines.TryTake(ref rest, out var green) && TextLines.TryTake(ref rest, out var blue))
+        public void ReadLine(ReadOnlySpan<byte> line, long number)
         {
-            colors.Add(new Rgba8(ToByte(red), ToByte(green), ToByte(blue), 255));
-        }
-    }
-
-    private static void ReadCorners(ReadOnlySpan<byte> rest, long number, int count, List<int> corners)
-    {
-        corners.Clear();
-        while (true)
-        {
-            rest = rest.TrimStart(" \t"u8);
-            if (rest.IsEmpty)
+            if (line.Length < 2 || line[1] is not ((byte)' ' or (byte)'\t'))
             {
-                break;
+                return;
             }
 
-            var end = rest.IndexOfAny(" \t"u8);
-            var word = end < 0 ? rest : rest[..end];
-            rest = end < 0 ? default : rest[end..];
+            var rest = line[2..];
+            if (line[0] == (byte)'v')
+            {
+                AddPoint(rest, number);
+            }
+            else if (line[0] == (byte)'f')
+            {
+                AddFace(rest, number);
+            }
+        }
+
+        public ModelFileData Finish()
+        {
+            if (_triangles.Count == 0)
+            {
+                throw new PointFileException("The file holds no faces.");
+            }
+
+            // Faces may name points that follow later, so the check waits for the end.
+            if (_highest >= _positions.Count)
+            {
+                throw new PointFileException($"The face in line {_highestLine} uses point {_highest + 1}, but the file holds only {_positions.Count} points.");
+            }
+
+            var hasColors = _colors.Count == _positions.Count && _colors.Count > 0;
+            return Creases.Split([.. _positions], [.. _triangles], hasColors ? [.. _colors] : null);
+        }
+
+        private void AddPoint(ReadOnlySpan<byte> rest, long number)
+        {
+            if (!TextLines.TryTake(ref rest, out var x) || !TextLines.TryTake(ref rest, out var y) || !TextLines.TryTake(ref rest, out var z)
+                || !double.IsFinite(x) || !double.IsFinite(y) || !double.IsFinite(z))
+            {
+                throw new PointFileException($"Line {number} needs three finite numbers after 'v'.");
+            }
+
+            _positions.Add(new Point3D(x, y, z));
+            if (TextLines.TryTake(ref rest, out var red) && TextLines.TryTake(ref rest, out var green) && TextLines.TryTake(ref rest, out var blue))
+            {
+                _colors.Add(new Rgba8(ToByte(red), ToByte(green), ToByte(blue), 255));
+            }
+        }
+
+        private static byte ToByte(double value) => (byte)Math.Clamp(Math.Round(value * 255), 0, 255);
+
+        // A face with more than three corners becomes a fan of triangles around its first corner.
+        private void AddFace(ReadOnlySpan<byte> rest, long number)
+        {
+            ReadCorners(rest, number);
+            for (var i = 1; i + 1 < _corners.Count; i++)
+            {
+                _triangles.Add(_corners[0]);
+                _triangles.Add(_corners[i]);
+                _triangles.Add(_corners[i + 1]);
+            }
+
+            var most = _corners.Max();
+            if (most > _highest)
+            {
+                (_highest, _highestLine) = (most, number);
+            }
+        }
+
+        private void ReadCorners(ReadOnlySpan<byte> rest, long number)
+        {
+            _corners.Clear();
+            rest = rest.TrimStart(" \t"u8);
+            while (!rest.IsEmpty)
+            {
+                var end = rest.IndexOfAny(" \t"u8);
+                var word = end < 0 ? rest : rest[..end];
+                rest = end < 0 ? default : rest[end..].TrimStart(" \t"u8);
+                _corners.Add(ToCorner(word, number));
+            }
+
+            if (_corners.Count < 3)
+            {
+                throw new PointFileException($"The face in line {number} has fewer than three corners.");
+            }
+        }
+
+        // A corner is "i", "i/t", "i//n" or "i/t/n"; only the number of the point counts.
+        private int ToCorner(ReadOnlySpan<byte> word, long number)
+        {
             var slash = word.IndexOf((byte)'/');
             if (!int.TryParse(slash < 0 ? word : word[..slash], out var index) || index == 0)
             {
@@ -102,20 +129,13 @@ internal static class ObjReader
             }
 
             // Negative numbers count back from the last point read so far.
-            var corner = index > 0 ? index - 1 : count + index;
+            var corner = index > 0 ? index - 1 : _positions.Count + index;
             if (corner < 0)
             {
-                throw new PointFileException($"Line {number} counts back {-index} points, but only {count} are read so far.");
+                throw new PointFileException($"Line {number} counts back {-index} points, but only {_positions.Count} are read so far.");
             }
 
-            corners.Add(corner);
-        }
-
-        if (corners.Count < 3)
-        {
-            throw new PointFileException($"The face in line {number} has fewer than three corners.");
+            return corner;
         }
     }
-
-    private static byte ToByte(double value) => (byte)Math.Clamp(Math.Round(value * 255), 0, 255);
 }

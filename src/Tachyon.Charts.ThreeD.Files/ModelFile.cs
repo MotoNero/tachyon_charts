@@ -40,7 +40,7 @@ public sealed class ModelFileData(Point3D[] positions, int[] triangles, Rgba8[]?
         var vertices = new Vertex3D[Positions.Length];
         for (var i = 0; i < vertices.Length; i++)
         {
-            vertices[i] = new Vertex3D(Positions[i], color ?? (Colors is { } colors ? colors[i] : _gray));
+            vertices[i] = new Vertex3D(Positions[i], color ?? Colors?[i] ?? _gray);
         }
 
         return new Mesh3D(vertices, Triangles) { Material = material ?? new Material3D() };
@@ -67,8 +67,7 @@ public sealed class ModelFileData(Point3D[] positions, int[] triangles, Rgba8[]?
         for (var i = 0; i < vertices.Length; i++)
         {
             var value = values[i];
-            var color = double.IsFinite(value) ? colormap.Sample(span > 0 ? (value - range.Min) / span : 0.5) : _gray;
-            vertices[i] = new Vertex3D(Positions[i], color);
+            vertices[i] = new Vertex3D(Positions[i], double.IsFinite(value) ? colormap.Sample(Position(value, range.Min, span)) : _gray);
         }
 
         return new Mesh3D(vertices, Triangles) { Material = material ?? new Material3D(), Values = values };
@@ -94,6 +93,9 @@ public sealed class ModelFileData(Point3D[] positions, int[] triangles, Rgba8[]?
             .ZAxis(center.Z - (side / 2), center.Z + (side / 2), $"z in {unit}")
             .AddMesh(mesh ?? ToMesh());
     }
+
+    // A single value in the range takes the middle of the colors.
+    private static double Position(double value, double minimum, double span) => span > 0 ? (value - minimum) / span : 0.5;
 
     private (Point3D Low, Point3D High) Bounds()
     {

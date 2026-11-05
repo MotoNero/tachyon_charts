@@ -92,11 +92,21 @@ public sealed class GanttSeries : ChartSeries
         var names = new string[lines.Length];
         for (var i = 0; i < lines.Length; i++)
         {
-            var line = lines[i];
-            names[i] = line.IsGroup ? (line.IsCollapsed ? "+ " : "− ") + line.Name : line.Group is null ? line.Name : "   " + line.Name;
+            names[i] = NameOf(lines[i]);
         }
 
         return names;
+    }
+
+    // Groups show whether they are open; tasks of a group stand indented.
+    private static string NameOf(GanttData.Line line)
+    {
+        if (line.IsGroup)
+        {
+            return (line.IsCollapsed ? "+ " : "− ") + line.Name;
+        }
+
+        return line.Group is null ? line.Name : "   " + line.Name;
     }
 
     internal Rgba8 ColorOf(in GanttTask task) => task.Color.A > 0 ? task.Color : _palette[task.Row % _palette.Length];
@@ -362,27 +372,33 @@ public sealed class GanttOverlay(GanttSeries series) : ChartOverlay
         var labels = 0;
         for (var lineIndex = first; lineIndex <= last && labels < MostLabels; lineIndex++)
         {
-            // Rows whose longest task is too narrow for any label are skipped as a whole, except for milestones.
-            var entry = state.Lines[lineIndex];
-            if (entry.IsGroup || (state.Longest[entry.Row] * perUnit < ShortestLabel && !state.HasMilestones[entry.Row]))
-            {
-                continue;
-            }
-
-            var tasks = state.ByRow[entry.Row];
-            for (var k = state.FirstVisible(entry.Row, from); k < tasks.Length && state.Tasks[tasks[k]].Start <= to && labels < MostLabels; k++)
-            {
-                var task = state.Tasks[tasks[k]];
-                if (task.IsMilestone || (task.End - task.Start) * perUnit >= ShortestLabel)
-                {
-                    labels += DrawLabel(canvas, state, task, origin, line, pane) ? 1 : 0;
-                }
-            }
+            labels = DrawRow(canvas, state, state.Lines[lineIndex], (from, to), perUnit, origin, line, pane, labels);
         }
 
         DrawLinks(canvas, state, origin);
         canvas.Clip = null;
         DrawHover(canvas, state, origin);
+    }
+
+    // Rows whose longest task is too narrow for any label are skipped as a whole, except for milestones.
+    private int DrawRow(OverlayCanvas canvas, GanttData.State state, GanttData.Line entry, (double From, double To) times, double perUnit, double origin, float line, DipRect pane, int labels)
+    {
+        if (entry.IsGroup || (state.Longest[entry.Row] * perUnit < ShortestLabel && !state.HasMilestones[entry.Row]))
+        {
+            return labels;
+        }
+
+        var tasks = state.ByRow[entry.Row];
+        for (var k = state.FirstVisible(entry.Row, times.From); k < tasks.Length && state.Tasks[tasks[k]].Start <= times.To && labels < MostLabels; k++)
+        {
+            var task = state.Tasks[tasks[k]];
+            if (task.IsMilestone || (task.End - task.Start) * perUnit >= ShortestLabel)
+            {
+                labels += DrawLabel(canvas, state, task, origin, line, pane) ? 1 : 0;
+            }
+        }
+
+        return labels;
     }
 
     private bool DrawLabel(OverlayCanvas canvas, GanttData.State state, in GanttTask task, double origin, float line, DipRect pane)
@@ -427,7 +443,8 @@ public sealed class GanttOverlay(GanttSeries series) : ChartOverlay
     {
         y = 0;
         var line = state.LineOfRow[row];
-        return canvas.TryGetPosition(_series.XAxis, time, out x) & line >= 0 && canvas.TryGetPosition(_series.YAxis, line, out y);
+        var isOnAxis = canvas.TryGetPosition(_series.XAxis, time, out x);
+        return isOnAxis && line >= 0 && canvas.TryGetPosition(_series.YAxis, line, out y);
     }
 
     // From the end of the first task right, down or up to the line of the second, and right into its start.

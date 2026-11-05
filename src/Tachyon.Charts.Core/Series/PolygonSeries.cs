@@ -154,41 +154,51 @@ public sealed class PolygonSeries : ChartSeries, IDisposable
         _outline.Clear();
         for (var p = 0; p < _polygons.Length; p++)
         {
-            var polygon = _polygons[p];
-            var color = (polygon.Color.A > 0 ? polygon.Color : _palette[p % _palette.Length]) with { A = _fillAlpha };
-            if (_fillAlpha > 0)
-            {
-                var (xs, ys, triangles) = _triangles[p];
-                foreach (var corner in triangles)
-                {
-                    _mesh.Add(new MeshVertex(new Vector2((float)frame.X.ToPixel(xs[corner]), (float)frame.Y.ToPixel(ys[corner])), color));
-                }
-            }
-
-            if (_stroke.A > 0)
-            {
-                AddRing(frame, polygon.Outer);
-                foreach (var hole in polygon.Holes)
-                {
-                    AddRing(frame, hole);
-                }
-            }
+            AddPolygon(frame, p);
         }
 
         if (_outline.Count >= 2)
         {
-            var size = _outline.Count * 8L;
-            if (_buffer is null || _buffer.SizeInBytes < size)
-            {
-                _buffer?.Dispose();
-                _buffer = device.CreateBuffer(new BufferDesc(size, BufferUsage.Vertex));
-            }
-
-            _buffer.Write<Vector2>(0, CollectionsMarshal.AsSpan(_outline));
+            WriteOutline(device);
         }
 
         _built = version;
         _builtFrame = frame;
+    }
+
+    private void AddPolygon(in SeriesFrame frame, int p)
+    {
+        var polygon = _polygons[p];
+        var color = (polygon.Color.A > 0 ? polygon.Color : _palette[p % _palette.Length]) with { A = _fillAlpha };
+        if (_fillAlpha > 0)
+        {
+            var (xs, ys, triangles) = _triangles![p];
+            foreach (var corner in triangles)
+            {
+                _mesh.Add(new MeshVertex(new Vector2((float)frame.X.ToPixel(xs[corner]), (float)frame.Y.ToPixel(ys[corner])), color));
+            }
+        }
+
+        if (_stroke.A > 0)
+        {
+            AddRing(frame, polygon.Outer);
+            foreach (var hole in polygon.Holes)
+            {
+                AddRing(frame, hole);
+            }
+        }
+    }
+
+    private void WriteOutline(IRenderDevice device)
+    {
+        var size = _outline.Count * 8L;
+        if (_buffer is null || _buffer.SizeInBytes < size)
+        {
+            _buffer?.Dispose();
+            _buffer = device.CreateBuffer(new BufferDesc(size, BufferUsage.Vertex));
+        }
+
+        _buffer.Write<Vector2>(0, CollectionsMarshal.AsSpan(_outline));
     }
 
     /// <inheritdoc />

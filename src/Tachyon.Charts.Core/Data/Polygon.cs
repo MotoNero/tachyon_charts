@@ -313,27 +313,7 @@ internal static class PolygonMask
         var inside = new bool[columns.Length];
         for (var row = 0; row < rows.Length; row++)
         {
-            crossings.Clear();
-            var y = rows[row];
-            foreach (var polygon in polygons)
-            {
-                AddCrossings(polygon.Outer, y, crossings);
-                foreach (var hole in polygon.Holes)
-                {
-                    AddCrossings(hole, y, crossings);
-                }
-            }
-
-            crossings.Sort();
-            Array.Clear(inside);
-            for (var k = 0; k + 1 < crossings.Count; k += 2)
-            {
-                var first = Lower(columns, crossings[k]);
-                for (var column = first; column < columns.Length && columns[column] <= crossings[k + 1]; column++)
-                {
-                    inside[column] = !inside[column];
-                }
-            }
+            FindInside(columns, rows[row], polygons, crossings, inside);
 
             var line = values.Slice(row * columns.Length, columns.Length);
             for (var column = 0; column < columns.Length; column++)
@@ -342,6 +322,31 @@ internal static class PolygonMask
                 {
                     line[column] = float.NaN;
                 }
+            }
+        }
+    }
+
+    // Marks the cells of a row between pairs of crossings with the edges of all rings.
+    private static void FindInside(double[] columns, double y, IReadOnlyList<Polygon> polygons, List<double> crossings, bool[] inside)
+    {
+        crossings.Clear();
+        foreach (var polygon in polygons)
+        {
+            AddCrossings(polygon.Outer, y, crossings);
+            foreach (var hole in polygon.Holes)
+            {
+                AddCrossings(hole, y, crossings);
+            }
+        }
+
+        crossings.Sort();
+        Array.Clear(inside);
+        for (var k = 0; k + 1 < crossings.Count; k += 2)
+        {
+            var first = Lower(columns, crossings[k]);
+            for (var column = first; column < columns.Length && columns[column] <= crossings[k + 1]; column++)
+            {
+                inside[column] = !inside[column];
             }
         }
     }

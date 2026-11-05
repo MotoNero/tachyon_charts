@@ -205,19 +205,23 @@ public sealed class SweepData
                     continue;
                 }
 
-                var value = _values[(index * Channels) + channel];
-                if (float.IsNaN(low[column]) || value < low[column])
-                {
-                    low[column] = value;
-                }
-
-                if (float.IsNaN(high[column]) || value > high[column])
-                {
-                    high[column] = value;
-                }
+                Widen(_values[(index * Channels) + channel], ref low[column], ref high[column]);
             }
 
             return headColumn;
+        }
+    }
+
+    private static void Widen(float value, ref float low, ref float high)
+    {
+        if (float.IsNaN(low) || value < low)
+        {
+            low = value;
+        }
+
+        if (float.IsNaN(high) || value > high)
+        {
+            high = value;
         }
     }
 

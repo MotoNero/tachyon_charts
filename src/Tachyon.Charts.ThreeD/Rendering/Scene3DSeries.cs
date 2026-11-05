@@ -706,23 +706,16 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
 
         foreach (var pie in scene.Pies)
         {
-            var version = pie.Version + Volatile.Read(ref _paletteVersion);
-            if (_meshesAreStale || !_pieVersions.TryGetValue(pie, out var known) || known != version)
-            {
-                _pieVersions[pie] = version;
-                pie.Layout(_palette);
-                for (var i = 0; i < pie.Meshes.Count; i++)
-                {
-                    if (pie.Meshes[i] is { } mesh)
-                    {
-                        Upload(mesh, new PieSlice3D(pie, i));
-                    }
-                }
-            }
+            Upload(pie);
         }
 
         _meshesAreStale = false;
+        UploadMadeMeshes();
+    }
 
+    // Maps and antennas become meshes once.
+    private void UploadMadeMeshes()
+    {
         foreach (var map in scene.Maps)
         {
             if (!_mapMeshes.ContainsKey(map))
@@ -738,6 +731,26 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
             {
                 _antennaMeshes[antenna] = antenna.CreateMesh();
                 Upload(_antennaMeshes[antenna], antenna);
+            }
+        }
+    }
+
+    // A pie lays out its slices again when a slice moves out or the colors of the theme change.
+    private void Upload(Pie3D pie)
+    {
+        var version = pie.Version + Volatile.Read(ref _paletteVersion);
+        if (!_meshesAreStale && _pieVersions.TryGetValue(pie, out var known) && known == version)
+        {
+            return;
+        }
+
+        _pieVersions[pie] = version;
+        pie.Layout(_palette);
+        for (var i = 0; i < pie.Meshes.Count; i++)
+        {
+            if (pie.Meshes[i] is { } mesh)
+            {
+                Upload(mesh, new PieSlice3D(pie, i));
             }
         }
     }

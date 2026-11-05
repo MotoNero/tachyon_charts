@@ -217,7 +217,15 @@ public sealed class PieSeries : ChartSeries
     }
 
     // How far a slice moves out along its middle, as a share of the radius.
-    internal double LiftOf(int index) => index == ExplodedIndex ? _explodeDistance : index == HighlightedIndex ? HoverLift : 0;
+    internal double LiftOf(int index)
+    {
+        if (index == ExplodedIndex)
+        {
+            return _explodeDistance;
+        }
+
+        return index == HighlightedIndex ? HoverLift : 0;
+    }
 
     internal static Vector2 Direction(double angle) => new((float)Math.Sin(angle), (float)-Math.Cos(angle));
 

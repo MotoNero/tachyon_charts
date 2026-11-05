@@ -58,7 +58,7 @@ public static class LastValueDemo
     {
         var clock = System.Diagnostics.Stopwatch.StartNew();
         var written = 0;
-        while (true)
+        while (!Environment.HasShutdownStarted)
         {
             var due = (int)(clock.Elapsed.TotalSeconds * 50);
             for (; written < due; written++)

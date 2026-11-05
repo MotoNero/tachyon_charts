@@ -54,7 +54,7 @@ public static class CandleDemo
             }
 
             _live = Create(250, TimeSpan.FromDays(1));
-            _market = new Timer(_ => Trade(), null, 200, 200);
+            _market ??= new Timer(_ => Trade(), null, 200, 200);
             return _live;
         }
     }
