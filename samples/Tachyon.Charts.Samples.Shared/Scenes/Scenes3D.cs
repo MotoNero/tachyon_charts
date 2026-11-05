@@ -55,6 +55,8 @@ public static class Scenes3D
         new Scene3DPicture(Line3DPicture.Name, Line3DPicture.Configure),
         new Scene3DPicture(Scatter3DPicture.Name, Scatter3DPicture.Configure),
         new Scene3DPicture(Plane3DPicture.Name, Plane3DPicture.Configure),
+        new Scene3DPicture(Model3DPicture.Name, Model3DPicture.Configure),
+        new Scene3DPicture(Knot3DPicture.Name, Knot3DPicture.Configure),
         new Scene3DPicture(Plane3DTypesPicture.Name, Plane3DTypesPicture.Configure),
         new Scene3DPicture(Cloud3DPicture.Name, Cloud3DPicture.Configure),
         new Scene3DPicture(Cloud3DLoadingPicture.Name, Cloud3DLoadingPicture.Configure),

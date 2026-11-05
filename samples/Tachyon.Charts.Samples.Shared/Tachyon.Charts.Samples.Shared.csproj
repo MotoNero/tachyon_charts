@@ -13,6 +13,7 @@
     <ProjectReference Include="../../src/Tachyon.Charts.Core/Tachyon.Charts.Core.csproj" />
     <ProjectReference Include="../../src/Tachyon.Charts.Export/Tachyon.Charts.Export.csproj" />
     <ProjectReference Include="../../src/Tachyon.Charts.ThreeD/Tachyon.Charts.ThreeD.csproj" />
+    <ProjectReference Include="../../src/Tachyon.Charts.ThreeD.Files/Tachyon.Charts.ThreeD.Files.csproj" />
     <ProjectReference Include="../../src/Tachyon.Charts.Rendering.Skia/Tachyon.Charts.Rendering.Skia.csproj" />
     <ProjectReference Include="../../src/Tachyon.Charts.Rendering.WebGPU/Tachyon.Charts.Rendering.WebGPU.csproj" />
   </ItemGroup>

@@ -27,7 +27,7 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 - **Instruments included:** oscilloscope with trigger and persistence, spectrum analyzer with spectrogram and masks, network analyzer, sweep and stepping monitors
 - **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap with cells of their own sizes, contour with labels along the lines
 - **Finance:** candles, OHLC bars, volume, market profile and drawing tools
-- **3D as an add-on:** surfaces, waterfalls, antenna patterns, point clouds of 100 million points and volumes, live and with values under the pointer
+- **3D as an add-on:** surfaces, waterfalls, antenna patterns, point clouds of 100 million points, volumes and models from STL and OBJ files, live and with values under the pointer
 - **Runs everywhere:** GPU, software adapter or CPU, chosen automatically, also over remote desktop
 - **Ready for reports:** export to PNG, SVG, PDF and CSV, clipboard and printing, MP4 videos of 2D and 3D charts
 
@@ -123,6 +123,10 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|---|---|
 | ![The highest value along each ray of a volume](docs/images/3d-volume-maximum.png) | ![A lit surface where the values of a volume cross a level, cut open by a plane](docs/images/3d-volume-surface.png) | ![Waterfall of a spectrum with the limit line of the 2D chart as a fence and two markers](docs/images/3d-waterfall-mask.png) |
 
+| Model with measured values | Model of 1 million triangles |
+|---|---|
+| ![A pipe bend read from an STL file, colored by wall temperature, cut open, with sensors](docs/images/3d-model.png) | ![A knot of tube with a million triangles, colored by height](docs/images/3d-knot.png) |
+
 ### Themes
 
 Seven built-in themes, plus your own from JSON or XAML resources. Themes apply to every chart type, including the instruments.
@@ -156,6 +160,7 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 - **Scatter:** a size and color per point, a million new points per second from a measuring thread, oldest points fall out
 - **Columns:** over a raster, with a color by value and the same light as surfaces
 - **Point clouds:** an octree forms in the background, a coarse picture shows at once, and the density never jumps. Files in XYZ, PLY and LAS through `Tachyon.Charts.ThreeD.Files`
+- **Models:** STL (text and binary) and OBJ through `Tachyon.Charts.ThreeD.Files`, with sharp edges kept, a value per point that colors the model and shows under the pointer, cut open by cut planes; a million triangles at the frame rate of the screen
 - **Volumes:** 8 bit, 16 bit and floating point, three draggable slices, looking through with a transfer function that you edit in the chart, the highest value along each ray, lit surfaces of equal value, correct depth against other objects. Files in NIfTI-1 and raw through `Tachyon.Charts.ThreeD.Files`
 - **Operation:** turn, move and zoom in perspective or parallel view, values under the pointer with unit and language, markers, up to four cut planes at any angle, cuts as data for 2D charts
 - **Together with 2D:** markers and the limit mask of the spectrum analyzer appear in the 2D and the 3D chart at once; a 2D chart narrows the range of a 3D chart
@@ -247,6 +252,7 @@ Offscreen on an RTX 4070 Laptop GPU at 4K.
 | Lines, 10 million points | 95 FPS |
 | Scatter, 10 million points | 117 FPS |
 | Columns, 1 million | 99 FPS |
+| Model, 1 million triangles | 60 FPS, 5.8 ms per frame (screen at 60 Hz) |
 | Four large 3D charts at once | 52 FPS |
 | Chart at rest | no frames, 0.02 % CPU |
 
@@ -286,7 +292,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | Document | Content |
 |---|---|
 | [docs/guide](docs/guide/README.md) | User guide |
-| [3D charts](docs/guide/3d.md) | 3D types, one page each: surfaces, waterfall, lines and points, columns, point clouds, volumes, antennas, cuts |
+| [3D charts](docs/guide/3d.md) | 3D types, one page each: surfaces, waterfall, lines and points, columns, point clouds, volumes, models, antennas, cuts |
 | [Pie and donut](docs/guide/pie.md) | Slices, labels on lines, pulling a slice out |
 | [Finance](docs/guide/finance.md) | Candles, OHLC bars, volume and market profile |
 | [Drawing tools](docs/guide/drawings.md) | Fibonacci, channels, pitchfork, patterns, saving as JSON |

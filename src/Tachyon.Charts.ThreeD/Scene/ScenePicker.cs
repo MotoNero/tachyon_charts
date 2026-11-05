@@ -227,7 +227,7 @@ internal sealed class ScenePicker(Scene3D scene)
         {
             if (entry.Tree.IsCompletedSuccessfully && entry.Tree.Result.Find(ray, near, ref far, out var triangle, out var u, out var v))
             {
-                best = new Pick3D(entry.Tree.Result.ToData(mesh, triangle, u, v), entry.Source) { Box = ray.At(far) };
+                best = new Pick3D(entry.Tree.Result.ToData(mesh, triangle, u, v), entry.Source) { Box = ray.At(far), Value = entry.Tree.Result.ToValue(mesh, triangle, u, v) };
             }
         }
     }
@@ -681,6 +681,23 @@ internal sealed class MeshTree
         var b = mesh.Vertices[(int)_indices[at + 1]].Position;
         var c = mesh.Vertices[(int)_indices[at + 2]].Position;
         return (a * (1 - u - v)) + (b * u) + (c * v);
+    }
+
+    /// <summary>Gets the value of a hit, blended from the values of the corners.</summary>
+    /// <param name="mesh">The surface.</param>
+    /// <param name="triangle">The triangle.</param>
+    /// <param name="u">The share of its second corner.</param>
+    /// <param name="v">The share of its third corner.</param>
+    /// <returns>The value, or <see langword="null"/> when the surface has no values.</returns>
+    public double? ToValue(Mesh3D mesh, int triangle, double u, double v)
+    {
+        if (mesh.Values is not { } values)
+        {
+            return null;
+        }
+
+        var at = triangle * 3;
+        return (values[(int)_indices[at]] * (1 - u - v)) + (values[(int)_indices[at + 1]] * u) + (values[(int)_indices[at + 2]] * v);
     }
 
     private static bool Meets(in Ray3D ray, in Node node, double near, double far) =>

@@ -1,3 +1,18 @@
+static class Tachyon.Charts.ThreeD.Files.ModelFile
+  static Tachyon.Charts.ThreeD.Files.ModelFileData Read(System.String path)
+  static Tachyon.Charts.ThreeD.Files.ModelFileData ReadObj(System.IO.Stream stream)
+  static Tachyon.Charts.ThreeD.Files.ModelFileData ReadStl(System.IO.Stream stream)
+sealed class Tachyon.Charts.ThreeD.Files.ModelFileData
+  .ctor(Tachyon.Charts.ThreeD.Scene.Point3D[] positions, System.Int32[] triangles, Tachyon.Charts.Rendering.Rgba8[] colors)
+  System.Int32 TriangleCount { get; }
+  System.Int32[] Triangles { get; }
+  Tachyon.Charts.Rendering.Rgba8[] Colors { get; }
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddToScale(Tachyon.Charts.ThreeD.Chart3DBuilder chart, Tachyon.Charts.ThreeD.Scene.Mesh3D mesh = null, System.String unit = mm)
+  Tachyon.Charts.ThreeD.Scene.Mesh3D ToMesh(System.Collections.Generic.IReadOnlyList<System.Double> values, Tachyon.Charts.Core.Colors.Colormap colormap, Tachyon.Charts.Core.Numerics.DoubleRange range, Tachyon.Charts.ThreeD.Scene.Material3D material = null)
+  Tachyon.Charts.ThreeD.Scene.Mesh3D ToMesh(System.Nullable<Tachyon.Charts.Rendering.Rgba8> color = null, Tachyon.Charts.ThreeD.Scene.Material3D material = null)
+  Tachyon.Charts.ThreeD.Scene.Point3D Highest { get; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Lowest { get; }
+  Tachyon.Charts.ThreeD.Scene.Point3D[] Positions { get; }
 static class Tachyon.Charts.ThreeD.Files.PointFile
   static Tachyon.Charts.ThreeD.Files.PointFileData Read(System.String path)
   static Tachyon.Charts.ThreeD.Files.PointFileData ReadLas(System.IO.Stream stream)

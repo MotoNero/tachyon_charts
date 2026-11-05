@@ -37,6 +37,19 @@ public sealed class Mesh3D(IReadOnlyList<Vertex3D> vertices, IReadOnlyList<int> 
     /// <summary>Gets or sets how the surface takes the light.</summary>
     public Material3D Material { get; init; } = new();
 
+    /// <summary>
+    /// Gets a value per point, such as a measured temperature, or <see langword="null"/>. The value under the pointer is
+    /// blended from the corners of the triangle it points at.
+    /// </summary>
+    /// <exception cref="ArgumentException">The number of values differs from the number of points.</exception>
+    public IReadOnlyList<double>? Values
+    {
+        get;
+        init => field = value is null || value.Count == Vertices.Count
+            ? value
+            : throw new ArgumentException($"There are {value.Count} values for {Vertices.Count} points.", nameof(value));
+    }
+
     /// <summary>Gets the triangles whose corners are all finite.</summary>
     /// <param name="positions">The places of the points.</param>
     /// <param name="indices">The triangles.</param>

@@ -3,7 +3,7 @@ using Tachyon.Charts.ThreeD.Scene;
 
 namespace Tachyon.Charts.ThreeD.Files;
 
-/// <summary>A file that cannot be read as points, with the reason in the message.</summary>
+/// <summary>A file that cannot be read as points, a volume or a model, with the reason in the message.</summary>
 public sealed class PointFileException : Exception
 {
     /// <summary>Initializes a new instance of the <see cref="PointFileException"/> class.</summary>

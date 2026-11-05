@@ -37,6 +37,8 @@ public static class Pages3D
         new(ColumnsPage.Name, ColumnsPage.Hint, ColumnsPage.Configure),
         new(N1MillionColumnsPage.Name, N1MillionColumnsPage.Hint, N1MillionColumnsPage.Configure),
         new(CutLivePage.Name, CutLivePage.Hint, CutLivePage.Configure, Companion: CutLivePage.Companion),
+        new(ModelWithMeasuringPointsPage.Name, ModelWithMeasuringPointsPage.Hint, ModelWithMeasuringPointsPage.Configure),
+        new(ModelOf1MillionTrianglesPage.Name, ModelOf1MillionTrianglesPage.Hint, ModelOf1MillionTrianglesPage.Configure),
         new(AntennaPatternPage.Name, AntennaPatternPage.Hint, AntennaPatternPage.Configure),
         new(MapFromMeasurementsPage.Name, MapFromMeasurementsPage.Hint, MapFromMeasurementsPage.Configure),
         new(HeightLinesPage.Name, HeightLinesPage.Hint, HeightLinesPage.Configure),
