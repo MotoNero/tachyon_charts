@@ -1,4 +1,5 @@
 using System.Numerics;
+using Tachyon.Charts.Core.Axes;
 using Tachyon.Charts.Core.Instruments;
 using Tachyon.Charts.Core.Layout;
 using Tachyon.Charts.Core.Pipeline;
@@ -39,7 +40,7 @@ internal sealed class LastValueMarks
 
     public void Draw(OverlayCanvas canvas, ChartLayoutResult layout, ChartSeries[] series)
     {
-        var count = Collect(layout, series);
+        var count = Collect(canvas, layout, series);
         if (count == 0)
         {
             return;
@@ -76,7 +77,7 @@ internal sealed class LastValueMarks
         ? new Rgba8(20, 20, 20, 255)
         : new Rgba8(255, 255, 255, 255);
 
-    private int Collect(ChartLayoutResult layout, ChartSeries[] series)
+    private int Collect(OverlayCanvas canvas, ChartLayoutResult layout, ChartSeries[] series)
     {
         var count = 0;
         for (var i = 0; i < series.Length; i++)
@@ -84,6 +85,13 @@ internal sealed class LastValueMarks
             var item = series[i];
             if (!item.ShowsLastValue || !item.TryGetLatestValue(out var value) || !TryPlace(layout, item, out var bounds, out var isRight))
             {
+                continue;
+            }
+
+            // A Y axis lying along the bottom or top, with the X axis down, gets its plates under or over the plot.
+            if (item.YAxis.IsHorizontal)
+            {
+                DrawAlong(canvas, layout, item, value);
                 continue;
             }
 
@@ -146,6 +154,33 @@ internal sealed class LastValueMarks
         var edge = entry.IsRight ? (float)left : (float)(left + width);
         canvas.FillTriangle(new Vector2(tip, (float)entry.Y), new Vector2(edge, y - (line / 2)), new Vector2(edge, y + (line / 2)), entry.Color);
         canvas.DrawText(text, left + Padding, y + (line * 0.3), LabelSize, ContrastTo(entry.Color));
+    }
+
+    // A plate at the value on a Y axis that lies along the bottom or top, with its tip at the edge of the plot.
+    private void DrawAlong(OverlayCanvas canvas, ChartLayoutResult layout, ChartSeries series, double value)
+    {
+        if (!canvas.TryGetPosition(series.YAxis, value, out var x) || !double.IsFinite(x))
+        {
+            return;
+        }
+
+        var digits = Math.Clamp((int)Math.Ceiling(-Math.Log10(Math.Max(series.YAxis.VisibleRange.Length, 1e-12) / 1000)), 0, _formats.Length - 1);
+        if (!value.TryFormat(_text, out var written, _formats[digits], ChartText.Culture))
+        {
+            return;
+        }
+
+        var text = _text.AsSpan(0, written);
+        var plot = layout.PlotArea;
+        x = Math.Clamp(x, plot.X, plot.Right);
+        var line = canvas.GetLineHeight(LabelSize) + 2;
+        var width = canvas.MeasureWidth(text, LabelSize) + (Padding * 2);
+        var isTop = series.YAxis.Position == AxisPosition.Top;
+        var top = isTop ? plot.Y - 4 - line : plot.Bottom + 4;
+        canvas.FillRectangle(new DipRect(x - (width / 2), top, width, line), series.AccentColor);
+        var (tip, edge) = isTop ? ((float)plot.Y, (float)(top + line)) : ((float)plot.Bottom, (float)top);
+        canvas.FillTriangle(new Vector2((float)x, tip), new Vector2((float)x - 4, edge), new Vector2((float)x + 4, edge), series.AccentColor);
+        canvas.DrawText(text, x - (width / 2) + Padding, top + (line * 0.8), LabelSize, ContrastTo(series.AccentColor));
     }
 
     private readonly record struct Entry(double Y, double Value, Rgba8 Color, DipRect Bounds, bool IsRight, double Span);

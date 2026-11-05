@@ -46,6 +46,7 @@ interface Tachyon.Charts.Rendering.ICommandList : System.IDisposable
   abstract System.Void FillMesh(System.ReadOnlySpan<Tachyon.Charts.Rendering.MeshVertex> vertices, System.Nullable<Tachyon.Charts.Rendering.PixelRect> clip)
   abstract System.Void FillRectangle(Tachyon.Charts.Rendering.PixelRect bounds, Tachyon.Charts.Rendering.Rgba8 color)
   abstract System.Void FillTriangle(System.Numerics.Vector2 a, System.Numerics.Vector2 b, System.Numerics.Vector2 c, Tachyon.Charts.Rendering.Rgba8 color)
+  abstract System.Void SetQuarterTurn(System.Nullable<System.Single> sum)
   abstract System.Void Submit()
 interface Tachyon.Charts.Rendering.IComputeOperations
   abstract System.Int64 BinPoints(Tachyon.Charts.Rendering.IGpuBuffer points, System.Int32 count, System.Numerics.Vector2 scale, System.Numerics.Vector2 offset, Tachyon.Charts.Rendering.IGpuTexture target)

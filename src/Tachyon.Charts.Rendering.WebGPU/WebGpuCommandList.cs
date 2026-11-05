@@ -49,6 +49,12 @@ internal sealed class WebGpuCommandList(WebGpuRenderDevice device) : WebGpuResou
         Device.Recorder.FillMesh(vertices, clip);
     }
 
+    public void SetQuarterTurn(float? sum)
+    {
+        ThrowIfNotRecording();
+        Device.Recorder.SetQuarterTurn(sum);
+    }
+
     public void DrawPolyline(IGpuBuffer points, int firstPoint, int pointCount, in PolylineStyle style)
     {
         ArgumentNullException.ThrowIfNull(points);

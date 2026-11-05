@@ -123,6 +123,15 @@ public sealed class ChartSurface
     }
 
     /// <summary>
+    /// Gets a value indicating whether the chart is turned a quarter with the X axis running down: then the X axes stand
+    /// in the one pane and <see cref="HorizontalAxes"/> holds the Y axes.
+    /// </summary>
+    public bool IsXDown { get; init; }
+
+    /// <summary>Gets the first X axis: the first horizontal axis, or the first axis of the pane when <see cref="IsXDown"/>.</summary>
+    public AxisBase FirstXAxis => IsXDown ? _panes[0].Axes[0] : _horizontalAxes[0];
+
+    /// <summary>
     /// Gets or sets the chart title.
     /// </summary>
     public string? Title
@@ -380,14 +389,18 @@ public sealed class ChartSurface
     public void AddSeries(ChartSeries series)
     {
         ArgumentNullException.ThrowIfNull(series);
-        if (!_horizontalAxes.Contains(series.XAxis))
+
+        // Turned, with the X axis down, the X axis stands in the pane and the Y axis lies along the edge.
+        var isTurned = !series.XAxis.IsHorizontal;
+        var (along, standing) = isTurned ? (series.YAxis, series.XAxis) : (series.XAxis, series.YAxis);
+        if (!_horizontalAxes.Contains(along) || along.IsHorizontal == standing.IsHorizontal)
         {
-            throw new ArgumentException("The X axis is not a horizontal axis of this chart.", nameof(series));
+            throw new ArgumentException(isTurned ? "The Y axis is not a horizontal axis of this turned chart." : "The X axis is not a horizontal axis of this chart.", nameof(series));
         }
 
-        if (!Array.Exists(_panes, pane => pane.Axes.Contains(series.YAxis)))
+        if (!Array.Exists(_panes, pane => pane.Axes.Contains(standing)))
         {
-            throw new ArgumentException("The Y axis is not in a pane of this chart.", nameof(series));
+            throw new ArgumentException(isTurned ? "The X axis is not in the pane of this turned chart." : "The Y axis is not in a pane of this chart.", nameof(series));
         }
 
         if (series.ColorAxis is { } colorAxis && !Array.Exists(_panes, pane => pane.Axes.Contains(colorAxis)))
@@ -447,7 +460,7 @@ public sealed class ChartSurface
             }
 
             var indices = new List<long>();
-            state.Series[i].CollectPoints(state.Frames[i], area, indices);
+            state.Series[i].CollectPoints(state.Frames[i], state.Frames[i].QuarterTurn is { } sum ? Upright(pixels, sum) : area, indices);
             if (indices.Count > 0)
             {
                 result.Add(new SeriesSelection(state.Series[i], indices));
@@ -667,7 +680,18 @@ public sealed class ChartSurface
         {
             if (series[i].IsVisible)
             {
+                var turn = _seriesFrames[i].QuarterTurn;
+                if (turn is not null)
+                {
+                    frame.SetQuarterTurn(turn);
+                }
+
                 series[i].Draw(frame, _seriesFrames[i]);
+                if (turn is not null)
+                {
+                    frame.SetQuarterTurn(null);
+                }
+
                 points += series[i].DrawnPointCount;
             }
         }
@@ -712,10 +736,28 @@ public sealed class ChartSurface
         || _renderedSize != target.Size
         || _renderedScale != target.DpiScale;
 
+    private static SelectionArea Upright(Vector2[] outline, float sum)
+    {
+        var upright = new Vector2[outline.Length];
+        for (var i = 0; i < upright.Length; i++)
+        {
+            upright[i] = QuarterTurn.Undo(sum, outline[i]);
+        }
+
+        return SelectionArea.FromPolygon(upright);
+    }
+
     private static bool TryFind(HitTestState state, int index, Vector2 pixel, double limit, HitTestMode mode, out HitResult hit)
     {
         hit = default;
         ref readonly var frame = ref state.Frames[index];
+
+        // A turned series answers in its upright frame.
+        if (frame.QuarterTurn is { } sum)
+        {
+            pixel = QuarterTurn.Undo(sum, pixel);
+        }
+
         var bounds = frame.Bounds;
         if (pixel.X < bounds.X || pixel.X > bounds.X + bounds.Width || pixel.Y < bounds.Y || pixel.Y > bounds.Y + bounds.Height)
         {
@@ -1341,16 +1383,29 @@ public sealed class ChartSurface
         _seriesFrames = new SeriesFrame[series.Length];
         for (var i = 0; i < series.Length; i++)
         {
-            var yAxis = series[i].YAxis;
-            var paneIndex = Array.FindIndex(_panes, pane => pane.Axes.Contains(yAxis));
+            var (xAxis, yAxis) = (series[i].XAxis, series[i].YAxis);
+            var isTurned = !xAxis.IsHorizontal;
+            var paneAxis = isTurned ? xAxis : yAxis;
+            var paneIndex = Array.FindIndex(_panes, pane => pane.Axes.Contains(paneAxis));
             var bounds = layout.Panes[paneIndex].ToPixels(scale);
-            _seriesFrames[i] = new SeriesFrame(
-                bounds,
-                series[i].XAxis.CreateTransform(bounds.X, bounds.Width),
-                yAxis.CreateTransform(bounds.Y, bounds.Height),
-                scale,
-                _effectsEnabled ? _glowRadius : 0,
-                _glowIntensity);
+            var (glow, intensity) = (_effectsEnabled ? _glowRadius : 0, _glowIntensity);
+            if (isTurned && !series[i].TurnsWithChart)
+            {
+                _seriesFrames[i] = new SeriesFrame(bounds, xAxis.CreateTransform(bounds.Y, bounds.Height), yAxis.CreateTransform(bounds.X, bounds.Width), scale, glow, intensity);
+                continue;
+            }
+
+            if (!isTurned)
+            {
+                _seriesFrames[i] = new SeriesFrame(bounds, xAxis.CreateTransform(bounds.X, bounds.Width), yAxis.CreateTransform(bounds.Y, bounds.Height), scale, glow, intensity);
+                continue;
+            }
+
+            // X runs down: the series draws upright in a frame with the height as its width, and the picture turns a
+            // quarter. The upright Y pixel of a value is sum − its real X pixel.
+            var sum = (2 * bounds.X) + bounds.Width;
+            var upright = new PixelRect(bounds.Y, bounds.X, bounds.Height, bounds.Width);
+            _seriesFrames[i] = new SeriesFrame(upright, xAxis.CreateTransform(bounds.Y, bounds.Height), yAxis.CreateTransform(bounds.X, bounds.Width).Mirrored(sum), scale, glow, intensity) { QuarterTurn = sum };
         }
 
         _hitTestState = new HitTestState(series, _seriesFrames, scale);

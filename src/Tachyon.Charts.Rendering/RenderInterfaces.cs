@@ -554,6 +554,14 @@ public interface ICommandList : IDisposable
     void DrawRaster(IGpuTexture values, IGpuTexture colormap, PixelRect bounds, in RasterStyle style);
 
     /// <summary>
+    /// Turns everything drawn after this call by a quarter turn clockwise: a point (x, y) lands at (sum − y, x), and
+    /// clip rectangles turn with it. A chart whose X axis runs down draws its series this way, so that the series
+    /// work as in an upright chart. <see langword="null"/> ends the turn. A new frame starts without it.
+    /// </summary>
+    /// <param name="sum">The sum that places the turned picture, or <see langword="null"/> to draw upright again.</param>
+    void SetQuarterTurn(float? sum);
+
+    /// <summary>
     /// Ends the frame and hands its commands to the device. A surface target presents the frame, or
     /// drops it if the swapchain has no image available in time.
     /// </summary>

@@ -267,6 +267,9 @@ public sealed class PieSeries : ChartSeries
         return -1;
     }
 
+    // A pie has no X axis to turn; it starts at the top in every chart.
+    internal override bool TurnsWithChart => false;
+
     /// <inheritdoc />
     protected internal override void OnPalette(ReadOnlySpan<Rgba8> palette)
     {

@@ -31,6 +31,7 @@ public static class ChartTypePages
         (LastValuePage.Name, LastValuePage.Hint, LastValuePage.Configure),
         (SeveralLegendsPage.Name, SeveralLegendsPage.Hint, SeveralLegendsPage.Configure),
         (AxesInTheOriginPage.Name, AxesInTheOriginPage.Hint, AxesInTheOriginPage.Configure),
+        (DepthProfilePage.Name, DepthProfilePage.Hint, DepthProfilePage.Configure),
         (PolygonsPage.Name, PolygonsPage.Hint, PolygonsPage.Configure),
         (TenThousandPolygonsPage.Name, TenThousandPolygonsPage.Hint, TenThousandPolygonsPage.Configure),
         (HeatmapInAnAreaPage.Name, HeatmapInAnAreaPage.Hint, HeatmapInAnAreaPage.Configure),

@@ -35,6 +35,7 @@ internal sealed class SkiaCommandList(SkiaRenderDevice device) : SkiaResource(de
     private readonly List<SkiaBuffer> _usedBuffers = [];
     private readonly List<SKImage> _glyphImages = [];
     private SKCanvas _canvas = null!;
+    private bool _isTurned;
     private bool _submitted;
 
     public SkiaOffscreenTarget? Target { get; private set; }
@@ -45,6 +46,7 @@ internal sealed class SkiaCommandList(SkiaRenderDevice device) : SkiaResource(de
         Target = target;
         _submitted = false;
         _canvas = _recorder.BeginRecording(new SKRect(0, 0, target.Size.Width, target.Size.Height));
+        _isTurned = false;
     }
 
     /// <summary>
@@ -625,9 +627,29 @@ internal sealed class SkiaCommandList(SkiaRenderDevice device) : SkiaResource(de
         Device.DrawCallCount++;
     }
 
+    // The turn is a matrix on the canvas, so every kind of drawing and every clip turns alike.
+    public void SetQuarterTurn(float? sum)
+    {
+        ThrowIfNotRecording();
+        if (_isTurned)
+        {
+            _canvas.Restore();
+            _isTurned = false;
+        }
+
+        if (sum is { } value)
+        {
+            _canvas.Save();
+            var turn = new SKMatrix(0, -1, value, 1, 0, 0, 0, 0, 1);
+            _canvas.Concat(in turn);
+            _isTurned = true;
+        }
+    }
+
     public void Submit()
     {
         ThrowIfNotRecording();
+        SetQuarterTurn(null);
         Target!.ThrowIfDisposed();
         foreach (var buffer in _usedBuffers)
         {

@@ -7,7 +7,9 @@ abstract class Tachyon.Charts.Core.Annotations.Annotation : Tachyon.Charts.Core.
   abstract System.Void Move(System.Double deltaX, System.Double deltaY)
   event System.Action<Tachyon.Charts.Core.Annotations.Annotation> Edited
   protected .ctor(Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  protected System.Boolean IsTurned { get; }
   protected System.Numerics.Vector2 ToChart(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas, System.Double x, System.Double y)
+  protected System.Void DrawAcross(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas, Tachyon.Charts.Core.Axes.AxisBase axis, System.Double value, System.String label)
   protected System.Void SetBounds(Tachyon.Charts.Core.Layout.DipRect bounds)
   protected static Tachyon.Charts.Core.Layout.DipRect Span(System.Numerics.Vector2 a, System.Numerics.Vector2 b)
   virtual System.Boolean Contains(System.Numerics.Vector2 position, System.Double tolerance)
@@ -489,10 +491,12 @@ sealed class Tachyon.Charts.Core.Fluent.ChartBuilder
   Tachyon.Charts.Core.Fluent.ChartBuilder Theme(Tachyon.Charts.Core.Themes.Theme theme)
   Tachyon.Charts.Core.Fluent.ChartBuilder Title(System.String title)
   Tachyon.Charts.Core.Fluent.ChartBuilder XAxis(System.Action<Tachyon.Charts.Core.Fluent.AxisBuilder> configure)
+  Tachyon.Charts.Core.Fluent.ChartBuilder XDown()
   Tachyon.Charts.Core.Fluent.ChartBuilder YAxis(System.Action<Tachyon.Charts.Core.Fluent.AxisBuilder> configure)
   Tachyon.Charts.Core.Fluent.ChartDefinition ToDefinition()
 sealed class Tachyon.Charts.Core.Fluent.ChartDefinition : System.IEquatable<Tachyon.Charts.Core.Fluent.ChartDefinition>
   .ctor(System.String Title, Tachyon.Charts.Core.Themes.Theme Theme, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Fluent.AxisDefinition> XAxes, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Fluent.AxisDefinition> YAxes, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Fluent.SeriesDefinition> Series, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Fluent.ModifierDefinition> Modifiers)
+  System.Boolean IsXDown { get; set; }
   System.Collections.Generic.IReadOnlyList<System.Func<Tachyon.Charts.Core.Pipeline.ChartSurface, Tachyon.Charts.Core.Overlays.ChartOverlay>> Overlays { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Fluent.AxisDefinition> XAxes { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Fluent.AxisDefinition> YAxes { get; set; }
@@ -719,6 +723,7 @@ sealed class Tachyon.Charts.Core.Input.ChartInteraction
   System.Boolean TryHitPane(System.Numerics.Vector2 position, out Tachyon.Charts.Core.Input.PaneHit hit)
   System.Double ToAxisDistance(Tachyon.Charts.Core.Axes.AxisBase axis, System.Double pixels)
   System.Double ToAxisValue(System.Double x)
+  System.Double ToXValue(System.Numerics.Vector2 position)
   System.Void AutoRange(Tachyon.Charts.Core.Axes.AxisBase axis)
   System.Void AutoRange(Tachyon.Charts.Core.Input.PaneHit pane)
   System.Void Dispatch(System.Action change)
@@ -1449,6 +1454,7 @@ sealed class Tachyon.Charts.Core.Overlays.CrosshairOverlay : Tachyon.Charts.Core
   protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
 sealed class Tachyon.Charts.Core.Overlays.OverlayCanvas
   System.Boolean TryGetPane(System.Numerics.Vector2 position, out Tachyon.Charts.Core.Layout.DipRect pane)
+  System.Boolean TryGetPoint(Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis, System.Double x, System.Double y, out System.Numerics.Vector2 point)
   System.Boolean TryGetPosition(Tachyon.Charts.Core.Axes.AxisBase axis, System.Double value, out System.Double position)
   System.Boolean TryGetValue(Tachyon.Charts.Core.Axes.AxisBase axis, System.Double position, out System.Double value)
   System.Nullable<Tachyon.Charts.Core.Layout.DipRect> Clip { get; set; }
@@ -1522,6 +1528,7 @@ abstract class Tachyon.Charts.Core.Pipeline.ChartSeries
 sealed class Tachyon.Charts.Core.Pipeline.ChartSurface
   .ctor(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Axes.AxisBase> horizontalAxes, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Layout.LayoutPane> panes, Tachyon.Charts.Rendering.ITextEngine textEngine, Tachyon.Charts.Core.Layout.ChartLayoutOptions options = null)
   System.Boolean EffectsEnabled { get; set; }
+  System.Boolean IsXDown { get; set; }
   System.Boolean MeasuresPhases { get; set; }
   System.Boolean RemoveOverlay(Tachyon.Charts.Core.Overlays.ChartOverlay overlay)
   System.Boolean RemoveSeries(Tachyon.Charts.Core.Pipeline.ChartSeries series)
@@ -1545,6 +1552,7 @@ sealed class Tachyon.Charts.Core.Pipeline.ChartSurface
   System.Void Render(Tachyon.Charts.Rendering.IRenderDevice device, Tachyon.Charts.Rendering.IRenderTarget target)
   System.Void SetPlotInsets(System.Double left, System.Double right)
   System.Void TransitionTheme(Tachyon.Charts.Core.Themes.Theme theme, System.TimeSpan duration)
+  Tachyon.Charts.Core.Axes.AxisBase FirstXAxis { get; }
   Tachyon.Charts.Core.Layout.ChartLayoutResult CurrentLayout { get; }
   Tachyon.Charts.Core.Pipeline.ChartAnimator Animator { get; set; }
   Tachyon.Charts.Core.Pipeline.ChartGroup Group { get; }
@@ -1630,6 +1638,7 @@ struct Tachyon.Charts.Core.Pipeline.SeriesFrame : System.IEquatable<Tachyon.Char
   System.Double DpiScale { get; set; }
   System.Double GlowIntensity { get; set; }
   System.Double GlowRadius { get; set; }
+  System.Nullable<System.Single> QuarterTurn { get; set; }
   Tachyon.Charts.Core.Numerics.LinearAxisTransform X { get; set; }
   Tachyon.Charts.Core.Numerics.LinearAxisTransform Y { get; set; }
   Tachyon.Charts.Rendering.PixelRect Bounds { get; set; }

@@ -73,9 +73,9 @@ public sealed class CrosshairOverlay : ChartOverlay
     private static Vector2 Center(OverlayCanvas canvas, HitResult hit, Vector2 fallback)
     {
         var center = fallback;
-        if (canvas.TryGetPosition(hit.Series.XAxis, hit.X, out var x) && canvas.TryGetPosition(hit.Series.YAxis, hit.Y, out var y))
+        if (canvas.TryGetPoint(hit.Series.XAxis, hit.Series.YAxis, hit.X, hit.Y, out var point))
         {
-            center = new Vector2((float)x, (float)y);
+            center = point;
         }
 
         return center;
@@ -113,7 +113,7 @@ public sealed class CrosshairOverlay : ChartOverlay
 
     private static void DrawSyncedLine(OverlayCanvas canvas, AxisBase axis, double value)
     {
-        if (!canvas.TryGetPosition(axis, value, out var x))
+        if (!canvas.TryGetPosition(axis, value, out var at))
         {
             return;
         }
@@ -121,10 +121,23 @@ public sealed class CrosshairOverlay : ChartOverlay
         foreach (var pane in canvas.Layout.Panes)
         {
             canvas.Clip = pane;
-            canvas.DrawLine(new Vector2((float)x, (float)pane.Y), new Vector2((float)x, (float)pane.Bottom), 1, canvas.AccentColor);
+            DrawAcross(canvas, axis, at, pane);
         }
 
         canvas.Clip = null;
+    }
+
+    /// <summary>Draws the line through a pane at a place of an axis: upright for a horizontal axis, level for a standing one.</summary>
+    /// <param name="canvas">The canvas.</param>
+    /// <param name="axis">The axis.</param>
+    /// <param name="at">The place on the axis.</param>
+    /// <param name="pane">The pane.</param>
+    internal static void DrawAcross(OverlayCanvas canvas, AxisBase axis, double at, DipRect pane)
+    {
+        var line = axis.IsHorizontal
+            ? (new Vector2((float)at, (float)pane.Y), new Vector2((float)at, (float)pane.Bottom))
+            : (new Vector2((float)pane.X, (float)at), new Vector2((float)pane.Right, (float)at));
+        canvas.DrawLine(line.Item1, line.Item2, 1, canvas.AccentColor);
     }
 
     private void DrawCross(OverlayCanvas canvas, Vector2 position)
@@ -190,7 +203,7 @@ public sealed class RolloverOverlay : ChartOverlay
     /// <inheritdoc />
     protected internal override void Draw(OverlayCanvas canvas)
     {
-        if (_x is not { } value || _axis is not { } axis || !canvas.TryGetPosition(axis, value, out var x))
+        if (_x is not { } value || _axis is not { } axis || !canvas.TryGetPosition(axis, value, out var at))
         {
             return;
         }
@@ -198,19 +211,20 @@ public sealed class RolloverOverlay : ChartOverlay
         foreach (var pane in canvas.Layout.Panes)
         {
             canvas.Clip = pane;
-            canvas.DrawLine(new Vector2((float)x, (float)pane.Y), new Vector2((float)x, (float)pane.Bottom), 1, canvas.AccentColor);
+            CrosshairOverlay.DrawAcross(canvas, axis, at, pane);
         }
 
         canvas.Clip = null;
         var labelHeight = canvas.GetLineHeight(canvas.LabelSize) + 4;
         var lastBottom = double.NegativeInfinity;
-        foreach (var hit in _hits.OrderBy(hit => canvas.TryGetPosition(hit.Series.YAxis, hit.Y, out var position) ? position : 0))
+        foreach (var hit in _hits.OrderBy(hit => canvas.TryGetPoint(hit.Series.XAxis, hit.Series.YAxis, hit.X, hit.Y, out var point) ? point.Y : 0))
         {
-            if (!canvas.TryGetPosition(hit.Series.YAxis, hit.Y, out var y) || !canvas.TryGetPosition(hit.Series.XAxis, hit.X, out var pointX))
+            if (!canvas.TryGetPoint(hit.Series.XAxis, hit.Series.YAxis, hit.X, hit.Y, out var point))
             {
                 continue;
             }
 
+            var (pointX, y) = (point.X, point.Y);
             canvas.FillRectangle(new DipRect(pointX - MarkerSize, y - MarkerSize, MarkerSize * 2, MarkerSize * 2), hit.Series.AccentColor);
 
             // Labels of near values stack instead of covering each other.

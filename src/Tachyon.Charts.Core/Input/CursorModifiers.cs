@@ -60,7 +60,7 @@ public sealed class CrosshairModifier : ChartModifier
         }
 
         interaction.Dispatch(() => overlay.Show(position, snapped));
-        Moved?.Invoke(this, interaction.ToAxisValue(position.X));
+        Moved?.Invoke(this, interaction.ToXValue(position));
         return ModifierResult.Ignored;
     }
 }
@@ -111,8 +111,8 @@ public sealed class RolloverModifier : ChartModifier
         _hits.Clear();
         interaction.Chart.HitTestAll(input.Position, MaximumDistance, HitTestMode.NearestX, _hits);
         var hits = _hits.ToArray();
-        var axis = interaction.Chart.HorizontalAxes[0];
-        var value = interaction.ToAxisValue(input.Position.X);
+        var axis = interaction.Chart.FirstXAxis;
+        var value = interaction.ToXValue(input.Position);
         interaction.Dispatch(() => overlay.Show(axis, value, hits));
         return ModifierResult.Ignored;
     }

@@ -89,9 +89,9 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|
 | ![Temperatures and pressures, each with a legend of its own, one inside the plot and one below it](docs/images/legends.png) |
 
-| Last value at the axis | Axes in the origin |
-|---|---|
-| ![Three live temperatures with their newest values as colored marks at the axis, moved apart where they meet](docs/images/last-value.png) | ![A function whose axes cross at zero](docs/images/axes-origin.png) |
+| Last value at the axis | Axes in the origin | X axis down |
+|---|---|---|
+| ![Three live temperatures with their newest values as colored marks at the axis, moved apart where they meet](docs/images/last-value.png) | ![A function whose axes cross at zero](docs/images/axes-origin.png) | ![A borehole log with the depth running down: gamma rays as an area, temperature as a line, core samples as points](docs/images/depth-profile.png) |
 
 | Scale break | Candles without weekends |
 |---|---|
@@ -150,7 +150,7 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 - Polygons with holes, 10 000 of them at 60 frames per second, and heatmaps cut out to an area
 - Finance: candles and OHLC bars from a thread-safe candle store, a million candles at 60 frames per second, volume in a pane of its own, market profile with point of control and value area
 - Drawing tools: trend line, Fibonacci retracement and extension, channel, pitchfork, Elliott waves, XABCD, head and shoulders and a free brush, fixed to values, saved as JSON
-- Numeric, time, logarithmic and category axes, stacked panes, linked charts, scale breaks and hidden times such as weekends, axes that cross in the origin
+- Numeric, time, logarithmic and category axes, stacked panes, linked charts, scale breaks and hidden times such as weekends, axes that cross in the origin, charts turned with the X axis down for depth profiles
 - Zoom, pan, crosshair, tooltip, lasso selection, measuring cursors, annotations, one undo chain for navigation and drawings
 - Several legends per chart, inside or outside the plot, each with its own series; a click switches a series off and on
 - Signal tools without dependencies: FFT, FIR and biquad filters, generators

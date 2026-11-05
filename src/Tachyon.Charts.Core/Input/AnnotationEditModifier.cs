@@ -122,8 +122,9 @@ public sealed class AnnotationEditModifier : ChartModifier
         var isResizing = _isResizing;
         interaction.Dispatch(() =>
         {
-            var deltaX = ToCoordinate(interaction, annotation.XAxis, delta.X);
-            var deltaY = ToCoordinate(interaction, annotation.YAxis, delta.Y);
+            // Each axis takes the move along its own direction, also when the X axis runs down.
+            var deltaX = ToCoordinate(interaction, annotation.XAxis, annotation.XAxis is { IsHorizontal: false } ? delta.Y : delta.X);
+            var deltaY = ToCoordinate(interaction, annotation.YAxis, annotation.YAxis is { IsHorizontal: true } ? delta.X : delta.Y);
             if (!isResizing || !annotation.Resize(deltaX, deltaY))
             {
                 annotation.Move(deltaX, deltaY);

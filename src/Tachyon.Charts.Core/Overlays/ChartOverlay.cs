@@ -114,6 +114,30 @@ public sealed class OverlayCanvas
         return false;
     }
 
+    /// <summary>
+    /// Finds the place of a data point, also in a chart whose X axis runs down: each value goes along the direction of
+    /// its own axis.
+    /// </summary>
+    /// <param name="xAxis">The X axis.</param>
+    /// <param name="yAxis">The Y axis.</param>
+    /// <param name="x">The X value.</param>
+    /// <param name="y">The Y value.</param>
+    /// <param name="point">Receives the place in device-independent units.</param>
+    /// <returns>Whether both axes are part of the chart.</returns>
+    public bool TryGetPoint(AxisBase xAxis, AxisBase yAxis, double x, double y, out Vector2 point)
+    {
+        ArgumentNullException.ThrowIfNull(xAxis);
+        ArgumentNullException.ThrowIfNull(yAxis);
+        point = default;
+        if (!TryGetPosition(xAxis, x, out var along) || !TryGetPosition(yAxis, y, out var across))
+        {
+            return false;
+        }
+
+        point = xAxis.IsHorizontal ? new Vector2((float)along, (float)across) : new Vector2((float)across, (float)along);
+        return true;
+    }
+
     /// <summary>Finds the value at a position of an axis.</summary>
     /// <param name="axis">The axis.</param>
     /// <param name="position">The position along the axis, X or Y in chart coordinates.</param>

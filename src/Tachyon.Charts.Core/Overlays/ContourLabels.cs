@@ -192,9 +192,14 @@ internal static class ContourLabels
     {
         var (x, y) = series.GridPoint(place.Grid.X, place.Grid.Y);
         var (x2, y2) = series.GridPoint(place.Grid.X + place.Direction.X, place.Grid.Y + place.Direction.Y);
-        (top, right, bottom) = (0, 0, 0);
-        return canvas.TryGetPosition(series.XAxis, x, out left) && canvas.TryGetPosition(series.YAxis, y, out top)
-            && canvas.TryGetPosition(series.XAxis, x2, out right) && canvas.TryGetPosition(series.YAxis, y2, out bottom);
+        (left, top, right, bottom) = (0, 0, 0, 0);
+        if (!canvas.TryGetPoint(series.XAxis, series.YAxis, x, y, out var start) || !canvas.TryGetPoint(series.XAxis, series.YAxis, x2, y2, out var end))
+        {
+            return false;
+        }
+
+        (left, top, right, bottom) = (start.X, start.Y, end.X, end.Y);
+        return true;
     }
 
     // Labels never touch, and labels of the same line keep a wide distance.

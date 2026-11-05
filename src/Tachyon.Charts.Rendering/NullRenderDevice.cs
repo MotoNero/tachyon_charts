@@ -446,6 +446,10 @@ public sealed class NullRenderDevice : IRenderDevice
             }
         }
 
+        public void SetQuarterTurn(float? sum)
+        {
+        }
+
         public void Submit()
         {
             ThrowIfNotRecording();

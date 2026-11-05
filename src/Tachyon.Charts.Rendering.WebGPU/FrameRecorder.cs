@@ -55,6 +55,7 @@ internal sealed unsafe class FrameRecorder : IDisposable
     private byte[] _uniforms = [];
     private int _transformedCount;
     private bool _hasClear;
+    private float? _turn;
     private Rgba8 _clearColor;
 
     // Frames waiting for the common upload and submit. The arrays above hold them one after the other.
@@ -88,7 +89,17 @@ internal sealed unsafe class FrameRecorder : IDisposable
         _glyphCount = _firstGlyph;
         _transformedCount = 0;
         _hasClear = false;
+        _turn = null;
     }
+
+    /// <summary>Turns the following commands a quarter turn; see <see cref="ICommandList.SetQuarterTurn"/>.</summary>
+    /// <param name="sum">The sum that places the turned picture, or <see langword="null"/> to stop.</param>
+    public void SetQuarterTurn(float? sum) => _turn = sum;
+
+    // Points computed on the CPU turn at once; points the GPU computes turn in the shader.
+    private Vector2 Turned(Vector2 point) => _turn is { } sum ? QuarterTurn.Apply(sum, point) : point;
+
+    private PixelRect? Turned(PixelRect? clip) => _turn is { } sum && clip is { } bounds ? QuarterTurn.Apply(sum, bounds) : clip;
 
     /// <summary>Collects the following frames until <see cref="EndBatch"/>.</summary>
     public void BeginBatch()
@@ -179,10 +190,10 @@ internal sealed unsafe class FrameRecorder : IDisposable
             Array.Resize(ref _vertices, Math.Max(_vertices.Length * 2, _vertexCount + count));
         }
 
-        NextOp() = new DrawOp { First = _vertexCount, Count = count, IsMesh = true, Clip = clip };
+        NextOp() = new DrawOp { First = _vertexCount, Count = count, IsMesh = true, Clip = Turned(clip) };
         for (var i = 0; i < count; i++)
         {
-            _vertices[_vertexCount++] = new FlatVertex(vertices[i].Position, vertices[i].Color);
+            _vertices[_vertexCount++] = new FlatVertex(Turned(vertices[i].Position), vertices[i].Color);
         }
     }
 
@@ -199,7 +210,8 @@ internal sealed unsafe class FrameRecorder : IDisposable
             Color = style.Color,
             Scale = style.Scale,
             Offset = style.Offset,
-            Clip = style.Clip,
+            Clip = Turned(style.Clip),
+            Turn = _turn,
             UniformSlot = _transformedCount,
             GlowRadius = style.GlowRadius,
             GlowIntensity = style.GlowIntensity,
@@ -215,6 +227,7 @@ internal sealed unsafe class FrameRecorder : IDisposable
             IsImage = true,
             Scale = new Vector2(bounds.Width, bounds.Height),
             Offset = new Vector2(bounds.X, bounds.Y),
+            Turn = _turn,
             UniformSlot = _transformedCount,
         };
     }
@@ -230,6 +243,7 @@ internal sealed unsafe class FrameRecorder : IDisposable
             Scale = new Vector2(bounds.Width, bounds.Height),
             Offset = new Vector2(bounds.X, bounds.Y),
             RasterStyle = style,
+            Turn = _turn,
             UniformSlot = _transformedCount,
         };
     }
@@ -244,7 +258,8 @@ internal sealed unsafe class FrameRecorder : IDisposable
             Count = markerCount,
             IsMarkers = true,
             MarkerStyle = style,
-            Clip = style.Clip,
+            Clip = Turned(style.Clip),
+            Turn = _turn,
             UniformSlot = _transformedCount,
         };
     }
@@ -268,6 +283,7 @@ internal sealed unsafe class FrameRecorder : IDisposable
 
     public void Submit(WebGpuTarget target)
     {
+        _turn = null;
         for (var i = _firstOp; i < _opCount; i++)
         {
             _ops[i].Points?.ThrowIfDisposed();
@@ -467,9 +483,9 @@ internal sealed unsafe class FrameRecorder : IDisposable
         }
 
         _ops[_opCount - 1].Count += 3;
-        _vertices[_vertexCount++] = new FlatVertex(a, colorA);
-        _vertices[_vertexCount++] = new FlatVertex(b, colorB);
-        _vertices[_vertexCount++] = new FlatVertex(c, colorC);
+        _vertices[_vertexCount++] = new FlatVertex(Turned(a), colorA);
+        _vertices[_vertexCount++] = new FlatVertex(Turned(b), colorB);
+        _vertices[_vertexCount++] = new FlatVertex(Turned(c), colorC);
     }
 
     private void UploadVertices()
@@ -552,26 +568,33 @@ internal sealed unsafe class FrameRecorder : IDisposable
         for (var i = frame.FirstOp; i < frame.EndOp; i++)
         {
             ref readonly var op = ref _ops[i];
-            if (op.Table is not null)
+            WriteOpUniforms(firstSlot, size, op);
+            if (op.Turn is { } sum && (op.Points is not null || op.IsImage))
             {
-                WriteRasterUniforms(firstSlot + op.UniformSlot, size, op);
+                MemoryMarshal.Write(_uniforms.AsSpan(((firstSlot + op.UniformSlot) * (int)_uniformStride) + 128), new Vector4(1, sum, 0, 0));
             }
-            else if (op.IsImage)
-            {
-                WriteUniforms(firstSlot + op.UniformSlot, new DrawParams { TargetSize = size, Scale = op.Scale, Offset = op.Offset });
-            }
-            else if (op.Points is not null)
-            {
-                if (op.IsMarkers)
-                {
-                    WriteMarkerUniforms(firstSlot + op.UniformSlot, size, op);
-                }
-                else
-                {
-                    var color = new Vector4(op.Color.R, op.Color.G, op.Color.B, op.Color.A) / 255f;
-                    WriteUniforms(firstSlot + op.UniformSlot, new DrawParams { TargetSize = size, Width = op.Width, Color = color, Scale = op.Scale, Offset = op.Offset, SizeScale = op.GlowRadius, GlowIntensity = op.GlowIntensity });
-                }
-            }
+        }
+    }
+
+    private void WriteOpUniforms(int firstSlot, Vector2 size, in DrawOp op)
+    {
+        var slot = firstSlot + op.UniformSlot;
+        if (op.Table is not null)
+        {
+            WriteRasterUniforms(slot, size, op);
+        }
+        else if (op.IsImage)
+        {
+            WriteUniforms(slot, new DrawParams { TargetSize = size, Scale = op.Scale, Offset = op.Offset });
+        }
+        else if (op.Points is not null && op.IsMarkers)
+        {
+            WriteMarkerUniforms(slot, size, op);
+        }
+        else if (op.Points is not null)
+        {
+            var color = new Vector4(op.Color.R, op.Color.G, op.Color.B, op.Color.A) / 255f;
+            WriteUniforms(slot, new DrawParams { TargetSize = size, Width = op.Width, Color = color, Scale = op.Scale, Offset = op.Offset, SizeScale = op.GlowRadius, GlowIntensity = op.GlowIntensity });
         }
     }
 
@@ -1023,6 +1046,10 @@ internal sealed unsafe class FrameRecorder : IDisposable
 
         [FieldOffset(112)]
         public Vector4 AboveColor;
+
+        // x is 1 for a quarter turn, y its sum; see QuarterTurn.
+        [FieldOffset(128)]
+        public Vector4 Turn;
     }
 
     private readonly record struct PendingFrame(WebGpuTarget Target, int FirstOp, int EndOp, int FirstSlot, bool HasClear, Rgba8 ClearColor);
@@ -1047,5 +1074,6 @@ internal sealed unsafe class FrameRecorder : IDisposable
         public float GlowIntensity;
         public MarkerStyle MarkerStyle;
         public RasterStyle RasterStyle;
+        public float? Turn;
     }
 }

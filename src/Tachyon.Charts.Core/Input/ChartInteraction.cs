@@ -9,10 +9,10 @@ namespace Tachyon.Charts.Core.Input;
 [Flags]
 public enum ChartDirection // NOSONAR: the name is public API
 {
-    /// <summary>The horizontal axes.</summary>
+    /// <summary>The X axes: horizontal, or standing when the X axis runs down.</summary>
     X = 1,
 
-    /// <summary>The vertical axes of the pane.</summary>
+    /// <summary>The Y axes: those of the pane, or the horizontal ones when the X axis runs down.</summary>
     Y = 2,
 
     /// <summary>Both directions.</summary>
@@ -114,6 +114,7 @@ public sealed class ChartInteraction(ChartSurface chart, Action<Action>? dispatc
     public void Zoom(PaneHit pane, Vector2 position, double factor, ChartDirection direction) => Dispatch(() =>
     {
         History.Record(Chart);
+        direction = OnScreen(direction);
         if ((direction & ChartDirection.X) != 0)
         {
             foreach (var axis in Chart.HorizontalAxes)
@@ -140,6 +141,7 @@ public sealed class ChartInteraction(ChartSurface chart, Action<Action>? dispatc
     public void Pan(PaneHit pane, Vector2 delta, ChartDirection direction) => Dispatch(() =>
     {
         History.Record(Chart);
+        direction = OnScreen(direction);
         if ((direction & ChartDirection.X) != 0)
         {
             foreach (var axis in Chart.HorizontalAxes)
@@ -211,6 +213,7 @@ public sealed class ChartInteraction(ChartSurface chart, Action<Action>? dispatc
     public void ZoomTo(PaneHit pane, DipRect area, ChartDirection direction) => Dispatch(() =>
     {
         History.Record(Chart);
+        direction = OnScreen(direction);
         if ((direction & ChartDirection.X) != 0)
         {
             foreach (var axis in Chart.HorizontalAxes)
@@ -227,6 +230,30 @@ public sealed class ChartInteraction(ChartSurface chart, Action<Action>? dispatc
             }
         }
     });
+
+    // X and Y name the axes of the data; with the X axis down, X runs up and down on the screen.
+    private ChartDirection OnScreen(ChartDirection direction)
+    {
+        if (!Chart.IsXDown || direction == ChartDirection.Both)
+        {
+            return direction;
+        }
+
+        return direction == ChartDirection.X ? ChartDirection.Y : ChartDirection.X;
+    }
+
+    /// <summary>Converts a pointer position to a value of the first X axis, also when the X axis runs down.</summary>
+    /// <param name="position">The position in chart coordinates.</param>
+    /// <returns>The value of the last frame.</returns>
+    public double ToXValue(Vector2 position)
+    {
+        if (!Chart.IsXDown)
+        {
+            return ToAxisValue(position.X);
+        }
+
+        return Chart.CurrentLayout is { } layout ? ToData(Chart.FirstXAxis, layout.PlotArea, position.Y) : 0;
+    }
 
     /// <summary>Converts a position to a value of the first horizontal axis.</summary>
     /// <param name="x">The horizontal position in chart coordinates.</param>

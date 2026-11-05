@@ -92,6 +92,7 @@ public static class SceneCatalog
         new AxisBreakScene("ContourLabels", Examples.ChartTypes.LabelledContoursPage.Configure),
         new LastValueScene(),
         new AxisBreakScene("AxesInTheOrigin", Examples.ChartTypes.AxesInTheOriginPage.Configure),
+        new AxisBreakScene("DepthProfile", Examples.ChartTypes.DepthProfilePage.Configure),
         new AxisBreakScene("Polygons", Examples.ChartTypes.PolygonsPage.Configure),
         new AxisBreakScene("Legends", Examples.ChartTypes.SeveralLegendsPage.Configure),
         new AxisBreakScene("HeatmapInAnArea", Examples.ChartTypes.HeatmapInAnAreaPage.Configure),

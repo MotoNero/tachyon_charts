@@ -67,9 +67,59 @@ public abstract class Annotation(AxisBase? xAxis, AxisBase? yAxis) : ChartOverla
     /// <returns>The position.</returns>
     protected Vector2 ToChart(OverlayCanvas canvas, double x, double y)
     {
-        var left = XAxis is { } horizontal && canvas.TryGetPosition(horizontal, x, out var positionX) ? positionX : x;
-        var top = YAxis is { } vertical && canvas.TryGetPosition(vertical, y, out var positionY) ? positionY : y;
-        return new Vector2((float)left, (float)top);
+        ArgumentNullException.ThrowIfNull(canvas);
+        var alongX = XAxis is { } xAxis && canvas.TryGetPosition(xAxis, x, out var positionX) ? positionX : x;
+        var alongY = YAxis is { } yAxis && canvas.TryGetPosition(yAxis, y, out var positionY) ? positionY : y;
+
+        // With the X axis down, X goes up and down on the screen and Y across.
+        return IsTurned ? new Vector2((float)alongY, (float)alongX) : new Vector2((float)alongX, (float)alongY);
+    }
+
+    /// <summary>Gets a value indicating whether the axes lie turned, with the X axis running down.</summary>
+    protected bool IsTurned => XAxis is { IsHorizontal: false } || YAxis is { IsHorizontal: true };
+
+    /// <summary>Draws a line across the plot at a place of an axis, upright for a horizontal axis, level for a standing one.</summary>
+    /// <param name="canvas">The canvas.</param>
+    /// <param name="axis">The axis.</param>
+    /// <param name="value">The value.</param>
+    /// <param name="label">A label at the start of the line, or <see langword="null"/>.</param>
+    protected void DrawAcross(OverlayCanvas canvas, AxisBase axis, double value, string? label)
+    {
+        ArgumentNullException.ThrowIfNull(canvas);
+        ArgumentNullException.ThrowIfNull(axis);
+        var plot = canvas.Layout.PlotArea;
+        if (!canvas.TryGetPosition(axis, value, out var at))
+        {
+            return;
+        }
+
+        canvas.Clip = plot;
+        if (axis.IsHorizontal)
+        {
+            canvas.DrawLine(new Vector2((float)at, (float)plot.Y), new Vector2((float)at, (float)plot.Bottom), 1, Color);
+            SetBounds(new DipRect(at, plot.Y, 1, plot.Height));
+        }
+        else
+        {
+            canvas.DrawLine(new Vector2((float)plot.X, (float)at), new Vector2((float)plot.Right, (float)at), 1, Color);
+            SetBounds(new DipRect(plot.X, at, plot.Width, 1));
+        }
+
+        if (label is null)
+        {
+            return;
+        }
+
+        // A label at the top of an upright line, at the right end of a level one.
+        var width = canvas.MeasureWidth(label, canvas.LabelSize) + 8;
+        if (axis.IsHorizontal)
+        {
+            canvas.DrawLabel(label, at + 4, plot.Y + 4, Color, canvas.BackgroundColor);
+        }
+        else
+        {
+            canvas.DrawLabel(label, plot.Right - width - 4, at - canvas.GetLineHeight(canvas.LabelSize) - 3, Color, canvas.BackgroundColor);
+        }
     }
 
     /// <summary>Remembers the area of this frame.</summary>
@@ -114,23 +164,7 @@ public sealed class HorizontalLineAnnotation(AxisBase yAxis) : Annotation(null, 
     public override void Move(double deltaX, double deltaY) => Y += deltaY;
 
     /// <inheritdoc />
-    protected internal override void Draw(OverlayCanvas canvas)
-    {
-        var plot = canvas.Layout.PlotArea;
-        if (!canvas.TryGetPosition(YAxis!, _y, out var y))
-        {
-            return;
-        }
-
-        canvas.Clip = plot;
-        canvas.DrawLine(new Vector2((float)plot.X, (float)y), new Vector2((float)plot.Right, (float)y), 1, Color);
-        SetBounds(new DipRect(plot.X, y, plot.Width, 1));
-        if (Label is { } label)
-        {
-            var width = canvas.MeasureWidth(label, canvas.LabelSize) + 8;
-            canvas.DrawLabel(label, plot.Right - width - 4, y - canvas.GetLineHeight(canvas.LabelSize) - 3, Color, canvas.BackgroundColor);
-        }
-    }
+    protected internal override void Draw(OverlayCanvas canvas) => DrawAcross(canvas, YAxis!, _y, Label);
 }
 
 /// <summary>A line across the plot at an X value.</summary>
@@ -157,22 +191,7 @@ public sealed class VerticalLineAnnotation(AxisBase xAxis) : Annotation(xAxis, n
     public override void Move(double deltaX, double deltaY) => X += deltaX;
 
     /// <inheritdoc />
-    protected internal override void Draw(OverlayCanvas canvas)
-    {
-        var plot = canvas.Layout.PlotArea;
-        if (!canvas.TryGetPosition(XAxis!, _x, out var x))
-        {
-            return;
-        }
-
-        canvas.Clip = plot;
-        canvas.DrawLine(new Vector2((float)x, (float)plot.Y), new Vector2((float)x, (float)plot.Bottom), 1, Color);
-        SetBounds(new DipRect(x, plot.Y, 1, plot.Height));
-        if (Label is { } label)
-        {
-            canvas.DrawLabel(label, x + 4, plot.Y + 4, Color, canvas.BackgroundColor);
-        }
-    }
+    protected internal override void Draw(OverlayCanvas canvas) => DrawAcross(canvas, XAxis!, _x, Label);
 }
 
 /// <summary>A rectangle between two corners.</summary>

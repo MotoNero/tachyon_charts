@@ -113,9 +113,17 @@ public readonly struct LinearAxisTransform : IAxisTransform, IEquatable<LinearAx
     /// <inheritdoc />
     public override int GetHashCode() => HashCode.Combine(_dataOrigin, _pixelOrigin, _pixelsPerUnit);
 
+    private LinearAxisTransform(double dataOrigin, double pixelOrigin, double pixelsPerUnit, AxisScaling? scaling) =>
+        (_dataOrigin, _pixelOrigin, _pixelsPerUnit, _scaling) = (dataOrigin, pixelOrigin, pixelsPerUnit, scaling);
+
     /// <inheritdoc />
     public double ToPixel(double value) =>
         ToPixelLinear(_scaling is null ? value : _scaling.Forward(value));
+
+    /// <summary>Gets the same mapping with each pixel p moved to sum − p, as a quarter turn needs.</summary>
+    /// <param name="sum">The sum.</param>
+    /// <returns>The mirrored mapping.</returns>
+    internal LinearAxisTransform Mirrored(double sum) => new(_dataOrigin, sum - _pixelOrigin, -_pixelsPerUnit, _scaling);
 
     /// <summary>Gets a value indicating whether pixels follow values in a straight line.</summary>
     public bool IsLinear => _scaling is null;

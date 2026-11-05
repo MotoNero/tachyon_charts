@@ -484,6 +484,9 @@ public sealed record ChartDefinition(
     /// <summary>Gets the name of the group this chart joins, or <see langword="null"/> for none.</summary>
     public string? GroupName { get; init; }
 
+    /// <summary>Gets a value indicating whether the chart is turned a quarter, with the X axis running down; see <see cref="ChartBuilder.XDown"/>.</summary>
+    public bool IsXDown { get; init; }
+
     /// <summary>Gets what creates the overlays. A chart can call it again, for example after a device loss.</summary>
     public IReadOnlyList<Func<ChartSurface, Overlays.ChartOverlay>> Overlays { get; init; } = [];
 
@@ -493,10 +496,12 @@ public sealed record ChartDefinition(
     /// <exception cref="InvalidOperationException">An axis is missing.</exception>
     public BuiltChart Build(ITextEngine textEngine)
     {
-        var xAxes = XAxes.Select(axis => CreateAxis(axis, AxisPosition.Bottom)).ToArray();
-        var yAxes = YAxes.Select(axis => CreateAxis(axis, AxisPosition.Left)).ToArray();
+        var xAxes = XAxes.Select(axis => CreateAxis(IsXDown ? Turned(axis) : axis, IsXDown ? AxisPosition.Left : AxisPosition.Bottom)).ToArray();
+        var yAxes = YAxes.Select(axis => CreateAxis(IsXDown ? Turned(axis) : axis, IsXDown ? AxisPosition.Bottom : AxisPosition.Left)).ToArray();
         var colorAxes = Series.Where(series => series.ColorScale is not null).Select((series, index) => (Series: series, Axis: series.ColorScale!.Create($"color{index}"))).ToArray();
-        var surface = new ChartSurface(xAxes, CreatePanes(yAxes, colorAxes.Select(item => item.Axis)), textEngine) { Title = Title, Theme = Theme };
+        var surface = IsXDown
+            ? CreateTurned(xAxes, yAxes, colorAxes.Select(item => item.Axis), textEngine)
+            : new ChartSurface(xAxes, CreatePanes(yAxes, colorAxes.Select(item => item.Axis)), textEngine) { Title = Title, Theme = Theme };
         foreach (var series in Series)
         {
             var x = Find(xAxes, series.XAxisId, "X");
@@ -519,6 +524,40 @@ public sealed record ChartDefinition(
         }
 
         return new BuiltChart(surface, modifiers);
+    }
+
+    // A position turns with the chart: the bottom becomes the left side, the left side the bottom; top and right alike.
+    private static AxisDefinition Turned(AxisDefinition axis) => axis with
+    {
+        Position = axis.Position switch
+        {
+            AxisPosition.Bottom => AxisPosition.Left,
+            AxisPosition.Left => AxisPosition.Bottom,
+            AxisPosition.Top => AxisPosition.Right,
+            AxisPosition.Right => AxisPosition.Top,
+            _ => null,
+        },
+    };
+
+    // Turned, the Y axes lie along the bottom or top and the X axes stand in the one pane; X runs down unless inverted.
+    private ChartSurface CreateTurned(AxisBase[] xAxes, AxisBase[] yAxes, IEnumerable<AxisBase> colorAxes, ITextEngine textEngine)
+    {
+        if (YAxes.Any(axis => axis.Pane > 0))
+        {
+            throw new InvalidOperationException("A chart with the X axis down has one pane.");
+        }
+
+        if (xAxes.Any(axis => axis.IsHorizontal) || yAxes.Any(axis => !axis.IsHorizontal))
+        {
+            throw new InvalidOperationException("With the X axis down, X axes stand left or right and Y axes lie at the bottom or top.");
+        }
+
+        foreach (var axis in xAxes)
+        {
+            axis.IsInverted = !axis.IsInverted;
+        }
+
+        return new ChartSurface(yAxes, [new LayoutPane([.. xAxes, .. colorAxes])], textEngine) { Title = Title, Theme = Theme, IsXDown = true };
     }
 
     // Vertical axes go into the pane they name, from the top; color axes join the first pane.
@@ -1174,6 +1213,7 @@ public sealed class ChartBuilder
     private readonly List<SeriesDefinition> _series = [];
     private readonly List<ModifierDefinition> _modifiers = [];
     private string? _title;
+    private bool _isXDown;
     private Theme? _theme;
     private string? _groupName;
 
@@ -1183,6 +1223,19 @@ public sealed class ChartBuilder
     public ChartBuilder Title(string title)
     {
         _title = title;
+        return this;
+    }
+
+    /// <summary>
+    /// Turns the chart a quarter, as for a depth profile: the X axis runs down along the left side, the Y axis along
+    /// the bottom. Every series and every interaction works as in an upright chart. <see cref="AxisBuilder.Inverted"/>
+    /// lets the X axis run up instead. Positions turn with the chart: an X axis at the top stands on the right, a Y axis on
+    /// the right lies at the top. A turned chart has one pane.
+    /// </summary>
+    /// <returns>This builder.</returns>
+    public ChartBuilder XDown()
+    {
+        _isXDown = true;
         return this;
     }
 
@@ -1364,7 +1417,7 @@ public sealed class ChartBuilder
             throw new InvalidOperationException($"The axis name '{duplicate.Key}' occurs twice.");
         }
 
-        return new ChartDefinition(_title, _theme, [.. _xAxes], [.. _yAxes], [.. _series], [.. _modifiers]) { GroupName = _groupName, Overlays = [.. _overlays] };
+        return new ChartDefinition(_title, _theme, [.. _xAxes], [.. _yAxes], [.. _series], [.. _modifiers]) { GroupName = _groupName, Overlays = [.. _overlays], IsXDown = _isXDown };
     }
 
     private static AxisDefinition Describe(Action<AxisBuilder> configure, string fallbackId)

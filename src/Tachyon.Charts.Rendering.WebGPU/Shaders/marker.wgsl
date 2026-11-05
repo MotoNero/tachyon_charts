@@ -9,9 +9,24 @@ struct Params {
     offset: vec2f,
     size_scale: f32,
     shape: u32,
+    // The fields of the other pipelines in between; the layout is shared.
+    unused_a: vec4f,
+    unused_b: vec4f,
+    unused_c: vec4f,
+    unused_d: vec4f,
+    turn: vec4f,
 }
 
 @group(0) @binding(0) var<uniform> params: Params;
+
+// A quarter turn clockwise for a chart whose X axis runs down: (x, y) lands at (sum - y, x).
+fn turned(point: vec2f) -> vec2f {
+    if (params.turn.x > 0.5) {
+        return vec2f(params.turn.y - point.y, point.x);
+    }
+
+    return point;
+}
 
 struct VertexOutput {
     @builtin(position) position: vec4f,
@@ -35,7 +50,7 @@ fn vs_main(
     let half_size = marker_size * params.size_scale * 0.5;
     let local = corners[vertex_index];
     let pixel = marker_position * params.scale + params.offset + local * (half_size + 1.0);
-    let ndc = pixel / params.target_size * 2.0 - 1.0;
+    let ndc = turned(pixel) / params.target_size * 2.0 - 1.0;
 
     var output: VertexOutput;
     output.position = vec4f(ndc.x, -ndc.y, 0.0, 1.0);

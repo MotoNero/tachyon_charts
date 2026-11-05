@@ -16,7 +16,14 @@ namespace Tachyon.Charts.Core.Pipeline;
 /// <param name="DpiScale">Physical pixels per device-independent unit.</param>
 /// <param name="GlowRadius">The reach of the glow of the theme in device-independent units, zero for none.</param>
 /// <param name="GlowIntensity">The strength of the glow of the theme, from 0 to 1.</param>
-public readonly record struct SeriesFrame(PixelRect Bounds, LinearAxisTransform X, LinearAxisTransform Y, double DpiScale, double GlowRadius = 0, double GlowIntensity = 0);
+public readonly record struct SeriesFrame(PixelRect Bounds, LinearAxisTransform X, LinearAxisTransform Y, double DpiScale, double GlowRadius = 0, double GlowIntensity = 0)
+{
+    /// <summary>
+    /// Gets the sum of the quarter turn of a chart whose X axis runs down, or <see langword="null"/> for an upright one.
+    /// The series then draws upright in <see cref="Bounds"/>, and the chart turns the picture; see <see cref="ICommandList.SetQuarterTurn"/>.
+    /// </summary>
+    public float? QuarterTurn { get; init; }
+}
 
 /// <summary>
 /// The visual representation of data in a chart.
@@ -43,6 +50,9 @@ public abstract class ChartSeries(AxisBase xAxis, AxisBase yAxis)
     /// Gets or sets the name shown in rollovers and legends.
     /// </summary>
     public string? Name { get; set; }
+
+    /// <summary>Gets a value indicating whether the series turns with a chart whose X axis runs down. A pie does not.</summary>
+    internal virtual bool TurnsWithChart => true;
 
     /// <summary>
     /// Gets or sets a note for the diagnostics overlay, for example about data that is too large for

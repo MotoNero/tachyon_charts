@@ -72,9 +72,9 @@ public sealed class SelectionOverlay : ChartOverlay
         canvas.Clip = canvas.Layout.PlotArea;
         foreach (var (series, x, y) in _points)
         {
-            if (canvas.TryGetPosition(series.XAxis, x, out var left) && canvas.TryGetPosition(series.YAxis, y, out var top))
+            if (canvas.TryGetPoint(series.XAxis, series.YAxis, x, y, out var point))
             {
-                canvas.DrawRectangle(new DipRect(left - MarkerSize, top - MarkerSize, MarkerSize * 2, MarkerSize * 2), Color);
+                canvas.DrawRectangle(new DipRect(point.X - MarkerSize, point.Y - MarkerSize, MarkerSize * 2, MarkerSize * 2), Color);
             }
         }
 

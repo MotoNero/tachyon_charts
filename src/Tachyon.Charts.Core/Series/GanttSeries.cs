@@ -358,10 +358,18 @@ public sealed class GanttOverlay(GanttSeries series) : ChartOverlay
     {
         ArgumentNullException.ThrowIfNull(canvas);
         var state = _series.Data.Current;
+        var origin = CandleColumns.OriginOf(_series.XAxis);
+
+        // Labels belong level inside the bars and arrows run right, down and right: a turned chart shows neither.
+        if (!_series.XAxis.IsHorizontal)
+        {
+            DrawHover(canvas, state, origin);
+            return;
+        }
+
         var layout = canvas.Layout;
         var pane = layout.Panes[0];
         canvas.Clip = pane;
-        var origin = CandleColumns.OriginOf(_series.XAxis);
         var line = canvas.GetLineHeight(LabelSize);
         // Only the visible lines and times, found like the bars of the series.
         canvas.TryGetValue(_series.YAxis, pane.Y, out var topLine);
@@ -446,10 +454,15 @@ public sealed class GanttOverlay(GanttSeries series) : ChartOverlay
 
     private bool TryPlace(OverlayCanvas canvas, GanttData.State state, int row, double time, out double x, out double y)
     {
-        y = 0;
+        (x, y) = (0, 0);
         var line = state.LineOfRow[row];
-        var isOnAxis = canvas.TryGetPosition(_series.XAxis, time, out x);
-        return isOnAxis && line >= 0 && canvas.TryGetPosition(_series.YAxis, line, out y);
+        if (line < 0 || !canvas.TryGetPoint(_series.XAxis, _series.YAxis, time, line, out var point))
+        {
+            return false;
+        }
+
+        (x, y) = (point.X, point.Y);
+        return true;
     }
 
     // From the end of the first task right, down or up to the line of the second, and right into its start.

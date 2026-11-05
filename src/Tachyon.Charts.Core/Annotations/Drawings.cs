@@ -267,7 +267,10 @@ public sealed class DrawingLayer : ChartOverlay
             return false;
         }
 
-        position = new Vector2((float)x.ToPixel(point.X - Origin(_xAxis)), (float)y.ToPixel(point.Y - Origin(_yAxis)));
+        var (alongX, alongY) = ((float)x.ToPixel(point.X - Origin(_xAxis)), (float)y.ToPixel(point.Y - Origin(_yAxis)));
+
+        // With the X axis down, X goes up and down on the screen and Y across.
+        position = _xAxis.IsHorizontal ? new Vector2(alongX, alongY) : new Vector2(alongY, alongX);
         return true;
     }
 
@@ -280,7 +283,8 @@ public sealed class DrawingLayer : ChartOverlay
             return false;
         }
 
-        point = new DrawingPoint(x.ToData(position.X) + Origin(_xAxis), y.ToData(position.Y) + Origin(_yAxis));
+        var (alongX, alongY) = _xAxis.IsHorizontal ? (position.X, position.Y) : (position.Y, position.X);
+        point = new DrawingPoint(x.ToData(alongX) + Origin(_xAxis), y.ToData(alongY) + Origin(_yAxis));
         return true;
     }
 
@@ -1068,9 +1072,10 @@ public static class DrawingTools
             .AddOverlay(chart =>
             {
                 // The same layer again when the chart creates its overlays anew, so that no drawing is lost.
-                if (layer is null || layer.XAxis != chart.HorizontalAxes[0])
+                var (xAxis, yAxis) = chart.IsXDown ? (chart.FirstXAxis, chart.HorizontalAxes[0]) : (chart.HorizontalAxes[0], chart.Panes[0].Axes[0]);
+                if (layer is null || layer.XAxis != xAxis)
                 {
-                    layer = new DrawingLayer(chart.HorizontalAxes[0], chart.Panes[0].Axes[0]);
+                    layer = new DrawingLayer(xAxis, yAxis);
                     created?.Invoke(layer);
                 }
 
