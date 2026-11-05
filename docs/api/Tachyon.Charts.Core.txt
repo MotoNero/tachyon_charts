@@ -384,6 +384,18 @@ sealed class Tachyon.Charts.Core.Data.ItemsDataSource : System.IDisposable
   System.Void Dispose()
   Tachyon.Charts.Core.Data.DataSource<System.Double, System.Double> Source { get; }
   static System.Int32 RecommendedLimit
+sealed class Tachyon.Charts.Core.Data.Polygon
+  .ctor(Tachyon.Charts.Core.Data.PolygonRing outer, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.PolygonRing> holes = null)
+  System.Boolean Contains(System.Double x, System.Double y)
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.PolygonRing> Holes { get; }
+  System.String Name { get; set; }
+  Tachyon.Charts.Core.Data.PolygonRing Outer { get; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+sealed class Tachyon.Charts.Core.Data.PolygonRing
+  .ctor(System.Collections.Generic.IReadOnlyList<System.Double> x, System.Collections.Generic.IReadOnlyList<System.Double> y)
+  System.Double[] X { get; }
+  System.Double[] Y { get; }
+  System.Int32 Count { get; }
 struct Tachyon.Charts.Core.Data.RingSegment : System.IEquatable<Tachyon.Charts.Core.Data.RingSegment>
   .ctor(System.Int32 Start, System.Int32 Length)
   System.Int32 Length { get; set; }
@@ -538,11 +550,13 @@ sealed class Tachyon.Charts.Core.Fluent.HeatmapBuilder
   Tachyon.Charts.Core.Fluent.HeatmapBuilder Cells(System.Double xStart, System.Double xStep, System.Double yStart, System.Double yStep)
   Tachyon.Charts.Core.Fluent.HeatmapBuilder ColorAxis(System.Action<Tachyon.Charts.Core.Fluent.ColorAxisBuilder> configure)
   Tachyon.Charts.Core.Fluent.HeatmapBuilder Edges(System.Collections.Generic.IReadOnlyList<System.Double> xEdges, System.Collections.Generic.IReadOnlyList<System.Double> yEdges)
+  Tachyon.Charts.Core.Fluent.HeatmapBuilder Mask(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.Polygon> polygons)
   Tachyon.Charts.Core.Fluent.HeatmapBuilder Name(System.String name)
 sealed class Tachyon.Charts.Core.Fluent.HeatmapDefinition : Tachyon.Charts.Core.Fluent.RasterDefinition, System.IEquatable<Tachyon.Charts.Core.Fluent.HeatmapDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.RasterDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.SeriesDefinition>
   .ctor()
   System.Collections.Generic.IReadOnlyList<System.Double> XEdges { get; set; }
   System.Collections.Generic.IReadOnlyList<System.Double> YEdges { get; set; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.Polygon> Mask { get; set; }
   System.Double XStart { get; set; }
   System.Double XStep { get; set; }
   System.Double YStart { get; set; }
@@ -1776,6 +1790,7 @@ sealed class Tachyon.Charts.Core.Series.HeatmapSeries : Tachyon.Charts.Core.Seri
   .ctor(Tachyon.Charts.Core.Data.HeatmapData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis, Tachyon.Charts.Core.Axes.ColorAxis colorAxis)
   System.Collections.Generic.IReadOnlyList<System.Double> XEdges { get; set; }
   System.Collections.Generic.IReadOnlyList<System.Double> YEdges { get; set; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.Polygon> Mask { get; set; }
   System.Double XStart { get; set; }
   System.Double XStep { get; set; }
   System.Double YStart { get; set; }
@@ -1929,6 +1944,24 @@ sealed class Tachyon.Charts.Core.Series.PolarSeries : Tachyon.Charts.Core.Pipeli
   protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
   protected virtual System.Void ReleaseResources()
   static Tachyon.Charts.Core.Series.PolarSeries Radar(System.Double[] values, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
+static class Tachyon.Charts.Core.Series.PolygonCharts
+  static Tachyon.Charts.Core.Fluent.ChartBuilder Polygons(Tachyon.Charts.Core.Fluent.ChartBuilder builder, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.Polygon> polygons, System.Action<Tachyon.Charts.Core.Series.PolygonSeries> configure = null)
+sealed class Tachyon.Charts.Core.Series.PolygonSeries : Tachyon.Charts.Core.Pipeline.ChartSeries, System.IDisposable
+  .ctor(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.Polygon> polygons, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  System.Byte FillAlpha { get; set; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.Polygon> Polygons { get; }
+  System.Double Thickness { get; set; }
+  System.Void Dispose()
+  Tachyon.Charts.Rendering.Rgba8 Stroke { get; set; }
+  protected virtual System.Boolean TryFindPoint(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Numerics.Vector2 pixel, System.Double maximumDistance, Tachyon.Charts.Core.HitTesting.HitTestMode mode, out System.Int64 index, out System.Double x, out System.Double y)
+  protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Int32 DrawnPointCount { get; }
+  protected virtual System.Int64 Version { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void OnPalette(System.ReadOnlySpan<Tachyon.Charts.Rendering.Rgba8> palette)
+  protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void ReleaseResources()
   virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
 sealed class Tachyon.Charts.Core.Series.PositionGradientFill : Tachyon.Charts.Core.Series.SeriesFill, System.IEquatable<Tachyon.Charts.Core.Series.PositionGradientFill>, System.IEquatable<Tachyon.Charts.Core.Series.SeriesFill>
   .ctor(Tachyon.Charts.Rendering.Rgba8 Top, Tachyon.Charts.Rendering.Rgba8 Bottom)

@@ -20,6 +20,7 @@ Tachyon Charts draws large amounts of data in real time, in WPF and Avalonia, on
 | Drawing tools: Fibonacci, channels, pitchfork, patterns | [drawings.md](drawings.md) |
 | Gantt and time lines | [gantt.md](gantt.md) |
 | Sweep and stepping monitors | [sweep.md](sweep.md) |
+| Polygons, heatmap inside an area | [polygons.md](polygons.md) |
 | Heatmap, spectrogram, contour | [rasters.md](rasters.md) |
 | Axes | [axes.md](axes.md) |
 | Mouse and keyboard | [interaction.md](interaction.md) |

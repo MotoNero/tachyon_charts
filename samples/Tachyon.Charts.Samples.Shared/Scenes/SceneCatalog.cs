@@ -92,6 +92,8 @@ public static class SceneCatalog
         new AxisBreakScene("ContourLabels", Examples.ChartTypes.LabelledContoursPage.Configure),
         new LastValueScene(),
         new AxisBreakScene("AxesInTheOrigin", Examples.ChartTypes.AxesInTheOriginPage.Configure),
+        new AxisBreakScene("Polygons", Examples.ChartTypes.PolygonsPage.Configure),
+        new AxisBreakScene("HeatmapInAnArea", Examples.ChartTypes.HeatmapInAnAreaPage.Configure),
         new GlowNeonScene(),
         new GradientsScene(),
         new ThemeGalleryScene("ThemeHighContrast", BuiltInThemes.HighContrast),

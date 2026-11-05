@@ -172,6 +172,9 @@ public sealed record HeatmapDefinition : RasterDefinition
     /// <summary>Gets the edges of the columns, or <see langword="null"/> for equal columns.</summary>
     public IReadOnlyList<double>? XEdges { get; init; }
 
+    /// <summary>Gets the polygons that cut the heatmap out, or <see langword="null"/> for all cells.</summary>
+    public IReadOnlyList<Data.Polygon>? Mask { get; init; }
+
     /// <summary>Gets the edges of the rows, or <see langword="null"/> for equal rows.</summary>
     public IReadOnlyList<double>? YEdges { get; init; }
 
@@ -183,6 +186,7 @@ public sealed record HeatmapDefinition : RasterDefinition
         YStart = YStart,
         YStep = YStep,
         XEdges = XEdges,
+        Mask = Mask,
         YEdges = YEdges,
     };
 }
@@ -644,6 +648,11 @@ public sealed class HeatmapBuilder
     /// <returns>This builder.</returns>
     public HeatmapBuilder Edges(IReadOnlyList<double>? xEdges, IReadOnlyList<double>? yEdges) =>
         Change(Definition with { XEdges = xEdges, YEdges = yEdges });
+
+    /// <summary>Shows only the cells inside polygons, for example the shape of a region.</summary>
+    /// <param name="polygons">The polygons.</param>
+    /// <returns>This builder.</returns>
+    public HeatmapBuilder Mask(IReadOnlyList<Data.Polygon> polygons) => Change(Definition with { Mask = polygons });
 
     /// <summary>Describes the value scale.</summary>
     /// <param name="configure">Describes the scale.</param>

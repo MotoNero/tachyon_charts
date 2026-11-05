@@ -53,9 +53,9 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|---|---|
 | ![Heatmap of 4096 by 4096 cells](docs/images/heatmap.png) | ![Filled contour plot](docs/images/contour.png) | ![Point cloud shown as density](docs/images/point-cloud.png) |
 
-| Labelled contour lines |
-|---|
-| ![Filled contours with the value of each line written along the line](docs/images/contour-labels.png) |
+| Labelled contour lines | Heatmap inside an area |
+|---|---|
+| ![Filled contours with the value of each line written along the line](docs/images/contour-labels.png) | ![A measurement shown only inside a region, not on its lake](docs/images/heatmap-area.png) |
 
 ### Chart types
 
@@ -75,9 +75,9 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|---|
 | ![Pie of a power mix with a pulled-out slice and small slices labelled on lines](docs/images/pie.png) | ![Donut of the same power mix](docs/images/donut.png) |
 
-| Gantt |
-|---|
-| ![Test plan over three stations with groups, dependencies and milestones](docs/images/gantt.png) |
+| Gantt | Polygons |
+|---|---|
+| ![Test plan over three stations with groups, dependencies and milestones](docs/images/gantt.png) | ![A ring, a star and an island with two lakes](docs/images/polygons.png) |
 
 ### Finance
 
@@ -131,6 +131,7 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 
 - Lines, scatter and density, bubbles, area, band, bars, error bars, stems, histogram, box plot, violin, pie and donut
 - Gantt and time lines: rows in collapsible groups, dependencies, milestones, 100 000 tasks at 60 frames per second
+- Polygons with holes, 10 000 of them at 60 frames per second, and heatmaps cut out to an area
 - Finance: candles and OHLC bars from a thread-safe candle store, a million candles at 60 frames per second, volume in a pane of its own, market profile with point of control and value area
 - Drawing tools: trend line, Fibonacci retracement and extension, channel, pitchfork, Elliott waves, XABCD, head and shoulders and a free brush, fixed to values, saved as JSON
 - Numeric, time, logarithmic and category axes, stacked panes, linked charts, scale breaks and hidden times such as weekends, axes that cross in the origin
@@ -286,6 +287,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Drawing tools](docs/guide/drawings.md) | Fibonacci, channels, pitchfork, patterns, saving as JSON |
 | [Gantt](docs/guide/gantt.md) | Rows, groups, dependencies, milestones |
 | [Sweep monitors](docs/guide/sweep.md) | Writing over the previous pass or page by page, channels in step |
+| [Polygons](docs/guide/polygons.md) | Polygons with holes, heatmaps inside an area |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
 | [docs/api](docs/api) | Public API lists |
 

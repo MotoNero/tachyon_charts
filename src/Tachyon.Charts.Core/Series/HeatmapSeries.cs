@@ -39,6 +39,9 @@ public sealed class HeatmapSeries : RasterSeries
     private long _pixelVersion = -1;
 
     private float[] _values = [];
+    private float[] _masked = [];
+    private Polygon[]? _mask;
+    private long _maskVersion;
     private long _valueVersion = -1;
     private IGpuTexture? _texture;
     private PixelRect _bounds;
@@ -136,14 +139,32 @@ public sealed class HeatmapSeries : RasterSeries
         return !range.IsEmpty;
     }
 
+    /// <summary>
+    /// Gets or sets polygons that cut the heatmap out: only cells whose middle lies inside them show, the rest
+    /// stays clear, for example a measurement over the shape of a region. <see langword="null"/> shows all cells.
+    /// Cells without a value inside the polygons stay clear as well.
+    /// </summary>
+    public IReadOnlyList<Polygon>? Mask
+    {
+        get => _mask;
+        set
+        {
+            _mask = value is null ? null : [.. value];
+            Interlocked.Increment(ref _maskVersion);
+            Interlocked.Increment(ref _layoutVersion);
+        }
+    }
+
     /// <inheritdoc />
     protected internal override void TakeSnapshot()
     {
-        if (_valueVersion != Data.Version)
+        // Data and mask together: a new mask needs a new upload as well.
+        var wanted = (Data.Version * 1_000_003) + Interlocked.Read(ref _maskVersion);
+        if (_valueVersion != wanted)
         {
             // Read in this order: a newer grid with the old version only leads to one more upload.
-            _valueVersion = Data.Version;
-            _values = Data.Values;
+            _valueVersion = wanted;
+            _values = _mask is { } mask ? Masked(Data.Values, mask) : Data.Values;
         }
     }
 
@@ -168,6 +189,11 @@ public sealed class HeatmapSeries : RasterSeries
         if (_texture is not null && Table is not null && _bounds.Width > 0 && _bounds.Height > 0)
         {
             var style = ColorAxis.CreateRasterStyle() with { SectionOrigin = _sectionOrigin, SectionSize = _sectionSize };
+            if (_mask is not null)
+            {
+                style = style with { MissingColor = default };
+            }
+
             commands.DrawRaster(_texture, Table, _bounds, style);
         }
     }
@@ -180,7 +206,9 @@ public sealed class HeatmapSeries : RasterSeries
         y = 0;
         var column = FindCell(frame.X.ToData(pixel.X), _xEdges, _xStart, _xStep, Data.Width);
         var row = FindCell(frame.Y.ToData(pixel.Y), _yEdges, _yStart, _yStep, Data.Height);
-        if (column < 0 || row < 0 || float.IsNaN(Data[column, row]))
+        var values = _values;
+        var cell = ((long)row * Data.Width) + column;
+        if (column < 0 || row < 0 || float.IsNaN(Data[column, row]) || (_mask is not null && cell < values.Length && float.IsNaN(values[cell])))
         {
             return false;
         }
@@ -230,6 +258,31 @@ public sealed class HeatmapSeries : RasterSeries
         _uploadedVersion = -1;
         _pixelVersion = -1;
         _valueVersion = -1;
+    }
+
+    // A copy of the values with NaN outside the polygons; the array is kept for the next change.
+    private float[] Masked(float[] values, Polygon[] mask)
+    {
+        if (_masked.Length != values.Length)
+        {
+            _masked = new float[values.Length];
+        }
+
+        values.CopyTo(_masked, 0);
+        var columns = new double[Data.Width];
+        var rows = new double[Data.Height];
+        for (var i = 0; i < columns.Length; i++)
+        {
+            columns[i] = Center(i, _xEdges, _xStart, _xStep);
+        }
+
+        for (var i = 0; i < rows.Length; i++)
+        {
+            rows[i] = Center(i, _yEdges, _yStart, _yStep);
+        }
+
+        PolygonMask.Apply(_masked, columns, rows, mask);
+        return _masked;
     }
 
     private static int FindCell(double value, double[]? edges, double start, double step, int count)
