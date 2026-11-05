@@ -86,6 +86,8 @@ public static class SampleText
         ["Gantt"] = "Gantt",
         ["Scale break"] = "Skalenbruch",
         ["Last value at the axis"] = "Letzter Wert an der Achse",
+        ["Axes in the origin"] = "Achsen im Ursprung",
+        ["Wheel: zoom | Drag: pan, the axes stay at zero or at the nearest edge | Double click: all"] = "Rad: Zoom | Ziehen: Pan, die Achsen bleiben bei null oder am nächsten Rand | Doppelklick: alles",
         ["The marks at the axis show the newest value of each line and move apart when they meet | Wheel: zoom | Drag: pan"] = "Die Marken an der Achse zeigen den neuesten Wert jeder Linie und weichen einander aus | Rad: Zoom | Ziehen: Pan",
         ["Uneven heatmap 4096²"] = "Ungleiche Heatmap 4096²",
         ["Labelled contours"] = "Beschriftete Höhenlinien",

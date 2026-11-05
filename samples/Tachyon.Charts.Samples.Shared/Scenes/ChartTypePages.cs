@@ -29,6 +29,7 @@ public static class ChartTypePages
         (LogarithmicAxisPage.Name, LogarithmicAxisPage.Hint, LogarithmicAxisPage.Configure),
         (ScaleBreakPage.Name, ScaleBreakPage.Hint, ScaleBreakPage.Configure),
         (LastValuePage.Name, LastValuePage.Hint, LastValuePage.Configure),
+        (AxesInTheOriginPage.Name, AxesInTheOriginPage.Hint, AxesInTheOriginPage.Configure),
         (UnevenHeatmapPage.Name, UnevenHeatmapPage.Hint, UnevenHeatmapPage.Configure),
         (LabelledContoursPage.Name, LabelledContoursPage.Hint, LabelledContoursPage.Configure),
         (PolarPage.Name, PolarPage.Hint, PolarPage.Configure),

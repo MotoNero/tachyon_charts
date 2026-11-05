@@ -207,6 +207,26 @@ public abstract class AxisBase
     public bool IsHidden { get; set; }
 
     /// <summary>
+    /// Gets or sets the value of the other axis where this axis runs through the plot, for example 0 for axes that
+    /// cross in the origin; <see langword="null"/> keeps the axis at the edge. An axis through the plot takes no
+    /// room at the edge; outside the visible range it stays at the nearest edge of the plot.
+    /// </summary>
+    public double? CrossesAt
+    {
+        get => _crossesAt;
+        set
+        {
+            if (value is { } at && !double.IsFinite(at))
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "The place must be finite.");
+            }
+
+            _crossesAt = value;
+            OnChanged();
+        }
+    }
+
+    /// <summary>
     /// Gets or sets the rotation of the labels in degrees. Only axes with free text support it.
     /// </summary>
     /// <exception cref="NotSupportedException">This axis has no rotation.</exception>
@@ -336,6 +356,8 @@ public abstract class AxisBase
     /// Marks the axis as changed, for state of derived axes.
     /// </summary>
     protected void OnChanged() => Version++;
+
+    private double? _crossesAt;
 
     /// <summary>
     /// Finds the ticks for the visible range.

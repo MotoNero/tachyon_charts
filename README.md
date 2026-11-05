@@ -85,9 +85,9 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|---|
 | ![Daily candles of a share with volume bars in a pane below](docs/images/candles.png) | ![The same prices as OHLC bars in the light theme](docs/images/ohlc.png) |
 
-| Last value at the axis |
-|---|
-| ![Three live temperatures with their newest values as colored marks at the axis, moved apart where they meet](docs/images/last-value.png) |
+| Last value at the axis | Axes in the origin |
+|---|---|
+| ![Three live temperatures with their newest values as colored marks at the axis, moved apart where they meet](docs/images/last-value.png) | ![A function whose axes cross at zero](docs/images/axes-origin.png) |
 
 | Scale break | Candles without weekends |
 |---|---|
@@ -133,7 +133,7 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 - Gantt and time lines: rows in collapsible groups, dependencies, milestones, 100 000 tasks at 60 frames per second
 - Finance: candles and OHLC bars from a thread-safe candle store, a million candles at 60 frames per second, volume in a pane of its own, market profile with point of control and value area
 - Drawing tools: trend line, Fibonacci retracement and extension, channel, pitchfork, Elliott waves, XABCD, head and shoulders and a free brush, fixed to values, saved as JSON
-- Numeric, time, logarithmic and category axes, stacked panes, linked charts, scale breaks and hidden times such as weekends
+- Numeric, time, logarithmic and category axes, stacked panes, linked charts, scale breaks and hidden times such as weekends, axes that cross in the origin
 - Zoom, pan, crosshair, tooltip, lasso selection, measuring cursors, annotations, one undo chain for navigation and drawings
 - Signal tools without dependencies: FFT, FIR and biquad filters, generators
 - English and German texts, numbers and month names, switchable at runtime

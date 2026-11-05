@@ -63,6 +63,9 @@ public sealed record AxisDefinition(AxisKind Kind, string Id)
     /// <summary>Gets the height of the pane relative to the others.</summary>
     public double PaneWeight { get; init; } = 1;
 
+    /// <summary>Gets the value of the other axis where this axis runs through the plot, or <see langword="null"/> for the edge.</summary>
+    public double? CrossesAt { get; init; }
+
     /// <summary>Gets the ranges a numeric axis leaves out.</summary>
     public IReadOnlyList<DoubleRange> Breaks { get; init; } = [];
 
@@ -563,6 +566,7 @@ public sealed record ChartDefinition(
 
         axis.IsAutoRange = definition.IsAutoRange;
         axis.IsHidden = definition.IsHidden;
+        axis.CrossesAt = definition.CrossesAt;
         return axis;
     }
 
@@ -829,6 +833,11 @@ public sealed class AxisBuilder
     /// <summary>Hides the axis: it takes no room and shows nothing.</summary>
     /// <returns>This builder.</returns>
     public AxisBuilder Hidden() => Change(Definition with { IsHidden = true });
+
+    /// <summary>Lets the axis run through the plot where the other axis has a value, for example 0 for axes in the origin.</summary>
+    /// <param name="value">The value of the other axis.</param>
+    /// <returns>This builder.</returns>
+    public AxisBuilder CrossesAt(double value) => Change(Definition with { CrossesAt = value });
 
     /// <summary>Leaves ranges out of a numeric axis; they take no room and are marked.</summary>
     /// <param name="breaks">The ranges to leave out.</param>

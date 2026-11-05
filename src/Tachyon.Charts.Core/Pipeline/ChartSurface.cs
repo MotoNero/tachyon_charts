@@ -1066,6 +1066,12 @@ public sealed class ChartSurface
 
         var bounds = placement.Bounds;
         var isHorizontal = axis.IsHorizontal;
+        var origin = Origin(axis, layout);
+        if (axis.CrossesAt is { } crossing)
+        {
+            bounds = Crossing(axis, crossing, bounds, layout, scale);
+        }
+
         var length = isHorizontal ? bounds.Width : bounds.Height;
         var transform = axis.CreateTransform(isHorizontal ? bounds.X : bounds.Y, length);
         var drawsGrid = OwnsGrid(axis);
@@ -1082,7 +1088,10 @@ public sealed class ChartSurface
         foreach (var tick in ticks.Major)
         {
             var position = transform.ToPixel(tick.Value);
-            ArrangeTick(axis, tick.Label, position, bounds, scale);
+
+            // Where both axes cross, only the horizontal one writes its label.
+            var label = Math.Abs(position - origin) < 3 ? string.Empty : tick.Label;
+            ArrangeTick(axis, label, position, bounds, scale);
             if (drawsGrid)
             {
                 AddGridLine(_gridRects, position, isHorizontal, bounds, layout, scale);
@@ -1098,6 +1107,65 @@ public sealed class ChartSurface
         {
             ArrangeAxisTitle(title, axis, bounds, scale);
         }
+    }
+
+    // Moves an axis onto the line through the plot where the other axis has the value, and draws that line.
+    private DipRect Crossing(AxisBase axis, double value, DipRect bounds, ChartLayoutResult layout, double scale)
+    {
+        var plot = layout.PlotArea;
+        if (Other(axis, layout) is not { } other)
+        {
+            return bounds;
+        }
+
+        var otherBounds = other.Bounds;
+        var transform = other.Axis.CreateTransform(axis.IsHorizontal ? otherBounds.Y : otherBounds.X, axis.IsHorizontal ? otherBounds.Height : otherBounds.Width);
+        var at = transform.ToPixel(value);
+        if (axis.IsHorizontal)
+        {
+            at = double.IsFinite(at) ? Math.Clamp(at, plot.Y, plot.Bottom) : plot.Bottom;
+            _tickRects.Add(new DipRect(bounds.X, at, bounds.Width, 1).ToPixels(scale));
+            return axis.Position == AxisPosition.Top ? bounds with { Y = at - bounds.Height } : bounds with { Y = at };
+        }
+
+        at = double.IsFinite(at) ? Math.Clamp(at, plot.X, plot.Right) : plot.X;
+        _tickRects.Add(new DipRect(at, bounds.Y, 1, bounds.Height).ToPixels(scale));
+        return axis.Position == AxisPosition.Right ? bounds with { X = at } : bounds with { X = at - bounds.Width };
+    }
+
+    // The place of a horizontal axis that runs through the plot, for a vertical axis that must leave its label out there.
+    private static double Origin(AxisBase axis, ChartLayoutResult layout)
+    {
+        if (axis.IsHorizontal || Other(axis, layout) is not { Axis.CrossesAt: { } value } other)
+        {
+            return double.NaN;
+        }
+
+        var axes = layout.Axes;
+        for (var i = 0; i < axes.Count; i++)
+        {
+            if (axes[i].Axis == axis)
+            {
+                return axis.CreateTransform(axes[i].Bounds.Y, axes[i].Bounds.Height).ToPixel(value);
+            }
+        }
+
+        return double.NaN;
+    }
+
+    // The first axis of the other direction: the first horizontal one, or the first vertical one of the pane.
+    private static AxisPlacement? Other(AxisBase axis, ChartLayoutResult layout)
+    {
+        var axes = layout.Axes;
+        for (var i = 0; i < axes.Count; i++)
+        {
+            if (axes[i].Axis.IsHorizontal != axis.IsHorizontal && axes[i].Axis is not ColorAxis)
+            {
+                return axes[i];
+            }
+        }
+
+        return null;
     }
 
     private void ArrangeTick(AxisBase axis, string label, double position, DipRect bounds, double scale)

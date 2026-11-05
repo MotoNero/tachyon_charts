@@ -42,3 +42,14 @@ c.XAxis(a => a.DateTime("time").AutoRange().Gaps(TimeGapMap.Weekends(firstDay, l
 Hidden times take no room at all; candles on working days stand evenly. Zooming, panning and the value under the pointer go across breaks and gaps, and series draw as fast as without them, also with 100 million points.
 
 In code, set `NumericAxis.Breaks` and `DateTimeAxis.Gaps`. In the showroom: *Scale break*, *Candles without weekends*.
+
+## Axes through the plot
+
+```csharp
+c.XAxis(a => a.Numeric("x").Range(-10, 10).CrossesAt(0))
+ .YAxis(a => a.Numeric("y").Range(-6, 6).CrossesAt(0));
+```
+
+`CrossesAt` lets an axis run through the plot where the other axis has that value, here both in the origin, as functions are drawn on paper. Such an axis takes no room at the edge; when the value leaves the view, the axis stays at the nearest edge. Where both axes cross, only the horizontal one writes its label. Series, zooming and the value under the pointer are the same as with axes at the edge.
+
+In the showroom: *Axes in the origin*.

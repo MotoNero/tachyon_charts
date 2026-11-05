@@ -91,6 +91,7 @@ public static class SceneCatalog
         new AxisBreakScene("CandlesWithoutWeekends", Examples.ChartTypes.CandlesWithoutWeekendsPage.Configure),
         new AxisBreakScene("ContourLabels", Examples.ChartTypes.LabelledContoursPage.Configure),
         new LastValueScene(),
+        new AxisBreakScene("AxesInTheOrigin", Examples.ChartTypes.AxesInTheOriginPage.Configure),
         new GlowNeonScene(),
         new GradientsScene(),
         new ThemeGalleryScene("ThemeHighContrast", BuiltInThemes.HighContrast),

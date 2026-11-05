@@ -247,12 +247,12 @@ public static class ChartLayout
     private static double TitleThickness(AxisBase axis, ITextMeasurer measurer, ChartLayoutOptions options) =>
         string.IsNullOrEmpty(axis.Title) ? 0 : measurer.LineHeight + options.LabelGap;
 
-    private static double HorizontalThickness(AxisBase axis, ITextMeasurer measurer, ChartLayoutOptions options) => axis.IsHidden ? 0 :
+    private static double HorizontalThickness(AxisBase axis, ITextMeasurer measurer, ChartLayoutOptions options) => axis.IsHidden || axis.CrossesAt is not null ? 0 :
         options.TickLength + options.LabelGap + axis.MeasureLabelHeight(measurer) + TitleThickness(axis, measurer, options);
 
     private static double VerticalThickness(AxisBase axis, double length, ITextMeasurer measurer, ChartLayoutOptions options)
     {
-        if (axis.IsHidden)
+        if (axis.IsHidden || axis.CrossesAt is not null)
         {
             return 0;
         }
