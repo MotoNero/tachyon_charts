@@ -25,6 +25,7 @@ public sealed class PolygonSeries : ChartSeries, IDisposable
     private byte _fillAlpha = 170;
     private Rgba8 _stroke = new(255, 255, 255, 200);
     private double _thickness = 1;
+    private readonly List<Vector2> _ring = [];
     private long _appearance;
     private long _built = -1;
     private SeriesFrame _builtFrame;
@@ -177,6 +178,16 @@ public sealed class PolygonSeries : ChartSeries, IDisposable
             {
                 _mesh.Add(new MeshVertex(new Vector2((float)frame.X.ToPixel(xs[corner]), (float)frame.Y.ToPixel(ys[corner])), color));
             }
+
+            // An outline draws a smooth line over the edge already.
+            if (_stroke.A == 0 || _thickness <= 0)
+            {
+                AddFringe(frame, polygon.Outer, isHole: false, color);
+                foreach (var hole in polygon.Holes)
+                {
+                    AddFringe(frame, hole, isHole: true, color);
+                }
+            }
         }
 
         if (_stroke.A > 0)
@@ -212,6 +223,32 @@ public sealed class PolygonSeries : ChartSeries, IDisposable
     }
 
     private void Touch() => Interlocked.Increment(ref _appearance);
+
+    // The filled side lies left of each edge when the ring turns positively, right otherwise; for a hole the other way.
+    private void AddFringe(in SeriesFrame frame, PolygonRing ring, bool isHole, Rgba8 color)
+    {
+        _ring.Clear();
+        for (var i = 0; i < ring.Count; i++)
+        {
+            _ring.Add(new Vector2((float)frame.X.ToPixel(ring.X[i]), (float)frame.Y.ToPixel(ring.Y[i])));
+        }
+
+        var area = 0.0;
+        for (int i = 0, j = _ring.Count - 1; i < _ring.Count; j = i++)
+        {
+            area += ((double)_ring[j].X * _ring[i].Y) - ((double)_ring[i].X * _ring[j].Y);
+        }
+
+        var isLeft = (area > 0) != isHole;
+        for (int i = 0, j = _ring.Count - 1; i < _ring.Count; j = i++)
+        {
+            var (a, b) = (_ring[j], _ring[i]);
+            var along = b - a;
+            var left = new Vector2(-along.Y, along.X);
+            var inside = ((a + b) / 2) + (isLeft ? left : -left);
+            MeshFringe.Add(_mesh, new MeshVertex(a, color), new MeshVertex(b, color), inside);
+        }
+    }
 
     private void AddRing(in SeriesFrame frame, PolygonRing ring)
     {

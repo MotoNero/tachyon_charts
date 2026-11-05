@@ -2015,7 +2015,7 @@ abstract class Tachyon.Charts.Core.Series.RibbonSeries : Tachyon.Charts.Core.Pip
   protected System.Void OnAppearanceChanged()
   protected abstract System.ReadOnlyMemory<System.Double> ReadX()
   protected abstract System.Void Build(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh)
-  protected static System.Void AddRibbon(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.ReadOnlySpan<System.Double> x, System.ReadOnlySpan<System.Double> lower, System.ReadOnlySpan<System.Double> upper, Tachyon.Charts.Core.Series.SeriesFill fill, System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh)
+  protected static System.Void AddRibbon(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.ReadOnlySpan<System.Double> x, System.ReadOnlySpan<System.Double> lower, System.ReadOnlySpan<System.Double> upper, Tachyon.Charts.Core.Series.SeriesFill fill, System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh, System.Boolean smoothsTop = False)
   protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
   protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
 abstract class Tachyon.Charts.Core.Series.SampleSeries : Tachyon.Charts.Core.Series.RibbonSeries

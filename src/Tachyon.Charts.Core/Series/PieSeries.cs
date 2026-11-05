@@ -51,6 +51,7 @@ public sealed class PieSeries : ChartSeries
 
     private readonly List<MeshVertex> _mesh = [];
     private MeshVertex[] _vertices = [];
+    private int _count;
     private Slices _slices;
     private Rgba8[] _palette = _defaultPalette;
     private IReadOnlyList<Rgba8>? _colors;
@@ -318,13 +319,21 @@ public sealed class PieSeries : ChartSeries
         }
 
         Build(frame);
-        _vertices = [.. _mesh];
+
+        // The array only grows, so a slice under the pointer does not allocate.
+        if (_vertices.Length < _mesh.Count)
+        {
+            _vertices = new MeshVertex[_mesh.Count * 5 / 4];
+        }
+
+        _mesh.CopyTo(_vertices);
+        _count = _mesh.Count;
         _builtVersion = version;
         _builtFrame = frame;
     }
 
     /// <inheritdoc />
-    protected internal override void Draw(ICommandList commands, in SeriesFrame frame) => commands.FillMesh(_vertices, frame.Bounds);
+    protected internal override void Draw(ICommandList commands, in SeriesFrame frame) => commands.FillMesh(_vertices.AsSpan(0, _count), frame.Bounds);
 
     private static Rgba8 Lighten(Rgba8 color) => new(
         (byte)(color.R + ((255 - color.R) / 4)),
@@ -352,8 +361,9 @@ public sealed class PieSeries : ChartSeries
             drawn += sweep > 0 ? 1 : 0;
         }
 
-        // A single slice is a closed circle; otherwise a gap on both sides keeps the slices apart.
-        var gap = drawn > 1 ? _gap * frame.DpiScale / radius : 0;
+        // A single slice is a closed circle; otherwise a gap on both sides keeps the slices apart. The soft band along
+        // each cut reaches into the gap, so the gap grows by the band on both sides.
+        var gap = drawn > 1 ? ((_gap * frame.DpiScale) + (2 * MeshFringe.Width)) / radius : 0;
         for (var i = 0; i < slices.Values.Length; i++)
         {
             var sweep = slices.Sweep[i];
@@ -372,18 +382,21 @@ public sealed class PieSeries : ChartSeries
         }
     }
 
+    // The arcs and the cuts get a soft band of one pixel, so that they show no steps.
     private void AddSlice(Vector2 origin, float radius, float inner, double start, double end, Rgba8 color)
     {
         var steps = Math.Max(1, (int)Math.Ceiling((end - start) / (2 * Math.PI) * StepsPerTurn));
+        var center = new MeshVertex(origin, color);
         for (var step = 0; step < steps; step++)
         {
             var a = Direction(start + ((end - start) * step / steps));
             var b = Direction(start + ((end - start) * (step + 1) / steps));
             var outerA = new MeshVertex(origin + (a * radius), color);
             var outerB = new MeshVertex(origin + (b * radius), color);
+            MeshFringe.Add(_mesh, outerA, outerB, origin);
             if (inner <= 0)
             {
-                _mesh.Add(new MeshVertex(origin, color));
+                _mesh.Add(center);
                 _mesh.Add(outerA);
                 _mesh.Add(outerB);
                 continue;
@@ -392,6 +405,20 @@ public sealed class PieSeries : ChartSeries
             var innerA = new MeshVertex(origin + (a * inner), color);
             var innerB = new MeshVertex(origin + (b * inner), color);
             _mesh.AddRange([innerA, outerA, outerB, innerA, outerB, innerB]);
+            MeshFringe.Add(_mesh, innerA, innerB, outerA.Position);
+        }
+
+        if (end - start >= (2 * Math.PI) - 1e-9)
+        {
+            return;
+        }
+
+        // The straight cuts at both ends, seen from a point inside the slice.
+        var middle = origin + (Direction((start + end) / 2) * ((radius + inner) / 2));
+        foreach (var angle in (ReadOnlySpan<double>)[start, end])
+        {
+            var direction = Direction(angle);
+            MeshFringe.Add(_mesh, new MeshVertex(origin + (direction * inner), color), new MeshVertex(origin + (direction * radius), color), middle);
         }
     }
 

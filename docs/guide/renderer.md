@@ -17,3 +17,10 @@ A series of your own adds lines by overriding `WriteDiagnostics(DiagnosticsText 
 In the showroom, F12 switches the overlay on every page, also when no chart has the focus, and it stays on when you change the page. Still images in the gallery show how long they took to render. `--diagnostics` starts the apps with the overlay on.
 
 The measured values are in the README.
+
+## Smooth edges
+
+Every chart type draws smooth edges, on the GPU, in the CPU fallback and in exported pictures alike:
+
+- **2D:** lines, markers and text smooth their own edges. Filled shapes with slanted edges (pie and donut, areas, polygons without an outline, milestones) get a soft band of one pixel along the outside, which costs a few triangles instead of multisampling the whole picture. Edges along the pixel grid, such as bars and candles, stay crisp, and edges where two filled shapes meet, such as the layers of stacked areas, get no band, so no seam shows.
+- **3D:** the picture is multisampled four times; points and bubbles smooth their outline on top.

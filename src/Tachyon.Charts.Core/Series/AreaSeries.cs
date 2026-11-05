@@ -19,6 +19,7 @@ public abstract class RibbonSeries(AxisBase xAxis, AxisBase yAxis) : ChartSeries
 
     private readonly List<MeshVertex> _mesh = [];
     private MeshVertex[] _vertices = [];
+    private int _count;
     private long _builtVersion = -1;
     private SeriesFrame _builtFrame;
     private long _appearanceVersion;
@@ -49,15 +50,21 @@ public abstract class RibbonSeries(AxisBase xAxis, AxisBase yAxis) : ChartSeries
 
         _mesh.Clear();
         Build(frame, _mesh);
-        _vertices = _mesh.Count == _vertices.Length ? _vertices : new MeshVertex[_mesh.Count];
+        // The array only grows, so a view that moves does not allocate.
+        if (_vertices.Length < _mesh.Count)
+        {
+            _vertices = new MeshVertex[_mesh.Count * 5 / 4];
+        }
+
         _mesh.CopyTo(_vertices);
+        _count = _mesh.Count;
         _builtVersion = version;
         _builtFrame = frame;
     }
 
     /// <inheritdoc />
     protected internal override void Draw(ICommandList commands, in SeriesFrame frame) =>
-        commands.FillMesh(_vertices, frame.Bounds);
+        commands.FillMesh(_vertices.AsSpan(0, _count), frame.Bounds);
 
     /// <summary>Adds the ribbon between two curves, with gaps where a curve has no value.</summary>
     /// <param name="frame">The place of the series.</param>
@@ -66,7 +73,8 @@ public abstract class RibbonSeries(AxisBase xAxis, AxisBase yAxis) : ChartSeries
     /// <param name="upper">The second curve.</param>
     /// <param name="fill">The fill.</param>
     /// <param name="mesh">Receives the triangles.</param>
-    protected static void AddRibbon(in SeriesFrame frame, ReadOnlySpan<double> x, ReadOnlySpan<double> lower, ReadOnlySpan<double> upper, SeriesFill fill, List<MeshVertex> mesh)
+    /// <param name="smoothsTop">Whether the upper curve borders free space and gets a soft edge. An edge against another ribbon stays hard, or the two edges would show a seam.</param>
+    protected static void AddRibbon(in SeriesFrame frame, ReadOnlySpan<double> x, ReadOnlySpan<double> lower, ReadOnlySpan<double> upper, SeriesFill fill, List<MeshVertex> mesh, bool smoothsTop = false)
     {
         var count = Math.Min(x.Length, Math.Min(lower.Length, upper.Length));
         var stride = Math.Max(count / Math.Max((int)(frame.Bounds.Width * 2), 1), 1);
@@ -93,7 +101,7 @@ public abstract class RibbonSeries(AxisBase xAxis, AxisBase yAxis) : ChartSeries
 
             if (hasPrevious)
             {
-                AddQuad(frame, previous, column, fill, mesh);
+                AddQuad(frame, previous, column, fill, mesh, smoothsTop);
             }
 
             previous = column;
@@ -112,8 +120,16 @@ public abstract class RibbonSeries(AxisBase xAxis, AxisBase yAxis) : ChartSeries
         return Math.Abs(candidate - other) > Math.Abs(current - other) ? candidate : current;
     }
 
-    private static void AddQuad(in SeriesFrame frame, in Column first, in Column second, SeriesFill fill, List<MeshVertex> mesh)
+    private static void AddQuad(in SeriesFrame frame, in Column first, in Column second, SeriesFill fill, List<MeshVertex> mesh, bool smoothsTop)
     {
+        // A soft band of one pixel above the upper curve; the steps between the columns join inside.
+        if (smoothsTop)
+        {
+            var (a, b) = (Vertex(frame, first.Pixel, first.Lower, fill), Vertex(frame, first.Pixel, first.Upper, fill));
+            var (c, d) = (Vertex(frame, second.Pixel, second.Upper, fill), Vertex(frame, second.Pixel, second.Lower, fill));
+            MeshFringe.Add(mesh, b, c, (a.Position + d.Position) / 2);
+        }
+
         // Colors blend linearly across a triangle, a colormap does not: it needs steps along the values.
         if (fill is ValueGradientFill)
         {
@@ -226,7 +242,7 @@ public sealed class AreaSeries : RibbonSeries
         }
 
         Array.Fill(_lower, _baseline);
-        AddRibbon(frame, snapshot.X.Span, _lower, snapshot.Y.Span, _fill, mesh);
+        AddRibbon(frame, snapshot.X.Span, _lower, snapshot.Y.Span, _fill, mesh, smoothsTop: true);
     }
 }
 
@@ -350,7 +366,7 @@ public sealed class StackedAreaSeries : RibbonSeries
         var zero = new double[edges[0].Length];
         for (var layer = 0; layer < edges.Length; layer++)
         {
-            AddRibbon(frame, x, layer == 0 ? zero : edges[layer - 1], edges[layer], _fills[layer], mesh);
+            AddRibbon(frame, x, layer == 0 ? zero : edges[layer - 1], edges[layer], _fills[layer], mesh, smoothsTop: layer == edges.Length - 1);
         }
     }
 

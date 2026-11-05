@@ -331,6 +331,11 @@ public sealed class GanttSeries : ChartSeries
         var bottom = new MeshVertex(new Vector2(x, y + radius), color);
         var left = new MeshVertex(new Vector2(x - radius, y), color);
         _mesh.AddRange([top, right, bottom, top, bottom, left]);
+        var middle = new Vector2(x, y);
+        MeshFringe.Add(_mesh, top, right, middle);
+        MeshFringe.Add(_mesh, right, bottom, middle);
+        MeshFringe.Add(_mesh, bottom, left, middle);
+        MeshFringe.Add(_mesh, left, top, middle);
     }
 }
 

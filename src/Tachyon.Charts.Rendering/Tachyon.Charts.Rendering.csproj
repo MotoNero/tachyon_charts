@@ -5,6 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Tachyon.Charts.Core" />
+    <InternalsVisibleTo Include="Tachyon.Charts.Rendering.Tests" />
     <InternalsVisibleTo Include="Tachyon.Charts.Rendering.Skia" />
     <InternalsVisibleTo Include="Tachyon.Charts.Rendering.WebGPU" />
   </ItemGroup>
