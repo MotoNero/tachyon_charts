@@ -127,9 +127,9 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|---|
 | ![A pipe bend read from an STL file, colored by wall temperature, cut open, with sensors](docs/images/3d-model.png) | ![A knot of tube with a million triangles, colored by height](docs/images/3d-knot.png) |
 
-| Bubbles | 1 million bubbles |
-|---|---|
-| ![Wells of three fields as lit spheres, the volume shows the yield](docs/images/3d-bubbles.png) | ![A spiral of a million lit spheres with a size in screen points](docs/images/3d-bubbles-1m.png) |
+| Bubbles | 1 million bubbles | Planes and limits |
+|---|---|---|
+| ![Wells of three fields as lit spheres, the volume shows the yield](docs/images/3d-bubbles.png) | ![A spiral of a million lit spheres with a size in screen points](docs/images/3d-bubbles-1m.png) | ![A surface against a transparent limit plane with red lines where it crosses, a test zone and a slanted area with a hole](docs/images/3d-planes.png) |
 
 ### Themes
 
@@ -163,6 +163,7 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 - **Lines:** constant width on the screen, clean bends, gaps at `NaN`, live streams
 - **Scatter:** a size and color per point, a million new points per second from a measuring thread, oldest points fall out
 - **Bubbles:** lit spheres with a diameter per point in data units or screen points, sizes from values by volume, exact depth where they meet other objects; a million at the frame rate of the screen
+- **Planes and flat shapes:** transparent limit planes that show where a surface crosses them, rectangles at any angle, polygons with holes on a plane in space
 - **Columns:** over a raster, with a color by value and the same light as surfaces
 - **Point clouds:** an octree forms in the background, a coarse picture shows at once, and the density never jumps. Files in XYZ, PLY and LAS through `Tachyon.Charts.ThreeD.Files`
 - **Models:** STL (text and binary) and OBJ through `Tachyon.Charts.ThreeD.Files`, with sharp edges kept, a value per point that colors the model and shows under the pointer, cut open by cut planes; a million triangles at the frame rate of the screen
@@ -298,7 +299,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | Document | Content |
 |---|---|
 | [docs/guide](docs/guide/README.md) | User guide |
-| [3D charts](docs/guide/3d.md) | 3D types, one page each: surfaces, waterfall, lines, points and bubbles, columns, point clouds, volumes, models, antennas, cuts |
+| [3D charts](docs/guide/3d.md) | 3D types, one page each: surfaces and planes, waterfall, lines, points and bubbles, columns, point clouds, volumes, models, antennas, cuts |
 | [Pie and donut](docs/guide/pie.md) | Slices, labels on lines, pulling a slice out |
 | [Finance](docs/guide/finance.md) | Candles, OHLC bars, volume and market profile |
 | [Drawing tools](docs/guide/drawings.md) | Fibonacci, channels, pitchfork, patterns, saving as JSON |

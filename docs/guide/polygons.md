@@ -28,4 +28,6 @@ c.AddHeatmap(values, s => s.Cells(0, 0.025, 0, 0.025).Mask([region]))
 
 `Mask` shows only the cells whose middle lies inside the polygons; holes stay clear. The cells outside have no value under the pointer either. In code, set `HeatmapSeries.Mask`.
 
+`Polygon.Triangulate()` splits a polygon into triangles with the holes left out, for your own drawing or for a flat shape in 3D (`Shapes3D.Polygon`).
+
 In the showroom: *Polygons*, *10 000 polygons*, *Heatmap in an area*.

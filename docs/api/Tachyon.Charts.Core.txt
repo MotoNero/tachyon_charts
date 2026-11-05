@@ -389,6 +389,7 @@ sealed class Tachyon.Charts.Core.Data.Polygon
   System.Boolean Contains(System.Double x, System.Double y)
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.PolygonRing> Holes { get; }
   System.String Name { get; set; }
+  System.ValueTuple<System.Double[], System.Double[], System.Int32[]> Triangulate()
   Tachyon.Charts.Core.Data.PolygonRing Outer { get; }
   Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
 sealed class Tachyon.Charts.Core.Data.PolygonRing

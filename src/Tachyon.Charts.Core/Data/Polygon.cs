@@ -71,6 +71,10 @@ public sealed class Polygon(PolygonRing outer, IReadOnlyList<PolygonRing>? holes
     /// <summary>Gets or sets the name shown under the pointer.</summary>
     public string Name { get; init; } = string.Empty;
 
+    /// <summary>Splits the polygon into triangles, with the holes left out.</summary>
+    /// <returns>The corners, and three numbers of corners for each triangle.</returns>
+    public (double[] X, double[] Y, int[] Triangles) Triangulate() => PolygonTriangulator.Triangulate(this);
+
     /// <summary>Finds whether a point lies inside: inside the outer ring and in no hole.</summary>
     /// <param name="x">The X value.</param>
     /// <param name="y">The Y value.</param>
@@ -165,7 +169,7 @@ internal static class PolygonTriangulator
             var (holeX, holeY) = Ordered(hole, counterclockwise: false);
             var (hx, hy) = (holeX.ToArray(), holeY.ToArray());
             var start = Array.IndexOf(hx, hx.Max());
-            var bridge = Nearest(xs, ys, hx[start], hy[start]);
+            var bridge = Nearest(xs, ys, hx, hy, start);
             var joinedX = new List<double>(xs.Count + hx.Length + 2);
             var joinedY = new List<double>(joinedX.Capacity);
             for (var i = 0; i <= bridge; i++)
@@ -205,15 +209,17 @@ internal static class PolygonTriangulator
         return (xs, ys);
     }
 
-    // The nearest corner of the ring that the hole corner sees without crossing an edge.
-    private static int Nearest(List<double> xs, List<double> ys, double x, double y)
+    // The nearest corner of the ring that the hole corner sees without crossing an edge of the ring or of the hole
+    // itself: with several corners at the same distance, the first one may lie on the far side of the hole.
+    private static int Nearest(List<double> xs, List<double> ys, double[] hx, double[] hy, int start)
     {
+        var (x, y) = (hx[start], hy[start]);
         var best = -1;
         var bestDistance = double.PositiveInfinity;
         for (var i = 0; i < xs.Count; i++)
         {
             var distance = ((xs[i] - x) * (xs[i] - x)) + ((ys[i] - y) * (ys[i] - y));
-            if (distance >= bestDistance || Crosses(xs, ys, i, x, y))
+            if (distance >= bestDistance || Crosses(xs, ys, i, x, y) || CrossesHole(hx, hy, start, xs[i], ys[i]))
             {
                 continue;
             }
@@ -235,6 +241,19 @@ internal static class PolygonTriangulator
             }
 
             if (Intersect(xs[corner], ys[corner], x, y, xs[j], ys[j], xs[i], ys[i]))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool CrossesHole(double[] hx, double[] hy, int start, double x, double y)
+    {
+        for (int i = 0, j = hx.Length - 1; i < hx.Length; j = i++)
+        {
+            if (i != start && j != start && Intersect(hx[start], hy[start], x, y, hx[j], hy[j], hx[i], hy[i]))
             {
                 return true;
             }

@@ -39,6 +39,8 @@ public static class SampleText
         ["Cloud of 20 million points"] = "Punktwolke mit 20 Millionen Punkten",
         ["Cloud of 100 million points"] = "Punktwolke mit 100 Millionen Punkten",
         ["Cut planes"] = "Schnittebenen",
+        ["Planes and limits"] = "Ebenen und Grenzwerte",
+        ["Surface against a limit of 0.9"] = "Fläche gegen einen Grenzwert von 0,9",
         ["Bubbles"] = "Blasen",
         ["1 million bubbles"] = "1 Mio. Blasen",
         ["Wells, volume by yield in m³ per day"] = "Brunnen, Volumen nach Ertrag in m³ pro Tag",

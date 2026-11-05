@@ -271,6 +271,12 @@ sealed class Tachyon.Charts.ThreeD.Scene.Scene3D
   Tachyon.Charts.Core.Axes.AxisBase YAxis { get; set; }
   Tachyon.Charts.Core.Axes.AxisBase ZAxis { get; set; }
   Tachyon.Charts.ThreeD.Scene.Camera3D Camera { get; }
+static class Tachyon.Charts.ThreeD.Scene.Shapes3D
+  static Tachyon.Charts.ThreeD.Scene.Material3D LimitMaterial { get; }
+  static Tachyon.Charts.ThreeD.Scene.Mesh3D Limit(Tachyon.Charts.Core.Numerics.DoubleRange x, Tachyon.Charts.Core.Numerics.DoubleRange y, System.Double limit, Tachyon.Charts.Rendering.Rgba8 color, Tachyon.Charts.ThreeD.Scene.Material3D material = null)
+  static Tachyon.Charts.ThreeD.Scene.Mesh3D Polygon(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Point3D> corners, Tachyon.Charts.Rendering.Rgba8 color, Tachyon.Charts.ThreeD.Scene.Material3D material = null)
+  static Tachyon.Charts.ThreeD.Scene.Mesh3D Polygon(Tachyon.Charts.Core.Data.Polygon polygon, Tachyon.Charts.ThreeD.Scene.Point3D origin, Tachyon.Charts.ThreeD.Scene.Point3D across, Tachyon.Charts.ThreeD.Scene.Point3D up, Tachyon.Charts.Rendering.Rgba8 color, Tachyon.Charts.ThreeD.Scene.Material3D material = null)
+  static Tachyon.Charts.ThreeD.Scene.Mesh3D Rectangle(Tachyon.Charts.ThreeD.Scene.Point3D corner, Tachyon.Charts.ThreeD.Scene.Point3D across, Tachyon.Charts.ThreeD.Scene.Point3D up, Tachyon.Charts.Rendering.Rgba8 color, Tachyon.Charts.ThreeD.Scene.Material3D material = null)
 sealed class Tachyon.Charts.ThreeD.Scene.Surface3D
   .ctor(Tachyon.Charts.Core.Data.HeatmapData data, Tachyon.Charts.Core.Numerics.DoubleRange x, Tachyon.Charts.Core.Numerics.DoubleRange y)
   System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> ColorRange { get; set; }
