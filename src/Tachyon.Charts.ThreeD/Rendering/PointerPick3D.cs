@@ -13,7 +13,7 @@ namespace Tachyon.Charts.ThreeD.Rendering;
 /// <param name="picker">The search.</param>
 internal sealed class PointerPick3D(Scene3D scene, ScenePicker picker)
 {
-    private const double Reach = 6;
+    private const double Reach = PickReach.Pixels;
 
     private long _version;
 

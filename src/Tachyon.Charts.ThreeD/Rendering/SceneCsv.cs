@@ -72,6 +72,20 @@ internal static class SceneCsv
         {
             Columns(writer, area, "columns " + (i + 1).ToString(CultureInfo.InvariantCulture), scene.Bars[i]);
         }
+
+        for (var i = 0; i < scene.Bubbles.Count; i++)
+        {
+            Bubbles(writer, area, "bubbles " + (i + 1).ToString(CultureInfo.InvariantCulture), scene.Bubbles[i]);
+        }
+    }
+
+    // The value of a bubble is its own value, or else its diameter.
+    private static void Bubbles(TextWriter writer, in Area area, string name, Bubbles3D bubbles)
+    {
+        for (var i = 0; i < bubbles.Count; i++)
+        {
+            Row(writer, area, name, new Point3D(bubbles.X[i], bubbles.Y[i], bubbles.Z[i]), bubbles.Values?[i] ?? bubbles.Diameters[i]);
+        }
     }
 
     private static void Surface(TextWriter writer, in Area area, string name, Surface3D surface)

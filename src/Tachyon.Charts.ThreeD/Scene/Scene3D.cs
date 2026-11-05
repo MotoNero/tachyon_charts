@@ -17,6 +17,7 @@ public sealed class Scene3D
     private readonly List<Line3D> _lines = [];
     private readonly List<Scatter3D> _scatters = [];
     private readonly List<Bars3D> _bars = [];
+    private readonly List<Bubbles3D> _bubbles = [];
     private readonly List<PointCloud3D> _clouds = [];
     private readonly List<Volume3D> _volumes = [];
     private readonly List<ClipPlane3D> _planes = [];
@@ -58,6 +59,9 @@ public sealed class Scene3D
 
     /// <summary>Gets the columns.</summary>
     public IReadOnlyList<Bars3D> Bars => _bars;
+
+    /// <summary>Gets the bubbles.</summary>
+    public IReadOnlyList<Bubbles3D> Bubbles => _bubbles;
 
     /// <summary>Gets the planes that cut the scene.</summary>
     public IReadOnlyList<ClipPlane3D> Planes => _planes;
@@ -203,6 +207,15 @@ public sealed class Scene3D
     {
         ArgumentNullException.ThrowIfNull(bars);
         _bars.Add(bars);
+        Interlocked.Increment(ref _version);
+    }
+
+    /// <summary>Adds bubbles.</summary>
+    /// <param name="bubbles">The bubbles.</param>
+    public void Add(Bubbles3D bubbles)
+    {
+        ArgumentNullException.ThrowIfNull(bubbles);
+        _bubbles.Add(bubbles);
         Interlocked.Increment(ref _version);
     }
 

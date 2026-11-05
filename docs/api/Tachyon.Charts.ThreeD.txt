@@ -3,6 +3,7 @@ sealed class Tachyon.Charts.ThreeD.Chart3DBuilder
   System.Void Apply(Tachyon.Charts.Core.Fluent.ChartBuilder builder)
   Tachyon.Charts.ThreeD.Chart3DBuilder AddAntenna(Tachyon.Charts.ThreeD.Scene.AntennaPattern3D antenna)
   Tachyon.Charts.ThreeD.Chart3DBuilder AddBars(Tachyon.Charts.ThreeD.Scene.Bars3D bars)
+  Tachyon.Charts.ThreeD.Chart3DBuilder AddBubbles(Tachyon.Charts.ThreeD.Scene.Bubbles3D bubbles)
   Tachyon.Charts.ThreeD.Chart3DBuilder AddCloud(Tachyon.Charts.ThreeD.Scene.PointCloud3D cloud)
   Tachyon.Charts.ThreeD.Chart3DBuilder AddCut(Tachyon.Charts.ThreeD.Scene.CutCurveFeed feed)
   Tachyon.Charts.ThreeD.Chart3DBuilder AddLine(Tachyon.Charts.ThreeD.Scene.Line3D line)
@@ -75,6 +76,22 @@ sealed class Tachyon.Charts.ThreeD.Scene.Bars3D
   Tachyon.Charts.Core.Numerics.DoubleRange X { get; }
   Tachyon.Charts.Core.Numerics.DoubleRange Y { get; }
   Tachyon.Charts.ThreeD.Scene.Material3D Material { get; set; }
+enum Tachyon.Charts.ThreeD.Scene.BubbleSizeUnit : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Data = 0
+  Screen = 1
+sealed class Tachyon.Charts.ThreeD.Scene.Bubbles3D
+  .ctor(System.Double[] x, System.Double[] y, System.Double[] z, System.Double[] diameters)
+  System.Double[] Diameters { get; }
+  System.Double[] Values { get; set; }
+  System.Double[] X { get; }
+  System.Double[] Y { get; }
+  System.Double[] Z { get; }
+  System.Int32 Count { get; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+  Tachyon.Charts.Rendering.Rgba8[] Colors { get; set; }
+  Tachyon.Charts.ThreeD.Scene.BubbleSizeUnit SizeUnit { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Material3D Material { get; set; }
+  static System.Double[] ScaleToVolume(System.ReadOnlySpan<System.Double> values, System.Double smallest, System.Double largest)
 sealed class Tachyon.Charts.ThreeD.Scene.Camera3D
   .ctor()
   System.Double Azimuth { get; }
@@ -221,6 +238,7 @@ sealed class Tachyon.Charts.ThreeD.Scene.Scene3D
   .ctor()
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.AntennaPattern3D> Antennas { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Bars3D> Bars { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Bubbles3D> Bubbles { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.ClipPlane3D> Planes { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Line3D> Lines { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.MeasuredMap3D> Maps { get; }
@@ -235,6 +253,7 @@ sealed class Tachyon.Charts.ThreeD.Scene.Scene3D
   System.Nullable<System.Double> Cursor { get; set; }
   System.Void Add(Tachyon.Charts.ThreeD.Scene.AntennaPattern3D antenna)
   System.Void Add(Tachyon.Charts.ThreeD.Scene.Bars3D bars)
+  System.Void Add(Tachyon.Charts.ThreeD.Scene.Bubbles3D bubbles)
   System.Void Add(Tachyon.Charts.ThreeD.Scene.ClipPlane3D plane)
   System.Void Add(Tachyon.Charts.ThreeD.Scene.CutCurveFeed feed)
   System.Void Add(Tachyon.Charts.ThreeD.Scene.Line3D line)

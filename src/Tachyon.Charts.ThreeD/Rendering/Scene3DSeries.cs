@@ -684,6 +684,14 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
             }
         }
 
+        foreach (var bubbles in scene.Bubbles)
+        {
+            if (!_renderer!.Holds(bubbles) || _meshesAreStale)
+            {
+                Upload(bubbles);
+            }
+        }
+
         _meshesAreStale = false;
 
         foreach (var map in scene.Maps)
@@ -703,6 +711,35 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
                 Upload(_antennaMeshes[antenna], antenna);
             }
         }
+    }
+
+    // The places move into the box once; a new range of the axes uploads them again, like the meshes.
+    private void Upload(Bubbles3D bubbles)
+    {
+        var map = new BoxMap(scene);
+        var range = scene.XAxis.VisibleRange;
+        var span = range.Max - range.Min;
+        var isScreen = bubbles.SizeUnit == BubbleSizeUnit.Screen;
+        var instances = new BubbleInstance[bubbles.Count];
+        var numbers = new int[bubbles.Count];
+        var count = 0;
+        for (var i = 0; i < bubbles.Count; i++)
+        {
+            var place = map.ToGpu(bubbles.X[i], bubbles.Y[i], bubbles.Z[i]);
+            var diameter = bubbles.Diameters[i];
+            if (place == TraceRing.Gap || !double.IsFinite(diameter) || diameter <= 0)
+            {
+                continue;
+            }
+
+            // A radius in the box spans half the diameter of 2 / span: the box is 2 wide.
+            var size = isScreen ? -(float)diameter : (float)(diameter / span);
+            instances[count] = new BubbleInstance(place, size, bubbles.Colors?[i] ?? bubbles.Color);
+            numbers[count++] = i;
+        }
+
+        _renderer!.Upload(bubbles, instances.AsSpan(0, count));
+        picker.Add(bubbles, instances[..count], numbers[..count]);
     }
 
     private void Upload(Mesh3D mesh, object source)

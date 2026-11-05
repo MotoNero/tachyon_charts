@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Tachyon.Charts.Core.Axes;
 using Tachyon.Charts.Core.Data;
 using Tachyon.Charts.Core.Numerics;
+using Tachyon.Charts.ThreeD.Rendering;
 
 namespace Tachyon.Charts.ThreeD.Scene;
 
@@ -139,6 +140,7 @@ internal sealed class ScenePicker(Scene3D scene)
     private const long GridPause = 1000;
 
     private readonly ConcurrentDictionary<Mesh3D, MeshEntry> _meshes = [];
+    private readonly ConcurrentDictionary<Bubbles3D, (BubbleInstance[] Instances, int[] Numbers)> _bubbles = [];
     private readonly Dictionary<Scatter3D, GridEntry> _grids = [];
     private readonly List<(double Near, int Index)> _leaves = [];
 
@@ -149,6 +151,12 @@ internal sealed class ScenePicker(Scene3D scene)
     /// <param name="source">The object that a hit names.</param>
     public void Add(Mesh3D mesh, Point3D[] positions, uint[] indices, object source) =>
         _meshes[mesh] = new MeshEntry(Task.Run(() => new MeshTree(positions, indices)), source);
+
+    /// <summary>Takes over the bubbles of an object as they lie in the box.</summary>
+    /// <param name="bubbles">The object.</param>
+    /// <param name="instances">The bubbles in the box.</param>
+    /// <param name="numbers">The number of each bubble in the object.</param>
+    public void Add(Bubbles3D bubbles, BubbleInstance[] instances, int[] numbers) => _bubbles[bubbles] = (instances, numbers);
 
     /// <summary>Waits until all search trees stand.</summary>
     public void WaitForTrees()
@@ -201,6 +209,7 @@ internal sealed class ScenePicker(Scene3D scene)
         }
 
         FindOnMeshes(ray, near, ref far, ref best);
+        FindOnBubbles(ray, reach, near, ref far, ref best);
 
         if (scene.Lines.Count > 0)
         {
@@ -228,6 +237,41 @@ internal sealed class ScenePicker(Scene3D scene)
             if (entry.Tree.IsCompletedSuccessfully && entry.Tree.Result.Find(ray, near, ref far, out var triangle, out var u, out var v))
             {
                 best = new Pick3D(entry.Tree.Result.ToData(mesh, triangle, u, v), entry.Source) { Box = ray.At(far), Value = entry.Tree.Result.ToValue(mesh, triangle, u, v) };
+            }
+        }
+    }
+
+    // A bubble in pixels has the radius of so many pixels at its distance.
+    private void FindOnBubbles(in Ray3D ray, in PickReach reach, double near, ref double far, ref Pick3D? best)
+    {
+        foreach (var (bubbles, (instances, numbers)) in _bubbles)
+        {
+            var found = -1;
+            for (var i = 0; i < instances.Length; i++)
+            {
+                var center = instances[i].Center;
+                var offset = ray.Start - new Point3D(center.X, center.Y, center.Z);
+                var along = Point3D.Dot(offset, ray.Direction);
+                var size = instances[i].Size;
+                var radius = size > 0 ? size : -size / 2 * reach.At(-along) / PickReach.Pixels;
+                var miss = Point3D.Dot(offset, offset) - (along * along);
+                if (miss > radius * radius)
+                {
+                    continue;
+                }
+
+                var distance = -along - Math.Sqrt((radius * radius) - miss);
+                if (distance >= near && distance <= far)
+                {
+                    (far, found) = (distance, i);
+                }
+            }
+
+            if (found >= 0)
+            {
+                var number = numbers[found];
+                var place = new Point3D(bubbles.X[number], bubbles.Y[number], bubbles.Z[number]);
+                best = new Pick3D(place, bubbles) { Box = ray.At(far), Value = bubbles.Values?[number] };
             }
         }
     }

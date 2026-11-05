@@ -146,6 +146,7 @@ internal sealed unsafe partial class Renderer3D : IDisposable
         CreateTracePipeline();
         CreateSpotPipeline();
         CreateBarPipelines();
+        CreateBubblePipeline();
         var layout = Api.RenderPipelineGetBindGroupLayout(_linePipeline, 0);
         var entry = new Native.BindGroupEntry { Binding = 0, Buffer = _lineUniforms, Size = LineUniformSize };
         var descriptor = new Native.BindGroupDescriptor { Layout = layout, EntryCount = 1, Entries = &entry };
@@ -201,6 +202,8 @@ internal sealed unsafe partial class Renderer3D : IDisposable
         {
             rest += buffer.Bytes;
         }
+
+        rest += BubbleBytes();
 
         if (rest > 0)
         {
@@ -287,6 +290,7 @@ internal sealed unsafe partial class Renderer3D : IDisposable
         WriteCloudUniforms(matrix, size);
         WriteVolumeUniforms(matrix);
         hasTransparency |= WriteBarUniforms(matrix, eye);
+        WriteBubbleUniforms(matrix, eye, size);
         foreach (var surface in _surfaces.Values)
         {
             surface.WriteUniforms(matrix, eye, planes);
@@ -334,6 +338,7 @@ internal sealed unsafe partial class Renderer3D : IDisposable
 
         ReleaseTraces();
         ReleaseBars();
+        ReleaseBubbles();
         ReleaseClouds();
         ReleaseVolumes();
 
@@ -418,6 +423,7 @@ internal sealed unsafe partial class Renderer3D : IDisposable
         DrawClouds(pass);
         DrawSlices(pass);
         DrawBars(pass, isTransparent: false, eyeY);
+        DrawBubbles(pass);
         foreach (var surface in _surfaces.Values)
         {
             if (surface.IsLines)

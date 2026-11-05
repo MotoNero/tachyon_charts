@@ -310,6 +310,9 @@ public sealed class Points3D
 /// <param name="Growth">How much it grows per unit of distance.</param>
 internal readonly record struct PickReach(double Base, double Growth)
 {
+    /// <summary>The number of pixels the reach stands for.</summary>
+    public const double Pixels = 6;
+
     /// <summary>Gets the reach at a distance.</summary>
     /// <param name="distance">The distance.</param>
     /// <returns>The reach.</returns>

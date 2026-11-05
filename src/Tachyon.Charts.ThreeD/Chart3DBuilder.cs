@@ -156,6 +156,15 @@ public sealed class Chart3DBuilder
         return this;
     }
 
+    /// <summary>Adds bubbles.</summary>
+    /// <param name="bubbles">The bubbles.</param>
+    /// <returns>This builder.</returns>
+    public Chart3DBuilder AddBubbles(Bubbles3D bubbles)
+    {
+        Scene.Add(bubbles);
+        return this;
+    }
+
     /// <summary>
     /// Joins a group of charts: the first axis of the 3D chart shares its range with the X axes of the 2D charts, and
     /// the cursor of the 2D charts shows as a plane in the box, while the value under the pointer in 3D shows as a
