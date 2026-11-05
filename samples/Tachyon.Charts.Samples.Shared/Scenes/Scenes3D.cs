@@ -57,6 +57,8 @@ public static class Scenes3D
         new Scene3DPicture(Plane3DPicture.Name, Plane3DPicture.Configure),
         new Scene3DPicture(Model3DPicture.Name, Model3DPicture.Configure),
         new Scene3DPicture(Knot3DPicture.Name, Knot3DPicture.Configure),
+        new Scene3DPicture(Pie3DPicture.Name, Pie3DPicture.Configure),
+        new Scene3DPicture(Donut3DPicture.Name, Donut3DPicture.Configure),
         new Scene3DPicture(Planes3DPicture.Name, Planes3DPicture.Configure),
         new Scene3DPicture(Bubbles3DPicture.Name, Bubbles3DPicture.Configure),
         new Scene3DPicture(Bubbles1M3DPicture.Name, Bubbles1M3DPicture.Configure),

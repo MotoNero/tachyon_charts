@@ -96,6 +96,21 @@ internal sealed class PickLabels3D(Scene3D scene, PointerPick3D pointer) : Chart
             return;
         }
 
+        if (pick.Source is PieSlice3D slice)
+        {
+            // As in 2D: the name, the value and the share of the whole.
+            var share = slice.Share;
+            rows[0] = slice.Name;
+            rows[1] = ChartText.Get(ChartTextKey.Value) + ": " + slice.Value.ToString("G6", ChartText.Culture);
+            rows[2] = (share * 100).ToString(share < 0.1 ? "0.#" : "0", ChartText.Culture) + " %";
+            if (rows.Length > 3)
+            {
+                rows[3] = string.Empty;
+            }
+
+            return;
+        }
+
         rows[0] = Row(scene.XAxis, "X", pick.Position.X);
         rows[1] = Row(scene.YAxis, "Y", pick.Position.Y);
         rows[2] = Row(scene.ZAxis, "Z", pick.Position.Z);

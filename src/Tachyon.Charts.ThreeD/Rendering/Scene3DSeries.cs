@@ -43,6 +43,9 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
     private float[] _row = [];
     private readonly Dictionary<MeasuredMap3D, Mesh3D> _mapMeshes = [];
     private readonly Dictionary<AntennaPattern3D, Mesh3D> _antennaMeshes = [];
+    private readonly Dictionary<Pie3D, long> _pieVersions = [];
+    private Rgba8[] _palette = [];
+    private long _paletteVersion;
     private (BoxWalls, Theme?, Tachyon.Charts.Core.Numerics.DoubleRange, Tachyon.Charts.Core.Numerics.DoubleRange, Tachyon.Charts.Core.Numerics.DoubleRange, long) _linesKey;
     private Renderer3D? _renderer;
     private IRenderDevice? _device;
@@ -56,7 +59,7 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
     private Theme? _renderedTheme;
 
     /// <inheritdoc />
-    protected override long Version => scene.Camera.Version + scene.Version + SpectrumLinks.Stamp(scene) + (_quality.WantsFinePicture(Environment.TickCount64) ? 1 : 0);
+    protected override long Version => scene.Camera.Version + scene.Version + Volatile.Read(ref _paletteVersion) + SpectrumLinks.Stamp(scene) + (_quality.WantsFinePicture(Environment.TickCount64) ? 1 : 0);
 
     /// <summary>Connects the chart, whose theme gives the colors, and the group it belongs to.</summary>
     /// <param name="chart">The chart.</param>
@@ -267,6 +270,7 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
         _volumeLoaders.Clear();
         _mapMeshes.Clear();
         _antennaMeshes.Clear();
+        _pieVersions.Clear();
     }
 
     private static double[] ToBox(AxisBase axis)
@@ -335,6 +339,13 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
 
     /// <inheritdoc />
     protected override void WriteDiagnostics(DiagnosticsText text) => Describe(text);
+
+    /// <inheritdoc />
+    protected override void OnPalette(ReadOnlySpan<Rgba8> palette)
+    {
+        _palette = palette.ToArray();
+        Interlocked.Increment(ref _paletteVersion);
+    }
 
     /// <summary>Writes the lines of the 3D chart: time of the GPU, point budget, loading, graphics memory.</summary>
     /// <param name="text">Receives the lines.</param>
@@ -670,6 +681,7 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
             _barVersions.Clear();
             _mapMeshes.Clear();
             _antennaMeshes.Clear();
+            _pieVersions.Clear();
             _meshesAreStale = true;
         }
     }
@@ -689,6 +701,23 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
             if (!_renderer!.Holds(bubbles) || _meshesAreStale)
             {
                 Upload(bubbles);
+            }
+        }
+
+        foreach (var pie in scene.Pies)
+        {
+            var version = pie.Version + Volatile.Read(ref _paletteVersion);
+            if (_meshesAreStale || !_pieVersions.TryGetValue(pie, out var known) || known != version)
+            {
+                _pieVersions[pie] = version;
+                pie.Layout(_palette);
+                for (var i = 0; i < pie.Meshes.Count; i++)
+                {
+                    if (pie.Meshes[i] is { } mesh)
+                    {
+                        Upload(mesh, new PieSlice3D(pie, i));
+                    }
+                }
             }
         }
 
@@ -767,7 +796,7 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
     // The lines only change when another wall comes to lie behind the data, so most frames reuse them.
     private void CollectLines(Theme? theme)
     {
-        var key = (AxisBox3D.SelectWalls(scene.Camera.Eye), theme, scene.XAxis.VisibleRange, scene.YAxis.VisibleRange, scene.ZAxis.VisibleRange, scene.Maps.Count + scene.Antennas.Count + PlaneVersion() + SpectrumLinks.Stamp(scene));
+        var key = (AxisBox3D.SelectWalls(scene.Camera.Eye), theme, scene.XAxis.VisibleRange, scene.YAxis.VisibleRange, scene.ZAxis.VisibleRange, scene.Maps.Count + scene.Antennas.Count + PlaneVersion() + SpectrumLinks.Stamp(scene) + (scene.ShowsAxes ? 0 : 1L << 40));
         if (key == _linesKey)
         {
             return;
@@ -777,7 +806,10 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
         _grid.Clear();
         _frame.Clear();
         _lines.Clear();
-        AxisBox3D.AddLines(_grid, _frame, AxisBox3D.SelectWalls(scene.Camera.Eye), ToBox(scene.XAxis), ToBox(scene.YAxis), ToBox(scene.ZAxis));
+        if (scene.ShowsAxes)
+        {
+            AxisBox3D.AddLines(_grid, _frame, AxisBox3D.SelectWalls(scene.Camera.Eye), ToBox(scene.XAxis), ToBox(scene.YAxis), ToBox(scene.ZAxis));
+        }
         Rgba8 gridColor = theme?.Grid?.Major ?? new Rgba8(255, 255, 255, 40);
         Rgba8 frameColor = theme?.Axis?.Line ?? new Rgba8(255, 255, 255, 110);
         foreach (var point in _grid)

@@ -34,6 +34,11 @@ internal sealed class AxisLabels3D(Scene3D scene) : ChartOverlay
     /// <inheritdoc />
     protected override void Draw(OverlayCanvas canvas)
     {
+        if (!scene.ShowsAxes)
+        {
+            return;
+        }
+
         var pane = canvas.Layout.Panes[0];
         var matrix = scene.Camera.CreateMatrix(pane.Width / pane.Height);
         var walls = AxisBox3D.SelectWalls(scene.Camera.Eye);

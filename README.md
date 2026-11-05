@@ -131,6 +131,10 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|---|---|
 | ![Wells of three fields as lit spheres, the volume shows the yield](docs/images/3d-bubbles.png) | ![A spiral of a million lit spheres with a size in screen points](docs/images/3d-bubbles-1m.png) | ![A surface against a transparent limit plane with red lines where it crosses, a test zone and a slanted area with a hole](docs/images/3d-planes.png) |
 
+| Pie 3D | Donut 3D |
+|---|---|
+| ![The power mix as a lit pie with one slice pulled out](docs/images/3d-pie.png) | ![The power mix as a lit ring](docs/images/3d-donut.png) |
+
 ### Themes
 
 Seven built-in themes, plus your own from JSON or XAML resources. Themes apply to every chart type, including the instruments.
@@ -164,6 +168,7 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 - **Scatter:** a size and color per point, a million new points per second from a measuring thread, oldest points fall out
 - **Bubbles:** lit spheres with a diameter per point in data units or screen points, sizes from values by volume, exact depth where they meet other objects; a million at the frame rate of the screen
 - **Planes and flat shapes:** transparent limit planes that show where a surface crosses them, rectangles at any angle, polygons with holes on a plane in space
+- **Pie and donut:** lit bodies that turn, a click pulls a slice out, name, value and share under the pointer as in 2D
 - **Columns:** over a raster, with a color by value and the same light as surfaces
 - **Point clouds:** an octree forms in the background, a coarse picture shows at once, and the density never jumps. Files in XYZ, PLY and LAS through `Tachyon.Charts.ThreeD.Files`
 - **Models:** STL (text and binary) and OBJ through `Tachyon.Charts.ThreeD.Files`, with sharp edges kept, a value per point that colors the model and shows under the pointer, cut open by cut planes; a million triangles at the frame rate of the screen

@@ -18,6 +18,8 @@ public sealed class Scene3D
     private readonly List<Scatter3D> _scatters = [];
     private readonly List<Bars3D> _bars = [];
     private readonly List<Bubbles3D> _bubbles = [];
+    private readonly List<Pie3D> _pies = [];
+    private bool _showsAxes = true;
     private readonly List<PointCloud3D> _clouds = [];
     private readonly List<Volume3D> _volumes = [];
     private readonly List<ClipPlane3D> _planes = [];
@@ -63,6 +65,20 @@ public sealed class Scene3D
     /// <summary>Gets the bubbles.</summary>
     public IReadOnlyList<Bubbles3D> Bubbles => _bubbles;
 
+    /// <summary>Gets the pies.</summary>
+    public IReadOnlyList<Pie3D> Pies => _pies;
+
+    /// <summary>Gets or sets a value indicating whether the box shows its grid, frame, scales and titles. A pie needs none of them.</summary>
+    public bool ShowsAxes
+    {
+        get => Volatile.Read(ref _showsAxes);
+        set
+        {
+            Volatile.Write(ref _showsAxes, value);
+            Interlocked.Increment(ref _version);
+        }
+    }
+
     /// <summary>Gets the planes that cut the scene.</summary>
     public IReadOnlyList<ClipPlane3D> Planes => _planes;
 
@@ -105,6 +121,11 @@ public sealed class Scene3D
             foreach (var bars in _bars)
             {
                 version += bars.Data.Version;
+            }
+
+            foreach (var pie in _pies)
+            {
+                version += pie.Version;
             }
 
             foreach (var plane in _planes)
@@ -216,6 +237,15 @@ public sealed class Scene3D
     {
         ArgumentNullException.ThrowIfNull(bubbles);
         _bubbles.Add(bubbles);
+        Interlocked.Increment(ref _version);
+    }
+
+    /// <summary>Adds a pie.</summary>
+    /// <param name="pie">The pie.</param>
+    public void Add(Pie3D pie)
+    {
+        ArgumentNullException.ThrowIfNull(pie);
+        _pies.Add(pie);
         Interlocked.Increment(ref _version);
     }
 

@@ -165,6 +165,22 @@ public sealed class Chart3DBuilder
         return this;
     }
 
+    /// <summary>Adds a pie in the middle of the box, sets the axes around it, hides them and moves the view closer.</summary>
+    /// <param name="pie">The pie.</param>
+    /// <returns>This builder.</returns>
+    public Chart3DBuilder AddPie(Pie3D pie)
+    {
+        ArgumentNullException.ThrowIfNull(pie);
+        var reach = 1 + pie.ExplodeDistance + 0.05;
+        XAxis(-reach, reach).YAxis(-reach, reach).ZAxis(-reach, reach);
+        Scene.ShowsAxes = false;
+
+        // Without the box the view comes closer, so that the pie fills the chart.
+        Scene.Camera.Zoom(0.62);
+        Scene.Add(pie);
+        return this;
+    }
+
     /// <summary>
     /// Joins a group of charts: the first axis of the 3D chart shares its range with the X axes of the 2D charts, and
     /// the cursor of the 2D charts shows as a plane in the box, while the value under the pointer in 3D shows as a

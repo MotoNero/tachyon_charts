@@ -219,6 +219,15 @@ internal sealed class Orbit3DModifier(Scene3D scene, PointerPick3D pointer) : Ch
         if (Interaction?.Chart is { } chart)
         {
             pointer.Move(chart, position);
+
+            // A click on a slice of a pie pulls it out or back, as in 2D, instead of setting a marker.
+            if (pointer.Current is { Source: PieSlice3D slice })
+            {
+                slice.Pie.ExplodedIndex = slice.Pie.ExplodedIndex == slice.Index ? -1 : slice.Index;
+                Redraw();
+                return;
+            }
+
             var nearest = chart.CurrentLayout is { Panes.Count: > 0 } layout ? MarkerLinks.FindNear(scene, layout.Panes[0], position) : null;
             if (pointer.Current is { } pick)
             {

@@ -24,4 +24,15 @@ Without `Colors` the slices take the palette of the theme. Labels sit inside sli
 
 Under the pointer a slice lights up and shows its name, value and share. A click pulls it out, a second click puts it back. `SetValues` replaces the values from any thread, for live data.
 
-In the showroom: *Pie*, *Donut*.
+## In 3D
+
+With the 3D add-on, a pie or donut becomes a lit body that the user can turn:
+
+```csharp
+var pie = new Pie3D(values, names) { ExplodedIndex = 1 };          // InnerRadius = 0.55 for a donut
+var chart = new Chart3D().Configure(c => c.Title("Power mix").AddPie(pie));
+```
+
+`AddPie` puts the pie in the middle of the box, hides the axes and moves the view closer. Slices run clockwise from the top as in 2D; zero, negative and missing values get no slice. The pointer shows name, value and share of a slice, and a click pulls it out or back. `Height`, `Gap`, `ExplodeDistance`, `Colors` and `Material` set the look; without `Colors` the slices take the palette of the theme.
+
+In the showroom: *Pie*, *Donut*, *Pie 3D*, *Donut 3D*.
