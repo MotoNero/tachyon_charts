@@ -483,6 +483,7 @@ sealed class Tachyon.Charts.Core.Fluent.ChartBuilder
   Tachyon.Charts.Core.Fluent.ChartBuilder AddSeries(System.Func<Tachyon.Charts.Core.Axes.AxisBase, Tachyon.Charts.Core.Axes.AxisBase, Tachyon.Charts.Core.Pipeline.ChartSeries> factory, System.String xAxis = null, System.String yAxis = null)
   Tachyon.Charts.Core.Fluent.ChartBuilder AddSpectrogram(Tachyon.Charts.Core.Data.SpectrogramData data, System.Action<Tachyon.Charts.Core.Fluent.SpectrogramBuilder> configure = null)
   Tachyon.Charts.Core.Fluent.ChartBuilder Group(System.String name)
+  Tachyon.Charts.Core.Fluent.ChartBuilder Legend(System.Action<Tachyon.Charts.Core.Fluent.LegendBuilder> configure = null)
   Tachyon.Charts.Core.Fluent.ChartBuilder Modifiers(System.Action<Tachyon.Charts.Core.Fluent.ModifierBuilder> configure)
   Tachyon.Charts.Core.Fluent.ChartBuilder Theme(Tachyon.Charts.Core.Themes.Theme theme)
   Tachyon.Charts.Core.Fluent.ChartBuilder Title(System.String title)
@@ -564,6 +565,11 @@ sealed class Tachyon.Charts.Core.Fluent.HeatmapDefinition : Tachyon.Charts.Core.
 sealed class Tachyon.Charts.Core.Fluent.KeyboardNavigationDefinition : Tachyon.Charts.Core.Fluent.ModifierDefinition, System.IEquatable<Tachyon.Charts.Core.Fluent.KeyboardNavigationDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.ModifierDefinition>
   .ctor()
   virtual Tachyon.Charts.Core.Input.ChartModifier Create()
+sealed class Tachyon.Charts.Core.Fluent.LegendBuilder
+  .ctor()
+  Tachyon.Charts.Core.Fluent.LegendBuilder Place(Tachyon.Charts.Core.Input.LegendPlacement placement)
+  Tachyon.Charts.Core.Fluent.LegendBuilder Series(System.Collections.Generic.IReadOnlyList<System.String> names)
+  Tachyon.Charts.Core.Fluent.LegendBuilder Title(System.String title)
 sealed class Tachyon.Charts.Core.Fluent.LegendDefinition : Tachyon.Charts.Core.Fluent.ModifierDefinition, System.IEquatable<Tachyon.Charts.Core.Fluent.LegendDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.ModifierDefinition>
   .ctor()
   virtual Tachyon.Charts.Core.Input.ChartModifier Create()
@@ -881,9 +887,21 @@ sealed class Tachyon.Charts.Core.Input.LegendModifier : Tachyon.Charts.Core.Inpu
   static System.Int32 DefaultPriority
 sealed class Tachyon.Charts.Core.Input.LegendOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
   .ctor(Tachyon.Charts.Core.Pipeline.ChartSurface chart)
+  System.Collections.Generic.IReadOnlyList<System.String> SeriesNames { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Input.LegendRow> Rows { get; }
+  System.String Title { get; set; }
   System.Void Refresh()
+  Tachyon.Charts.Core.Input.LegendPlacement Placement { get; set; }
   protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
+enum Tachyon.Charts.Core.Input.LegendPlacement : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Bottom = 7
+  BottomLeft = 3
+  BottomRight = 2
+  Left = 5
+  Right = 4
+  Top = 6
+  TopLeft = 1
+  TopRight = 0
 struct Tachyon.Charts.Core.Input.LegendRow : System.IEquatable<Tachyon.Charts.Core.Input.LegendRow>
   .ctor(Tachyon.Charts.Core.Pipeline.ChartSeries Series, Tachyon.Charts.Core.Layout.DipRect Bounds)
   Tachyon.Charts.Core.Layout.DipRect Bounds { get; set; }

@@ -306,6 +306,12 @@ public sealed class OverlayCanvas
         return plate;
     }
 
+    /// <summary>Gets the width of the chart in device-independent units.</summary>
+    internal double ChartWidth => _chartWidth;
+
+    /// <summary>Gets or sets the height of the chart in device-independent units.</summary>
+    internal double ChartHeight { get; set; }
+
     internal void Begin(IRenderDevice device, ICommandList commands, ChartLayoutResult layout, double scale, double chartWidth, Rgba8 accent, Rgba8 text, Rgba8 background, float labelSize)
     {
         if (_device != device)

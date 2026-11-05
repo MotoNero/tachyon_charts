@@ -31,3 +31,16 @@ Set `SelectionModifier.ModifierKey` to `InputModifiers.None` to select with a pl
 ## Context menu
 
 Set the standard `ContextMenu` property of the chart. A right click opens it, also on the GPU, where WPF would not see the click. See also [Export](export.md).
+
+## Several legends
+
+```csharp
+c.Legend(l => l.Title("Temperatures").Series("Inlet", "Core", "Outlet").Place(LegendPlacement.TopLeft))
+ .Legend(l => l.Title("Pressures").Series("Pump", "Filter", "Valve").Place(LegendPlacement.Bottom));
+```
+
+Each call adds a legend with its own series, title and place. Inside the plot it sits in a corner (`TopLeft`, `TopRight`, `BottomLeft`, `BottomRight`); outside at an edge (`Left`, `Right`, `Top`, `Bottom`) it takes room of its own, and the plot moves aside. Without `Series` a legend shows all series. A click in any legend switches a series off and on, the pointer highlights it. Legends are part of the chart, so exported pictures show them as well.
+
+`Modifiers(m => m.Legend())` still adds one legend at the top right when the chart has none of its own. In code, add `LegendOverlay` instances and set `Placement`, `Title` and `SeriesNames`.
+
+In the showroom: *Several legends*.

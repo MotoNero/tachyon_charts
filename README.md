@@ -85,6 +85,10 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|---|
 | ![Daily candles of a share with volume bars in a pane below](docs/images/candles.png) | ![The same prices as OHLC bars in the light theme](docs/images/ohlc.png) |
 
+| Several legends |
+|---|
+| ![Temperatures and pressures, each with a legend of its own, one inside the plot and one below it](docs/images/legends.png) |
+
 | Last value at the axis | Axes in the origin |
 |---|---|
 | ![Three live temperatures with their newest values as colored marks at the axis, moved apart where they meet](docs/images/last-value.png) | ![A function whose axes cross at zero](docs/images/axes-origin.png) |
@@ -136,6 +140,7 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 - Drawing tools: trend line, Fibonacci retracement and extension, channel, pitchfork, Elliott waves, XABCD, head and shoulders and a free brush, fixed to values, saved as JSON
 - Numeric, time, logarithmic and category axes, stacked panes, linked charts, scale breaks and hidden times such as weekends, axes that cross in the origin
 - Zoom, pan, crosshair, tooltip, lasso selection, measuring cursors, annotations, one undo chain for navigation and drawings
+- Several legends per chart, inside or outside the plot, each with its own series; a click switches a series off and on
 - Signal tools without dependencies: FFT, FIR and biquad filters, generators
 - English and German texts, numbers and month names, switchable at runtime
 

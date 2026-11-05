@@ -302,6 +302,25 @@ public sealed class ChartSurface
     /// </summary>
     public ChartGroup? Group { get; internal set; }
 
+    /// <summary>Lays the chart out again, for example when an overlay outside the plot needs other room.</summary>
+    internal void InvalidateLayout() => _structureVersion++;
+
+    // Overlays outside the plot, such as legends, take room at the edges.
+    private ChartLayoutOptions WithRoom(ChartLayoutOptions options)
+    {
+        var (left, top, right, bottom) = (0.0, 0.0, 0.0, 0.0);
+        foreach (var overlay in _overlays)
+        {
+            if (overlay is Input.LegendOverlay legend)
+            {
+                var room = legend.Room(_measurer);
+                (left, top, right, bottom) = (left + room.Left, top + room.Top, right + room.Right, bottom + room.Bottom);
+            }
+        }
+
+        return left + top + right + bottom == 0 ? options : options with { Reserved = (left, top, right, bottom) };
+    }
+
     /// <summary>
     /// Sets the smallest distances of the plot from the edges of the chart.
     /// </summary>
@@ -825,6 +844,7 @@ public sealed class ChartSurface
         }
 
         _canvas.Begin(device, frame, layout, scale, chartWidth, _tickColor, _labelColor, _style.BackgroundColor, _labelSize);
+        _canvas.ChartHeight = _renderedSize.Height / scale;
         _usedCanvas = true;
         if (hasBreaks)
         {
@@ -1013,12 +1033,12 @@ public sealed class ChartSurface
         if (Group is { } group)
         {
             // What the chart needs by itself, before the group asks for more.
-            var own = ChartLayout.Arrange(size, _title, _horizontalAxes, _panes, _measurer, _options with { MinimumPlotLeft = 0, MinimumPlotRight = 0 });
+            var own = ChartLayout.Arrange(size, _title, _horizontalAxes, _panes, _measurer, WithRoom(_options) with { MinimumPlotLeft = 0, MinimumPlotRight = 0 });
             group.OnMeasured(this, own.PlotArea.X, size.Width - own.PlotArea.Right);
             _renderedStructure = _structureVersion;
         }
 
-        var layout = ChartLayout.Arrange(size, _title, _horizontalAxes, _panes, _measurer, _options);
+        var layout = ChartLayout.Arrange(size, _title, _horizontalAxes, _panes, _measurer, WithRoom(_options));
 
         _paneRects.Clear();
         _bandRects.Clear();

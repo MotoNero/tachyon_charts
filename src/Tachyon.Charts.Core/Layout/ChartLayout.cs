@@ -55,6 +55,9 @@ public sealed record ChartLayoutOptions
     /// </summary>
     public double Padding { get; init; } = 8;
 
+    /// <summary>Gets the room that overlays outside the plot take at each edge, such as legends.</summary>
+    internal (double Left, double Top, double Right, double Bottom) Reserved { get; init; }
+
     /// <summary>
     /// Gets the length of tick marks.
     /// </summary>
@@ -145,10 +148,10 @@ public static class ChartLayout
         options ??= new ChartLayoutOptions();
         Validate(size, horizontalAxes, panes);
 
-        var left = options.Padding;
+        var left = options.Padding + options.Reserved.Left;
         var top = options.Padding;
-        var right = size.Width - options.Padding;
-        var bottom = size.Height - options.Padding;
+        var right = size.Width - options.Padding - options.Reserved.Right;
+        var bottom = size.Height - options.Padding - options.Reserved.Bottom;
 
         var titleBounds = default(DipRect);
         if (!string.IsNullOrEmpty(title))
@@ -156,6 +159,9 @@ public static class ChartLayout
             titleBounds = new DipRect(left, top, Math.Max(right - left, 0), measurer.LineHeight);
             top += measurer.LineHeight + options.TitleGap;
         }
+
+        // Room on top comes below the title, so that a legend there sits between title and plot.
+        top += options.Reserved.Top;
 
         var topAxes = horizontalAxes.Where(axis => axis.Position == AxisPosition.Top).ToArray();
         var bottomAxes = horizontalAxes.Where(axis => axis.Position == AxisPosition.Bottom).ToArray();

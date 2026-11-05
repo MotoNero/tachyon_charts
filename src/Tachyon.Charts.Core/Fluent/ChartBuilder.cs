@@ -581,6 +581,43 @@ public sealed record ChartDefinition(
     }
 }
 
+/// <summary>Describes a legend.</summary>
+public sealed class LegendBuilder
+{
+    internal Input.LegendPlacement Placement { get; private set; }
+
+    internal string? TitleText { get; private set; }
+
+    internal IReadOnlyList<string>? Names { get; private set; }
+
+    /// <summary>Sets where the legend sits.</summary>
+    /// <param name="placement">The place.</param>
+    /// <returns>This builder.</returns>
+    public LegendBuilder Place(Input.LegendPlacement placement)
+    {
+        Placement = placement;
+        return this;
+    }
+
+    /// <summary>Sets a title above the rows.</summary>
+    /// <param name="title">The title.</param>
+    /// <returns>This builder.</returns>
+    public LegendBuilder Title(string title)
+    {
+        TitleText = title;
+        return this;
+    }
+
+    /// <summary>Shows only the series with these names.</summary>
+    /// <param name="names">The names.</param>
+    /// <returns>This builder.</returns>
+    public LegendBuilder Series(params IReadOnlyList<string> names)
+    {
+        Names = names;
+        return this;
+    }
+}
+
 /// <summary>Describes a value scale.</summary>
 public sealed class ColorAxisBuilder
 {
@@ -1270,6 +1307,26 @@ public sealed class ChartBuilder
         var builder = new ModifierBuilder();
         configure(builder);
         _modifiers.AddRange(builder.Definitions);
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a legend. Call it more than once for several legends, each with its own series, title and place; a click
+    /// in any of them switches a series on or off.
+    /// </summary>
+    /// <param name="configure">Chooses place, title and series; <see langword="null"/> shows all series at the top right.</param>
+    /// <returns>This builder.</returns>
+    public ChartBuilder Legend(Action<LegendBuilder>? configure = null)
+    {
+        var legend = new LegendBuilder();
+        configure?.Invoke(legend);
+        var (placement, title, names) = (legend.Placement, legend.TitleText, legend.Names);
+        _overlays.Add(chart => new Input.LegendOverlay(chart) { Placement = placement, Title = title, SeriesNames = names });
+        if (!_modifiers.Any(modifier => modifier is LegendDefinition))
+        {
+            _modifiers.Add(new LegendDefinition());
+        }
+
         return this;
     }
 

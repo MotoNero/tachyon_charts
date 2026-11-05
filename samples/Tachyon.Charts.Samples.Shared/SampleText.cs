@@ -88,6 +88,8 @@ public static class SampleText
         ["Last value at the axis"] = "Letzter Wert an der Achse",
         ["Axes in the origin"] = "Achsen im Ursprung",
         ["Polygons"] = "Polygone",
+        ["Several legends"] = "Mehrere Legenden",
+        ["Click in a legend: switch a series off and on | Pointer on a legend: highlight the series | Wheel: zoom | Drag: pan"] = "Klick in einer Legende: Serie aus- und einschalten | Zeiger auf einer Legende: Serie hervorheben | Rad: Zoom | Ziehen: Pan",
         ["10 000 polygons"] = "10 000 Polygone",
         ["Heatmap in an area"] = "Heatmap in einem Gebiet",
         ["Wheel: zoom | Drag: pan | Pointer: the polygon under it | Double click: all"] = "Rad: Zoom | Ziehen: Pan | Zeiger: das Polygon darunter | Doppelklick: alles",
