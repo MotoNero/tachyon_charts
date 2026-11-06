@@ -398,8 +398,11 @@ public sealed record AxisDragDefinition : ModifierDefinition
 /// <param name="SnapToData">Whether it jumps to the nearest point.</param>
 public sealed record CrosshairDefinition(bool SnapToData = false) : ModifierDefinition
 {
+    /// <summary>Gets a value indicating whether a point marks each curve and a box shows the values of all series.</summary>
+    public bool ShowsValues { get; init; }
+
     /// <inheritdoc />
-    public override ChartModifier Create() => new CrosshairModifier { SnapToData = SnapToData };
+    public override ChartModifier Create() => new CrosshairModifier { SnapToData = SnapToData, ShowsValues = ShowsValues };
 }
 
 /// <summary>A vertical line with the values of all series.</summary>
@@ -1111,10 +1114,11 @@ public sealed class ModifierBuilder
 
     /// <summary>Adds a crosshair at the pointer.</summary>
     /// <param name="snap">Whether it jumps to the nearest point.</param>
+    /// <param name="values">Whether each visible curve gets a point at the X of the pointer and a box beside the cross shows all their values.</param>
     /// <returns>This builder.</returns>
-    public ModifierBuilder Crosshair(bool snap = false)
+    public ModifierBuilder Crosshair(bool snap = false, bool values = false)
     {
-        Definitions.Add(new CrosshairDefinition(snap));
+        Definitions.Add(new CrosshairDefinition(snap) { ShowsValues = values });
         return this;
     }
 

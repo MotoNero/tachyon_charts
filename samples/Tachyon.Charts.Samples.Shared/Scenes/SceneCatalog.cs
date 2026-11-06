@@ -93,6 +93,8 @@ public static class SceneCatalog
         new LastValueScene(),
         new AxisBreakScene("AxesInTheOrigin", Examples.ChartTypes.AxesInTheOriginPage.Configure),
         new AxisBreakScene("DepthProfile", Examples.ChartTypes.DepthProfilePage.Configure),
+        new CrosshairValuesScene("CrosshairValues", Examples.ChartTypes.SeveralLegendsPage.Configure, new System.Numerics.Vector2(0.62f, 0.4f)),
+        new CrosshairValuesScene("CrosshairValuesTurned", Examples.ChartTypes.DepthProfilePage.Configure, new System.Numerics.Vector2(0.3f, 0.55f)),
         new AxisBreakScene("Polygons", Examples.ChartTypes.PolygonsPage.Configure),
         new AxisBreakScene("Legends", Examples.ChartTypes.SeveralLegendsPage.Configure),
         new AxisBreakScene("HeatmapInAnArea", Examples.ChartTypes.HeatmapInAnAreaPage.Configure),

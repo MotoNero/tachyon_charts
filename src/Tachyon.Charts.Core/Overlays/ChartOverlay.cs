@@ -101,8 +101,11 @@ public sealed class OverlayCanvas
     /// <returns>Whether the axis is part of the chart.</returns>
     public bool TryGetPosition(AxisBase axis, double value, out double position)
     {
-        foreach (var placement in _layout.Axes)
+        // An index loop: an enumerator of a list interface would allocate on every call.
+        var axes = _layout.Axes;
+        for (var i = 0; i < axes.Count; i++)
         {
+            var placement = axes[i];
             if (placement.Axis == axis)
             {
                 position = ToTransform(placement).ToPixel(value);
@@ -145,8 +148,11 @@ public sealed class OverlayCanvas
     /// <returns>Whether the axis is part of the chart.</returns>
     public bool TryGetValue(AxisBase axis, double position, out double value)
     {
-        foreach (var placement in _layout.Axes)
+        // An index loop: an enumerator of a list interface would allocate on every call.
+        var axes = _layout.Axes;
+        for (var i = 0; i < axes.Count; i++)
         {
+            var placement = axes[i];
             if (placement.Axis == axis)
             {
                 value = ToTransform(placement).ToData(position);
@@ -164,8 +170,11 @@ public sealed class OverlayCanvas
     /// <returns>Whether there is a pane.</returns>
     public bool TryGetPane(Vector2 position, out DipRect pane)
     {
-        foreach (var candidate in _layout.Panes)
+        // An index loop: an enumerator of a list interface would allocate every frame.
+        var panes = _layout.Panes;
+        for (var i = 0; i < panes.Count; i++)
         {
+            var candidate = panes[i];
             if (position.Y >= candidate.Y && position.Y <= candidate.Bottom && position.X >= candidate.X && position.X <= candidate.Right)
             {
                 pane = candidate;

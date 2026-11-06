@@ -12,7 +12,7 @@ Interactions are building blocks:
 | `ZoomPan` | Wheel zooms, dragging pans |
 | `RubberBand` | Ctrl + drag zooms into a rectangle, double click shows everything again |
 | `AxisDrag` | Wheel and drag over an axis |
-| `Crosshair` | Crosshair, with `snap: true` on the nearest point |
+| `Crosshair` | Crosshair with the values at all axes, with `snap: true` on the nearest point, with `values: true` a point on each visible curve and a box with the X value and the values of all series |
 | `Rollover`, `Tooltip` | Values under the mouse |
 | `Selection` | Shift + drag selects points |
 | `MeasureCursors` | Alt + drag measures distances |

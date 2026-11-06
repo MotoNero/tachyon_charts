@@ -85,9 +85,9 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|---|
 | ![Daily candles of a share with volume bars in a pane below](docs/images/candles.png) | ![The same prices as OHLC bars in the light theme](docs/images/ohlc.png) |
 
-| Several legends |
-|---|
-| ![Temperatures and pressures, each with a legend of its own, one inside the plot and one below it](docs/images/legends.png) |
+| Several legends | Crosshair with values |
+|---|---|
+| ![Temperatures and pressures, each with a legend of its own, one inside the plot and one below it](docs/images/legends.png) | ![A crosshair with a point on each of six curves and a box with the time and all six values in the colors of the series](docs/images/crosshair-values.png) |
 
 | Last value at the axis | Axes in the origin | X axis down |
 |---|---|---|
@@ -151,7 +151,7 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 - Finance: candles and OHLC bars from a thread-safe candle store, a million candles at 60 frames per second, volume in a pane of its own, market profile with point of control and value area
 - Drawing tools: trend line, Fibonacci retracement and extension, channel, pitchfork, Elliott waves, XABCD, head and shoulders and a free brush, fixed to values, saved as JSON
 - Numeric, time, logarithmic and category axes, stacked panes, linked charts, scale breaks and hidden times such as weekends, axes that cross in the origin, charts turned with the X axis down for depth profiles
-- Zoom, pan, crosshair, tooltip, lasso selection, measuring cursors, annotations, one undo chain for navigation and drawings
+- Zoom, pan, crosshair with the values of all series at the pointer, tooltip, lasso selection, measuring cursors, annotations, one undo chain for navigation and drawings
 - Several legends per chart, inside or outside the plot, each with its own series; a click switches a series off and on
 - Signal tools without dependencies: FFT, FIR and biquad filters, generators
 - English and German texts, numbers and month names, switchable at runtime
@@ -268,7 +268,7 @@ Offscreen on an RTX 4070 Laptop GPU at 4K.
 | Four large 3D charts at once | 52 FPS |
 | Chart at rest | no frames, 0.02 % CPU |
 
-By default a chart draws at most 60 frames per second, which every single scenario above reaches.
+By default the charts draw as many frames per second as the fastest screen shows; every single scenario above reaches 60.
 
 3D, offscreen on the same GPU at full HD while the view turns:
 

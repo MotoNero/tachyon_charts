@@ -394,6 +394,8 @@ public sealed class RenderScheduler : IDisposable
             {
                 try
                 {
+                    var interval = Interlocked.Read(ref _intervalTicks);
+                    chart.FrameLimit = interval > 0 ? TimeSpan.TicksPerSecond / (double)interval : 0;
                     chart.Render(_device, target);
                     frames++;
                     points += chart.DrawnPointCount;

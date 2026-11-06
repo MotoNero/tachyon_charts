@@ -9,6 +9,7 @@ namespace Tachyon.Charts.Core.Input;
 public sealed class CrosshairModifier : ChartModifier
 {
     private readonly CrosshairOverlay _overlay = new();
+    private readonly List<HitResult> _hits = [];
 
     /// <summary>Initializes a new instance of the <see cref="CrosshairModifier"/> class.</summary>
     public CrosshairModifier()
@@ -21,6 +22,15 @@ public sealed class CrosshairModifier : ChartModifier
 
     /// <summary>Gets or sets how far snapping reaches, in device-independent units.</summary>
     public double SnapDistance { get; set; } = 30;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether each visible curve gets a point at the X of the pointer and a box beside
+    /// the cross shows the X value and the values of all series there.
+    /// </summary>
+    public bool ShowsValues { get; set; }
+
+    /// <summary>Gets or sets how far from the X of the pointer a point of a series still counts, in device-independent units.</summary>
+    public double ValueDistance { get; set; } = 40;
 
     /// <summary>Gets the overlay, for example to connect it to other charts.</summary>
     public CrosshairOverlay Overlay => _overlay;
@@ -59,7 +69,19 @@ public sealed class CrosshairModifier : ChartModifier
             snapped = hit;
         }
 
-        interaction.Dispatch(() => overlay.Show(position, snapped));
+        if (ShowsValues)
+        {
+            _hits.Clear();
+            interaction.Chart.HitTestAll(position, ValueDistance, HitTestMode.NearestX, _hits);
+            var values = _hits.ToArray();
+            var header = interaction.Chart.FirstXAxis.FormatCursorValue(interaction.ToXValue(position));
+            interaction.Dispatch(() => overlay.Show(position, snapped, values, header));
+        }
+        else
+        {
+            interaction.Dispatch(() => overlay.Show(position, snapped));
+        }
+
         Moved?.Invoke(this, interaction.ToXValue(position));
         return ModifierResult.Ignored;
     }

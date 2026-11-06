@@ -90,6 +90,26 @@ public sealed class Chart : Control, IRecordableChart
     public static RendererPreference Renderer { get; set; } =
         RendererSelector.ParsePreference(Environment.GetEnvironmentVariable("TACHYON_RENDERER"));
 
+    /// <summary>
+    /// Gets or sets the most frames per second of all charts, or <see langword="null"/> for the refresh rate of the
+    /// fastest screen, which is the default: at 120 Hz charts draw up to 120 frames per second, at 60 Hz up to 60. A
+    /// fixed limit saves power, for example 30 for a display that changes slowly.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is below 1.</exception>
+    public static int? MaximumFramesPerSecond
+    {
+        get => ChartRuntime.FixedFrameRate;
+        set
+        {
+            if (value is < 1)
+            {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "The limit must be at least 1.");
+            }
+
+            ChartRuntime.FixedFrameRate = value;
+        }
+    }
+
     /// <summary>Gets or sets the chart title.</summary>
     public string? Title
     {

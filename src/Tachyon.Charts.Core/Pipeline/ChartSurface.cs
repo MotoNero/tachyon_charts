@@ -78,6 +78,9 @@ public sealed class ChartSurface
     private float _titleSize = DefaultTitleSize;
     private long _structureVersion;
     private readonly FrameDiagnostics _diagnostics = new();
+
+    /// <summary>Gets or sets the most frames per second of the render thread, for the diagnostics; 0 when it follows the screen.</summary>
+    internal double FrameLimit { get; set; }
     private readonly DiagnosticsText _diagnosticLines = new();
     private GlyphInstance[] _diagnosticGlyphs = new GlyphInstance[256];
     private int _diagnosticGlyphCount;
@@ -823,6 +826,10 @@ public sealed class ChartSurface
         var lines = _diagnosticLines;
         lines.Clear();
         _diagnostics.Update(now, DrawnPointCount, sourcePoints, device.Capabilities.BackendName, lines);
+        if (FrameLimit > 0)
+        {
+            lines.Add("FPS limit", FrameLimit, "F0", string.Empty);
+        }
         foreach (var series in _series)
         {
             series.WriteDiagnostics(lines);

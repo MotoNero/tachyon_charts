@@ -1,6 +1,7 @@
 using System.Numerics;
 using Tachyon.Charts.Core.Axes;
 using Tachyon.Charts.Core.Data;
+using Tachyon.Charts.Core.HitTesting;
 using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Core.Pipeline;
 using Tachyon.Charts.Rendering;
@@ -177,6 +178,7 @@ public abstract class RibbonSeries(AxisBase xAxis, AxisBase yAxis) : ChartSeries
 public sealed class AreaSeries : RibbonSeries
 {
     private readonly IDataSource<double, double> _source;
+    private readonly SeriesHitTester<double, double> _hitTester;
     private double _baseline;
     private SeriesFill _fill = new SolidFill(new Rgba8(80, 170, 240, 160));
     private double[] _lower = [];
@@ -189,7 +191,20 @@ public sealed class AreaSeries : RibbonSeries
         : base(xAxis, yAxis)
     {
         _source = source ?? throw new ArgumentNullException(nameof(source));
+        _hitTester = new SeriesHitTester<double, double>(source);
     }
+
+    /// <inheritdoc />
+    protected internal override bool TryFindPoint(in SeriesFrame frame, Vector2 pixel, double maximumDistance, HitTestMode mode, out long index, out double x, out double y) =>
+        _hitTester.TryFind(frame, 0, pixel, maximumDistance, mode, out index, out x, out y);
+
+    /// <inheritdoc />
+    protected internal override void CollectPoints(in SeriesFrame frame, in SelectionArea area, List<long> indices) =>
+        _hitTester.CollectPoints(frame, 0, area, indices);
+
+    /// <inheritdoc />
+    protected internal override bool TryReadPoint(long index, out double x, out double y) =>
+        _hitTester.TryReadPoint(0, index, out x, out y);
 
     /// <summary>Gets or sets the value the area reaches down to.</summary>
     public double Baseline

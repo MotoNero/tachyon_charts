@@ -142,7 +142,11 @@ public sealed class SweepSeries : ChartSeries, IDisposable
         }
     }
 
-    // Each column of the window: its lowest and highest value, both on the column, so steep edges stay whole.
+    // Each column of the window: its lowest and highest value, both on the column, so steep edges stay whole. The
+    // extreme nearer to where the line comes from goes first; always low before high would draw a saw tooth on falling
+    // edges, up and back down in every column. Both extremes spread over the width of the column, the first at its left
+    // and the second at its right edge: a steady edge then becomes one slanted line instead of a staircase of upright
+    // and flat pieces.
     private void Build(in SeriesFrame frame)
     {
         _points.Clear();
@@ -161,6 +165,7 @@ public sealed class SweepSeries : ChartSeries, IDisposable
 
         var window = _data.Window;
         var isOpen = false;
+        var last = 0f;
         for (var column = 0; column < columns; column++)
         {
             if (float.IsNaN(_low[column]))
@@ -175,12 +180,20 @@ public sealed class SweepSeries : ChartSeries, IDisposable
             }
 
             var x = (float)frame.X.ToPixel((column + 0.5) * window / columns);
-            _points.Add(new Vector2(x, (float)frame.Y.ToPixel(_low[column])));
-            if (_high[column] != _low[column])
+            var (low, high) = ((float)frame.Y.ToPixel(_low[column]), (float)frame.Y.ToPixel(_high[column]));
+            var (first, second) = isOpen && MathF.Abs(last - high) < MathF.Abs(last - low) ? (high, low) : (low, high);
+            if (second == first)
             {
-                _points.Add(new Vector2(x, (float)frame.Y.ToPixel(_high[column])));
+                _points.Add(new Vector2(x, first));
+            }
+            else
+            {
+                var half = (float)(frame.X.ToPixel((column + 1.0) * window / columns) - frame.X.ToPixel((double)column * window / columns)) / 2;
+                _points.Add(new Vector2(x - half, first));
+                _points.Add(new Vector2(x + half, second));
             }
 
+            last = second;
             isOpen = true;
         }
     }

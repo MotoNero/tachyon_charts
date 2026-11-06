@@ -57,6 +57,7 @@ sealed class Tachyon.Charts.Wpf.Chart : System.Windows.FrameworkElement, System.
   protected virtual System.Windows.Media.Visual GetVisualChild(System.Int32 index)
   protected virtual System.Windows.Size ArrangeOverride(System.Windows.Size finalSize)
   protected virtual System.Windows.Size MeasureOverride(System.Windows.Size availableSize)
+  static System.Nullable<System.Int32> MaximumFramesPerSecond { get; set; }
   static System.Windows.DependencyProperty GroupNameProperty
   static System.Windows.DependencyProperty ThemeProperty
   static System.Windows.DependencyProperty TitleProperty

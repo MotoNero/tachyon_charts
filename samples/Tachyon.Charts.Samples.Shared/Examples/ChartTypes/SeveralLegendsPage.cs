@@ -13,7 +13,7 @@ public static class SeveralLegendsPage
     public const string Name = "Several legends";
 
     /// <summary>How to operate the chart.</summary>
-    public const string Hint = "Click in a legend: switch a series off and on | Pointer on a legend: highlight the series | Wheel: zoom | Drag: pan";
+    public const string Hint = "Click in a legend: switch a series off and on | Pointer on a legend: highlight the series | Pointer in the plot: values of all series | Wheel: zoom | Drag: pan";
 
     private static readonly string[] _temperatures = ["Inlet", "Core", "Outlet"];
     private static readonly string[] _pressures = ["Pump", "Filter", "Valve"];
@@ -45,7 +45,7 @@ public static class SeveralLegendsPage
 
         c.Legend(l => l.Title("Temperatures").Series(_temperatures).Place(LegendPlacement.TopLeft))
             .Legend(l => l.Title("Pressures").Series(_pressures).Place(LegendPlacement.Bottom))
-            .Modifiers(m => m.ZoomPan());
+            .Modifiers(m => m.ZoomPan().Crosshair(values: true));
     }
 
     private static DataSource<double, double> Curve(int seed, double level, double swing)

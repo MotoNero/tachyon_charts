@@ -27,6 +27,7 @@ internal sealed partial class ChartRuntime
     private static readonly List<DateTime> _losses = [];
     private static readonly HashSet<RendererPreference> _excluded = [];
     private static ChartRuntime? _current;
+    private static int? _fixedFrameRate;
 
     private readonly RendererPreference _kind;
     private int _users;
@@ -44,6 +45,10 @@ internal sealed partial class ChartRuntime
 
         Scheduler = new RenderScheduler(device);
         Scheduler.DeviceLost += OnDeviceLost;
+        ApplyFrameRate();
+#if !AVALONIA
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+#endif
         StartFrameLog();
     }
 
@@ -77,6 +82,33 @@ internal sealed partial class ChartRuntime
         return _current;
     }
 
+    /// <summary>Gets or sets a fixed most frames per second, or <see langword="null"/> to follow the fastest screen.</summary>
+    public static int? FixedFrameRate
+    {
+        get => _fixedFrameRate;
+        set
+        {
+            _fixedFrameRate = value;
+            using var scope = _gate.EnterScope();
+            _current?.ApplyFrameRate();
+        }
+    }
+
+    /// <summary>Gets the most frames per second in use.</summary>
+    public int FrameRate { get; private set; } = ScreenRate.Fallback;
+
+    // The render thread waits this long between passes at most; a fixed limit wins over the screen.
+    private void ApplyFrameRate()
+    {
+        FrameRate = _fixedFrameRate ?? ScreenRate.Highest();
+        Scheduler.FrameInterval = TimeSpan.FromSeconds(1.0 / FrameRate);
+    }
+
+#if !AVALONIA
+    // A screen with another refresh rate, or a new screen, changes the rate of all charts.
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e) => ApplyFrameRate();
+#endif
+
     /// <summary>Makes the device behave as if it were lost, for tests.</summary>
     public void SimulateDeviceLoss() => Device.SimulateLoss();
 
@@ -91,6 +123,9 @@ internal sealed partial class ChartRuntime
                 _current = null; // NOSONAR: the instance owns the shared runtime
             }
 
+#if !AVALONIA
+            Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+#endif
             Scheduler.Invoke(() => SkiaTextEngine.Default.ReleaseAtlas(Device));
             Scheduler.Invoke(Device.WaitForIdle);
             Scheduler.Dispose();

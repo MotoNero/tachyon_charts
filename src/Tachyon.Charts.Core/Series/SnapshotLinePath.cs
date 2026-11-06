@@ -184,8 +184,13 @@ internal sealed class SnapshotLinePath<TX, TY>(IDataSource<TX, TY> source) : Lin
         AddVertex(new Vector2(pixelX, (float)frame.Y.ToPixel(value)));
     }
 
+    // Each pixel column holds its lowest and highest value. The extreme nearer to where the line comes from goes first,
+    // and both spread over the width of the column: a steady edge stays one slanted line, while always bottom before
+    // top on one spot drew a saw tooth on falling edges and a staircase on steady ones.
     private void AddColumns(in SeriesFrame frame)
     {
+        var isOpen = false;
+        var last = 0f;
         for (var column = 0; column < _minima.Length; column++)
         {
             var minimum = double.CreateTruncating(_minima[column]);
@@ -193,6 +198,7 @@ internal sealed class SnapshotLinePath<TX, TY>(IDataSource<TX, TY> source) : Lin
             if (minimum > maximum)
             {
                 AddGap();
+                isOpen = false;
                 continue;
             }
 
@@ -202,11 +208,23 @@ internal sealed class SnapshotLinePath<TX, TY>(IDataSource<TX, TY> source) : Lin
             if (!double.IsFinite(top))
             {
                 AddGap();
+                isOpen = false;
                 continue;
             }
 
-            AddVertex(new Vector2(x, (float)(double.IsFinite(bottom) ? bottom : frame.Bounds.Y + frame.Bounds.Height)));
-            AddVertex(new Vector2(x, (float)top));
+            var (high, low) = ((float)top, (float)(double.IsFinite(bottom) ? bottom : frame.Bounds.Y + frame.Bounds.Height));
+            var (first, second) = isOpen && MathF.Abs(last - high) < MathF.Abs(last - low) ? (high, low) : (low, high);
+            if (first == second)
+            {
+                AddVertex(new Vector2(x, first));
+            }
+            else
+            {
+                AddVertex(new Vector2(x - 0.5f, first));
+                AddVertex(new Vector2(x + 0.5f, second));
+            }
+
+            (last, isOpen) = (second, true);
         }
     }
 

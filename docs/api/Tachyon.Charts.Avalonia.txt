@@ -48,6 +48,7 @@ sealed class Tachyon.Charts.Avalonia.Chart : Avalonia.Controls.Control, Avalonia
   static Avalonia.StyledProperty<System.String> GroupNameProperty
   static Avalonia.StyledProperty<System.String> TitleProperty
   static Avalonia.StyledProperty<Tachyon.Charts.Core.Themes.Theme> ChartThemeProperty
+  static System.Nullable<System.Int32> MaximumFramesPerSecond { get; set; }
   static Tachyon.Charts.Rendering.RendererPreference Renderer { get; set; }
   virtual System.Void Render(Avalonia.Media.DrawingContext context)
 static class Tachyon.Charts.Avalonia.ChartAreaRecorder

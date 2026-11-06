@@ -540,6 +540,7 @@ sealed class Tachyon.Charts.Core.Fluent.ContourDefinition : Tachyon.Charts.Core.
   System.Double YStep { get; set; }
 sealed class Tachyon.Charts.Core.Fluent.CrosshairDefinition : Tachyon.Charts.Core.Fluent.ModifierDefinition, System.IEquatable<Tachyon.Charts.Core.Fluent.CrosshairDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.ModifierDefinition>
   .ctor(System.Boolean SnapToData = False)
+  System.Boolean ShowsValues { get; set; }
   System.Boolean SnapToData { get; set; }
   virtual Tachyon.Charts.Core.Input.ChartModifier Create()
 sealed class Tachyon.Charts.Core.Fluent.CustomModifierDefinition : Tachyon.Charts.Core.Fluent.ModifierDefinition, System.IEquatable<Tachyon.Charts.Core.Fluent.CustomModifierDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.ModifierDefinition>
@@ -604,7 +605,7 @@ sealed class Tachyon.Charts.Core.Fluent.ModifierBuilder
   .ctor()
   Tachyon.Charts.Core.Fluent.ModifierBuilder AnnotationEdit()
   Tachyon.Charts.Core.Fluent.ModifierBuilder AxisDrag()
-  Tachyon.Charts.Core.Fluent.ModifierBuilder Crosshair(System.Boolean snap = False)
+  Tachyon.Charts.Core.Fluent.ModifierBuilder Crosshair(System.Boolean snap = False, System.Boolean values = False)
   Tachyon.Charts.Core.Fluent.ModifierBuilder Custom(System.Func<Tachyon.Charts.Core.Input.ChartModifier> factory)
   Tachyon.Charts.Core.Fluent.ModifierBuilder Diagnostics()
   Tachyon.Charts.Core.Fluent.ModifierBuilder Keyboard()
@@ -817,8 +818,10 @@ abstract class Tachyon.Charts.Core.Input.ChartModifier
   protected virtual Tachyon.Charts.Core.Input.ModifierResult OnWheel(in Tachyon.Charts.Core.Input.WheelInputEvent input)
 sealed class Tachyon.Charts.Core.Input.CrosshairModifier : Tachyon.Charts.Core.Input.ChartModifier
   .ctor()
+  System.Boolean ShowsValues { get; set; }
   System.Boolean SnapToData { get; set; }
   System.Double SnapDistance { get; set; }
+  System.Double ValueDistance { get; set; }
   Tachyon.Charts.Core.Overlays.CrosshairOverlay Overlay { get; }
   event System.Action<Tachyon.Charts.Core.Input.CrosshairModifier, System.Nullable<System.Double>> Moved
   protected virtual System.Void OnAttached(Tachyon.Charts.Core.Input.ChartInteraction interaction)
@@ -1447,9 +1450,11 @@ abstract class Tachyon.Charts.Core.Overlays.ChartOverlay
   protected virtual System.Int64 ExternalVersion { get; }
 sealed class Tachyon.Charts.Core.Overlays.CrosshairOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
   .ctor()
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.HitTesting.HitResult> Values { get; }
   System.Nullable<System.Numerics.Vector2> Position { get; }
   System.Void Hide()
   System.Void Show(System.Numerics.Vector2 position, System.Nullable<Tachyon.Charts.Core.HitTesting.HitResult> snapped = null)
+  System.Void Show(System.Numerics.Vector2 position, System.Nullable<Tachyon.Charts.Core.HitTesting.HitResult> snapped, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.HitTesting.HitResult> values, System.String header)
   System.Void ShowAt(Tachyon.Charts.Core.Axes.AxisBase axis, System.Double value)
   protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
 sealed class Tachyon.Charts.Core.Overlays.OverlayCanvas
@@ -1679,10 +1684,13 @@ sealed class Tachyon.Charts.Core.Series.AreaSeries : Tachyon.Charts.Core.Series.
   .ctor(Tachyon.Charts.Core.Data.IDataSource<System.Double, System.Double> source, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   System.Double Baseline { get; set; }
   Tachyon.Charts.Core.Series.SeriesFill Fill { get; set; }
+  protected virtual System.Boolean TryFindPoint(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Numerics.Vector2 pixel, System.Double maximumDistance, Tachyon.Charts.Core.HitTesting.HitTestMode mode, out System.Int64 index, out System.Double x, out System.Double y)
   protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Boolean TryReadPoint(System.Int64 index, out System.Double x, out System.Double y)
   protected virtual System.Int64 Version { get; }
   protected virtual System.ReadOnlyMemory<System.Double> ReadX()
   protected virtual System.Void Build(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh)
+  protected virtual System.Void CollectPoints(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, in Tachyon.Charts.Core.HitTesting.SelectionArea area, System.Collections.Generic.List<System.Int64> indices)
   virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
 sealed class Tachyon.Charts.Core.Series.BandSeries : Tachyon.Charts.Core.Series.RibbonSeries
   .ctor(Tachyon.Charts.Core.Data.IDataSource<System.Double, System.Double> first, Tachyon.Charts.Core.Data.IDataSource<System.Double, System.Double> second, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)

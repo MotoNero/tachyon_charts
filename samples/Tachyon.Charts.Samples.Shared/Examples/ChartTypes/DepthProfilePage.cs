@@ -36,7 +36,7 @@ public static class DepthProfilePage
         c.Title("Borehole log").XDown()
             .XAxis(a => a.Numeric("depth").Title("Depth in m").Range(0, 1500))
             .YAxis(a => a.Numeric("value").Title("Gamma in API, temperature in °C").Range(0, 120))
-            .AddSeries((x, y) => new AreaSeries(gamma, x, y) { Fill = new SolidFill(new Rgba8(255, 190, 11, 90)) })
+            .AddSeries((x, y) => new AreaSeries(gamma, x, y) { Name = "Gamma", Fill = new SolidFill(new Rgba8(255, 190, 11, 90)) })
             .AddLine(temperature, s => s.Name("Temperature").Stroke(new Rgba8(247, 37, 133, 255)).Thickness(2))
             .AddScatter(samples, s => s.Name("Core samples").Size(9).Fill(new Rgba8(76, 201, 240, 255)))
             .Modifiers(m => m.ZoomPan().Crosshair().Tooltip());

@@ -44,6 +44,8 @@ internal sealed class FifoLinePath<TX, TY>(FifoDataSource<TX, TY> source) : Line
     private long _bucket;
     private double _bucketMin;
     private double _bucketMax;
+    private long _minAt;
+    private long _maxAt;
     private bool _isBucketOpen;
     private bool _hasPreviousY;
     private double _previousY;
@@ -351,15 +353,26 @@ internal sealed class FifoLinePath<TX, TY>(FifoDataSource<TX, TY> source) : Line
 
         if (double.IsFinite(value))
         {
-            _bucketMin = Math.Min(_bucketMin, value);
-            _bucketMax = Math.Max(_bucketMax, value);
+            if (value < _bucketMin)
+            {
+                (_bucketMin, _minAt) = (value, point);
+            }
+
+            if (value > _bucketMax)
+            {
+                (_bucketMax, _maxAt) = (value, point);
+            }
         }
 
+        // The extremes in the order they came, spread over the bucket: a steady edge stays one slanted line instead of
+        // a saw tooth or a staircase.
         var isEmpty = _bucketMin > _bucketMax;
-        var x = isEmpty ? PolylineStyle.Gap : (float)((bucket + 0.5) * _bucketWidth);
+        var (first, second) = _minAt <= _maxAt ? (_bucketMin, _bucketMax) : (_bucketMax, _bucketMin);
+        var left = isEmpty ? PolylineStyle.Gap : (float)(bucket * _bucketWidth);
+        var right = isEmpty ? PolylineStyle.Gap : (float)((bucket + 1) * _bucketWidth);
         var slot = (int)((_slotCounter - 1) % _slots) * _verticesPerSlot;
-        _vertices[slot] = new Vector2(x, isEmpty ? 0 : (float)(_bucketMin - _anchorY));
-        _vertices[slot + 1] = new Vector2(x, isEmpty ? 0 : (float)(_bucketMax - _anchorY));
+        _vertices[slot] = new Vector2(left, isEmpty ? 0 : (float)(first - _anchorY));
+        _vertices[slot + 1] = new Vector2(right, isEmpty ? 0 : (float)(second - _anchorY));
     }
 
     private void WriteSlot(Vector2 first, Vector2 second, long point)
