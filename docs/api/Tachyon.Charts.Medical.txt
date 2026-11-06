@@ -1,0 +1,50 @@
+enum Tachyon.Charts.Medical.DicomPhotometricInterpretation : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Monochrome1 = 1
+  Monochrome2 = 0
+sealed class Tachyon.Charts.Medical.DicomReadException : System.IO.IOException, System.Runtime.Serialization.ISerializable
+  .ctor(System.String message)
+static class Tachyon.Charts.Medical.DicomReader
+  static Tachyon.Charts.Medical.MedicalImage Read(System.IO.Stream stream)
+static class Tachyon.Charts.Medical.DicomSeriesReader
+  static Tachyon.Charts.Medical.MedicalVolume Build(System.Collections.Generic.IEnumerable<Tachyon.Charts.Medical.MedicalImage> images)
+  static Tachyon.Charts.Medical.MedicalVolume Read(System.Collections.Generic.IEnumerable<System.IO.Stream> streams)
+enum Tachyon.Charts.Medical.DicomTransferSyntax : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  ExplicitVrBigEndian = 2
+  ExplicitVrLittleEndian = 1
+  ImplicitVrLittleEndian = 0
+struct Tachyon.Charts.Medical.ImageSpacing : System.IEquatable<Tachyon.Charts.Medical.ImageSpacing>
+  .ctor(System.Double Row, System.Double Column)
+  System.Double Column { get; set; }
+  System.Double Row { get; set; }
+sealed class Tachyon.Charts.Medical.MedicalImage
+  System.Boolean IsSigned { get; }
+  System.Double Item[System.Int32, System.Int32] { get; }
+  System.Double RescaleIntercept { get; }
+  System.Double RescaleSlope { get; }
+  System.Int32 BitsAllocated { get; }
+  System.Int32 Height { get; }
+  System.Int32 Width { get; }
+  System.Nullable<System.Double> SliceThickness { get; }
+  System.Nullable<System.Double> SpacingBetweenSlices { get; }
+  System.Nullable<System.Double> WindowCenter { get; }
+  System.Nullable<System.Double> WindowWidth { get; }
+  System.Nullable<Tachyon.Charts.Medical.ImageSpacing> Spacing { get; }
+  System.Nullable<Tachyon.Charts.Medical.PatientOrientation> Orientation { get; }
+  System.Nullable<Tachyon.Charts.ThreeD.Scene.Point3D> Position { get; }
+  System.String Modality { get; }
+  System.Void CopyValues(System.Span<System.Single> target)
+  Tachyon.Charts.Medical.DicomPhotometricInterpretation PhotometricInterpretation { get; }
+  Tachyon.Charts.Medical.DicomTransferSyntax TransferSyntax { get; }
+sealed class Tachyon.Charts.Medical.MedicalVolume
+  System.Nullable<System.Double> WindowCenter { get; }
+  System.Nullable<System.Double> WindowWidth { get; }
+  System.String Modality { get; }
+  Tachyon.Charts.Medical.PatientOrientation Orientation { get; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Origin { get; }
+  Tachyon.Charts.ThreeD.Scene.Point3D VoxelSpacing { get; }
+  Tachyon.Charts.ThreeD.Scene.VolumeData Data { get; }
+struct Tachyon.Charts.Medical.PatientOrientation : System.IEquatable<Tachyon.Charts.Medical.PatientOrientation>
+  .ctor(Tachyon.Charts.ThreeD.Scene.Point3D Across, Tachyon.Charts.ThreeD.Scene.Point3D Down)
+  Tachyon.Charts.ThreeD.Scene.Point3D Across { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Down { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Normal { get; }

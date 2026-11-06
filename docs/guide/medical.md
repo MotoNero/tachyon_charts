@@ -25,6 +25,38 @@ These limits apply data minimisation under GDPR Article 5 and privacy by design 
 
 The reader deliberately has no switch for loading patient information. If an application has a lawful reason to process additional tags, it must do so through a separate component under its own responsibility.
 
+## Reading an image
+
+The reader accepts DICOM Part 10 streams with uncompressed Implicit VR Little Endian, Explicit VR Little Endian or Explicit VR Big Endian data. Pixels can be signed or unsigned with 8 or 16 allocated bits. Each stream contains one grayscale frame.
+
+```csharp
+using Tachyon.Charts.Medical;
+
+using var stream = File.OpenRead("slice.dcm");
+var image = DicomReader.Read(stream);
+
+double value = image[column: 120, row: 80]; // rescale slope and intercept are already applied
+double? centre = image.WindowCenter;
+double? width = image.WindowWidth;
+```
+
+`MedicalImage` carries only image information: dimensions, values, spacing, position, orientation, modality, window values and value rescaling. The stream stays owned by the application.
+
+## Building a volume
+
+Read a series from streams in any order. The builder verifies one Series Instance UID and common dimensions, pixel format, spacing and orientation. It sorts slices by their patient-space position and requires regular spacing:
+
+```csharp
+var volume = DicomSeriesReader.Read(streams);
+
+var values = volume.Data;       // VolumeData, ready for Volume3D
+var spacing = volume.VoxelSpacing;
+var origin = volume.Origin;
+var orientation = volume.Orientation;
+```
+
+Compressed transfer syntaxes, color images, multi-frame data and irregular slice stacks return a `DicomReadException` with a description that contains neither source values nor file paths. An application can use another decoder and construct its own chart data when it needs encodings outside this deliberately small reader.
+
 ## Package boundary
 
 The medical package builds on `Tachyon.Charts.ThreeD`, which in turn builds on the platform-neutral chart core. The regular 2D and 3D packages do not reference the medical package, so applications that do not install it receive no medical-data API.

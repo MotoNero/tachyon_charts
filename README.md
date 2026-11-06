@@ -182,6 +182,8 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 
 `Tachyon.Charts.Medical` is a separate add-on for analytical image and volume applications. Its reader is deliberately limited to pixels, image geometry and value interpretation; it does not expose patient information.
 
+It reads uncompressed single-frame grayscale DICOM Part 10 data in the three standard uncompressed transfer syntaxes, including signed and unsigned 8- or 16-bit pixels. A series reader sorts slices by patient-space position and produces a regularly spaced volume with its physical geometry.
+
 Tachyon Charts is not a medical device and is not approved or certified for diagnosis or therapy under the EU Medical Device Regulation (MDR). The application developer and operator remain responsible for the intended use, validation, privacy and every applicable regulatory requirement. See [Medical data and privacy](docs/guide/medical.md).
 
 ## Quick start
