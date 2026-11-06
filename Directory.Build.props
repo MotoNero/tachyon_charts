@@ -15,4 +15,10 @@
     <InformationalVersion>$(ThreeDVersion)</InformationalVersion>
   </PropertyGroup>
 
+  <!-- The medical add-on has a version of its own; tools/release/release.sh sets it with -p:MedicalVersion. -->
+  <PropertyGroup Condition="'$(MedicalVersion)' != '' and $(MSBuildProjectName.StartsWith('Tachyon.Charts.Medical'))">
+    <PackageVersion>$(MedicalVersion)</PackageVersion>
+    <InformationalVersion>$(MedicalVersion)</InformationalVersion>
+  </PropertyGroup>
+
 </Project>

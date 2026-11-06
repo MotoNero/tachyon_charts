@@ -28,6 +28,7 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 - **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap with cells of their own sizes, contour with labels along the lines
 - **Finance:** candles, OHLC bars, volume, market profile and drawing tools
 - **3D as an add-on:** surfaces, waterfalls, antenna patterns, point clouds of 100 million points, volumes and models from STL and OBJ files, live and with values under the pointer
+- **Medical data as an add-on:** a separate package with privacy-first image reading and volume building, without patient-information APIs
 - **Runs everywhere:** GPU, software adapter or CPU, chosen automatically, also over remote desktop
 - **Ready for reports:** export to PNG, SVG, PDF and CSV, clipboard and printing, MP4 videos of 2D and 3D charts
 
@@ -177,6 +178,12 @@ Seven built-in themes, plus your own from JSON or XAML resources. Themes apply t
 - **Together with 2D:** markers and the limit mask of the spectrum analyzer appear in the 2D and the 3D chart at once; a 2D chart narrows the range of a 3D chart
 - **Export:** PNG, SVG and PDF with the 3D picture, CSV with all data of the scene, MP4 videos that turn the view or record what the user does
 
+### Medical data
+
+`Tachyon.Charts.Medical` is a separate add-on for analytical image and volume applications. Its reader is deliberately limited to pixels, image geometry and value interpretation; it does not expose patient information.
+
+Tachyon Charts is not a medical device and is not approved or certified for diagnosis or therapy under the EU Medical Device Regulation (MDR). The application developer and operator remain responsible for the intended use, validation, privacy and every applicable regulatory requirement. See [Medical data and privacy](docs/guide/medical.md).
+
 ## Quick start
 
 ```csharp
@@ -313,6 +320,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Polygons](docs/guide/polygons.md) | Polygons with holes, heatmaps inside an area |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
 | [Code signing policy](docs/guide/code-signing.md) | How the showroom apps are signed, who approves, privacy |
+| [Medical data and privacy](docs/guide/medical.md) | Package boundary, data minimisation and regulatory scope |
 | [docs/api](docs/api) | Public API lists |
 
 ## License
