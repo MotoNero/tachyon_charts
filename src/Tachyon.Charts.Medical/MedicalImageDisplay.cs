@@ -194,6 +194,7 @@ public sealed class MedicalImageDisplay
             .AddHeatmap(_data, series => series
                 .Name(Unit)
                 .Cells(0, Spacing.Column, 0, Spacing.Row)
+                .Interpolated()
                 .ColorAxis(axis => axis.Colormap(Colormaps.Grayscale).Range(window.Minimum, window.Maximum).Title(Unit)))
             .Modifiers(modifiers => modifiers
                 .Custom(() => new MedicalImageModifier(this))

@@ -123,6 +123,7 @@ sealed class Tachyon.Charts.Avalonia.DiagnosticsModifier : Tachyon.Charts.Avalon
   .ctor()
 sealed class Tachyon.Charts.Avalonia.HeatmapSeries : Tachyon.Charts.Avalonia.RasterSeriesElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
   .ctor()
+  System.Boolean IsInterpolated { get; set; }
   System.Double XStart { get; set; }
   System.Double YStart { get; set; }
 sealed class Tachyon.Charts.Avalonia.KeyboardNavigationModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize

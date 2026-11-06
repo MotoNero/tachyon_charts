@@ -557,10 +557,12 @@ sealed class Tachyon.Charts.Core.Fluent.HeatmapBuilder
   Tachyon.Charts.Core.Fluent.HeatmapBuilder Cells(System.Double xStart, System.Double xStep, System.Double yStart, System.Double yStep)
   Tachyon.Charts.Core.Fluent.HeatmapBuilder ColorAxis(System.Action<Tachyon.Charts.Core.Fluent.ColorAxisBuilder> configure)
   Tachyon.Charts.Core.Fluent.HeatmapBuilder Edges(System.Collections.Generic.IReadOnlyList<System.Double> xEdges, System.Collections.Generic.IReadOnlyList<System.Double> yEdges)
+  Tachyon.Charts.Core.Fluent.HeatmapBuilder Interpolated(System.Boolean isInterpolated = True)
   Tachyon.Charts.Core.Fluent.HeatmapBuilder Mask(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.Polygon> polygons)
   Tachyon.Charts.Core.Fluent.HeatmapBuilder Name(System.String name)
 sealed class Tachyon.Charts.Core.Fluent.HeatmapDefinition : Tachyon.Charts.Core.Fluent.RasterDefinition, System.IEquatable<Tachyon.Charts.Core.Fluent.HeatmapDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.RasterDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.SeriesDefinition>
   .ctor()
+  System.Boolean IsInterpolated { get; set; }
   System.Collections.Generic.IReadOnlyList<System.Double> XEdges { get; set; }
   System.Collections.Generic.IReadOnlyList<System.Double> YEdges { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.Polygon> Mask { get; set; }
@@ -1824,6 +1826,7 @@ sealed class Tachyon.Charts.Core.Series.GanttSeries : Tachyon.Charts.Core.Pipeli
   virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
 sealed class Tachyon.Charts.Core.Series.HeatmapSeries : Tachyon.Charts.Core.Series.RasterSeries, System.IDisposable
   .ctor(Tachyon.Charts.Core.Data.HeatmapData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis, Tachyon.Charts.Core.Axes.ColorAxis colorAxis)
+  System.Boolean IsInterpolated { get; set; }
   System.Collections.Generic.IReadOnlyList<System.Double> XEdges { get; set; }
   System.Collections.Generic.IReadOnlyList<System.Double> YEdges { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.Polygon> Mask { get; set; }

@@ -48,6 +48,9 @@ public sealed class HeatmapSeries : RasterSeries
     private Vector2 _sectionOrigin;
     private Vector2 _sectionSize;
 
+    /// <summary>Gets or sets a value indicating whether adjacent cell colors are blended.</summary>
+    public bool IsInterpolated { get; set; }
+
     /// <summary>
     /// Initializes a new instance of the <see cref="HeatmapSeries"/> class.
     /// </summary>
@@ -188,7 +191,12 @@ public sealed class HeatmapSeries : RasterSeries
     {
         if (_texture is not null && Table is not null && _bounds.Width > 0 && _bounds.Height > 0)
         {
-            var style = ColorAxis.CreateRasterStyle() with { SectionOrigin = _sectionOrigin, SectionSize = _sectionSize };
+            var style = ColorAxis.CreateRasterStyle() with
+            {
+                SectionOrigin = _sectionOrigin,
+                SectionSize = _sectionSize,
+                IsInterpolated = IsInterpolated,
+            };
             if (_mask is not null)
             {
                 style = style with { MissingColor = default };

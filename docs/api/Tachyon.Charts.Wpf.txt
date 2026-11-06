@@ -158,10 +158,12 @@ sealed class Tachyon.Charts.Wpf.DiagnosticsModifier : Tachyon.Charts.Wpf.ChartMo
   .ctor()
 sealed class Tachyon.Charts.Wpf.HeatmapSeries : Tachyon.Charts.Wpf.RasterSeriesElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
   .ctor()
+  System.Boolean IsInterpolated { get; set; }
   System.Double XStart { get; set; }
   System.Double XStep { get; set; }
   System.Double YStart { get; set; }
   System.Double YStep { get; set; }
+  static System.Windows.DependencyProperty IsInterpolatedProperty
   static System.Windows.DependencyProperty XStartProperty
   static System.Windows.DependencyProperty XStepProperty
   static System.Windows.DependencyProperty YStartProperty

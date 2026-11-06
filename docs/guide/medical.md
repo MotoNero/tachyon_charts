@@ -66,7 +66,7 @@ The chart adds these interactions without platform-specific code:
 - middle-drag pans and the wheel zooms;
 - moving the pointer shows the rescaled value, its unit and the physical X/Y position.
 
-Window changes update only the color range. Pixel values and their GPU texture stay unchanged, which keeps the interaction responsive even for large images. Applications can also construct `MedicalImageDisplay` directly from a row-major span of rescaled values, spacing and orientation.
+Window changes update only the color range. Pixel values and their GPU texture stay unchanged, which keeps the interaction responsive even for large images. Bilinear display filtering smooths enlarged pixels, while the value probe continues to report the original sample. Applications can also construct `MedicalImageDisplay` directly from a row-major span of rescaled values, spacing and orientation.
 
 ## Building a volume
 

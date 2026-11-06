@@ -157,6 +157,9 @@ public abstract record RasterDefinition : SeriesDefinition
 /// <summary>A described heatmap.</summary>
 public sealed record HeatmapDefinition : RasterDefinition
 {
+    /// <summary>Gets a value indicating whether adjacent cell colors are blended.</summary>
+    public bool IsInterpolated { get; init; }
+
     /// <summary>Gets the left edge of the first column.</summary>
     public double XStart { get; init; }
 
@@ -186,6 +189,7 @@ public sealed record HeatmapDefinition : RasterDefinition
         YStart = YStart,
         YStep = YStep,
         XEdges = XEdges,
+        IsInterpolated = IsInterpolated,
         Mask = Mask,
         YEdges = YEdges,
     };
@@ -727,6 +731,11 @@ public sealed class HeatmapBuilder
     /// <returns>This builder.</returns>
     public HeatmapBuilder Edges(IReadOnlyList<double>? xEdges, IReadOnlyList<double>? yEdges) =>
         Change(Definition with { XEdges = xEdges, YEdges = yEdges });
+
+    /// <summary>Blends adjacent cell colors when the heatmap is enlarged.</summary>
+    /// <param name="isInterpolated">Whether to blend adjacent cell colors.</param>
+    /// <returns>This builder.</returns>
+    public HeatmapBuilder Interpolated(bool isInterpolated = true) => Change(Definition with { IsInterpolated = isInterpolated });
 
     /// <summary>Shows only the cells inside polygons, for example the shape of a region.</summary>
     /// <param name="polygons">The polygons.</param>

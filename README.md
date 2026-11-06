@@ -186,7 +186,7 @@ It reads uncompressed single-frame grayscale DICOM Part 10 data in the three sta
 
 ![A synthetic axial medical image with millimetre axes, orientation marks and the value under the pointer](docs/images/medical-image.png)
 
-`MedicalImageDisplay` turns an image or rescaled array into an interactive grayscale chart. Left-drag adjusts window and level without rebuilding the image, common CT presets are included, and the pointer reports the value with its unit and physical position.
+`MedicalImageDisplay` turns an image or rescaled array into an interactive grayscale chart with bilinear display filtering. Left-drag adjusts window and level without rebuilding the image, common CT presets are included, and the pointer reports the original value with its unit and physical position.
 
 Tachyon Charts is not a medical device and is not approved or certified for diagnosis or therapy under the EU Medical Device Regulation (MDR). The application developer and operator remain responsible for the intended use, validation, privacy and every applicable regulatory requirement. See [Medical data and privacy](docs/guide/medical.md).
 

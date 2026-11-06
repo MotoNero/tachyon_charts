@@ -741,6 +741,10 @@ public sealed class HeatmapSeries : RasterSeriesElement
     public static readonly DependencyProperty YStepProperty = DependencyProperty.Register(
         nameof(YStep), typeof(double), typeof(HeatmapSeries), new PropertyMetadata(1.0, OnChanged));
 
+    /// <summary>Identifies the <see cref="IsInterpolated"/> property.</summary>
+    public static readonly DependencyProperty IsInterpolatedProperty = DependencyProperty.Register(
+        nameof(IsInterpolated), typeof(bool), typeof(HeatmapSeries), new PropertyMetadata(false, OnChanged));
+
     /// <summary>Gets or sets the left edge of the first column.</summary>
     public double XStart
     {
@@ -769,6 +773,13 @@ public sealed class HeatmapSeries : RasterSeriesElement
         set => SetValue(YStepProperty, value);
     }
 
+    /// <summary>Gets or sets a value indicating whether adjacent cell colors are blended.</summary>
+    public bool IsInterpolated
+    {
+        get => (bool)GetValue(IsInterpolatedProperty);
+        set => SetValue(IsInterpolatedProperty, value);
+    }
+
     /// <inheritdoc />
     internal override ChartSeries? Build(AxisBase x, AxisBase y)
     {
@@ -789,6 +800,7 @@ public sealed class HeatmapSeries : RasterSeriesElement
             XStep = XStep,
             YStart = YStart,
             YStep = YStep,
+            IsInterpolated = IsInterpolated,
         };
     }
 }
@@ -1271,6 +1283,7 @@ internal static class ChartElementFactory
                 XStep = heatmap.XStep,
                 YStart = heatmap.YStart,
                 YStep = heatmap.YStep,
+                IsInterpolated = heatmap.IsInterpolated,
             },
             _ => throw new NotSupportedException($"{definition.GetType().Name} has no element."),
         };

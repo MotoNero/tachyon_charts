@@ -683,6 +683,9 @@ public sealed class HeatmapSeries : RasterSeriesElement
     /// <summary>Gets or sets the lower edge of the first row.</summary>
     public double YStart { get; set; }
 
+    /// <summary>Gets or sets a value indicating whether adjacent cell colors are blended.</summary>
+    public bool IsInterpolated { get; set; }
+
     /// <inheritdoc />
     internal override ChartSeries? Build(AxisBase x, AxisBase y) => DataSource is null ? null : new Core.Series.HeatmapSeries(Source<HeatmapData>(), x, y, GetColorAxis(string.Empty))
     {
@@ -691,6 +694,7 @@ public sealed class HeatmapSeries : RasterSeriesElement
         XStep = XStep,
         YStart = YStart,
         YStep = YStep,
+        IsInterpolated = IsInterpolated,
     };
 }
 
@@ -1089,6 +1093,7 @@ internal static class ChartElementFactory
                 XStep = heatmap.XStep,
                 YStart = heatmap.YStart,
                 YStep = heatmap.YStep,
+                IsInterpolated = heatmap.IsInterpolated,
             }, heatmap),
             _ => throw new NotSupportedException($"{definition.GetType().Name} has no element."),
         };
