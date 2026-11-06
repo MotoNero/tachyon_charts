@@ -312,6 +312,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Sweep monitors](docs/guide/sweep.md) | Writing over the previous pass or page by page, channels in step |
 | [Polygons](docs/guide/polygons.md) | Polygons with holes, heatmaps inside an area |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
+| [Code signing policy](docs/guide/code-signing.md) | How the showroom apps are signed, who approves, privacy |
 | [docs/api](docs/api) | Public API lists |
 
 ## License

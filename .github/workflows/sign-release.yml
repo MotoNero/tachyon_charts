@@ -1,0 +1,119 @@
+# Builds the showroom apps of a release on a GitHub-hosted runner, has SignPath sign them and replaces the unsigned
+# downloads of the release with the signed ones. Free code signing for open source is provided by SignPath.io, the
+# certificate by the SignPath Foundation; see docs/guide/code-signing.md.
+#
+# Needs the secret SIGNPATH_API_TOKEN and the variable SIGNPATH_ORGANIZATION_ID. Without them the run ends with a note,
+# so a release still works before signing is set up.
+name: Sign release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag of the release, for example v0.15.0
+        required: true
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  sign:
+    runs-on: windows-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Check the signing setup
+        id: setup
+        shell: pwsh
+        env:
+          TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          ORGANIZATION: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+        run: |
+          if ([string]::IsNullOrEmpty($env:TOKEN) -or [string]::IsNullOrEmpty($env:ORGANIZATION)) {
+            Write-Output "::notice::Signing is not set up yet; the release keeps its unsigned downloads."
+            "ready=false" >> $env:GITHUB_OUTPUT
+          } else {
+            "ready=true" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Check out the release
+        if: steps.setup.outputs.ready == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
+
+      - name: Set up .NET
+        if: steps.setup.outputs.ready == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build the showroom apps
+        if: steps.setup.outputs.ready == 'true'
+        shell: pwsh
+        run: |
+          # The versions come from the package names of the release: 2D first, then the 3D add-on.
+          $version = $env:TAG.TrimStart('v')
+          $threed = $version
+          $packages = gh release view $env:TAG --json assets --jq '.assets[].name'
+          $match = $packages | Select-String -Pattern '^Tachyon\.Charts\.ThreeD\.(\d[^\\/]*)\.nupkg$' | Select-Object -First 1
+          if ($match) { $threed = $match.Matches[0].Groups[1].Value }
+          foreach ($app in 'Wpf', 'Avalonia') {
+            $folder = "unsigned/Tachyon.Charts.Showroom-$app-$version-win-x64"
+            dotnet publish "samples/Tachyon.Charts.Samples.$app" -c Release -r win-x64 --self-contained true -o $folder -p:Version=$version -p:ThreeDVersion=$threed
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+            Copy-Item LICENSE, NOTICE $folder
+            python build/notices.py "samples/Tachyon.Charts.Samples.$app" "$folder/THIRD-PARTY-NOTICES.txt"
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+
+      - name: Upload the unsigned apps
+        if: steps.setup.outputs.ready == 'true'
+        id: unsigned
+        uses: actions/upload-artifact@v4
+        with:
+          name: showroom-unsigned
+          path: unsigned
+
+      - name: Sign with SignPath
+        if: steps.setup.outputs.ready == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: tachyon_charts
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: showroom
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: signed
+
+      - name: Check the signatures
+        if: steps.setup.outputs.ready == 'true'
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem signed -Recurse -Include *.exe, Tachyon.Charts*.dll
+          if ($files.Count -eq 0) { Write-Error "No signed files"; exit 1 }
+          foreach ($file in $files) {
+            $signature = Get-AuthenticodeSignature $file.FullName
+            if ($signature.Status -ne 'Valid' -or $null -eq $signature.TimeStamperCertificate) {
+              Write-Error "$($file.Name): $($signature.Status), time stamp: $($null -ne $signature.TimeStamperCertificate)"
+              exit 1
+            }
+          }
+          Write-Output "$($files.Count) files signed with a time stamp."
+
+      - name: Replace the downloads of the release
+        if: steps.setup.outputs.ready == 'true'
+        shell: pwsh
+        run: |
+          foreach ($folder in Get-ChildItem signed -Directory) {
+            Compress-Archive -Path "$($folder.FullName)/*" -DestinationPath "$($folder.Name).zip" -Force
+            gh release upload $env:TAG "$($folder.Name).zip" --clobber
+          }
