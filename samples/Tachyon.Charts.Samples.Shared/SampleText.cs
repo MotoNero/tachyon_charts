@@ -113,6 +113,8 @@ public static class SampleText
         ["Wheel: zoom | Drag: pan, the axes stay at zero or at the nearest edge | Double click: all"] = "Rad: Zoom | Ziehen: Pan, die Achsen bleiben bei null oder am nächsten Rand | Doppelklick: alles",
         ["The marks at the axis show the newest value of each line and move apart when they meet | Wheel: zoom | Drag: pan"] = "Die Marken an der Achse zeigen den neuesten Wert jeder Linie und weichen einander aus | Rad: Zoom | Ziehen: Pan",
         ["Uneven heatmap 4096²"] = "Ungleiche Heatmap 4096²",
+        ["Medical image"] = "Medizinisches Bild",
+        ["Left drag: window and level | Keys 1, 2, 3: brain, bone, lung | Middle drag: pan | Wheel: zoom | Pointer: value and position"] = "Links ziehen: Fenster und Pegel | Tasten 1, 2, 3: Gehirn, Knochen, Lunge | Mitte ziehen: Pan | Rad: Zoom | Zeiger: Wert und Position",
         ["Labelled contours"] = "Beschriftete Höhenlinien",
         ["Wheel: zoom | Drag: pan | Pointer: the cell and its value | Double click: all"] = "Rad: Zoom | Ziehen: Pan | Zeiger: die Zelle und ihr Wert | Doppelklick: alles",
         ["Wheel: zoom | Drag: pan, the labels move along | Double click: all"] = "Rad: Zoom | Ziehen: Pan, die Beschriftungen wandern mit | Doppelklick: alles",

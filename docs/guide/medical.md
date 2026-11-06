@@ -42,6 +42,32 @@ double? width = image.WindowWidth;
 
 `MedicalImage` carries only image information: dimensions, values, spacing, position, orientation, modality, window values and value rescaling. The stream stays owned by the application.
 
+## Showing an image in 2D
+
+`MedicalImageDisplay` configures the regular 2D chart surface, so the same code works in WPF and Avalonia. Axes and pointer positions use millimetres. The image keeps DICOM row order on screen and derives the L/R, A/P and S/I edge marks from its patient-space orientation.
+
+```csharp
+var display = new MedicalImageDisplay(image);
+chart.Configure(display.Configure);
+
+display.ApplyPreset(CtWindowPresets.Brain); // also Bone and Lung
+display.SetWindow(center: 40, width: 80);
+
+if (display.TryGetValue(x: 42.5, y: 18.0, out var probe))
+{
+    Console.WriteLine($"{probe.Value:F1} {probe.Unit}");
+}
+```
+
+The chart adds these interactions without platform-specific code:
+
+- left-drag changes width horizontally and centre vertically;
+- keys 1, 2 and 3 select the brain, bone and lung CT windows;
+- middle-drag pans and the wheel zooms;
+- moving the pointer shows the rescaled value, its unit and the physical X/Y position.
+
+Window changes update only the color range. Pixel values and their GPU texture stay unchanged, which keeps the interaction responsive even for large images. Applications can also construct `MedicalImageDisplay` directly from a row-major span of rescaled values, spacing and orientation.
+
 ## Building a volume
 
 Read a series from streams in any order. The builder verifies one Series Instance UID and common dimensions, pixel format, spacing and orientation. It sorts slices by their patient-space position and requires regular spacing:

@@ -36,6 +36,7 @@ public static class ChartTypePages
         (TenThousandPolygonsPage.Name, TenThousandPolygonsPage.Hint, TenThousandPolygonsPage.Configure),
         (HeatmapInAnAreaPage.Name, HeatmapInAnAreaPage.Hint, HeatmapInAnAreaPage.Configure),
         (UnevenHeatmapPage.Name, UnevenHeatmapPage.Hint, UnevenHeatmapPage.Configure),
+        (MedicalImagePage.Name, MedicalImagePage.Hint, MedicalImagePage.Configure),
         (LabelledContoursPage.Name, LabelledContoursPage.Hint, LabelledContoursPage.Configure),
         (PolarPage.Name, PolarPage.Hint, PolarPage.Configure),
         (AntennaCutPage.Name, AntennaCutPage.Hint, AntennaCutPage.Configure),

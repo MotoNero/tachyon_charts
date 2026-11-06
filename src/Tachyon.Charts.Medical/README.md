@@ -7,3 +7,5 @@ This optional add-on provides privacy-first medical image and volume support for
 The DICOM reader deliberately exposes only pixels, image geometry and value interpretation. It does not expose patient information. The user guide describes the package boundary, data-minimisation rules and regulatory scope.
 
 Supported input is uncompressed DICOM Part 10 with Implicit VR Little Endian, Explicit VR Little Endian or Explicit VR Big Endian transfer syntax and signed or unsigned 8- or 16-bit grayscale pixels. `DicomSeriesReader` sorts single-frame slices by patient-space position and produces a regularly spaced `VolumeData`.
+
+`MedicalImageDisplay` configures a 2D chart with millimetre axes, patient-orientation marks, pointer values, interactive window/level adjustment and common CT presets. The same configuration runs in the WPF and Avalonia chart hosts.

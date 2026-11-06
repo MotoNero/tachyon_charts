@@ -1,3 +1,7 @@
+static class Tachyon.Charts.Medical.CtWindowPresets
+  static Tachyon.Charts.Medical.MedicalWindow Bone { get; }
+  static Tachyon.Charts.Medical.MedicalWindow Brain { get; }
+  static Tachyon.Charts.Medical.MedicalWindow Lung { get; }
 enum Tachyon.Charts.Medical.DicomPhotometricInterpretation : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Monochrome1 = 1
   Monochrome2 = 0
@@ -35,6 +39,35 @@ sealed class Tachyon.Charts.Medical.MedicalImage
   System.Void CopyValues(System.Span<System.Single> target)
   Tachyon.Charts.Medical.DicomPhotometricInterpretation PhotometricInterpretation { get; }
   Tachyon.Charts.Medical.DicomTransferSyntax TransferSyntax { get; }
+sealed class Tachyon.Charts.Medical.MedicalImageDisplay
+  .ctor(System.ReadOnlySpan<System.Single> values, System.Int32 width, System.Int32 height, Tachyon.Charts.Medical.ImageSpacing spacing, Tachyon.Charts.Medical.PatientOrientation orientation, System.String unit = value)
+  .ctor(Tachyon.Charts.Medical.MedicalImage image)
+  System.Boolean TryGetValue(System.Double x, System.Double y, out Tachyon.Charts.Medical.MedicalImageProbe probe)
+  System.Int32 Height { get; }
+  System.Int32 Width { get; }
+  System.String Unit { get; }
+  System.Void ApplyPreset(Tachyon.Charts.Medical.MedicalWindow window)
+  System.Void Configure(Tachyon.Charts.Core.Fluent.ChartBuilder chart)
+  System.Void SetWindow(System.Double center, System.Double width)
+  Tachyon.Charts.Medical.ImageSpacing Spacing { get; }
+  Tachyon.Charts.Medical.MedicalOrientationMarks OrientationMarks { get; }
+  Tachyon.Charts.Medical.MedicalWindow Window { get; }
+  Tachyon.Charts.Medical.PatientOrientation Orientation { get; }
+  event System.Action<Tachyon.Charts.Medical.MedicalWindow> WindowChanged
+struct Tachyon.Charts.Medical.MedicalImageProbe : System.IEquatable<Tachyon.Charts.Medical.MedicalImageProbe>
+  .ctor(System.Int32 Column, System.Int32 Row, System.Double X, System.Double Y, System.Double Value, System.String Unit)
+  System.Double Value { get; set; }
+  System.Double X { get; set; }
+  System.Double Y { get; set; }
+  System.Int32 Column { get; set; }
+  System.Int32 Row { get; set; }
+  System.String Unit { get; set; }
+struct Tachyon.Charts.Medical.MedicalOrientationMarks : System.IEquatable<Tachyon.Charts.Medical.MedicalOrientationMarks>
+  .ctor(System.String Top, System.String Right, System.String Bottom, System.String Left)
+  System.String Bottom { get; set; }
+  System.String Left { get; set; }
+  System.String Right { get; set; }
+  System.String Top { get; set; }
 sealed class Tachyon.Charts.Medical.MedicalVolume
   System.Nullable<System.Double> WindowCenter { get; }
   System.Nullable<System.Double> WindowWidth { get; }
@@ -43,6 +76,13 @@ sealed class Tachyon.Charts.Medical.MedicalVolume
   Tachyon.Charts.ThreeD.Scene.Point3D Origin { get; }
   Tachyon.Charts.ThreeD.Scene.Point3D VoxelSpacing { get; }
   Tachyon.Charts.ThreeD.Scene.VolumeData Data { get; }
+struct Tachyon.Charts.Medical.MedicalWindow : System.IEquatable<Tachyon.Charts.Medical.MedicalWindow>
+  .ctor(System.String Name, System.Double Center, System.Double Width)
+  System.Double Center { get; set; }
+  System.Double Maximum { get; }
+  System.Double Minimum { get; }
+  System.Double Width { get; set; }
+  System.String Name { get; set; }
 struct Tachyon.Charts.Medical.PatientOrientation : System.IEquatable<Tachyon.Charts.Medical.PatientOrientation>
   .ctor(Tachyon.Charts.ThreeD.Scene.Point3D Across, Tachyon.Charts.ThreeD.Scene.Point3D Down)
   Tachyon.Charts.ThreeD.Scene.Point3D Across { get; set; }
