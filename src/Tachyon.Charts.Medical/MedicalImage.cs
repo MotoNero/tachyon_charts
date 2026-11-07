@@ -139,7 +139,16 @@ public sealed class MedicalImage
 /// <summary>A regularly spaced stack of DICOM images.</summary>
 public sealed class MedicalVolume
 {
-    internal MedicalVolume(
+    /// <summary>Initializes a regularly spaced volume from already rescaled values and its physical geometry.</summary>
+    /// <param name="data">The values, with columns, rows and slices mapped to X, Y and Z.</param>
+    /// <param name="inPlane">The row and column spacing in millimetres.</param>
+    /// <param name="sliceSpacing">The spacing between slice centres in millimetres.</param>
+    /// <param name="origin">The patient-space position of the first voxel.</param>
+    /// <param name="orientation">The patient-space orientation.</param>
+    /// <param name="windowCenter">The preferred window centre, or <see langword="null"/>.</param>
+    /// <param name="windowWidth">The preferred window width, or <see langword="null"/>.</param>
+    /// <param name="modality">The modality, when known.</param>
+    public MedicalVolume(
         VolumeData data,
         ImageSpacing inPlane,
         double sliceSpacing,
@@ -149,7 +158,30 @@ public sealed class MedicalVolume
         double? windowWidth,
         string? modality)
     {
-        Data = data;
+        Data = data ?? throw new ArgumentNullException(nameof(data));
+        if (!double.IsFinite(inPlane.Row) || inPlane.Row <= 0 || !double.IsFinite(inPlane.Column) || inPlane.Column <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(inPlane), inPlane, "Pixel spacing must be finite and positive.");
+        }
+
+        if (!double.IsFinite(sliceSpacing) || sliceSpacing <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(sliceSpacing), sliceSpacing, "Slice spacing must be finite and positive.");
+        }
+
+        if (!double.IsFinite(origin.X) || !double.IsFinite(origin.Y) || !double.IsFinite(origin.Z))
+        {
+            throw new ArgumentOutOfRangeException(nameof(origin), origin, "The origin must be finite.");
+        }
+
+        if (!double.IsFinite(orientation.Across.Length)
+            || !double.IsFinite(orientation.Down.Length)
+            || !double.IsFinite(orientation.Normal.Length)
+            || orientation.Normal.Length == 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(orientation), orientation, "The orientation needs two finite, independent directions.");
+        }
+
         VoxelSpacing = new Point3D(inPlane.Column, inPlane.Row, sliceSpacing);
         Origin = origin;
         Orientation = orientation;

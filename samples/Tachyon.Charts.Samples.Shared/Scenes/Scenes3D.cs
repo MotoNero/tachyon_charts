@@ -2,6 +2,7 @@ using Tachyon.Charts.Core.Fluent;
 using Tachyon.Charts.Rendering;
 using Tachyon.Charts.Rendering.Skia;
 using Tachyon.Charts.Samples.Shared.Examples.Gallery3D;
+using Tachyon.Charts.Samples.Shared.Examples.ThreeD;
 using Tachyon.Charts.ThreeD;
 
 namespace Tachyon.Charts.Samples.Shared.Scenes;
@@ -41,6 +42,7 @@ public static class Scenes3D
     /// <summary>Gets the scenes.</summary>
     public static IReadOnlyList<IScene> All { get; } =
     [
+        new MedicalMprScene(),
         new Scene3DPicture(Box3DPicture.Name, Box3DPicture.Configure),
         new Scene3DPicture(Box3DBehindPicture.Name, Box3DBehindPicture.Configure),
         new Scene3DPicture(Box3DTopPicture.Name, Box3DTopPicture.Configure),

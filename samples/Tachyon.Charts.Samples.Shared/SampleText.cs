@@ -35,6 +35,9 @@ public static class SampleText
         ["Objects inside a volume"] = "Objekte im Volumen",
         ["Drag the white points at the top right: color and opacity | Drag: turn | Wheel: zoom | Pointer: values"] = "Weiße Punkte oben rechts ziehen: Farbe und Deckkraft | Ziehen: drehen | Rad: Zoom | Zeiger: Werte",
         ["Volume slices 512³"] = "Volumen-Schnittbilder 512³",
+        ["Medical MPR"] = "Medizinische MPR",
+        ["Click a slice or the 3D volume: all crosshairs and planes follow | Drag in 2D: window/level"] =
+            "In einen Schnitt oder das 3D-Volumen klicken: alle Fadenkreuze und Ebenen folgen | In 2D ziehen: Fensterung",
         ["Cloud, live"] = "Punktwolke, live",
         ["Cloud of 20 million points"] = "Punktwolke mit 20 Millionen Punkten",
         ["Cloud of 100 million points"] = "Punktwolke mit 100 Millionen Punkten",

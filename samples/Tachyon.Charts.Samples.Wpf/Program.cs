@@ -117,7 +117,7 @@ internal sealed class SampleWindow : Window
     private readonly List<(MenuItem Item, string Text)> _menuItems = [];
     private readonly Dictionary<string, FrameworkElement> _views3D = [];
     private readonly Dictionary<string, Tachyon.Charts.ThreeD.Wpf.Chart3D> _hosts3D = [];
-    private readonly Dictionary<string, Chart> _companions = [];
+    private readonly Dictionary<string, List<Chart>> _companions = [];
     private readonly Tachyon.Charts.Core.Input.SelectionModifier _selection = new() { Mode = Tachyon.Charts.Core.Input.SelectionMode.Lasso };
     private readonly Button _select = new() { Margin = new Thickness(0, 0, 6, 0) };
     private bool _isSelecting;
@@ -577,10 +577,36 @@ internal sealed class SampleWindow : Window
                     below.Theme = chosen;
                 }
 
-                _companions[page.Name] = below;
+                _companions[page.Name] = [below];
                 Grid.SetRow(below, 1);
                 grid.Children.Add(host);
                 grid.Children.Add(below);
+                view = grid;
+            }
+            else if (page.GridCompanions is { Count: 3 } companions)
+            {
+                var grid = new Grid();
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                var charts = new List<Chart>(companions.Count);
+                for (var index = 0; index < companions.Count; index++)
+                {
+                    var chart = new Chart().Configure(companions[index]);
+                    if (SelectedTheme is { } chosen)
+                    {
+                        chart.Theme = chosen;
+                    }
+
+                    Grid.SetRow(chart, (index + 1) / 2);
+                    Grid.SetColumn(chart, (index + 1) % 2);
+                    charts.Add(chart);
+                    grid.Children.Add(chart);
+                }
+
+                _companions[page.Name] = charts;
+                grid.Children.Add(host);
                 view = grid;
             }
 
@@ -861,7 +887,7 @@ internal sealed class SampleWindow : Window
             chart.Theme = theme ?? BuiltInThemes.TachyonDark;
         }
 
-        foreach (var chart in _pages.Values.Concat(_companions.Values).Append(_scope).Append(_spectrum).Append(_spectrumHistory))
+        foreach (var chart in _pages.Values.Concat(_companions.Values.SelectMany(charts => charts)).Append(_scope).Append(_spectrum).Append(_spectrumHistory))
         {
             chart.Theme = theme ?? BuiltInThemes.Instrument;
         }

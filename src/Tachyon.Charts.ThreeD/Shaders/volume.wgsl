@@ -50,7 +50,8 @@ fn vs_slice(@builtin(vertex_index) index: u32, @builtin(instance_index) axis: u3
 
 fn color_of(share: f32) -> vec3<f32> {
     let last = f32(arrayLength(&colormap) - 1u);
-    let place = clamp(share, 0.0, 1.0) * last;
+    let mapped = (share - uniforms.look.z) / max(uniforms.look.w - uniforms.look.z, 1e-7);
+    let place = clamp(mapped, 0.0, 1.0) * last;
     let lower = u32(floor(place));
     let upper = min(lower + 1u, u32(last));
     return mix(colormap[lower].rgb, colormap[upper].rgb, fract(place));

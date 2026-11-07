@@ -86,10 +86,11 @@ internal sealed unsafe partial class Renderer3D
     /// <param name="low">The lower corner in the box.</param>
     /// <param name="high">The upper corner in the box.</param>
     /// <param name="slices">The places of the slices and the threshold.</param>
+    /// <param name="colorRange">The part of the stored value range mapped across the colormap.</param>
     /// <param name="showsSlices">Whether the slices show.</param>
-    public void SetPlace(Volume3D volume, Vector3 low, Vector3 high, Vector4 slices, bool showsSlices)
+    public void SetPlace(Volume3D volume, Vector3 low, Vector3 high, Vector4 slices, Vector2 colorRange, bool showsSlices)
     {
-        _volumes[volume].SetPlace(low, high, slices);
+        _volumes[volume].SetPlace(low, high, slices, colorRange);
         _volumes[volume].ShowsSlices = showsSlices;
     }
 
@@ -333,13 +334,18 @@ internal sealed unsafe partial class Renderer3D
             }
         }
 
-        public void SetPlace(Vector3 low, Vector3 high, Vector4 slices) =>
+        public void SetPlace(Vector3 low, Vector3 high, Vector4 slices, Vector2 colorRange)
+        {
             (_values.Low, _values.High, _values.Slices) = (new Vector4(low, 0), new Vector4(high, 0), slices);
+            (_values.Look.Z, _values.Look.W) = (colorRange.X, colorRange.Y);
+        }
 
         public void SetMarch(ReadOnlySpan<Vector4> table, in VolumeView view)
         {
             Marches = true;
+            var colorRange = new Vector2(_values.Look.Z, _values.Look.W);
             (_values.March, _values.Look, _values.Eye, _values.Material) = (view.March, view.Look, view.Eye, view.Material);
+            (_values.Look.Z, _values.Look.W) = (colorRange.X, colorRange.Y);
             (_values.NearA, _values.NearB, _values.NearC) = view.Near;
             (_values.FarA, _values.FarB, _values.FarC) = view.Far;
             fixed (Vector4* source = table)

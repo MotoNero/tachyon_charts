@@ -30,6 +30,9 @@ public sealed class Scene3D
     private readonly List<AntennaPattern3D> _antennas = [];
     private long _version;
 
+    /// <summary>Occurs after a marker has been added from code or by a click in the chart.</summary>
+    public event Action<Pick3D>? MarkerAdded;
+
     /// <summary>Initializes a new instance of the <see cref="Scene3D"/> class with three axes from 0 to 1.</summary>
     public Scene3D()
     {
@@ -328,6 +331,7 @@ public sealed class Scene3D
         }
 
         Interlocked.Increment(ref _markerVersion);
+        MarkerAdded?.Invoke(marker);
     }
 
     /// <summary>Removes the newest marker.</summary>

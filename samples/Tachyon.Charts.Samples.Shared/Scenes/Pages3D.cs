@@ -10,7 +10,14 @@ namespace Tachyon.Charts.Samples.Shared.Scenes;
 /// <param name="Configure">Describes the chart.</param>
 /// <param name="Run">Starts and stops a live source, if the page has one.</param>
 /// <param name="Companion">A 2D chart below the 3D chart, in the same group, if any.</param>
-public sealed record Page3D(string Name, string Hint, Action<Chart3DBuilder> Configure, Action<bool>? Run = null, Action<ChartBuilder>? Companion = null);
+/// <param name="GridCompanions">Three 2D charts that complete a 2 × 2 layout with the 3D chart, if any.</param>
+public sealed record Page3D(
+    string Name,
+    string Hint,
+    Action<Chart3DBuilder> Configure,
+    Action<bool>? Run = null,
+    Action<ChartBuilder>? Companion = null,
+    IReadOnlyList<Action<ChartBuilder>>? GridCompanions = null);
 
 /// <summary>The 3D pages of the sample apps.</summary>
 public static class Pages3D
@@ -30,6 +37,7 @@ public static class Pages3D
         new(CloudOf20MillionPointsPage.Name, CloudOf20MillionPointsPage.Hint, CloudOf20MillionPointsPage.Configure),
         new(CloudOf100MillionPointsPage.Name, CloudOf100MillionPointsPage.Hint, CloudOf100MillionPointsPage.Configure),
         new(VolumeSlices512Page.Name, VolumeSlices512Page.Hint, VolumeSlices512Page.Configure),
+        new(MedicalMprPage.Name, MedicalMprPage.Hint, MedicalMprPage.Configure, GridCompanions: MedicalMprPage.Slices),
         new(ThroughAVolume512Page.Name, ThroughAVolume512Page.Hint, ThroughAVolume512Page.Configure),
         new(ObjectsInsideAVolumePage.Name, ObjectsInsideAVolumePage.Hint, ObjectsInsideAVolumePage.Configure),
         new(MaximumProjection512Page.Name, MaximumProjection512Page.Hint, MaximumProjection512Page.Configure),

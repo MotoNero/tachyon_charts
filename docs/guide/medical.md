@@ -83,6 +83,27 @@ var orientation = volume.Orientation;
 
 Compressed transfer syntaxes, color images, multi-frame data and irregular slice stacks return a `DicomReadException` with a description that contains neither source values nor file paths. An application can use another decoder and construct its own chart data when it needs encodings outside this deliberately small reader.
 
+## Linking orthogonal slices and 3D
+
+`MedicalMprDisplay` is shared state rather than a platform control. It supplies axial, coronal and sagittal descriptions for normal 2D charts plus a 3D volume description. The application remains free to arrange those four charts, replace one of them or add its own overlays and controls.
+
+```csharp
+var volume = DicomSeriesReader.Read(streams);
+var mpr = new MedicalMprDisplay(volume);
+
+axialChart.Configure(mpr.Axial.Configure);
+coronalChart.Configure(mpr.Coronal.Configure);
+sagittalChart.Configure(mpr.Sagittal.Configure);
+volumeChart.Configure(mpr.Configure3D);
+
+mpr.SetPosition(new Point3D(x: 40, y: 35, z: 60)); // volume-local millimetres
+mpr.SetWindow(center: 40, width: 80);
+```
+
+The axes use physical millimetres. A primary click in a 2D slice changes the shared position; a pick on the 3D volume does the same in the other direction. Each view shows the corresponding crosshair or slice plane. Primary dragging in any 2D slice changes the shared window and level, while middle dragging and the wheel keep their usual pan and zoom behaviour. Keys 1, 2 and 3 apply the CT presets to every view.
+
+The constructor also accepts a `MedicalVolume` made from an application's own `VolumeData`, voxel spacing, origin and patient orientation. All geometry values must be finite, spacing must be positive and the two orientation directions must be independent.
+
 ## Package boundary
 
 The medical package builds on `Tachyon.Charts.ThreeD`, which in turn builds on the platform-neutral chart core. The regular 2D and 3D packages do not reference the medical package, so applications that do not install it receive no medical-data API.

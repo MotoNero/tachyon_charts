@@ -178,6 +178,7 @@ public sealed class Volume3D(VolumeData data, DoubleRange x, DoubleRange y, Doub
 
     private long _stamp;
     private double _isoShare = 0.5;
+    private DoubleRange? _colorRange;
 
     /// <summary>Gets the values.</summary>
     public VolumeData Data { get; } = data ?? throw new ArgumentNullException(nameof(data));
@@ -193,6 +194,27 @@ public sealed class Volume3D(VolumeData data, DoubleRange x, DoubleRange y, Doub
 
     /// <summary>Gets the colors of the slices.</summary>
     public Colormap Colormap { get; init; } = Colormaps.Viridis;
+
+    /// <summary>Gets or sets the values mapped across the colormap, or <see langword="null"/> for the complete data range.</summary>
+    public DoubleRange? ColorRange
+    {
+        get => _colorRange;
+        set
+        {
+            if (value is { IsEmpty: true })
+            {
+                throw new ArgumentException("The color range must not be empty.", nameof(value));
+            }
+
+            if (_colorRange == value)
+            {
+                return;
+            }
+
+            _colorRange = value;
+            Touch();
+        }
+    }
 
     /// <summary>Gets the slice across the first axis.</summary>
     public ClipPlane3D SliceX { get; } = new(new Point3D(1, 0, 0)) { Hides = false };
@@ -253,6 +275,20 @@ public sealed class Volume3D(VolumeData data, DoubleRange x, DoubleRange y, Doub
 
     /// <summary>Gets a number that changes as new slices arrive.</summary>
     internal long Stamp => Interlocked.Read(ref _stamp);
+
+    /// <summary>Gets the color range as shares of the stored data range.</summary>
+    internal (double Minimum, double Maximum) ColorShares
+    {
+        get
+        {
+            var data = Data.ValueRange;
+            var range = ColorRange ?? data;
+            var scale = data.Length > 0 ? 1 / data.Length : 0;
+            var minimum = (range.Min - data.Min) * scale;
+            var maximum = (range.Max - data.Min) * scale;
+            return maximum > minimum ? (minimum, maximum) : (minimum, minimum + 1e-12);
+        }
+    }
 
     /// <summary>Asks for a new picture.</summary>
     internal void Touch() => Interlocked.Increment(ref _stamp);

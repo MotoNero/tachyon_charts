@@ -429,11 +429,13 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
 
         loader.Load(_renderer!.GetVolume(volume, default));
         var (low, high) = volume.GetBox(scene);
+        var (colorMinimum, colorMaximum) = volume.ColorShares;
         _renderer.SetPlace(
             volume,
             new Vector3((float)low.X, (float)low.Y, (float)low.Z),
             new Vector3((float)high.X, (float)high.Y, (float)high.Z),
             new Vector4((float)volume.SliceX.Offset, (float)volume.SliceY.Offset, (float)volume.SliceZ.Offset, (float)volume.SliceThreshold),
+            new Vector2((float)colorMinimum, (float)colorMaximum),
             volume.ShowsSlices);
         if (volume.Marches)
         {

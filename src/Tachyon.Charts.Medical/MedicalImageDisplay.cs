@@ -217,7 +217,7 @@ public sealed class MedicalImageDisplay
         WindowChanged?.Invoke(window);
     }
 
-    private static MedicalWindow InitialWindow(double? center, double? width, DoubleRange range)
+    internal static MedicalWindow InitialWindow(double? center, double? width, DoubleRange range)
     {
         if (center is { } validCenter && width is > 0 and { } validWidth && double.IsFinite(validCenter) && double.IsFinite(validWidth))
         {
@@ -249,7 +249,7 @@ public sealed class MedicalImageDisplay
         }
     }
 
-    private static MedicalOrientationMarks Marks(PatientOrientation orientation)
+    internal static MedicalOrientationMarks Marks(PatientOrientation orientation)
     {
         var right = Direction(orientation.Across);
         var bottom = Direction(orientation.Down);

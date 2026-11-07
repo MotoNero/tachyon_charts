@@ -62,6 +62,34 @@ struct Tachyon.Charts.Medical.MedicalImageProbe : System.IEquatable<Tachyon.Char
   System.Int32 Column { get; set; }
   System.Int32 Row { get; set; }
   System.String Unit { get; set; }
+sealed class Tachyon.Charts.Medical.MedicalMprDisplay
+  .ctor(Tachyon.Charts.Medical.MedicalVolume volume)
+  System.String Unit { get; }
+  System.Void ApplyPreset(Tachyon.Charts.Medical.MedicalWindow window)
+  System.Void Configure3D(Tachyon.Charts.ThreeD.Chart3DBuilder chart)
+  System.Void SetPosition(Tachyon.Charts.ThreeD.Scene.Point3D position)
+  System.Void SetWindow(System.Double center, System.Double width)
+  Tachyon.Charts.Medical.MedicalMprSlice Axial { get; }
+  Tachyon.Charts.Medical.MedicalMprSlice Coronal { get; }
+  Tachyon.Charts.Medical.MedicalMprSlice Sagittal { get; }
+  Tachyon.Charts.Medical.MedicalVolume Source { get; }
+  Tachyon.Charts.Medical.MedicalWindow Window { get; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Position { get; }
+  Tachyon.Charts.ThreeD.Scene.Volume3D Volume { get; }
+  event System.Action<Tachyon.Charts.Medical.MedicalWindow> WindowChanged
+  event System.Action<Tachyon.Charts.ThreeD.Scene.Point3D> PositionChanged
+enum Tachyon.Charts.Medical.MedicalMprPlane : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Axial = 0
+  Coronal = 1
+  Sagittal = 2
+sealed class Tachyon.Charts.Medical.MedicalMprSlice
+  System.Int32 Height { get; }
+  System.Int32 Width { get; }
+  System.Void Configure(Tachyon.Charts.Core.Fluent.ChartBuilder chart)
+  Tachyon.Charts.Medical.ImageSpacing Spacing { get; }
+  Tachyon.Charts.Medical.MedicalMprPlane Plane { get; }
+  Tachyon.Charts.Medical.MedicalOrientationMarks OrientationMarks { get; }
+  Tachyon.Charts.Medical.PatientOrientation Orientation { get; }
 struct Tachyon.Charts.Medical.MedicalOrientationMarks : System.IEquatable<Tachyon.Charts.Medical.MedicalOrientationMarks>
   .ctor(System.String Top, System.String Right, System.String Bottom, System.String Left)
   System.String Bottom { get; set; }
@@ -69,6 +97,7 @@ struct Tachyon.Charts.Medical.MedicalOrientationMarks : System.IEquatable<Tachyo
   System.String Right { get; set; }
   System.String Top { get; set; }
 sealed class Tachyon.Charts.Medical.MedicalVolume
+  .ctor(Tachyon.Charts.ThreeD.Scene.VolumeData data, Tachyon.Charts.Medical.ImageSpacing inPlane, System.Double sliceSpacing, Tachyon.Charts.ThreeD.Scene.Point3D origin, Tachyon.Charts.Medical.PatientOrientation orientation, System.Nullable<System.Double> windowCenter, System.Nullable<System.Double> windowWidth, System.String modality)
   System.Nullable<System.Double> WindowCenter { get; }
   System.Nullable<System.Double> WindowWidth { get; }
   System.String Modality { get; }

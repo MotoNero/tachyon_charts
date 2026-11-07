@@ -28,7 +28,7 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 - **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap with cells of their own sizes, contour with labels along the lines
 - **Finance:** candles, OHLC bars, volume, market profile and drawing tools
 - **3D as an add-on:** surfaces, waterfalls, antenna patterns, point clouds of 100 million points, volumes and models from STL and OBJ files, live and with values under the pointer
-- **Medical data as an add-on:** a separate package with privacy-first image reading and volume building, without patient-information APIs
+- **Medical data as an add-on:** privacy-first image reading, volume building and linked axial, coronal, sagittal and 3D views, without patient-information APIs
 - **Runs everywhere:** GPU, software adapter or CPU, chosen automatically, also over remote desktop
 - **Ready for reports:** export to PNG, SVG, PDF and CSV, clipboard and printing, MP4 videos of 2D and 3D charts
 
@@ -187,6 +187,10 @@ It reads uncompressed single-frame grayscale DICOM Part 10 data in the three sta
 ![A synthetic axial medical image with millimetre axes, orientation marks and the value under the pointer](docs/images/medical-image.png)
 
 `MedicalImageDisplay` turns an image or rescaled array into an interactive grayscale chart with bilinear display filtering. Left-drag adjusts window and level without rebuilding the image, common CT presets are included, and the pointer reports the original value with its unit and physical position.
+
+![A synthetic head volume shown as linked 3D, axial, coronal and sagittal charts](docs/images/medical-mpr.png)
+
+`MedicalMprDisplay` supplies three regular 2D chart descriptions and one 3D chart description for an application-defined layout. A click in any slice or on the volume moves all crosshairs and 3D planes to the same physical position. Window and level are shared by all four views without uploading the volume again.
 
 Tachyon Charts is not a medical device and is not approved or certified for diagnosis or therapy under the EU Medical Device Regulation (MDR). The application developer and operator remain responsible for the intended use, validation, privacy and every applicable regulatory requirement. See [Medical data and privacy](docs/guide/medical.md).
 

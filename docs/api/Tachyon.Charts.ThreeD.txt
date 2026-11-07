@@ -295,6 +295,7 @@ sealed class Tachyon.Charts.ThreeD.Scene.Scene3D
   Tachyon.Charts.Core.Axes.AxisBase YAxis { get; set; }
   Tachyon.Charts.Core.Axes.AxisBase ZAxis { get; set; }
   Tachyon.Charts.ThreeD.Scene.Camera3D Camera { get; }
+  event System.Action<Tachyon.Charts.ThreeD.Scene.Pick3D> MarkerAdded
 static class Tachyon.Charts.ThreeD.Scene.Shapes3D
   static Tachyon.Charts.ThreeD.Scene.Material3D LimitMaterial { get; }
   static Tachyon.Charts.ThreeD.Scene.Mesh3D Limit(Tachyon.Charts.Core.Numerics.DoubleRange x, Tachyon.Charts.Core.Numerics.DoubleRange y, System.Double limit, Tachyon.Charts.Rendering.Rgba8 color, Tachyon.Charts.ThreeD.Scene.Material3D material = null)
@@ -330,6 +331,7 @@ sealed class Tachyon.Charts.ThreeD.Scene.Volume3D
   System.Boolean ShowsSlices { get; set; }
   System.Double IsoValue { get; set; }
   System.Double SliceThreshold { get; set; }
+  System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> ColorRange { get; set; }
   Tachyon.Charts.Core.Colors.Colormap Colormap { get; set; }
   Tachyon.Charts.Core.Numerics.DoubleRange X { get; }
   Tachyon.Charts.Core.Numerics.DoubleRange Y { get; }
