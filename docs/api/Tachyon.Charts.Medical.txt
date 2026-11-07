@@ -20,6 +20,15 @@ struct Tachyon.Charts.Medical.ImageSpacing : System.IEquatable<Tachyon.Charts.Me
   .ctor(System.Double Row, System.Double Column)
   System.Double Column { get; set; }
   System.Double Row { get; set; }
+sealed class Tachyon.Charts.Medical.MedicalCinePlayer
+  System.Boolean IsPlaying { get; }
+  System.Double FramesPerSecond { get; set; }
+  System.Void Pause()
+  System.Void Play(Tachyon.Charts.Medical.MedicalMprPlane plane)
+  System.Void Step(Tachyon.Charts.Medical.MedicalMprPlane plane, System.Int32 slices)
+  System.Void Toggle(Tachyon.Charts.Medical.MedicalMprPlane plane)
+  Tachyon.Charts.Medical.MedicalMprPlane Plane { get; }
+  event System.Action StateChanged
 sealed class Tachyon.Charts.Medical.MedicalImage
   System.Boolean IsSigned { get; }
   System.Double Item[System.Int32, System.Int32] { get; }
@@ -69,6 +78,7 @@ sealed class Tachyon.Charts.Medical.MedicalMprDisplay
   System.Void Configure3D(Tachyon.Charts.ThreeD.Chart3DBuilder chart)
   System.Void SetPosition(Tachyon.Charts.ThreeD.Scene.Point3D position)
   System.Void SetWindow(System.Double center, System.Double width)
+  Tachyon.Charts.Medical.MedicalCinePlayer Cine { get; }
   Tachyon.Charts.Medical.MedicalMprSlice Axial { get; }
   Tachyon.Charts.Medical.MedicalMprSlice Coronal { get; }
   Tachyon.Charts.Medical.MedicalMprSlice Sagittal { get; }

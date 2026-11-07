@@ -30,6 +30,7 @@ public sealed class MedicalMprDisplay
         Axial = new MedicalMprSlice(this, new MedicalMprSliceBuffer(volume, MedicalMprPlane.Axial));
         Coronal = new MedicalMprSlice(this, new MedicalMprSliceBuffer(volume, MedicalMprPlane.Coronal));
         Sagittal = new MedicalMprSlice(this, new MedicalMprSliceBuffer(volume, MedicalMprPlane.Sagittal));
+        Cine = new MedicalCinePlayer(this);
         Axial.Update(_position);
         Coronal.Update(_position);
         Sagittal.Update(_position);
@@ -59,6 +60,9 @@ public sealed class MedicalMprDisplay
 
     /// <summary>Gets the sagittal slice.</summary>
     public MedicalMprSlice Sagittal { get; }
+
+    /// <summary>Gets the controller for stepping through slices and automatic playback.</summary>
+    public MedicalCinePlayer Cine { get; }
 
     /// <summary>Gets the 3D volume whose planes follow <see cref="Position"/>.</summary>
     public Volume3D Volume { get; }

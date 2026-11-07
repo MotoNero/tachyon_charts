@@ -1,4 +1,5 @@
-using Tachyon.Charts.Core.Data;
+using System.Runtime.InteropServices;
+using Tachyon.Charts.Rendering;
 using Tachyon.Charts.ThreeD.Scene;
 
 namespace Tachyon.Charts.Medical;
@@ -19,7 +20,9 @@ public enum MedicalMprPlane
 internal sealed class MedicalMprSliceBuffer
 {
     private readonly MedicalVolume _volume;
+    private readonly object _gate = new();
     private readonly float[] _values;
+    private long _version;
 
     public MedicalMprSliceBuffer(MedicalVolume volume, MedicalMprPlane plane)
     {
@@ -36,7 +39,6 @@ internal sealed class MedicalMprSliceBuffer
             _ => throw new ArgumentOutOfRangeException(nameof(plane), plane, null),
         };
         _values = new float[checked(Width * Height)];
-        Data = new HeatmapData(Width, Height);
     }
 
     public MedicalMprPlane Plane { get; }
@@ -49,7 +51,7 @@ internal sealed class MedicalMprSliceBuffer
 
     public PatientOrientation Orientation { get; }
 
-    public HeatmapData Data { get; }
+    public long Version => Interlocked.Read(ref _version);
 
     public int FixedIndex { get; private set; } = -1;
 
@@ -69,9 +71,12 @@ internal sealed class MedicalMprSliceBuffer
             return;
         }
 
-        FixedIndex = fixedIndex;
-        Fill(data, fixedIndex);
-        Data.SetValues(_values);
+        lock (_gate)
+        {
+            FixedIndex = fixedIndex;
+            Fill(data, fixedIndex);
+            Interlocked.Increment(ref _version);
+        }
     }
 
     public Point3D ToVolumePosition(double x, double y, Point3D current)
@@ -98,6 +103,22 @@ internal sealed class MedicalMprSliceBuffer
             MedicalMprPlane.Sagittal => (position.Y + (Spacing.Column / 2), maximumZ - position.Z + (Spacing.Row / 2)),
             _ => throw new InvalidOperationException(),
         };
+    }
+
+    public float Read(int column, int row)
+    {
+        lock (_gate)
+        {
+            return _values[(row * Width) + column];
+        }
+    }
+
+    public void Write(IGpuTexture texture)
+    {
+        lock (_gate)
+        {
+            texture.Write(MemoryMarshal.AsBytes(_values.AsSpan()));
+        }
     }
 
     private static int Index(double position, double spacing, int count)

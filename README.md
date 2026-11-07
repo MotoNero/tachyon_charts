@@ -190,7 +190,7 @@ It reads uncompressed single-frame grayscale DICOM Part 10 data in the three sta
 
 ![A synthetic head volume shown as linked 3D, axial, coronal and sagittal charts](docs/images/medical-mpr.png)
 
-`MedicalMprDisplay` supplies three regular 2D chart descriptions and one 3D chart description for an application-defined layout. A click in any slice or on the volume moves all crosshairs and 3D planes to the same physical position. Window and level are shared by all four views without uploading the volume again.
+`MedicalMprDisplay` supplies three regular 2D chart descriptions and one 3D chart description for an application-defined layout. A click in any slice or on the volume moves all crosshairs and 3D planes to the same physical position. The wheel and arrow keys step through slices, Space starts cyclic cine playback, and +/- changes its speed. Every slice shows its number and physical position. Window and level are shared by all four views without uploading the volume again.
 
 Tachyon Charts is not a medical device and is not approved or certified for diagnosis or therapy under the EU Medical Device Regulation (MDR). The application developer and operator remain responsible for the intended use, validation, privacy and every applicable regulatory requirement. See [Medical data and privacy](docs/guide/medical.md).
 

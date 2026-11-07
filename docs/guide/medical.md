@@ -98,9 +98,13 @@ volumeChart.Configure(mpr.Configure3D);
 
 mpr.SetPosition(new Point3D(x: 40, y: 35, z: 60)); // volume-local millimetres
 mpr.SetWindow(center: 40, width: 80);
+mpr.Cine.FramesPerSecond = 20;
+mpr.Cine.Play(MedicalMprPlane.Axial);
 ```
 
-The axes use physical millimetres. A primary click in a 2D slice changes the shared position; a pick on the 3D volume does the same in the other direction. Each view shows the corresponding crosshair or slice plane. Primary dragging in any 2D slice changes the shared window and level, while middle dragging and the wheel keep their usual pan and zoom behaviour. Keys 1, 2 and 3 apply the CT presets to every view.
+The axes use physical millimetres. A primary click in a 2D slice changes the shared position; a pick on the 3D volume does the same in the other direction. Each view shows the corresponding crosshair or slice plane, slice number and physical position. The wheel, arrow keys and Page Up/Page Down step through the slice under the pointer; Home and End select its boundary slices. Space toggles cyclic cine playback for that plane and +/- changes its speed. Primary dragging changes the shared window and level, while middle dragging pans. Keys 1, 2 and 3 apply the CT presets to every view.
+
+`MedicalMprDisplay.Cine` can also be controlled from application UI through `Step`, `Play`, `Pause` and `Toggle`. Its `StateChanged` event reports changes to the active plane, speed or playback state.
 
 The constructor also accepts a `MedicalVolume` made from an application's own `VolumeData`, voxel spacing, origin and patient orientation. All geometry values must be finite, spacing must be positive and the two orientation directions must be independent.
 

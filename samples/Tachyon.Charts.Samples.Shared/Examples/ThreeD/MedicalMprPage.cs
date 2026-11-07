@@ -14,7 +14,7 @@ public static class MedicalMprPage
     public const string Name = "Medical MPR";
 
     /// <summary>How to operate the charts.</summary>
-    public const string Hint = "Click a slice or the 3D volume: all crosshairs and planes follow | Drag in 2D: window/level";
+    public const string Hint = "Wheel or arrows: slices | Space: cine | +/-: speed | Home/End: first/last | Click: linked position | Drag: window/level";
 
     /// <summary>Gets the three linked 2D chart descriptions.</summary>
     public static IReadOnlyList<Action<ChartBuilder>> Slices { get; } =
