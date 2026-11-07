@@ -19,6 +19,7 @@
     <InternalsVisibleTo Include="Tachyon.Charts.ThreeD.Tests" />
     <InternalsVisibleTo Include="Tachyon.Charts.ThreeD.Wpf" />
     <InternalsVisibleTo Include="Tachyon.Charts.ThreeD.Avalonia" />
+    <InternalsVisibleTo Include="Tachyon.Charts.Medical" />
   </ItemGroup>
 
 </Project>

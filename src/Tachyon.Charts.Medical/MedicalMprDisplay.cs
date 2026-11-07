@@ -16,6 +16,10 @@ public sealed class MedicalMprDisplay
     private Point3D _position;
     private MedicalWindow _window;
     private long _positionVersion;
+    private long _segmentationVersion;
+    private readonly List<MedicalSegmentationLayer> _segmentations = [];
+    private readonly List<MedicalSegmentation> _segmentationSources = [];
+    private readonly List<Scene3D> _scenes = [];
 
     /// <summary>Initializes linked orthogonal views of a regularly spaced medical volume.</summary>
     /// <param name="volume">The volume.</param>
@@ -49,6 +53,8 @@ public sealed class MedicalMprDisplay
     /// <summary>Occurs after the shared grayscale window changes.</summary>
     public event Action<MedicalWindow>? WindowChanged;
 
+    internal event Action? SegmentationChanged;
+
     /// <summary>Gets the source volume.</summary>
     public MedicalVolume Source { get; }
 
@@ -70,6 +76,9 @@ public sealed class MedicalMprDisplay
     /// <summary>Gets the unit shown for values.</summary>
     public string Unit { get; }
 
+    /// <summary>Gets the segmentation layers in drawing order.</summary>
+    public IReadOnlyList<MedicalSegmentation> Segmentations => _segmentationSources;
+
     /// <summary>Gets the shared position in volume-local millimetres.</summary>
     public Point3D Position => _position;
 
@@ -77,6 +86,10 @@ public sealed class MedicalMprDisplay
     public MedicalWindow Window => _window;
 
     internal long PositionVersion => Interlocked.Read(ref _positionVersion);
+
+    internal long SegmentationVersion => Interlocked.Read(ref _segmentationVersion);
+
+    internal IReadOnlyList<MedicalSegmentationLayer> SegmentationLayers => _segmentations;
 
     private Point3D MaximumPosition => new(
         (Source.Data.Width - 1) * Source.VoxelSpacing.X,
@@ -120,6 +133,24 @@ public sealed class MedicalMprDisplay
     /// <param name="window">The window.</param>
     public void ApplyPreset(MedicalWindow window) => SetWindow(window);
 
+    /// <summary>Adds a categorical segmentation to all linked 2D and 3D views.</summary>
+    /// <param name="segmentation">The label map and its patient-space geometry.</param>
+    public void AddSegmentation(MedicalSegmentation segmentation)
+    {
+        ArgumentNullException.ThrowIfNull(segmentation);
+        if (_segmentations.Any(layer => ReferenceEquals(layer.Source, segmentation)))
+        {
+            throw new ArgumentException("The segmentation is already part of this display.", nameof(segmentation));
+        }
+
+        var layer = new MedicalSegmentationLayer(Source, segmentation);
+        _segmentations.Add(layer);
+        _segmentationSources.Add(segmentation);
+        foreach (var scene in _scenes) layer.AddTo(scene);
+        segmentation.Changed += OnSegmentationChanged;
+        OnSegmentationChanged();
+    }
+
     /// <summary>Adds the coupled volume to a 3D chart description.</summary>
     /// <param name="chart">The chart description.</param>
     public void Configure3D(Chart3DBuilder chart)
@@ -129,8 +160,10 @@ public sealed class MedicalMprDisplay
         chart.Title("Medical MPR")
             .XAxis(0, maximum.X, "mm")
             .YAxis(0, maximum.Y, "mm")
-            .ZAxis(0, maximum.Z, "mm")
-            .AddVolume(Volume);
+            .ZAxis(0, maximum.Z, "mm");
+        chart.AddVolume(Volume);
+        foreach (var layer in _segmentations) layer.AddTo(chart.Scene);
+        _scenes.Add(chart.Scene);
         chart.Scene.MarkerAdded += OnMarkerAdded;
     }
 
@@ -153,7 +186,7 @@ public sealed class MedicalMprDisplay
 
     private void OnMarkerAdded(Pick3D pick)
     {
-        if (ReferenceEquals(pick.Source, Volume))
+        if (ReferenceEquals(pick.Source, Volume) || _segmentations.Any(layer => layer.Owns(pick.Source)))
         {
             SetPosition(pick.Position);
         }
@@ -168,4 +201,11 @@ public sealed class MedicalMprDisplay
     }
 
     private static double ToBox(double value, double maximum) => ((value / maximum) * 2) - 1;
+
+    private void OnSegmentationChanged()
+    {
+        foreach (var layer in _segmentations) layer.Refresh3D();
+        Interlocked.Increment(ref _segmentationVersion);
+        SegmentationChanged?.Invoke();
+    }
 }

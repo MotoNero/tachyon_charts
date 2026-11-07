@@ -9,6 +9,8 @@ sealed class Tachyon.Charts.Medical.DicomReadException : System.IO.IOException, 
   .ctor(System.String message)
 static class Tachyon.Charts.Medical.DicomReader
   static Tachyon.Charts.Medical.MedicalImage Read(System.IO.Stream stream)
+static class Tachyon.Charts.Medical.DicomSegReader
+  static Tachyon.Charts.Medical.MedicalSegmentation Read(System.IO.Stream stream)
 static class Tachyon.Charts.Medical.DicomSeriesReader
   static Tachyon.Charts.Medical.MedicalVolume Build(System.Collections.Generic.IEnumerable<Tachyon.Charts.Medical.MedicalImage> images)
   static Tachyon.Charts.Medical.MedicalVolume Read(System.Collections.Generic.IEnumerable<System.IO.Stream> streams)
@@ -73,7 +75,9 @@ struct Tachyon.Charts.Medical.MedicalImageProbe : System.IEquatable<Tachyon.Char
   System.String Unit { get; set; }
 sealed class Tachyon.Charts.Medical.MedicalMprDisplay
   .ctor(Tachyon.Charts.Medical.MedicalVolume volume)
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Medical.MedicalSegmentation> Segmentations { get; }
   System.String Unit { get; }
+  System.Void AddSegmentation(Tachyon.Charts.Medical.MedicalSegmentation segmentation)
   System.Void ApplyPreset(Tachyon.Charts.Medical.MedicalWindow window)
   System.Void Configure3D(Tachyon.Charts.ThreeD.Chart3DBuilder chart)
   System.Void SetPosition(Tachyon.Charts.ThreeD.Scene.Point3D position)
@@ -106,6 +110,24 @@ struct Tachyon.Charts.Medical.MedicalOrientationMarks : System.IEquatable<Tachyo
   System.String Left { get; set; }
   System.String Right { get; set; }
   System.String Top { get; set; }
+sealed class Tachyon.Charts.Medical.MedicalSegment
+  .ctor(System.Int32 label, System.String name, Tachyon.Charts.Rendering.Rgba8 color)
+  System.Boolean IsVisible { get; set; }
+  System.Double Opacity { get; set; }
+  System.Int32 Label { get; }
+  System.String Name { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+sealed class Tachyon.Charts.Medical.MedicalSegmentation
+  .ctor(Tachyon.Charts.ThreeD.Scene.VolumeData data, Tachyon.Charts.Medical.ImageSpacing inPlane, System.Double sliceSpacing, Tachyon.Charts.ThreeD.Scene.Point3D origin, Tachyon.Charts.Medical.PatientOrientation orientation, System.Collections.Generic.IEnumerable<Tachyon.Charts.Medical.MedicalSegment> segments = null)
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Medical.MedicalSegment> Segments { get; }
+  Tachyon.Charts.Medical.MedicalSegmentation3DMode ThreeDMode { get; set; }
+  Tachyon.Charts.Medical.PatientOrientation Orientation { get; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Origin { get; }
+  Tachyon.Charts.ThreeD.Scene.Point3D VoxelSpacing { get; }
+  Tachyon.Charts.ThreeD.Scene.VolumeData Data { get; }
+enum Tachyon.Charts.Medical.MedicalSegmentation3DMode : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Surface = 1
+  Volume = 0
 sealed class Tachyon.Charts.Medical.MedicalVolume
   .ctor(Tachyon.Charts.ThreeD.Scene.VolumeData data, Tachyon.Charts.Medical.ImageSpacing inPlane, System.Double sliceSpacing, Tachyon.Charts.ThreeD.Scene.Point3D origin, Tachyon.Charts.Medical.PatientOrientation orientation, System.Nullable<System.Double> windowCenter, System.Nullable<System.Double> windowWidth, System.String modality)
   System.Nullable<System.Double> WindowCenter { get; }
@@ -122,6 +144,8 @@ struct Tachyon.Charts.Medical.MedicalWindow : System.IEquatable<Tachyon.Charts.M
   System.Double Minimum { get; }
   System.Double Width { get; set; }
   System.String Name { get; set; }
+static class Tachyon.Charts.Medical.NiftiSegmentationReader
+  static Tachyon.Charts.Medical.MedicalSegmentation Read(System.IO.Stream stream)
 struct Tachyon.Charts.Medical.PatientOrientation : System.IEquatable<Tachyon.Charts.Medical.PatientOrientation>
   .ctor(Tachyon.Charts.ThreeD.Scene.Point3D Across, Tachyon.Charts.ThreeD.Scene.Point3D Down)
   Tachyon.Charts.ThreeD.Scene.Point3D Across { get; set; }

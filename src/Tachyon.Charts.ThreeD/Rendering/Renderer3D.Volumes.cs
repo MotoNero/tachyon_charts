@@ -77,6 +77,10 @@ internal sealed unsafe partial class Renderer3D
             buffer = new VolumeBuffer(this, volume.Data, colors);
             _volumes[volume] = buffer;
         }
+        else if (!colors.IsEmpty)
+        {
+            buffer.SetColors(colors);
+        }
 
         return buffer;
     }
@@ -88,10 +92,12 @@ internal sealed unsafe partial class Renderer3D
     /// <param name="slices">The places of the slices and the threshold.</param>
     /// <param name="colorRange">The part of the stored value range mapped across the colormap.</param>
     /// <param name="showsSlices">Whether the slices show.</param>
-    public void SetPlace(Volume3D volume, Vector3 low, Vector3 high, Vector4 slices, Vector2 colorRange, bool showsSlices)
+    /// <param name="isVisible">Whether the volume contributes to the picture.</param>
+    public void SetPlace(Volume3D volume, Vector3 low, Vector3 high, Vector4 slices, Vector2 colorRange, bool showsSlices, bool isVisible)
     {
         _volumes[volume].SetPlace(low, high, slices, colorRange);
         _volumes[volume].ShowsSlices = showsSlices;
+        _volumes[volume].IsVisible = isVisible;
     }
 
     /// <summary>Sets how a frame looks through a volume.</summary>
@@ -179,7 +185,7 @@ internal sealed unsafe partial class Renderer3D
     {
         foreach (var volume in _volumes.Values)
         {
-            if (volume.Marches)
+            if (volume.Marches && volume.IsVisible)
             {
                 return true;
             }
@@ -296,6 +302,8 @@ internal sealed unsafe partial class Renderer3D
 
         public bool ShowsSlices { get; set; } = true;
 
+        public bool IsVisible { get; set; } = true;
+
         public bool Marches { get; private set; }
 
         public void Write(int z, ReadOnlySpan<float> shares)
@@ -354,6 +362,19 @@ internal sealed unsafe partial class Renderer3D
             }
         }
 
+        public void SetColors(ReadOnlySpan<Vector4> colors)
+        {
+            if ((ulong)(colors.Length * sizeof(Vector4)) != _colorBytes)
+            {
+                throw new ArgumentException("The colormap size changed.", nameof(colors));
+            }
+
+            fixed (Vector4* source = colors)
+            {
+                Api.QueueWriteBuffer(_owner._device.Queue, _colors, 0, source, (nuint)_colorBytes);
+            }
+        }
+
         public void ForgetMarchGroup()
         {
             if (_marchGroup is not null)
@@ -365,7 +386,7 @@ internal sealed unsafe partial class Renderer3D
 
         public void DrawMarch(Native.RenderPassEncoder* pass, Native.TextureView* depth)
         {
-            if (!Marches)
+            if (!Marches || !IsVisible)
             {
                 return;
             }
@@ -396,7 +417,7 @@ internal sealed unsafe partial class Renderer3D
 
         public void DrawSlices(Native.RenderPassEncoder* pass)
         {
-            if (!ShowsSlices)
+            if (!ShowsSlices || !IsVisible)
             {
                 return;
             }

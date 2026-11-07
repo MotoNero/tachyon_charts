@@ -8,7 +8,7 @@ namespace Tachyon.Charts.Samples.Shared.Examples.ThreeD;
 /// <summary>The linked 2 × 2 medical MPR page of the showroom.</summary>
 public static class MedicalMprPage
 {
-    private static readonly MedicalMprDisplay _display = new(MedicalPhantom.Volume());
+    private static readonly MedicalMprDisplay _display = CreateDisplay();
 
     /// <summary>The name of the page.</summary>
     public const string Name = "Medical MPR";
@@ -27,4 +27,12 @@ public static class MedicalMprPage
     /// <summary>Describes the linked 3D volume.</summary>
     /// <param name="chart">The chart.</param>
     public static void Configure(Chart3DBuilder chart) => _display.Configure3D(chart);
+
+    private static MedicalMprDisplay CreateDisplay()
+    {
+        var volume = MedicalPhantom.Volume();
+        var display = new MedicalMprDisplay(volume);
+        display.AddSegmentation(MedicalPhantom.Segmentation(volume));
+        return display;
+    }
 }

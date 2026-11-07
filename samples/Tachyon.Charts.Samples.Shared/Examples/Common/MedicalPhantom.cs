@@ -1,4 +1,5 @@
 using Tachyon.Charts.Medical;
+using Tachyon.Charts.Rendering;
 using Tachyon.Charts.ThreeD.Scene;
 
 namespace Tachyon.Charts.Samples.Shared.Examples.Common;
@@ -60,6 +61,40 @@ public static class MedicalPhantom
         return new MedicalVolume(new VolumeData(values, width, height, depth), new ImageSpacing(0.8, 0.8), 1.2, default, orientation, 40, 80, "CT");
     }
 
+    /// <summary>Creates two synthetic structures aligned with a head volume.</summary>
+    public static MedicalSegmentation Segmentation(MedicalVolume volume)
+    {
+        ArgumentNullException.ThrowIfNull(volume);
+        var data = volume.Data;
+        var labels = new ushort[checked(data.Width * data.Height * data.Depth)];
+        for (var z = 0; z < data.Depth; z++)
+        {
+            var nz = z / (double)(data.Depth - 1);
+            for (var y = 0; y < data.Height; y++)
+            {
+                var ny = y / (double)(data.Height - 1);
+                for (var x = 0; x < data.Width; x++)
+                {
+                    var nx = x / (double)(data.Width - 1);
+                    var focus = Square((nx - 0.32) / 0.11) + Square((ny - 0.46) / 0.14) + Square((nz - 0.52) / 0.16) < 1;
+                    var cavity = Square((nx - 0.56) / 0.12) + Square((ny - 0.5) / 0.19) + Square((nz - 0.5) / 0.28) < 1;
+                    labels[((z * data.Height) + y) * data.Width + x] = focus ? (ushort)1 : cavity ? (ushort)2 : (ushort)0;
+                }
+            }
+        }
+
+        return new MedicalSegmentation(
+            new VolumeData(labels, data.Width, data.Height, data.Depth),
+            new ImageSpacing(volume.VoxelSpacing.Y, volume.VoxelSpacing.X),
+            volume.VoxelSpacing.Z,
+            volume.Origin,
+            volume.Orientation,
+            [
+                new MedicalSegment(1, "Focus", new Rgba8(245, 70, 80, 255)) { Opacity = 0.62 },
+                new MedicalSegment(2, "Cavity", new Rgba8(45, 205, 235, 255)) { Opacity = 0.48 },
+            ]);
+    }
+
     private static MedicalImageDisplay Create(PatientOrientation orientation)
     {
         const int width = 320;
@@ -101,4 +136,6 @@ public static class MedicalPhantom
 
     private static bool Ellipse(double x, double y, double horizontal, double vertical) =>
         ((x * x) / (horizontal * horizontal)) + ((y * y) / (vertical * vertical)) < 1;
+
+    private static double Square(double value) => value * value;
 }

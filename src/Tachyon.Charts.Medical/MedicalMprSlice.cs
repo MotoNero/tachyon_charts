@@ -60,6 +60,7 @@ public sealed class MedicalMprSlice
             .AddHeatmap(_scaleData, series => series
                 .ColorAxis(axis => axis.Colormap(Colormaps.Grayscale).Range(window.Minimum, window.Maximum).Title(_display.Unit)))
             .AddSeries((x, y) => new MedicalMprSeries(_display, _buffer, x, y))
+            .AddSeries((x, y) => new MedicalSegmentationSeries(_display, this, x, y))
             .AddOverlay(surface => new MedicalMprOverlay(this, surface.HorizontalAxes[0], surface.Panes[0].Axes[0]))
             .Modifiers(modifiers => modifiers
                 .Custom(() => new MedicalMprModifier(this))
@@ -122,6 +123,7 @@ public sealed class MedicalMprSlice
             _slice._display.WindowChanged += OnWindowChanged;
             _slice._display.PositionChanged += OnPositionChanged;
             _slice._display.Cine.StateChanged += OnCineChanged;
+            _slice._display.SegmentationChanged += OnCineChanged;
             _slice._display.Cine.Attach(_slice.Plane, interaction);
         }
 
@@ -130,6 +132,7 @@ public sealed class MedicalMprSlice
             _slice._display.WindowChanged -= OnWindowChanged;
             _slice._display.PositionChanged -= OnPositionChanged;
             _slice._display.Cine.StateChanged -= OnCineChanged;
+            _slice._display.SegmentationChanged -= OnCineChanged;
             _slice._display.Cine.Detach(_slice.Plane, interaction);
             _axis = null;
         }

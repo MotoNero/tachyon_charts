@@ -192,6 +192,10 @@ It reads uncompressed single-frame grayscale DICOM Part 10 data in the three sta
 
 `MedicalMprDisplay` supplies three regular 2D chart descriptions and one 3D chart description for an application-defined layout. A click in any slice or on the volume moves all crosshairs and 3D planes to the same physical position. The wheel and arrow keys step through slices, Space starts cyclic cine playback, and +/- changes its speed. Every slice shows its number and physical position. Window and level are shared by all four views without uploading the volume again.
 
+![Synthetic categorical structures over three medical slices and as translucent 3D surfaces](docs/images/medical-segmentation.png)
+
+Integer segmentation maps can come from arrays, affine NIfTI-1 files or uncompressed binary DICOM-SEG objects. They retain their own patient-space geometry and are aligned to the image automatically. Each label has an independent name, color, opacity and visibility and can be shown in 3D as a categorical volume or a lit boundary surface.
+
 Tachyon Charts is not a medical device and is not approved or certified for diagnosis or therapy under the EU Medical Device Regulation (MDR). The application developer and operator remain responsible for the intended use, validation, privacy and every applicable regulatory requirement. See [Medical data and privacy](docs/guide/medical.md).
 
 ## Quick start

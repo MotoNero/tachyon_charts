@@ -14,21 +14,59 @@ namespace Tachyon.Charts.Samples.Shared.Examples.ThreeD;
 public sealed class MedicalMprScene : IScene
 {
     private const int ChartCount = 4;
+    private readonly string _name;
+    private readonly MedicalSegmentation3DMode? _segmentationMode;
 
     /// <summary>The snapshot name.</summary>
     public const string Name = "MedicalMpr";
 
-    string IScene.Name => Name;
+    /// <summary>Creates the medical MPR scene.</summary>
+    public MedicalMprScene()
+        : this(Name, null)
+    {
+    }
+
+    internal MedicalMprScene(string name, MedicalSegmentation3DMode? segmentationMode)
+    {
+        _name = name;
+        _segmentationMode = segmentationMode;
+        Size = segmentationMode == MedicalSegmentation3DMode.Volume ? new(900, 640) : new(1000, 800);
+    }
+
+    string IScene.Name => _name;
 
     /// <inheritdoc />
-    public PixelSize Size { get; } = new(1000, 800);
+    public PixelSize Size { get; }
 
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)
     {
-        var display = new MedicalMprDisplay(MedicalPhantom.Volume());
+        var volume = MedicalPhantom.Volume();
+        var display = new MedicalMprDisplay(volume);
+        if (_segmentationMode is { } mode)
+        {
+            var source = MedicalPhantom.Segmentation(volume);
+            var segmentation = new MedicalSegmentation(source.Data, new ImageSpacing(source.VoxelSpacing.Y, source.VoxelSpacing.X), source.VoxelSpacing.Z, source.Origin, source.Orientation, source.Segments)
+            {
+                ThreeDMode = mode,
+            };
+            display.AddSegmentation(segmentation);
+        }
         var chartSize = new PixelSize(target.Size.Width / 2, target.Size.Height / 2);
         var charts = BuildCharts(display);
+        if (_segmentationMode == MedicalSegmentation3DMode.Volume)
+        {
+            charts[0].Render(device, target);
+            charts[0].Render(device, target);
+            device.WaitForIdle();
+            foreach (var chart in charts)
+            {
+                foreach (var series in chart.Series) (series as IDisposable)?.Dispose();
+            }
+
+            return;
+        }
+
         var targets = new IOffscreenRenderTarget[ChartCount];
         for (var index = 0; index < ChartCount; index++)
         {
@@ -37,11 +75,10 @@ public sealed class MedicalMprScene : IScene
 
         for (var pass = 0; pass < 2; pass++)
         {
-            for (var index = 0; index < ChartCount; index++)
-            {
-                charts[index].Render(device, targets[index]);
-            }
+            for (var index = 1; index < ChartCount; index++) charts[index].Render(device, targets[index]);
         }
+
+        for (var pass = 0; pass < 2; pass++) charts[0].Render(device, targets[0]);
 
         device.WaitForIdle();
         using var frame = device.BeginFrame(target);

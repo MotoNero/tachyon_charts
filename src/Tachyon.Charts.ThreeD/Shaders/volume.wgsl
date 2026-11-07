@@ -134,7 +134,14 @@ fn distance_to_depth(start: vec3<f32>, direction: vec3<f32>, depth: f32) -> f32 
 }
 
 fn share_at(place: vec3<f32>, size: vec3<f32>) -> f32 {
-    return textureSampleLevel(values, linear, (place - uniforms.low.xyz) / size, 0.0).r;
+    let coordinate = (place - uniforms.low.xyz) / size;
+    if uniforms.march.w > 0.5 {
+        return textureSampleLevel(values, linear, coordinate, 0.0).r;
+    }
+
+    let dimensions = vec3i(textureDimensions(values));
+    let texel = clamp(vec3i(coordinate * vec3f(dimensions)), vec3i(0), dimensions - vec3i(1));
+    return textureLoad(values, texel, 0).r;
 }
 
 fn shade_voxel(color: vec3<f32>, place: vec3<f32>, share: f32, size: vec3<f32>, direction: vec3<f32>) -> vec3<f32> {
@@ -216,7 +223,8 @@ fn march_surface(start: vec3<f32>, direction: vec3<f32>, range: vec2<f32>, shift
         share_at(place + vec3(0.0, reach, 0.0), size) - share_at(place - vec3(0.0, reach, 0.0), size),
         share_at(place + vec3(0.0, 0.0, reach), size) - share_at(place - vec3(0.0, 0.0, reach), size));
     let normal = select(-direction, slope / max(length(slope), 1e-6), length(slope) > 1e-6);
-    return vec4(light_surface(color_of(level), place, normal, uniforms.eye.xyz, uniforms.material), 1.0);
+    let opacity = uniforms.material.z;
+    return vec4(light_surface(color_of(level), place, normal, uniforms.eye.xyz, uniforms.material) * opacity, opacity);
 }
 
 @fragment

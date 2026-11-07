@@ -35,6 +35,7 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
     private double _gpuMilliseconds = double.NaN;
     private int _picturesBeforeMeasure = 2;
     private readonly Dictionary<Volume3D, VolumeLoader> _volumeLoaders = [];
+    private readonly Dictionary<Volume3D, long> _volumeAppearances = [];
     private readonly MarchQuality _quality = new();
     private readonly Vector4[] _transferTable = new Vector4[TransferFunction3D.TableSize];
     private long _lastView = -1;
@@ -268,6 +269,7 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
         _cloudLoaders.Clear();
         _cloudBudgets.Clear();
         _volumeLoaders.Clear();
+        _volumeAppearances.Clear();
         _mapMeshes.Clear();
         _antennaMeshes.Clear();
         _pieVersions.Clear();
@@ -425,6 +427,12 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
             loader = new VolumeLoader(volume);
             _volumeLoaders[volume] = loader;
             _renderer!.GetVolume(volume, CreateColors(volume.Colormap));
+            _volumeAppearances[volume] = volume.Stamp;
+        }
+        else if (!_volumeAppearances.TryGetValue(volume, out var appearance) || appearance != volume.Stamp)
+        {
+            _renderer!.GetVolume(volume, CreateColors(volume.Colormap));
+            _volumeAppearances[volume] = volume.Stamp;
         }
 
         loader.Load(_renderer!.GetVolume(volume, default));
@@ -436,17 +444,20 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
             new Vector3((float)high.X, (float)high.Y, (float)high.Z),
             new Vector4((float)volume.SliceX.Offset, (float)volume.SliceY.Offset, (float)volume.SliceZ.Offset, (float)volume.SliceThreshold),
             new Vector2((float)colorMinimum, (float)colorMaximum),
-            volume.ShowsSlices);
+            volume.ShowsSlices,
+            volume.IsVisible);
         if (volume.Marches)
         {
             volume.Transfer?.WriteTable(_transferTable);
             var material = volume.Material;
             var eye = scene.Camera.Eye;
-            _renderer.SetMarch(volume, _transferTable, CreateView(volume, aspect) with
+            var view = CreateView(volume, aspect);
+            _renderer.SetMarch(volume, _transferTable, view with
             {
+                March = new Vector4(view.March.X, view.March.Y, view.March.Z, volume.IsInterpolated ? 1 : 0),
                 Look = new Vector4((float)volume.Mode, (float)volume.IsoShare, 0, 0),
                 Eye = new Vector4((float)eye.X, (float)eye.Y, (float)eye.Z, 1),
-                Material = new Vector4((float)material.Gloss, (float)material.Sharpness, 1, material.IsLit ? 1 : 0),
+                Material = new Vector4((float)material.Gloss, (float)material.Sharpness, (float)material.Opacity, material.IsLit ? 1 : 0),
             });
         }
     }

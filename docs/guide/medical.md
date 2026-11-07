@@ -106,6 +106,22 @@ The axes use physical millimetres. A primary click in a 2D slice changes the sha
 
 `MedicalMprDisplay.Cine` can also be controlled from application UI through `Step`, `Play`, `Pause` and `Toggle`. Its `StateChanged` event reports changes to the active plane, speed or playback state.
 
+## Segmentation overlays
+
+`MedicalSegmentation` stores positive integer labels together with their own voxel spacing, origin and patient orientation. Label zero is transparent background. The display resamples labels with nearest-neighbour selection in patient space, so image and segmentation may use different raster sizes or orientations.
+
+```csharp
+var segmentation = NiftiSegmentationReader.Read(niftiStream);
+segmentation.Segments[0].Color = new Rgba8(240, 70, 85, 255);
+segmentation.Segments[0].Opacity = 0.6;
+segmentation.Segments[0].IsVisible = true;
+
+var mpr = new MedicalMprDisplay(volume);
+mpr.AddSegmentation(segmentation);
+```
+
+Use `DicomSegReader.Read` for uncompressed binary DICOM-SEG objects, or construct `MedicalSegmentation` from `VolumeData` and explicit geometry. Set `ThreeDMode` in an object initializer to `MedicalSegmentation3DMode.Surface` for lit boundaries; the default is a categorical volume. Fractional and overlapping DICOM segments cannot be represented by one integer label map and are rejected rather than silently losing information. Volume mode supports up to 255 labels at once; surface mode has no categorical table limit.
+
 The constructor also accepts a `MedicalVolume` made from an application's own `VolumeData`, voxel spacing, origin and patient orientation. All geometry values must be finite, spacing must be positive and the two orientation directions must be independent.
 
 ## Package boundary

@@ -150,13 +150,13 @@ internal sealed class PickLabels3D(Scene3D scene, PointerPick3D pointer) : Chart
 
         foreach (var volume in scene.Volumes)
         {
-            if (volume.Mode == VolumeMode.Surface)
+            if (volume.Mode == VolumeMode.Surface && volume.ShowsEditor)
             {
                 DrawLevel(canvas, TransferGrip.Area(pane), volume);
                 break;
             }
 
-            if (volume.Transfer is { } transfer)
+            if (volume.Transfer is { ShowsEditor: true } transfer)
             {
                 DrawEditor(canvas, TransferGrip.Area(pane), transfer);
                 break;

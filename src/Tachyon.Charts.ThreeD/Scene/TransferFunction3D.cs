@@ -17,7 +17,7 @@ public sealed class TransferFunction3D
     internal const int TableSize = 256;
 
     private readonly Lock _gate = new();
-    private readonly TransferPoint3D[] _points;
+    private TransferPoint3D[] _points;
     private long _version;
 
     /// <summary>Initializes a new instance of the <see cref="TransferFunction3D"/> class.</summary>
@@ -67,6 +67,8 @@ public sealed class TransferFunction3D
     /// <summary>Gets a number that changes with the points.</summary>
     internal long Version => Interlocked.Read(ref _version);
 
+    internal bool ShowsEditor { get; set; } = true;
+
     /// <summary>Moves a point. It stays between its neighbours, and the ends keep their share.</summary>
     /// <param name="index">The point.</param>
     /// <param name="share">The new place in the value range.</param>
@@ -79,6 +81,21 @@ public sealed class TransferFunction3D
             var isEnd = index == 0 || index == _points.Length - 1;
             var place = isEnd ? _points[index].Share : Math.Clamp(share, _points[index - 1].Share, _points[index + 1].Share);
             _points[index] = _points[index] with { Share = place, Opacity = Math.Clamp(opacity, 0, 1) };
+        }
+
+        Interlocked.Increment(ref _version);
+    }
+
+    internal void Replace(ReadOnlySpan<TransferPoint3D> points)
+    {
+        if (points.Length < 2)
+        {
+            throw new ArgumentException("A transfer function needs at least two points.", nameof(points));
+        }
+
+        lock (_gate)
+        {
+            _points = points.ToArray();
         }
 
         Interlocked.Increment(ref _version);
@@ -156,7 +173,7 @@ internal static class TransferGrip
         var area = Area(pane);
         foreach (var volume in scene.Volumes)
         {
-            if (volume.Transfer is not { } transfer)
+            if (volume.Transfer is not { ShowsEditor: true } transfer)
             {
                 continue;
             }
@@ -185,7 +202,7 @@ internal static class TransferGrip
         foreach (var volume in scene.Volumes)
         {
             var x = area.X + (volume.IsoShare * area.Width);
-            if (volume.Mode == VolumeMode.Surface && Math.Abs(position.X - x) <= Reach && position.Y >= area.Y - Reach && position.Y <= area.Y + area.Height + Reach)
+            if (volume.Mode == VolumeMode.Surface && volume.ShowsEditor && Math.Abs(position.X - x) <= Reach && position.Y >= area.Y - Reach && position.Y <= area.Y + area.Height + Reach)
             {
                 return volume;
             }

@@ -179,6 +179,10 @@ public sealed class Volume3D(VolumeData data, DoubleRange x, DoubleRange y, Doub
     private long _stamp;
     private double _isoShare = 0.5;
     private DoubleRange? _colorRange;
+    private Colormap _colormap = Colormaps.Viridis;
+    private Material3D _material = new() { Gloss = 0.35 };
+    private bool _isVisible = true;
+    private bool _showsSlices = true;
 
     /// <summary>Gets the values.</summary>
     public VolumeData Data { get; } = data ?? throw new ArgumentNullException(nameof(data));
@@ -193,7 +197,7 @@ public sealed class Volume3D(VolumeData data, DoubleRange x, DoubleRange y, Doub
     public DoubleRange Z { get; } = z;
 
     /// <summary>Gets the colors of the slices.</summary>
-    public Colormap Colormap { get; init; } = Colormaps.Viridis;
+    public Colormap Colormap { get => _colormap; init => _colormap = value ?? throw new ArgumentNullException(nameof(value)); }
 
     /// <summary>Gets or sets the values mapped across the colormap, or <see langword="null"/> for the complete data range.</summary>
     public DoubleRange? ColorRange
@@ -248,7 +252,7 @@ public sealed class Volume3D(VolumeData data, DoubleRange x, DoubleRange y, Doub
     }
 
     /// <summary>Gets how the surface takes the light.</summary>
-    public Material3D Material { get; init; } = new() { Gloss = 0.35 };
+    public Material3D Material { get => _material; init => _material = value ?? throw new ArgumentNullException(nameof(value)); }
 
     /// <summary>Gets or sets the value of the surface as a share of the value range.</summary>
     internal double IsoShare
@@ -265,7 +269,7 @@ public sealed class Volume3D(VolumeData data, DoubleRange x, DoubleRange y, Doub
     internal bool Marches => Mode != VolumeMode.Transfer || Transfer is not null;
 
     /// <summary>Gets a value indicating whether the three slices show.</summary>
-    public bool ShowsSlices { get; init; } = true;
+    public bool ShowsSlices { get => Volatile.Read(ref _showsSlices); init => _showsSlices = value; }
 
     /// <summary>Gets the share of the value range below which a slice stays clear, from 0 to 1.</summary>
     public double SliceThreshold { get; init; }
@@ -275,6 +279,26 @@ public sealed class Volume3D(VolumeData data, DoubleRange x, DoubleRange y, Doub
 
     /// <summary>Gets a number that changes as new slices arrive.</summary>
     internal long Stamp => Interlocked.Read(ref _stamp);
+
+    internal bool IsVisible => Volatile.Read(ref _isVisible);
+
+    internal bool ShowsEditor { get; set; } = true;
+
+    internal bool IsInterpolated { get; set; } = true;
+
+    internal void SetAppearance(Colormap colormap, Material3D material, bool isVisible)
+    {
+        _colormap = colormap ?? throw new ArgumentNullException(nameof(colormap));
+        _material = material ?? throw new ArgumentNullException(nameof(material));
+        Volatile.Write(ref _isVisible, isVisible);
+        Touch();
+    }
+
+    internal void SetShowsSlices(bool value)
+    {
+        Volatile.Write(ref _showsSlices, value);
+        Touch();
+    }
 
     /// <summary>Gets the color range as shares of the stored data range.</summary>
     internal (double Minimum, double Maximum) ColorShares
