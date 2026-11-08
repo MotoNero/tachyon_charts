@@ -66,6 +66,10 @@ public sealed class MedicalImageDisplay
 
     private readonly HeatmapData _data;
     private MedicalWindow _window;
+    private MedicalMeasurementLayer? _measurements;
+
+    /// <summary>Gets the distances, angles and regions measured on the image.</summary>
+    public MedicalMeasurementLayer Measurements => _measurements ??= new MedicalMeasurementLayer(new MeasurementSource(this));
 
     /// <summary>Initializes a display from an image read by <see cref="DicomReader"/>.</summary>
     /// <param name="image">The image.</param>
@@ -197,8 +201,29 @@ public sealed class MedicalImageDisplay
                 .Interpolated()
                 .ColorAxis(axis => axis.Colormap(Colormaps.Grayscale).Range(window.Minimum, window.Maximum).Title(Unit)))
             .Modifiers(modifiers => modifiers
+                .Custom(() => new MedicalMeasurementModifier(Measurements))
                 .Custom(() => new MedicalImageModifier(this))
                 .Custom(() => new ZoomPanModifier { PanButton = PointerButton.Middle }));
+    }
+
+    // A single image: one slice, without a distance to the next.
+    private sealed class MeasurementSource(MedicalImageDisplay display) : IMedicalMeasurementSource
+    {
+        public int Width => display.Width;
+
+        public int Height => display.Height;
+
+        public ImageSpacing Spacing => display.Spacing;
+
+        public int Slice => 0;
+
+        public int SliceCount => 1;
+
+        public double SliceDistance => 0;
+
+        public string Unit => display.Unit;
+
+        public double Read(int slice, int column, int row) => display._data[column, row];
     }
 
     private void SetWindow(MedicalWindow window)

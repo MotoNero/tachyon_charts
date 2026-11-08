@@ -21,6 +21,10 @@ public sealed class MedicalMprSlice
     private readonly MedicalMprSliceBuffer _buffer;
     private readonly HeatmapData _scaleData = new(1, 1);
     private readonly string[] _sliceTexts;
+    private MedicalMeasurementLayer? _measurements;
+
+    /// <summary>Gets the distances, angles and regions measured on this plane, each on its own slice. Regions of one name on several slices form a volume.</summary>
+    public MedicalMeasurementLayer Measurements => _measurements ??= new MedicalMeasurementLayer(new MeasurementSource(_buffer, _display.Unit));
 
     internal MedicalMprSlice(MedicalMprDisplay display, MedicalMprSliceBuffer buffer)
     {
@@ -63,11 +67,32 @@ public sealed class MedicalMprSlice
             .AddSeries((x, y) => new MedicalSegmentationSeries(_display, this, x, y))
             .AddOverlay(surface => new MedicalMprOverlay(this, surface.HorizontalAxes[0], surface.Panes[0].Axes[0]))
             .Modifiers(modifiers => modifiers
+                .Custom(() => new MedicalMeasurementModifier(Measurements))
                 .Custom(() => new MedicalMprModifier(this))
                 .Custom(() => new ZoomPanModifier { PanButton = PointerButton.Middle }));
     }
 
     internal void Update(Point3D position) => _buffer.Update(position);
+
+    // The slices of the plane, read straight from the volume.
+    private sealed class MeasurementSource(MedicalMprSliceBuffer buffer, string unit) : IMedicalMeasurementSource
+    {
+        public int Width => buffer.Width;
+
+        public int Height => buffer.Height;
+
+        public ImageSpacing Spacing => buffer.Spacing;
+
+        public int Slice => Math.Max(buffer.FixedIndex, 0);
+
+        public int SliceCount => buffer.SliceCount;
+
+        public double SliceDistance => buffer.SliceDistance;
+
+        public string Unit => unit;
+
+        public double Read(int slice, int column, int row) => buffer.Read(slice, column, row);
+    }
 
     internal int FixedIndex => _buffer.FixedIndex;
 

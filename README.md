@@ -28,7 +28,7 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 - **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap with cells of their own sizes, contour with labels along the lines
 - **Finance:** candles, OHLC bars, volume, market profile and drawing tools
 - **3D as an add-on:** surfaces, waterfalls, antenna patterns, point clouds of 100 million points, volumes and models from STL and OBJ files, live and with values under the pointer
-- **Medical data as an add-on:** privacy-first image reading, volume building and linked axial, coronal, sagittal and 3D views, without patient-information APIs
+- **Medical data as an add-on:** privacy-first image reading, volume building, linked axial, coronal, sagittal and 3D views, segmentations and measurements in millimetres, without patient-information APIs
 - **Runs everywhere:** GPU, software adapter or CPU, chosen automatically, also over remote desktop
 - **Ready for reports:** export to PNG, SVG, PDF and CSV, clipboard and printing, MP4 videos of 2D and 3D charts
 
@@ -196,6 +196,10 @@ It reads uncompressed single-frame grayscale DICOM Part 10 data in the three sta
 
 Integer segmentation maps can come from arrays, affine NIfTI-1 files or uncompressed binary DICOM-SEG objects. They retain their own patient-space geometry and are aligned to the image automatically. Each label has an independent name, color, opacity and visibility and can be shown in 3D as a categorical volume or a lit boundary surface.
 
+![A distance, an angle, a circle and a freehand region on a synthetic head image, each with its result](docs/images/medical-measurements.png)
+
+Measurements work on every image and MPR plane: distances in millimetres, angles, and circles, rectangles and freehand regions with area, mean, standard deviation, minimum and maximum in the unit of the image. Uneven pixel spacing is part of every result, regions of one name on several slices give a volume, and all measurements can be edited, undone and saved as JSON.
+
 Tachyon Charts is not a medical device and is not approved or certified for diagnosis or therapy under the EU Medical Device Regulation (MDR). The application developer and operator remain responsible for the intended use, validation, privacy and every applicable regulatory requirement. See [Medical data and privacy](docs/guide/medical.md).
 
 ## Quick start
@@ -334,7 +338,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Polygons](docs/guide/polygons.md) | Polygons with holes, heatmaps inside an area |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
 | [Code signing policy](docs/guide/code-signing.md) | How the showroom apps are signed, who approves, privacy |
-| [Medical data and privacy](docs/guide/medical.md) | Package boundary, data minimisation and regulatory scope |
+| [Medical data and privacy](docs/guide/medical.md) | Reading, MPR, segmentations, measurements, data minimisation and regulatory scope |
 | [docs/api](docs/api) | Public API lists |
 
 ## License

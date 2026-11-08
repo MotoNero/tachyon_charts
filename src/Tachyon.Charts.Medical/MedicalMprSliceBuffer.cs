@@ -142,20 +142,40 @@ internal sealed class MedicalMprSliceBuffer
         return (int)Math.Floor(voxel + 0.5);
     }
 
+    /// <summary>Gets the number of slices along the normal of the plane.</summary>
+    public int SliceCount => Plane switch
+    {
+        MedicalMprPlane.Axial => _volume.Data.Depth,
+        MedicalMprPlane.Coronal => _volume.Data.Height,
+        _ => _volume.Data.Width,
+    };
+
+    /// <summary>Gets the distance between two slices in millimetres.</summary>
+    public double SliceDistance => Plane switch
+    {
+        MedicalMprPlane.Axial => _volume.VoxelSpacing.Z,
+        MedicalMprPlane.Coronal => _volume.VoxelSpacing.Y,
+        _ => _volume.VoxelSpacing.X,
+    };
+
+    /// <summary>Reads a pixel of any slice straight from the volume, with the same mapping as the slice shown.</summary>
+    public double Read(int slice, int column, int row) => Value(_volume.Data, slice, column, row);
+
+    private double Value(VolumeData data, int fixedIndex, int column, int row) => Plane switch
+    {
+        MedicalMprPlane.Axial => data[column, row, fixedIndex],
+        MedicalMprPlane.Coronal => data[column, fixedIndex, data.Depth - 1 - row],
+        MedicalMprPlane.Sagittal => data[fixedIndex, column, data.Depth - 1 - row],
+        _ => throw new InvalidOperationException(),
+    };
+
     private void Fill(VolumeData data, int fixedIndex)
     {
         for (var row = 0; row < Height; row++)
         {
             for (var column = 0; column < Width; column++)
             {
-                var value = Plane switch
-                {
-                    MedicalMprPlane.Axial => data[column, row, fixedIndex],
-                    MedicalMprPlane.Coronal => data[column, fixedIndex, data.Depth - 1 - row],
-                    MedicalMprPlane.Sagittal => data[fixedIndex, column, data.Depth - 1 - row],
-                    _ => throw new InvalidOperationException(),
-                };
-                _values[(row * Width) + column] = (float)value;
+                _values[(row * Width) + column] = (float)Value(data, fixedIndex, column, row);
             }
         }
     }

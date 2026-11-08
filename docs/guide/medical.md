@@ -124,6 +124,23 @@ Use `DicomSegReader.Read` for uncompressed binary DICOM-SEG objects, or construc
 
 The constructor also accepts a `MedicalVolume` made from an application's own `VolumeData`, voxel spacing, origin and patient orientation. All geometry values must be finite, spacing must be positive and the two orientation directions must be independent.
 
+## Measurements
+
+Each image and each MPR plane has a `Measurements` layer: distances in millimetres, angles in degrees, and circles, rectangles and freehand outlines with their area and the mean, standard deviation, minimum and maximum of the pixels inside. Points are in millimetres from the upper-left image corner, so a pixel spacing that differs across and down is part of every result. A pixel counts for a region when its middle lies inside.
+
+```csharp
+var display = new MedicalImageDisplay(image);
+var circle = display.Measurements.Add(MedicalMeasurementKind.Circle, [new(75, 78), new(84, 78)], name: "Focus");
+Console.WriteLine($"{circle.Result.Area:F1} mm², {circle.Result.Mean:F1} ± {circle.Result.StandardDeviation:F1} {display.Unit}");
+
+display.Measurements.Tool = MedicalMeasurementKind.Distance;   // the next drag on the image measures a distance
+string json = display.Measurements.Save();                     // and Load(json) brings them back
+```
+
+- **On the chart:** set `Tool`, or press D, A, C, R or F over the chart, then drag: two points for a distance, circle (middle, then edge) and rectangle, three for an angle (the first arm by dragging, the second end by a click), any number for a freehand outline. Without a tool, dragging a point changes a measurement; the middle of a circle moves the whole circle. Delete removes the measurement last touched, Escape stops the tool, and every change is a step of the undo of the chart.
+- **Volumes:** on an MPR plane every measurement belongs to its slice. `Measurements.Volume("Lesion")` adds the areas of the regions named so on all slices and multiplies them by the distance between slices.
+- **Changes:** the `Changed` event reports each added, changed or removed measurement, for example to show the results in a table of the application.
+
 ## Package boundary
 
 The medical package builds on `Tachyon.Charts.ThreeD`, which in turn builds on the platform-neutral chart core. The regular 2D and 3D packages do not reference the medical package, so applications that do not install it receive no medical-data API.

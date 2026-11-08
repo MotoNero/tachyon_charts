@@ -37,6 +37,7 @@ public static class ChartTypePages
         (HeatmapInAnAreaPage.Name, HeatmapInAnAreaPage.Hint, HeatmapInAnAreaPage.Configure),
         (UnevenHeatmapPage.Name, UnevenHeatmapPage.Hint, UnevenHeatmapPage.Configure),
         (MedicalImagePage.Name, MedicalImagePage.Hint, MedicalImagePage.Configure),
+        (MedicalMeasurementsPage.Name, MedicalMeasurementsPage.Hint, MedicalMeasurementsPage.Configure),
         (LabelledContoursPage.Name, LabelledContoursPage.Hint, LabelledContoursPage.Configure),
         (PolarPage.Name, PolarPage.Hint, PolarPage.Configure),
         (AntennaCutPage.Name, AntennaCutPage.Hint, AntennaCutPage.Configure),

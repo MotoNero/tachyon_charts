@@ -52,6 +52,7 @@ public static class SceneCatalog
         new MedicalImageScene("MedicalAxial", MedicalPhantom.Axial),
         new MedicalImageScene("MedicalCoronal", MedicalPhantom.Coronal),
         new MedicalImageScene("MedicalSagittal", MedicalPhantom.Sagittal),
+        new MedicalImageScene("MedicalMeasurements", Examples.ChartTypes.MedicalMeasurementsPage.Create),
         new SpectrogramScene(),
         new ContourScene(),
         new PointCloud50MScene(),

@@ -61,6 +61,7 @@ sealed class Tachyon.Charts.Medical.MedicalImageDisplay
   System.Void Configure(Tachyon.Charts.Core.Fluent.ChartBuilder chart)
   System.Void SetWindow(System.Double center, System.Double width)
   Tachyon.Charts.Medical.ImageSpacing Spacing { get; }
+  Tachyon.Charts.Medical.MedicalMeasurementLayer Measurements { get; }
   Tachyon.Charts.Medical.MedicalOrientationMarks OrientationMarks { get; }
   Tachyon.Charts.Medical.MedicalWindow Window { get; }
   Tachyon.Charts.Medical.PatientOrientation Orientation { get; }
@@ -73,6 +74,40 @@ struct Tachyon.Charts.Medical.MedicalImageProbe : System.IEquatable<Tachyon.Char
   System.Int32 Column { get; set; }
   System.Int32 Row { get; set; }
   System.String Unit { get; set; }
+sealed class Tachyon.Charts.Medical.MedicalMeasurement
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Medical.MedicalPoint> Points { get; }
+  System.Int32 Slice { get; }
+  System.String Name { get; set; }
+  Tachyon.Charts.Medical.MedicalMeasurementKind Kind { get; }
+  Tachyon.Charts.Medical.MedicalMeasurementResult Result { get; }
+enum Tachyon.Charts.Medical.MedicalMeasurementKind : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Angle = 1
+  Circle = 2
+  Distance = 0
+  Freehand = 4
+  Rectangle = 3
+sealed class Tachyon.Charts.Medical.MedicalMeasurementLayer : Tachyon.Charts.Core.Overlays.ChartOverlay
+  System.Boolean Remove(Tachyon.Charts.Medical.MedicalMeasurement measurement)
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Medical.MedicalMeasurement> Measurements { get; }
+  System.Double Volume(System.String name)
+  System.Nullable<Tachyon.Charts.Medical.MedicalMeasurementKind> Tool { get; set; }
+  System.String Save()
+  System.String Unit { get; }
+  System.Void Load(System.String json)
+  Tachyon.Charts.Medical.MedicalMeasurement Add(Tachyon.Charts.Medical.MedicalMeasurementKind kind, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Medical.MedicalPoint> points, System.Nullable<System.Int32> slice = null, System.String name = null)
+  Tachyon.Charts.Medical.MedicalMeasurement Selected { get; }
+  event System.Action<Tachyon.Charts.Medical.MedicalMeasurement> Changed
+  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
+struct Tachyon.Charts.Medical.MedicalMeasurementResult : System.IEquatable<Tachyon.Charts.Medical.MedicalMeasurementResult>
+  .ctor(System.Double Length, System.Double Angle, System.Double Area, System.Int32 PixelCount, System.Double Mean, System.Double StandardDeviation, System.Double Minimum, System.Double Maximum)
+  System.Double Angle { get; set; }
+  System.Double Area { get; set; }
+  System.Double Length { get; set; }
+  System.Double Maximum { get; set; }
+  System.Double Mean { get; set; }
+  System.Double Minimum { get; set; }
+  System.Double StandardDeviation { get; set; }
+  System.Int32 PixelCount { get; set; }
 sealed class Tachyon.Charts.Medical.MedicalMprDisplay
   .ctor(Tachyon.Charts.Medical.MedicalVolume volume)
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Medical.MedicalSegmentation> Segmentations { get; }
@@ -101,6 +136,7 @@ sealed class Tachyon.Charts.Medical.MedicalMprSlice
   System.Int32 Width { get; }
   System.Void Configure(Tachyon.Charts.Core.Fluent.ChartBuilder chart)
   Tachyon.Charts.Medical.ImageSpacing Spacing { get; }
+  Tachyon.Charts.Medical.MedicalMeasurementLayer Measurements { get; }
   Tachyon.Charts.Medical.MedicalMprPlane Plane { get; }
   Tachyon.Charts.Medical.MedicalOrientationMarks OrientationMarks { get; }
   Tachyon.Charts.Medical.PatientOrientation Orientation { get; }
@@ -110,6 +146,10 @@ struct Tachyon.Charts.Medical.MedicalOrientationMarks : System.IEquatable<Tachyo
   System.String Left { get; set; }
   System.String Right { get; set; }
   System.String Top { get; set; }
+struct Tachyon.Charts.Medical.MedicalPoint : System.IEquatable<Tachyon.Charts.Medical.MedicalPoint>
+  .ctor(System.Double X, System.Double Y)
+  System.Double X { get; set; }
+  System.Double Y { get; set; }
 sealed class Tachyon.Charts.Medical.MedicalSegment
   .ctor(System.Int32 label, System.String name, Tachyon.Charts.Rendering.Rgba8 color)
   System.Boolean IsVisible { get; set; }

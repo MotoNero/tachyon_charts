@@ -117,6 +117,8 @@ public static class SampleText
         ["The marks at the axis show the newest value of each line and move apart when they meet | Wheel: zoom | Drag: pan"] = "Die Marken an der Achse zeigen den neuesten Wert jeder Linie und weichen einander aus | Rad: Zoom | Ziehen: Pan",
         ["Uneven heatmap 4096²"] = "Ungleiche Heatmap 4096²",
         ["Medical image"] = "Medizinisches Bild",
+        ["Medical measurements"] = "Medizinische Messungen",
+        ["Keys D, A, C, R, F: distance, angle, circle, rectangle, freehand, then drag | Drag a point: change | Delete: remove | Ctrl+Z: undo | Left drag elsewhere: window"] = "Tasten D, A, C, R, F: Distanz, Winkel, Kreis, Rechteck, Freihand, dann ziehen | Punkt ziehen: ändern | Entf: entfernen | Strg+Z: rückgängig | Links ziehen sonst: Fensterung",
         ["Left drag: window and level | Keys 1, 2, 3: brain, bone, lung | Middle drag: pan | Wheel: zoom | Pointer: value and position"] = "Links ziehen: Fenster und Pegel | Tasten 1, 2, 3: Gehirn, Knochen, Lunge | Mitte ziehen: Pan | Rad: Zoom | Zeiger: Wert und Position",
         ["Labelled contours"] = "Beschriftete Höhenlinien",
         ["Wheel: zoom | Drag: pan | Pointer: the cell and its value | Double click: all"] = "Rad: Zoom | Ziehen: Pan | Zeiger: die Zelle und ihr Wert | Doppelklick: alles",
