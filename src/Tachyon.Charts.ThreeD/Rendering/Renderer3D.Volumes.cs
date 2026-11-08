@@ -279,7 +279,7 @@ internal sealed unsafe partial class Renderer3D
             {
                 var fit = VolumeFit.Choose(data.Width, data.Height, data.Depth, data.IsBytes, device.HasFilterableFloat32, device.MaxTextureDimension3D, budget, device.GraphicsMemory);
                 (_reduction, IsExact) = (fit.Reduction, fit.IsExact);
-                _format = data.IsBytes ? Native.TextureFormat.R8Unorm : fit.IsExact ? Native.TextureFormat.R32float : Native.TextureFormat.R16float;
+                _format = FormatOf(data.IsBytes, fit.IsExact);
                 (_width, _height, _depth) = (VolumeFit.Reduce(data.Width, _reduction), VolumeFit.Reduce(data.Height, _reduction), VolumeFit.Reduce(data.Depth, _reduction));
                 var texture = new Native.TextureDescriptor
                 {
@@ -528,6 +528,17 @@ internal sealed unsafe partial class Renderer3D
             Api.BufferRelease(_colors);
             Api.TextureViewRelease(_view);
             Api.TextureRelease(_texture);
+        }
+
+        private static Native.TextureFormat FormatOf(bool isBytes, bool isExact)
+        {
+            if (isBytes)
+            {
+                return Native.TextureFormat.R8Unorm;
+            }
+
+            // Filtering 32-bit floats is an optional feature. Without it, 16-bit floats keep about 11 bits of a value.
+            return isExact ? Native.TextureFormat.R32float : Native.TextureFormat.R16float;
         }
 
         private void WriteSlice(int z, void* source, nuint bytes, int bytesPerValue)

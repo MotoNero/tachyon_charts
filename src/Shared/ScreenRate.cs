@@ -77,13 +77,13 @@ internal static partial class ScreenRate
     [InlineArray(32)]
     private struct Chars32
     {
-        private ushort _first;
+        private ushort _first; // NOSONAR: an inline array has exactly one field, its first element
     }
 
     [InlineArray(128)]
     private struct Chars128
     {
-        private ushort _first;
+        private ushort _first; // NOSONAR: an inline array has exactly one field, its first element
     }
 
     // DISPLAY_DEVICEW, with characters as numbers so that the structure needs no marshalling.

@@ -372,6 +372,38 @@ public sealed class RenderScheduler : IDisposable
         }
     }
 
+    // Draws one chart; false when the device is gone.
+    private bool RenderOne(Attachment attachment, ref int frames, ref long points)
+    {
+        var (chart, target) = attachment;
+        try
+        {
+            var interval = Interlocked.Read(ref _intervalTicks);
+            chart.FrameLimit = interval > 0 ? TimeSpan.TicksPerSecond / (double)interval : 0;
+            chart.Render(_device, target);
+            frames++;
+            points += chart.DrawnPointCount;
+            return true;
+        }
+        catch (DeviceLostException)
+        {
+            ReportLoss();
+            return false;
+        }
+        catch (Exception exception) when (_device.IsLost)
+        {
+            // Whatever a dying device reports, it means the same.
+            _ = exception;
+            ReportLoss();
+            return false;
+        }
+        catch (Exception exception)
+        {
+            Failed?.Invoke(exception);
+            return true;
+        }
+    }
+
     private bool RenderPass()
     {
         if (_device.IsLost)
@@ -388,34 +420,11 @@ public sealed class RenderScheduler : IDisposable
         var points = 0L;
 
         _device.BeginBatch();
-        foreach (var (chart, target) in _charts)
+        foreach (var attachment in _charts)
         {
-            if (isContinuous || chart.HasChanges(target))
+            if ((isContinuous || attachment.Chart.HasChanges(attachment.Target)) && !RenderOne(attachment, ref frames, ref points))
             {
-                try
-                {
-                    var interval = Interlocked.Read(ref _intervalTicks);
-                    chart.FrameLimit = interval > 0 ? TimeSpan.TicksPerSecond / (double)interval : 0;
-                    chart.Render(_device, target);
-                    frames++;
-                    points += chart.DrawnPointCount;
-                }
-                catch (DeviceLostException)
-                {
-                    ReportLoss();
-                    return false;
-                }
-                catch (Exception exception) when (_device.IsLost)
-                {
-                    // Whatever a dying device reports, it means the same.
-                    _ = exception;
-                    ReportLoss();
-                    return false;
-                }
-                catch (Exception exception)
-                {
-                    Failed?.Invoke(exception);
-                }
+                return false;
             }
         }
 

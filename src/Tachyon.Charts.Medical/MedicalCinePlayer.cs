@@ -298,7 +298,7 @@ public sealed class MedicalCinePlayer
 
     private void Changed()
     {
-        Volatile.Write(ref _statusText, IsPlaying ? FormattableString.Invariant($"▶ {FramesPerSecond:0.#} fps") : null);
+        Volatile.Write(ref _statusText, IsPlaying ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"▶ {FramesPerSecond:0.#} fps") : null);
         Interlocked.Increment(ref _version);
         StateChanged?.Invoke();
     }

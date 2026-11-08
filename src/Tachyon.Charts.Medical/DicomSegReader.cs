@@ -64,33 +64,12 @@ public static class DicomSegReader
         stream.ReadExactly(prefix);
         if (!prefix[128..].SequenceEqual("DICM"u8)) throw new DicomReadException("The DICOM Part 10 marker is missing.");
 
-        string? uid = null;
-        while (true)
-        {
-            var position = stream.Position;
-            var header = Header.Read(stream, DicomTransferSyntax.ExplicitVrLittleEndian);
-            if (header.Group != 2)
-            {
-                stream.Position = position;
-                break;
-            }
-
-            if (header.Tag == TransferSyntax) uid = ReadText(stream, header.Length);
-            else Skip(stream, header.Length);
-        }
-
-        var syntax = uid switch
-        {
-            "1.2.840.10008.1.2" => DicomTransferSyntax.ImplicitVrLittleEndian,
-            "1.2.840.10008.1.2.1" => DicomTransferSyntax.ExplicitVrLittleEndian,
-            "1.2.840.10008.1.2.2" => DicomTransferSyntax.ExplicitVrBigEndian,
-            _ => throw new DicomReadException("The DICOM-SEG transfer syntax is compressed or unsupported."),
-        };
-        var root = Dataset.Read(stream, syntax, stream.Length, delimiter: 0);
+        var syntax = ReadSyntax(stream);
+        var root = Dataset.Parse(stream, syntax, stream.Length, delimiter: 0);
         ValidateRoot(root, syntax);
 
-        var rows = root.Word(Rows, syntax);
-        var columns = root.Word(Columns, syntax);
+        var rows = root.Number(Rows, syntax);
+        var columns = root.Number(Columns, syntax);
         var frameCount = Positive(root.Text(NumberOfFrames), "frame count");
         var frames = root.Items(PerFrameGroups);
         if (frames.Count != frameCount) throw new DicomReadException("The per-frame geometry does not match the frame count.");
@@ -102,18 +81,8 @@ public static class DicomSegReader
         var normal = orientation.Normal;
 
         var definitions = ReadSegments(root, syntax);
-        var frameInfo = new FrameInfo[frameCount];
         var planes = new List<(double Along, Point3D Position)>();
-        for (var i = 0; i < frameCount; i++)
-        {
-            var frame = frames[i];
-            var position = Point(FirstNested(shared, frame, PlanePosition).Text(ImagePosition), "image position");
-            var segment = FirstNested(shared, frame, SegmentIdentification).Word(ReferencedSegmentNumber, syntax);
-            if (!definitions.ContainsKey(segment)) throw new DicomReadException("A frame references an undefined segment.");
-            var along = Point3D.Dot(position, normal);
-            FindPlane(planes, along, position);
-            frameInfo[i] = new FrameInfo(segment, along);
-        }
+        var frameInfo = ReadFrames(shared, frames, definitions, normal, syntax, planes);
 
         planes.Sort((a, b) => a.Along.CompareTo(b.Along));
         var indexByAlong = planes.Select((plane, index) => (plane.Along, index)).ToArray();
@@ -126,14 +95,7 @@ public static class DicomSegReader
         for (var frame = 0; frame < frameCount; frame++)
         {
             var z = indexByAlong.Single(item => Near(item.Along, frameInfo[frame].Along)).index;
-            for (var pixel = 0; pixel < rows * columns; pixel++)
-            {
-                if ((pixels[(frame * bytesPerFrame) + (pixel >> 3)] & (1 << (pixel & 7))) == 0) continue;
-                var at = ((z * rows * columns) + pixel);
-                if (labels[at] != 0 && labels[at] != frameInfo[frame].Segment)
-                    throw new DicomReadException("Overlapping DICOM-SEG segments cannot be represented by one integer label map.");
-                labels[at] = (ushort)frameInfo[frame].Segment;
-            }
+            Fill(labels, pixels.AsSpan(frame * bytesPerFrame, bytesPerFrame), z * rows * columns, rows * columns, frameInfo[frame].Segment);
         }
 
         return new MedicalSegmentation(
@@ -145,11 +107,68 @@ public static class DicomSegReader
             definitions.Values);
     }
 
+    // The transfer syntax from the file meta information, the elements of group 2.
+    private static DicomTransferSyntax ReadSyntax(Stream stream)
+    {
+        string? uid = null;
+        while (true)
+        {
+            var position = stream.Position;
+            var header = Header.Parse(stream, DicomTransferSyntax.ExplicitVrLittleEndian);
+            if (header.Group != 2)
+            {
+                stream.Position = position;
+                break;
+            }
+
+            if (header.Tag == TransferSyntax) uid = ReadText(stream, header.Length);
+            else Skip(stream, header.Length);
+        }
+
+        return uid switch
+        {
+            "1.2.840.10008.1.2" => DicomTransferSyntax.ImplicitVrLittleEndian,
+            "1.2.840.10008.1.2.1" => DicomTransferSyntax.ExplicitVrLittleEndian,
+            "1.2.840.10008.1.2.2" => DicomTransferSyntax.ExplicitVrBigEndian,
+            _ => throw new DicomReadException("The DICOM-SEG transfer syntax is compressed or unsupported."),
+        };
+    }
+
+    private static FrameInfo[] ReadFrames(Dataset shared, IReadOnlyList<Dataset> frames, Dictionary<int, MedicalSegment> definitions, Point3D normal, DicomTransferSyntax syntax, List<(double Along, Point3D Position)> planes)
+    {
+        var frameInfo = new FrameInfo[frames.Count];
+        for (var i = 0; i < frames.Count; i++)
+        {
+            var frame = frames[i];
+            var position = Point(FirstNested(shared, frame, PlanePosition).Text(ImagePosition), "image position");
+            var segment = FirstNested(shared, frame, SegmentIdentification).Number(ReferencedSegmentNumber, syntax);
+            if (!definitions.ContainsKey(segment)) throw new DicomReadException("A frame references an undefined segment.");
+            var along = Point3D.Dot(position, normal);
+            FindPlane(planes, along, position);
+            frameInfo[i] = new FrameInfo(segment, along);
+        }
+
+        return frameInfo;
+    }
+
+    // Sets the label of a segment where its frame has a bit, refusing a pixel that already belongs to another one.
+    private static void Fill(ushort[] labels, ReadOnlySpan<byte> bits, int first, int count, int segment)
+    {
+        for (var pixel = 0; pixel < count; pixel++)
+        {
+            if ((bits[pixel >> 3] & (1 << (pixel & 7))) == 0) continue;
+            var at = first + pixel;
+            if (labels[at] != 0 && labels[at] != segment)
+                throw new DicomReadException("Overlapping DICOM-SEG segments cannot be represented by one integer label map.");
+            labels[at] = (ushort)segment;
+        }
+    }
+
     private static void ValidateRoot(Dataset root, DicomTransferSyntax syntax)
     {
         if (!string.Equals(root.Text(Modality), "SEG", StringComparison.Ordinal)) throw new DicomReadException("The DICOM object is not a segmentation.");
         if (!string.Equals(root.Text(SegmentationType), "BINARY", StringComparison.Ordinal)) throw new DicomReadException("Only binary DICOM-SEG objects are supported; fractional segmentation is not losslessly categorical.");
-        if (root.Word(BitsAllocated, syntax) != 1) throw new DicomReadException("A binary DICOM-SEG object must allocate one bit per pixel.");
+        if (root.Number(BitsAllocated, syntax) != 1) throw new DicomReadException("A binary DICOM-SEG object must allocate one bit per pixel.");
     }
 
     private static Dictionary<int, MedicalSegment> ReadSegments(Dataset root, DicomTransferSyntax syntax)
@@ -157,7 +176,7 @@ public static class DicomSegReader
         var result = new Dictionary<int, MedicalSegment>();
         foreach (var item in root.Items(SegmentSequence))
         {
-            var number = item.Word(SegmentNumber, syntax);
+            var number = item.Number(SegmentNumber, syntax);
             if (number == 0 || !result.TryAdd(number, new MedicalSegment(number, item.Text(SegmentLabel), ReadColor(item, syntax, number))))
                 throw new DicomReadException("Segment numbers must be unique and positive.");
         }
@@ -250,7 +269,15 @@ public static class DicomSegReader
     private static bool Near(double a, double b) => Math.Abs(a - b) <= 1e-5;
     private static ushort Word(byte[] bytes, int offset, bool little) => little ? BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(offset)) : BinaryPrimitives.ReadUInt16BigEndian(bytes.AsSpan(offset));
     private static string ReadText(Stream stream, uint length) { var bytes = new byte[length]; stream.ReadExactly(bytes); return Encoding.ASCII.GetString(bytes).TrimEnd('\0', ' '); }
-    private static void Skip(Stream stream, uint length) { if (length == Undefined || stream.Position + length > stream.Length) throw new EndOfStreamException(); stream.Position += length; }
+    private static void Skip(Stream stream, uint length)
+    {
+        if (length == Undefined || stream.Position + length > stream.Length)
+        {
+            throw new EndOfStreamException();
+        }
+
+        stream.Position += length;
+    }
 
     private readonly record struct FrameInfo(int Segment, double Along);
 
@@ -265,12 +292,12 @@ public static class DicomSegReader
         private static readonly HashSet<uint> _sequences = [SegmentSequence, SharedGroups, PerFrameGroups, PixelMeasures, PlanePosition, PlaneOrientation, SegmentIdentification];
         private readonly Dictionary<uint, Element> _elements = [];
 
-        public static Dataset Read(Stream stream, DicomTransferSyntax syntax, long end, ushort delimiter)
+        public static Dataset Parse(Stream stream, DicomTransferSyntax syntax, long end, ushort delimiter)
         {
             var data = new Dataset();
             while (stream.Position < end)
             {
-                var header = Header.Read(stream, syntax);
+                var header = Header.Parse(stream, syntax);
                 if (header.Group == 0xFFFE && header.Element == delimiter) { Skip(stream, header.Length); break; }
                 if (header.Group == 0xFFFE) throw new DicomReadException("The DICOM-SEG sequence structure is invalid.");
                 if (header.IsSequence || _sequences.Contains(header.Tag)) data._elements[header.Tag] = new Element(null, ReadItems(stream, syntax, header.Length));
@@ -292,10 +319,10 @@ public static class DicomSegReader
             var end = length == Undefined ? long.MaxValue : checked(stream.Position + length);
             while (stream.Position < end)
             {
-                var item = Header.Read(stream, syntax);
+                var item = Header.Parse(stream, syntax);
                 if (item.Group == 0xFFFE && item.Element == 0xE0DD) { Skip(stream, item.Length); break; }
                 if (item.Group != 0xFFFE || item.Element != 0xE000) throw new DicomReadException("A DICOM-SEG sequence item is invalid.");
-                items.Add(Read(stream, syntax, item.Length == Undefined ? long.MaxValue : checked(stream.Position + item.Length), 0xE00D));
+                items.Add(Parse(stream, syntax, item.Length == Undefined ? long.MaxValue : checked(stream.Position + item.Length), 0xE00D));
             }
             return items;
         }
@@ -306,14 +333,14 @@ public static class DicomSegReader
         public byte[] Bytes(uint tag) => _elements.TryGetValue(tag, out var value) && value.Value is { } bytes ? bytes : throw new DicomReadException("A required DICOM-SEG tag is missing.");
         public byte[]? OptionalBytes(uint tag) => _elements.TryGetValue(tag, out var value) ? value.Value : null;
         public IReadOnlyList<Dataset> Items(uint tag) => _elements.TryGetValue(tag, out var value) && value.Items is { } items ? items : [];
-        public ushort Word(uint tag, DicomTransferSyntax syntax) { var bytes = Bytes(tag); return bytes.Length == 2 ? DicomSegReader.Word(bytes, 0, syntax != DicomTransferSyntax.ExplicitVrBigEndian) : throw new DicomReadException("A required numeric DICOM-SEG tag has an invalid length."); }
+        public ushort Number(uint tag, DicomTransferSyntax syntax) { var bytes = Bytes(tag); return bytes.Length == 2 ? DicomSegReader.Word(bytes, 0, syntax != DicomTransferSyntax.ExplicitVrBigEndian) : throw new DicomReadException("A required numeric DICOM-SEG tag has an invalid length."); }
     }
 
     private readonly record struct Header(ushort Group, ushort Element, ushort Vr, uint Length)
     {
         public uint Tag => ((uint)Group << 16) | Element;
         public bool IsSequence => Vr == 0x5351;
-        public static Header Read(Stream stream, DicomTransferSyntax syntax)
+        public static Header Parse(Stream stream, DicomTransferSyntax syntax)
         {
             Span<byte> first = stackalloc byte[8];
             stream.ReadExactly(first);

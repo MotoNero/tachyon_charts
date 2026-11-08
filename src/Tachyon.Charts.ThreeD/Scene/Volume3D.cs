@@ -373,11 +373,11 @@ public sealed class Volume3D(VolumeData data, DoubleRange x, DoubleRange y, Doub
     {
         get
         {
-            var data = Data.ValueRange;
-            var range = ColorRange ?? data;
-            var scale = data.Length > 0 ? 1 / data.Length : 0;
-            var minimum = (range.Min - data.Min) * scale;
-            var maximum = (range.Max - data.Min) * scale;
+            var stored = Data.ValueRange;
+            var range = ColorRange ?? stored;
+            var scale = stored.Length > 0 ? 1 / stored.Length : 0;
+            var minimum = (range.Min - stored.Min) * scale;
+            var maximum = (range.Max - stored.Min) * scale;
             return maximum > minimum ? (minimum, maximum) : (minimum, minimum + 1e-12);
         }
     }

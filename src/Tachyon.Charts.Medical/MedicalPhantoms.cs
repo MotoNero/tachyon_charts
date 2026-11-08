@@ -104,58 +104,71 @@ public static class MedicalPhantoms
             return -1000;
         }
 
-        // Ribs: a band inside the skin, one rib every few slices.
+        return Wall(body, x, y, z) ?? Bone(x, y) ?? Mediastinum(x, y, z) ?? Lung(x, y, z) ?? 45 + (8 * Math.Sin((x * 12) + (y * 9) + (z * 6)));
+    }
+
+    // Ribs, a band inside the skin with one rib every few slices, and fat under the skin.
+    private static double? Wall(double body, double x, double y, double z)
+    {
         if (body > 0.72 && body < 0.8 && Math.Sin(z * 45) > 0.35 && y < 0.45)
         {
             return 900;
         }
 
-        if (body > 0.86)
-        {
-            return -100 + (10 * Math.Sin(x * 30));
-        }
+        return body > 0.86 ? -100 + (10 * Math.Sin(x * 30)) : null;
+    }
 
-        // The spine behind, with a denser rim, and the spinal canal.
+    // The spine behind, with a denser rim and the spinal canal, and the sternum in front.
+    private static double? Bone(double x, double y)
+    {
         var vertebra = Square(x / 0.13) + Square((y - 0.45) / 0.12);
         if (vertebra < 1)
         {
-            return Square(x / 0.05) + Square((y - 0.5) / 0.04) < 1 ? 15 : vertebra > 0.7 ? 1100 : 350;
+            if (Square(x / 0.05) + Square((y - 0.5) / 0.04) < 1)
+            {
+                return 15;
+            }
+
+            return vertebra > 0.7 ? 1100 : 350;
         }
 
-        if (Math.Abs(x) < 0.06 && y < -0.5 && y > -0.6)
-        {
-            return 600;
-        }
+        return Math.Abs(x) < 0.06 && y < -0.5 && y > -0.6 ? 600 : null;
+    }
 
-        // The heart sits low and to the left; the aorta descends beside the spine.
+    // The heart sits low and to the left; the aorta descends beside the spine.
+    private static double? Mediastinum(double x, double y, double z)
+    {
         var heart = Square((x - 0.12) / 0.27) + Square((y + 0.08) / 0.24) + Square((z - 0.7) / 0.35);
         if (heart < 1)
         {
             return heart < 0.35 ? 180 : 45;
         }
 
-        if (Square((x + 0.12) / 0.07) + Square((y - 0.28) / 0.07) < 1)
-        {
-            return 200;
-        }
+        return Square((x + 0.12) / 0.07) + Square((y - 0.28) / 0.07) < 1 ? 200 : null;
+    }
 
+    // A dome from the apex near the top to the diaphragm on each side, with a nodule in the right lung.
+    private static double? Lung(double x, double y, double z)
+    {
         foreach (var side in (ReadOnlySpan<double>)[-1, 1])
         {
-            // A dome from the apex near the top to the diaphragm, which rises under the heart.
-            var lung = Square((x - (side * 0.45)) / 0.33) + Square((y + 0.02) / 0.46) + Square((z - 0.5) / 0.45);
-            if (lung < 1 && z < 0.9 - (0.12 * Square((x - (side * 0.45)) / 0.33)))
+            var across = Square((x - (side * 0.45)) / 0.33);
+            var lung = across + Square((y + 0.02) / 0.46) + Square((z - 0.5) / 0.45);
+            if (lung >= 1 || z >= 0.9 - (0.12 * across))
             {
-                if (side < 0 && Square((x + 0.5) / 0.035) + Square((y + 0.1) / 0.035) + Square((z - 0.4) / 0.04) < 1)
-                {
-                    return 40;
-                }
-
-                // Vessels branch from the hilum; distances in millimetres.
-                return IsVessel(x * ThoraxHalfWidth, y * ThoraxHalfHeight, z * ThoraxLength) ? 35 : -860 + (25 * Math.Sin((x * 60) + (y * 50)));
+                continue;
             }
+
+            if (side < 0 && Square((x + 0.5) / 0.035) + Square((y + 0.1) / 0.035) + Square((z - 0.4) / 0.04) < 1)
+            {
+                return 40;
+            }
+
+            // Vessels branch from the hilum; distances in millimetres.
+            return IsVessel(x * ThoraxHalfWidth, y * ThoraxHalfHeight, z * ThoraxLength) ? 35 : -860 + (25 * Math.Sin((x * 60) + (y * 50)));
         }
 
-        return 45 + (8 * Math.Sin((x * 12) + (y * 9) + (z * 6)));
+        return null;
     }
 
     private static bool IsVessel(double x, double y, double z)
@@ -201,7 +214,8 @@ public static class MedicalPhantoms
         }
 
         // Two children, bent apart across the direction.
-        var (u, v) = (new Point3D(-direction.Y, direction.X, 0.3), new Point3D(0.2, -direction.Z, direction.Y));
+        var (dx, dy, dz) = (direction.X, direction.Y, direction.Z);
+        var (u, v) = (new Point3D(-dy, dx, 0.3), new Point3D(0.2, -dz, dy));
         Grow(vessels, end, new Point3D((direction.X / size) + (0.7 * u.X), (direction.Y / size) + (0.7 * u.Y), (direction.Z / size) + (0.7 * u.Z)), length * 0.62, radius * 0.62, levels - 1);
         Grow(vessels, end, new Point3D((direction.X / size) - (0.6 * v.X), (direction.Y / size) - (0.6 * v.Y), (direction.Z / size) - (0.6 * v.Z)), length * 0.62, radius * 0.62, levels - 1);
     }

@@ -152,9 +152,9 @@ public sealed class MedicalMeasurementLayer : ChartOverlay
             throw new FormatException("The text holds no measurements.");
         }
 
-        if (file.FileVersion > FileVersion)
+        if (file.SavedVersion > FileVersion)
         {
-            throw new FormatException($"The measurements were saved by a newer version ({file.FileVersion}).");
+            throw new FormatException($"The measurements were saved by a newer version ({file.SavedVersion}).");
         }
 
         var loaded = new List<MedicalMeasurement>(file.Items.Length);
@@ -405,7 +405,7 @@ public sealed class MedicalMeasurementLayer : ChartOverlay
     };
 
     private sealed record FileDto(
-        [property: System.Text.Json.Serialization.JsonPropertyName("version")] int FileVersion,
+        [property: System.Text.Json.Serialization.JsonPropertyName("version")] int SavedVersion,
         [property: System.Text.Json.Serialization.JsonPropertyName("measurements")] MeasurementDto[]? Items);
 
     private sealed record MeasurementDto(MedicalMeasurementKind Kind, int Slice, string? Name, double[][]? Points);

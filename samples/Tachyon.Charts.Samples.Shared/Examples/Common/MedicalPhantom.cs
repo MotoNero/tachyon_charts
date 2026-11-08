@@ -33,10 +33,7 @@ public static class MedicalPhantom
                 var ny = y / (double)(data.Height - 1);
                 for (var x = 0; x < data.Width; x++)
                 {
-                    var nx = x / (double)(data.Width - 1);
-                    var focus = Square((nx - 0.32) / 0.11) + Square((ny - 0.46) / 0.14) + Square((nz - 0.52) / 0.16) < 1;
-                    var cavity = Square((nx - 0.56) / 0.12) + Square((ny - 0.5) / 0.19) + Square((nz - 0.5) / 0.28) < 1;
-                    labels[((z * data.Height) + y) * data.Width + x] = focus ? (ushort)1 : cavity ? (ushort)2 : (ushort)0;
+                    labels[((z * data.Height) + y) * data.Width + x] = Label(x / (double)(data.Width - 1), ny, nz);
                 }
             }
         }
@@ -53,6 +50,17 @@ public static class MedicalPhantom
             ]);
     }
 
+    // 1 inside the focus, 2 inside the cavity, 0 elsewhere; places in shares of the volume.
+    private static ushort Label(double x, double y, double z)
+    {
+        if (Square((x - 0.32) / 0.11) + Square((y - 0.46) / 0.14) + Square((z - 0.52) / 0.16) < 1)
+        {
+            return 1;
+        }
+
+        return Square((x - 0.56) / 0.12) + Square((y - 0.5) / 0.19) + Square((z - 0.5) / 0.28) < 1 ? (ushort)2 : (ushort)0;
+    }
+
     private static MedicalImageDisplay Create(PatientOrientation orientation)
     {
         const int width = 320;
@@ -63,33 +71,36 @@ public static class MedicalPhantom
             var y = (row - (height / 2.0)) / (height * 0.42);
             for (var column = 0; column < width; column++)
             {
-                var x = (column - (width / 2.0)) / (width * 0.34);
-                var radius = (x * x) + (y * y);
-                var value = -1000f;
-                if (radius < 1)
-                {
-                    value = radius > 0.82 ? 1050 : 38;
-                    if (Ellipse(x + 0.18, y, 0.13, 0.28) || Ellipse(x - 0.18, y, 0.13, 0.28))
-                    {
-                        value = 8;
-                    }
-                    else if (Ellipse(x + 0.48, y + 0.15, 0.18, 0.22))
-                    {
-                        value = 65;
-                    }
-                    else
-                    {
-                        value += (float)(12 * Math.Sin((x * 8) + (y * 5)));
-                    }
-                }
-
-                values[(row * width) + column] = value;
+                values[(row * width) + column] = Value((column - (width / 2.0)) / (width * 0.34), y);
             }
         }
 
         var display = new MedicalImageDisplay(values, width, height, new ImageSpacing(0.7, 0.7), orientation, "HU");
         display.ApplyPreset(CtWindowPresets.Brain);
         return display;
+    }
+
+    // Air around a skull, two ventricles and a round lesion in the brain.
+    private static float Value(double x, double y)
+    {
+        var radius = (x * x) + (y * y);
+        if (radius >= 1)
+        {
+            return -1000f;
+        }
+
+        if (Ellipse(x + 0.18, y, 0.13, 0.28) || Ellipse(x - 0.18, y, 0.13, 0.28))
+        {
+            return 8;
+        }
+
+        if (Ellipse(x + 0.48, y + 0.15, 0.18, 0.22))
+        {
+            return 65;
+        }
+
+        var value = radius > 0.82 ? 1050f : 38f;
+        return value + (float)(12 * Math.Sin((x * 8) + (y * 5)));
     }
 
     private static bool Ellipse(double x, double y, double horizontal, double vertical) =>

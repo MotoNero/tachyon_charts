@@ -229,19 +229,41 @@ internal sealed class PixelBuffer
 
     public PixelBuffer(ushort[] values, double slope = 1, double intercept = 0) => (_words, Slope, Intercept) = (values, slope, intercept);
 
+    public PixelBuffer(float[] values) => _floats = values;
+
     /// <summary>Gets the factor of a stored 16-bit value.</summary>
     public double Slope { get; } = 1;
 
     /// <summary>Gets the value of a stored 16-bit zero.</summary>
     public double Intercept { get; }
 
-    public PixelBuffer(float[] values) => _floats = values;
+    public PixelBufferKind Kind
+    {
+        get
+        {
+            if (_bytes is not null)
+            {
+                return PixelBufferKind.Byte;
+            }
 
-    public PixelBufferKind Kind => _bytes is not null ? PixelBufferKind.Byte : _words is not null ? PixelBufferKind.Word : PixelBufferKind.Float;
+            return _words is not null ? PixelBufferKind.Word : PixelBufferKind.Float;
+        }
+    }
 
     public int Length => _bytes?.Length ?? _words?.Length ?? _floats!.Length;
 
-    public double this[int index] => _bytes is not null ? _bytes[index] : _words is not null ? (_words[index] * Slope) + Intercept : _floats![index];
+    public double this[int index]
+    {
+        get
+        {
+            if (_bytes is not null)
+            {
+                return _bytes[index];
+            }
+
+            return _words is not null ? (_words[index] * Slope) + Intercept : _floats![index];
+        }
+    }
 
     public void CopyValues(Span<float> target)
     {

@@ -11,6 +11,7 @@ internal static unsafe class GraphicsMemoryProbe
 {
     // Below this a card counts as one that shares the system memory.
     private const long SmallDedicated = 512L << 20;
+    private const uint MostAdapters = 64;
 
     private static readonly Guid _factory1 = new(0x770aae78, 0xf26f, 0x4dba, 0xa8, 0x29, 0x25, 0x3c, 0x83, 0xd1, 0xb3, 0x87);
 
@@ -58,7 +59,8 @@ internal static unsafe class GraphicsMemoryProbe
         {
             var table = *(nint**)factory;
             var enumerate = (delegate* unmanaged[Stdcall]<nint, uint, nint*, int>)table[12]; // IDXGIFactory1::EnumAdapters1
-            for (uint i = 0; ; i++)
+            // A system has a few adapters; DXGI ends the list with an error.
+            for (uint i = 0; i < MostAdapters; i++)
             {
                 nint adapter;
                 if (enumerate(factory, i, &adapter) < 0)
@@ -85,6 +87,8 @@ internal static unsafe class GraphicsMemoryProbe
         {
             Release(factory);
         }
+
+        return 0;
     }
 
     private static void Release(nint unknown) => ((delegate* unmanaged[Stdcall]<nint, uint>)(*(nint**)unknown)[2])(unknown);

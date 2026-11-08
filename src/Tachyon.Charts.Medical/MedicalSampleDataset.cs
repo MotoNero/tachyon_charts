@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace Tachyon.Charts.Medical;
 
@@ -32,39 +33,17 @@ public sealed class MedicalSampleDataset
     }
 
     /// <summary>
-    /// Gets a chest CT: LIDC-IDRI, patient LIDC-IDRI-0001, 133 slices, a download of 35 MB that unpacks to 70 MB of DICOM files from The Cancer Imaging
-    /// Archive, licensed CC BY 3.0. The archive's data usage policy applies: cite the data and never try to identify a
+    /// Gets a chest CT: LIDC-IDRI, patient LIDC-IDRI-0001, 133 slices, a download of 35 MB that unpacks to 70 MB
+    /// of DICOM files from The Cancer Imaging Archive, licensed CC BY 3.0. The archive's data usage policy applies: cite the data and never try to identify a
     /// person.
     /// </summary>
-    public static MedicalSampleDataset ThoraxCt { get; } = new(
-        "lidc-idri-0001-ct",
-        "Chest CT, LIDC-IDRI-0001 (The Cancer Imaging Archive)",
-        "CC BY 3.0",
-        new Uri("https://creativecommons.org/licenses/by/3.0/"),
-        "Armato III, S. G., McLennan, G., Bidaut, L., et al. (2015). Data From LIDC-IDRI [Data set]. The Cancer Imaging Archive. https://doi.org/10.7937/K9/TCIA.2015.LO9QL9SX",
-        new Uri("https://doi.org/10.7937/K9/TCIA.2015.LO9QL9SX"),
-        new Uri("https://www.cancerimagingarchive.net/data-usage-policies-and-restrictions/"),
-        new Uri("https://services.cancerimagingarchive.net/nbia-api/services/v1/getImage?SeriesInstanceUID=1.3.6.1.4.1.14519.5.2.1.6279.6001.179049373636438705059720603192"),
-        "083ac5f04f2c4cdf990ef4762246eeb5d96ec82e97cb682b04381e72139e3829",
-        34_607_329,
-        isZip: true);
+    public static MedicalSampleDataset ThoraxCt { get; } = Load("ThoraxCt");
 
     /// <summary>
     /// Gets a head MRI: OpenNeuro ds000001, subject 01, T1-weighted, 5.7 MB as NIfTI, dedicated to the public domain
     /// (CC0). The face was removed before publication.
     /// </summary>
-    public static MedicalSampleDataset HeadMri { get; } = new(
-        "openneuro-ds000001-sub-01-t1w",
-        "Head MRI T1, OpenNeuro ds000001 sub-01",
-        "CC0",
-        new Uri("https://creativecommons.org/publicdomain/zero/1.0/"),
-        "Schonberg, T., Fox, C. R., Mumford, J. A., Congdon, E., Trepel, C., Poldrack, R. A. (2012). Balloon Analog Risk-taking Task. OpenNeuro ds000001. https://doi.org/10.18112/openneuro.ds000001.v1.0.0",
-        new Uri("https://doi.org/10.18112/openneuro.ds000001.v1.0.0"),
-        null,
-        new Uri("https://s3.amazonaws.com/openneuro.org/ds000001/sub-01/anat/sub-01_T1w.nii.gz"),
-        "bdb7022ae229c5b8edd16425928c9243c562f84082b9b8e6f97cdba8b9354a98",
-        5_663_237,
-        isZip: false);
+    public static MedicalSampleDataset HeadMri { get; } = Load("HeadMri");
 
     /// <summary>Gets all datasets.</summary>
     public static IReadOnlyList<MedicalSampleDataset> All { get; } = [ThoraxCt, HeadMri];
@@ -143,6 +122,29 @@ public sealed class MedicalSampleDataset
 
     /// <inheritdoc />
     public override string ToString() => Name;
+
+    // The addresses, checksums and licenses are data, kept in a file beside the code.
+    private static MedicalSampleDataset Load(string key)
+    {
+        using var stream = typeof(MedicalSampleDataset).Assembly.GetManifestResourceStream("Tachyon.Charts.Medical.SampleDatasets.json")
+            ?? throw new InvalidOperationException("The list of sample datasets is missing.");
+        using var document = JsonDocument.Parse(stream);
+        var entry = document.RootElement.GetProperty(key);
+        string Text(string name) => entry.GetProperty(name).GetString() ?? throw new InvalidOperationException($"The sample dataset {key} has no {name}.");
+        var terms = entry.GetProperty("termsUri").GetString();
+        return new MedicalSampleDataset(
+            Text("folderName"),
+            Text("name"),
+            Text("license"),
+            new Uri(Text("licenseUri")),
+            Text("citation"),
+            new Uri(Text("sourceUri")),
+            terms is null ? null : new Uri(terms),
+            new Uri(Text("downloadUri")),
+            Text("sha256"),
+            entry.GetProperty("size").GetInt64(),
+            entry.GetProperty("isZip").GetBoolean());
+    }
 
     internal async Task<string> DownloadWithAsync(string folder, HttpClient client, IProgress<MedicalDownloadProgress>? progress, CancellationToken cancellation)
     {

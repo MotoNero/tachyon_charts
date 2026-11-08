@@ -214,30 +214,40 @@ public sealed class MedicalMeasurement
         var crossings = new List<double>();
         for (var row = firstRow; row <= lastRow; row++)
         {
-            var y = (row + 0.5) * spacing.Row;
-            crossings.Clear();
-            for (int i = 0, j = outline.Length - 1; i < outline.Length; j = i++)
-            {
-                var (a, b) = (outline[j], outline[i]);
-                if ((a.Y <= y && y < b.Y) || (b.Y <= y && y < a.Y))
-                {
-                    crossings.Add(a.X + ((y - a.Y) * (b.X - a.X) / (b.Y - a.Y)));
-                }
-            }
-
-            crossings.Sort();
+            Cross(outline, (row + 0.5) * spacing.Row, crossings);
             for (var k = 0; k + 1 < crossings.Count; k += 2)
             {
                 var first = Math.Max(0, (int)Math.Ceiling((crossings[k] / spacing.Column) - 0.5));
                 var last = Math.Min(source.Width - 1, (int)Math.Floor((crossings[k + 1] / spacing.Column) - 0.5));
-                for (var column = first; column <= last; column++)
-                {
-                    var value = source.Read(slice, column, row);
-                    if (double.IsFinite(value))
-                    {
-                        visit(value);
-                    }
-                }
+                VisitRow(source, slice, row, first, last, visit);
+            }
+        }
+    }
+
+    // Where a row crosses the edges of the outline, from left to right.
+    private static void Cross(MedicalPoint[] outline, double y, List<double> crossings)
+    {
+        crossings.Clear();
+        for (int i = 0, j = outline.Length - 1; i < outline.Length; j = i++)
+        {
+            var (a, b) = (outline[j], outline[i]);
+            if ((a.Y <= y && y < b.Y) || (b.Y <= y && y < a.Y))
+            {
+                crossings.Add(a.X + ((y - a.Y) * (b.X - a.X) / (b.Y - a.Y)));
+            }
+        }
+
+        crossings.Sort();
+    }
+
+    private static void VisitRow(IMedicalMeasurementSource source, int slice, int row, int first, int last, Action<double> visit)
+    {
+        for (var column = first; column <= last; column++)
+        {
+            var value = source.Read(slice, column, row);
+            if (double.IsFinite(value))
+            {
+                visit(value);
             }
         }
     }

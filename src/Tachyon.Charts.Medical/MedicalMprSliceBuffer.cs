@@ -113,6 +113,9 @@ internal sealed class MedicalMprSliceBuffer
         }
     }
 
+    /// <summary>Reads a pixel of any slice straight from the volume, with the same mapping as the slice shown.</summary>
+    public double Read(int slice, int column, int row) => Value(_volume.Data, slice, column, row);
+
     public void Write(IGpuTexture texture)
     {
         lock (_gate)
@@ -158,8 +161,6 @@ internal sealed class MedicalMprSliceBuffer
         _ => _volume.VoxelSpacing.X,
     };
 
-    /// <summary>Reads a pixel of any slice straight from the volume, with the same mapping as the slice shown.</summary>
-    public double Read(int slice, int column, int row) => Value(_volume.Data, slice, column, row);
 
     private double Value(VolumeData data, int fixedIndex, int column, int row) => Plane switch
     {

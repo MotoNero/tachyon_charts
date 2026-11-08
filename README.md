@@ -17,6 +17,7 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 | Point cloud of 100 million points, turning, full-screen window | **115 FPS** |
 | Surface of 4096 × 4096 values, turning, full-screen window | **115 FPS** |
 | Volume 512³, turning, full-screen window | **up to 118 FPS** |
+| CT series 1024 × 1024 × 1000 (2 GB): slices, windowing and 3D | **62 FPS** at 60 steps per second |
 | Nearest of 100 million points under the pointer | **0.4 ms** |
 | Chart at rest | **no frames, 0.02 % CPU** |
 
@@ -28,7 +29,7 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 - **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap with cells of their own sizes, contour with labels along the lines
 - **Finance:** candles, OHLC bars, volume, market profile and drawing tools
 - **3D as an add-on:** surfaces, waterfalls, antenna patterns, point clouds of 100 million points, volumes and models from STL and OBJ files, live and with values under the pointer
-- **Medical data as an add-on:** privacy-first image reading, volume building, linked axial, coronal, sagittal and 3D views, segmentations and measurements in millimetres, without patient-information APIs
+- **Medical data as an add-on:** privacy-first DICOM and NIfTI reading, linked axial, coronal, sagittal and 3D views, segmentations, measurements in millimetres, profiles and histograms, CT series up to 1024 × 1024 × 1000, phantoms and freely licensed sample data on request, without patient-information APIs
 - **Runs everywhere:** GPU, software adapter or CPU, chosen automatically, also over remote desktop
 - **Ready for reports:** export to PNG, SVG, PDF and CSV, clipboard and printing, MP4 videos of 2D and 3D charts
 
@@ -300,6 +301,8 @@ Offscreen on an RTX 4070 Laptop GPU at 4K.
 | Model, 1 million triangles | 60 FPS, 5.8 ms per frame (screen at 60 Hz) |
 | Four large 3D charts at once | 52 FPS |
 | Chart at rest | no frames, 0.02 % CPU |
+
+A synthetic CT series of 1024 × 1024 × 1000 values of 16 bits (2.1 GB) in the medical page with three planes and 3D, at 60 steps per second: reading 1000 DICOM files takes 1.8 s, the way to the graphics card 3.1 s, and turning in 3D, moving through the slices and windowing each run at 62 FPS.
 
 By default the charts draw as many frames per second as the fastest screen shows; every single scenario above reaches 60.
 

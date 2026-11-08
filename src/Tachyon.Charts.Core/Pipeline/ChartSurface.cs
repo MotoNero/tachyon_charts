@@ -1411,7 +1411,8 @@ public sealed class ChartSurface
             // X runs down: the series draws upright in a frame with the height as its width, and the picture turns a
             // quarter. The upright Y pixel of a value is sum − its real X pixel.
             var sum = (2 * bounds.X) + bounds.Width;
-            var upright = new PixelRect(bounds.Y, bounds.X, bounds.Height, bounds.Width);
+            var (left, top, across, down) = (bounds.Y, bounds.X, bounds.Height, bounds.Width);
+            var upright = new PixelRect(left, top, across, down);
             _seriesFrames[i] = new SeriesFrame(upright, xAxis.CreateTransform(bounds.Y, bounds.Height), yAxis.CreateTransform(bounds.X, bounds.Width).Mirrored(sum), scale, glow, intensity) { QuarterTurn = sum };
         }
 

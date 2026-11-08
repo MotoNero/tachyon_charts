@@ -68,8 +68,8 @@ public abstract class Annotation(AxisBase? xAxis, AxisBase? yAxis) : ChartOverla
     protected Vector2 ToChart(OverlayCanvas canvas, double x, double y)
     {
         ArgumentNullException.ThrowIfNull(canvas);
-        var alongX = XAxis is { } xAxis && canvas.TryGetPosition(xAxis, x, out var positionX) ? positionX : x;
-        var alongY = YAxis is { } yAxis && canvas.TryGetPosition(yAxis, y, out var positionY) ? positionY : y;
+        var alongX = XAxis is { } horizontal && canvas.TryGetPosition(horizontal, x, out var positionX) ? positionX : x;
+        var alongY = YAxis is { } vertical && canvas.TryGetPosition(vertical, y, out var positionY) ? positionY : y;
 
         // With the X axis down, X goes up and down on the screen and Y across.
         return IsTurned ? new Vector2((float)alongY, (float)alongX) : new Vector2((float)alongX, (float)alongY);

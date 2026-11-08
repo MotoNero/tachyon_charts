@@ -313,19 +313,4 @@ public static class NiftiSegmentationReader
     private readonly record struct Header(bool Little, int Width, int Height, int Depth, short Type, int Bytes, double Slope, double Intercept, Affine Affine);
 
     private readonly record struct GeometryResult(double ColumnSpacing, double RowSpacing, double SliceSpacing, Point3D Origin, PatientOrientation Orientation);
-
-    private sealed class NonOwningStream(Stream inner) : Stream
-    {
-        public override bool CanRead => inner.CanRead;
-        public override bool CanSeek => inner.CanSeek;
-        public override bool CanWrite => false;
-        public override long Length => inner.Length;
-        public override long Position { get => inner.Position; set => inner.Position = value; }
-        public override void Flush() { }
-        public override int Read(byte[] buffer, int offset, int count) => inner.Read(buffer, offset, count);
-        public override int Read(Span<byte> buffer) => inner.Read(buffer);
-        public override long Seek(long offset, SeekOrigin origin) => inner.Seek(offset, origin);
-        public override void SetLength(long value) => throw new NotSupportedException();
-        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-    }
 }

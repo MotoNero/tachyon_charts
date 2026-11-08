@@ -239,8 +239,15 @@ public sealed class MedicalImageDisplay
         // A single image never shows another slice.
         public event Action? SliceChanged
         {
-            add { }
-            remove { }
+            add
+            {
+                // Never raised, so nothing to keep.
+            }
+
+            remove
+            {
+                // Nothing was kept.
+            }
         }
     }
 

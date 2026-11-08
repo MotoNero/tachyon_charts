@@ -22,6 +22,29 @@ internal sealed class MedicalMeasurementModifier(MedicalMeasurementLayer layer) 
 
     /// <inheritdoc />
 
+    // An angle waits for its third point between two presses: moving shows it, a press sets it.
+    private ModifierResult? WaitForAngle(ChartInteraction interaction, in PointerInputEvent input, MedicalPoint point)
+    {
+        if (_layer.Tool != MedicalMeasurementKind.Angle || _layer.Draft is not { Length: 3 } waiting)
+        {
+            return null;
+        }
+
+        if (input.Kind == PointerEventKind.Moved)
+        {
+            _layer.Draft = [waiting[0], waiting[1], point];
+            return ModifierResult.Handled;
+        }
+
+        if (input.Kind == PointerEventKind.Pressed && input.ChangedButton == PointerButton.Primary)
+        {
+            Finish(interaction, [waiting[0], waiting[1], point]);
+            return ModifierResult.Handled;
+        }
+
+        return null;
+    }
+
     /// <inheritdoc />
     protected override ModifierResult OnPointer(in PointerInputEvent input)
     {
@@ -40,20 +63,9 @@ internal sealed class MedicalMeasurementModifier(MedicalMeasurementLayer layer) 
             return input.PointerId == _pointerId ? Continue(interaction, input, point) : ModifierResult.Ignored;
         }
 
-        // An angle waits for its third point between two presses.
-        if (_layer.Tool == MedicalMeasurementKind.Angle && _layer.Draft is { Length: 3 } waiting)
+        if (WaitForAngle(interaction, input, point) is { } waited)
         {
-            if (input.Kind == PointerEventKind.Moved)
-            {
-                _layer.Draft = [waiting[0], waiting[1], point];
-                return ModifierResult.Handled;
-            }
-
-            if (input.Kind == PointerEventKind.Pressed && input.ChangedButton == PointerButton.Primary)
-            {
-                Finish(interaction, [waiting[0], waiting[1], point]);
-                return ModifierResult.Handled;
-            }
+            return waited;
         }
 
         if (input.Kind != PointerEventKind.Pressed || input.ChangedButton != PointerButton.Primary

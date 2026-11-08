@@ -38,6 +38,18 @@ public sealed class MedicalMprScene : IScene
     /// <inheritdoc />
     public PixelSize Size { get; }
 
+    // The categorical volume alone, in the whole picture.
+    private static void RenderVolumeOnly(IRenderDevice device, IRenderTarget target, ChartSurface[] charts)
+    {
+        charts[0].Render(device, target);
+        charts[0].Render(device, target);
+        device.WaitForIdle();
+        foreach (var chart in charts)
+        {
+            foreach (var series in chart.Series) (series as IDisposable)?.Dispose();
+        }
+    }
+
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)
     {
@@ -56,14 +68,7 @@ public sealed class MedicalMprScene : IScene
         var charts = BuildCharts(display);
         if (_segmentationMode == MedicalSegmentation3DMode.Volume)
         {
-            charts[0].Render(device, target);
-            charts[0].Render(device, target);
-            device.WaitForIdle();
-            foreach (var chart in charts)
-            {
-                foreach (var series in chart.Series) (series as IDisposable)?.Dispose();
-            }
-
+            RenderVolumeOnly(device, target, charts);
             return;
         }
 

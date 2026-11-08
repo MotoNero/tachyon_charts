@@ -22,33 +22,45 @@ internal sealed class MedicalSegmentationLayer
         var present = Aligned.Labels.ToArray().Where(label => label != 0).Distinct().Order().ToArray();
         if (source.ThreeDMode == MedicalSegmentation3DMode.Volume && present.Length <= byte.MaxValue)
         {
-            for (var i = 0; i < present.Length; i++) _compact[present[i]] = (byte)Math.Round(255.0 * (i + 1) / present.Length);
-            var values = new byte[Aligned.Labels.Length];
-            for (var i = 0; i < values.Length; i++)
-            {
-                if (_compact.TryGetValue(Aligned.Labels[i], out var compact)) values[i] = compact;
-            }
-
             _transfer = new TransferFunction3D(new TransferPoint3D(0, default, 0), new TransferPoint3D(1, default, 0)) { ShowsEditor = false };
-            _volume = CreateVolume(target, new VolumeData(values, Aligned.Width, Aligned.Height, Aligned.Depth), VolumeMode.Transfer, _transfer);
+            _volume = CreateVolume(target, new VolumeData(Compact(present), Aligned.Width, Aligned.Height, Aligned.Depth), VolumeMode.Transfer, _transfer);
             _objects.Add(_volume);
         }
 
         if (source.ThreeDMode == MedicalSegmentation3DMode.Surface)
         {
-            foreach (var label in present)
-            {
-                if (!_segments.TryGetValue(label, out var segment)) continue;
-                var binary = new byte[Aligned.Labels.Length];
-                for (var i = 0; i < binary.Length; i++) binary[i] = Aligned.Labels[i] == label ? byte.MaxValue : (byte)0;
-                var surface = CreateVolume(target, new VolumeData(binary, Aligned.Width, Aligned.Height, Aligned.Depth), VolumeMode.Surface, null);
-                surface.IsoValue = byte.MaxValue / 2.0;
-                _surfaces[segment] = surface;
-                _objects.Add(surface);
-            }
+            AddSurfaces(target, present);
         }
 
         Refresh3D();
+    }
+
+    // One byte per voxel: the labels present spread evenly over 1 to 255, so a transfer function can color each.
+    private byte[] Compact(ushort[] present)
+    {
+        for (var i = 0; i < present.Length; i++) _compact[present[i]] = (byte)Math.Round(255.0 * (i + 1) / present.Length);
+        var values = new byte[Aligned.Labels.Length];
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (_compact.TryGetValue(Aligned.Labels[i], out var compact)) values[i] = compact;
+        }
+
+        return values;
+    }
+
+    // A lit boundary surface per label, from a volume that is full inside the label and empty elsewhere.
+    private void AddSurfaces(MedicalVolume target, ushort[] present)
+    {
+        foreach (var label in present)
+        {
+            if (!_segments.TryGetValue(label, out var segment)) continue;
+            var binary = new byte[Aligned.Labels.Length];
+            for (var i = 0; i < binary.Length; i++) binary[i] = Aligned.Labels[i] == label ? byte.MaxValue : (byte)0;
+            var surface = CreateVolume(target, new VolumeData(binary, Aligned.Width, Aligned.Height, Aligned.Depth), VolumeMode.Surface, null);
+            surface.IsoValue = byte.MaxValue / 2.0;
+            _surfaces[segment] = surface;
+            _objects.Add(surface);
+        }
     }
 
     public MedicalSegmentation Source { get; }

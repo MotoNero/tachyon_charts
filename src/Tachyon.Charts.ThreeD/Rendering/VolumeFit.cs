@@ -31,32 +31,49 @@ internal static class VolumeFit
     public static VolumeGpuFit Choose(int width, int height, int depth, bool isBytes, bool canBeExact, long maxSide, long budget, long graphicsMemory)
     {
         var full = Bytes(width, height, depth, 1, isBytes ? 1 : 4);
-        for (var reduction = 1; ; reduction++)
+
+        // At the largest side as reduction a single value is left, which is always taken.
+        var last = Math.Max(width, Math.Max(height, depth));
+        for (var reduction = 1; reduction < last; reduction++)
         {
-            var (w, h, d) = (Reduce(width, reduction), Reduce(height, reduction), Reduce(depth, reduction));
-            if (Math.Max(w, Math.Max(h, d)) > maxSide)
+            if (Fits(width, height, depth, reduction, maxSide, isBytes, canBeExact, budget) is { } fit)
             {
-                continue;
-            }
-
-            if (isBytes || canBeExact)
-            {
-                var exact = Bytes(width, height, depth, reduction, isBytes ? 1 : 4);
-                if (exact <= budget || (w == 1 && h == 1 && d == 1))
-                {
-                    return new VolumeGpuFit(reduction, true, exact, full, budget, graphicsMemory);
-                }
-            }
-
-            if (!isBytes)
-            {
-                var halves = Bytes(width, height, depth, reduction, 2);
-                if (halves <= budget || (w == 1 && h == 1 && d == 1))
-                {
-                    return new VolumeGpuFit(reduction, false, halves, full, budget, graphicsMemory);
-                }
+                return new VolumeGpuFit(reduction, fit.IsExact, fit.Bytes, full, budget, graphicsMemory);
             }
         }
+
+        var bytesPerValue = 4;
+        if (isBytes)
+        {
+            bytesPerValue = 1;
+        }
+        else if (!canBeExact)
+        {
+            bytesPerValue = 2;
+        }
+
+        return new VolumeGpuFit(last, isBytes || canBeExact, bytesPerValue, full, budget, graphicsMemory);
+    }
+
+    // The exact form first, then 16-bit floats; null when neither fits at this reduction.
+    private static (bool IsExact, long Bytes)? Fits(int width, int height, int depth, int reduction, long maxSide, bool isBytes, bool canBeExact, long budget)
+    {
+        if (Math.Max(Reduce(width, reduction), Math.Max(Reduce(height, reduction), Reduce(depth, reduction))) > maxSide)
+        {
+            return null;
+        }
+
+        if (isBytes || canBeExact)
+        {
+            var exact = Bytes(width, height, depth, reduction, isBytes ? 1 : 4);
+            if (exact <= budget)
+            {
+                return (true, exact);
+            }
+        }
+
+        var halves = Bytes(width, height, depth, reduction, 2);
+        return !isBytes && halves <= budget ? (false, halves) : null;
     }
 
     /// <summary>Gets the number of values left along an axis.</summary>

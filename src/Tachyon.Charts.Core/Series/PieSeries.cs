@@ -51,7 +51,7 @@ public sealed class PieSeries : ChartSeries
 
     private readonly List<MeshVertex> _mesh = [];
     private MeshVertex[] _vertices = [];
-    private int _count;
+    private int _meshCount;
     private Slices _slices;
     private Rgba8[] _palette = _defaultPalette;
     private IReadOnlyList<Rgba8>? _colors;
@@ -330,13 +330,13 @@ public sealed class PieSeries : ChartSeries
         }
 
         _mesh.CopyTo(_vertices);
-        _count = _mesh.Count;
+        _meshCount = _mesh.Count;
         _builtVersion = version;
         _builtFrame = frame;
     }
 
     /// <inheritdoc />
-    protected internal override void Draw(ICommandList commands, in SeriesFrame frame) => commands.FillMesh(_vertices.AsSpan(0, _count), frame.Bounds);
+    protected internal override void Draw(ICommandList commands, in SeriesFrame frame) => commands.FillMesh(_vertices.AsSpan(0, _meshCount), frame.Bounds);
 
     private static Rgba8 Lighten(Rgba8 color) => new(
         (byte)(color.R + ((255 - color.R) / 4)),

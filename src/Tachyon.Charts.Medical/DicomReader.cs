@@ -211,19 +211,13 @@ public static class DicomReader
 
         ValidatePixelShape(metadata);
         var count = checked(metadata.Width * metadata.Height);
-        var expected = checked(count * (metadata.BitsAllocated / 8));
-        if (header.Length != expected && header.Length != expected + (expected & 1))
-        {
-            throw new DicomReadException("The pixel-data length does not match the image dimensions.");
-        }
+        var raw = ReadRaw(stream, header, checked(count * (metadata.BitsAllocated / 8)));
+        return Convert(raw, count, syntax, metadata);
+    }
 
-        var raw = new byte[expected];
-        ReadExactly(stream, raw);
-        if (header.Length > expected)
-        {
-            SkipExactly(stream, header.Length - (uint)expected);
-        }
-
+    // Keeps bytes and words as they are where possible, 16-bit values with their scale, and the rest as floats.
+    private static PixelBuffer Convert(byte[] raw, int count, DicomTransferSyntax syntax, DicomImageMetadata metadata)
+    {
         var shift = metadata.HighBit - metadata.BitsStored + 1;
         var fullUnsigned = !metadata.IsSigned
             && metadata.RescaleSlope == 1
@@ -247,8 +241,7 @@ public static class DicomReader
             return new PixelBuffer(words);
         }
 
-        var mask = metadata.BitsStored == 16 ? 0xFFFFu : (1u << metadata.BitsStored) - 1;
-        var sign = 1u << (metadata.BitsStored - 1);
+        var decoder = new Decoder(metadata, shift);
 
         // 16-bit images keep two bytes per value with the scale beside them; signed values move up by 32768.
         if (metadata.BitsAllocated == 16 && metadata.RescaleSlope != 0)
@@ -257,9 +250,7 @@ public static class DicomReader
             var lift = metadata.IsSigned ? 32768 : 0;
             for (var i = 0; i < count; i++)
             {
-                var bits = ((uint)ReadWord(raw.AsSpan(i * 2, 2), little) >> shift) & mask;
-                var decoded = metadata.IsSigned && (bits & sign) != 0 ? (int)bits - (1 << metadata.BitsStored) : (int)bits;
-                words[i] = (ushort)(decoded + lift);
+                words[i] = (ushort)(decoder.Decode(ReadWord(raw.AsSpan(i * 2, 2), little)) + lift);
             }
 
             return new PixelBuffer(words, metadata.RescaleSlope, metadata.RescaleIntercept - (lift * metadata.RescaleSlope));
@@ -269,12 +260,51 @@ public static class DicomReader
         for (var i = 0; i < count; i++)
         {
             var stored = metadata.BitsAllocated == 8 ? raw[i] : ReadWord(raw.AsSpan(i * 2, 2), little);
-            var bits = ((uint)stored >> shift) & mask;
-            var decoded = metadata.IsSigned && (bits & sign) != 0 ? (int)bits - (1 << metadata.BitsStored) : (int)bits;
-            values[i] = (float)((decoded * metadata.RescaleSlope) + metadata.RescaleIntercept);
+            values[i] = (float)((decoder.Decode(stored) * metadata.RescaleSlope) + metadata.RescaleIntercept);
         }
 
         return new PixelBuffer(values);
+    }
+
+    // The bytes of the pixels, without the padding byte an odd length gets.
+    private static byte[] ReadRaw(Stream stream, ElementHeader header, int expected)
+    {
+        if (header.Length != expected && header.Length != expected + (expected & 1))
+        {
+            throw new DicomReadException("The pixel-data length does not match the image dimensions.");
+        }
+
+        var raw = new byte[expected];
+        ReadExactly(stream, raw);
+        if (header.Length > expected)
+        {
+            SkipExactly(stream, header.Length - (uint)expected);
+        }
+
+        return raw;
+    }
+
+    /// <summary>Takes the stored bits of a value and their sign.</summary>
+    private readonly struct Decoder
+    {
+        private readonly int _shift;
+        private readonly uint _mask;
+        private readonly uint _sign;
+        private readonly int _bitsStored;
+        private readonly bool _isSigned;
+
+        public Decoder(DicomImageMetadata metadata, int shift)
+        {
+            (_shift, _bitsStored, _isSigned) = (shift, metadata.BitsStored, metadata.IsSigned);
+            _mask = metadata.BitsStored == 16 ? 0xFFFFu : (1u << metadata.BitsStored) - 1;
+            _sign = 1u << (metadata.BitsStored - 1);
+        }
+
+        public int Decode(int stored)
+        {
+            var bits = ((uint)stored >> _shift) & _mask;
+            return _isSigned && (bits & _sign) != 0 ? (int)bits - (1 << _bitsStored) : (int)bits;
+        }
     }
 
     private static void ValidatePixelShape(DicomImageMetadata metadata)

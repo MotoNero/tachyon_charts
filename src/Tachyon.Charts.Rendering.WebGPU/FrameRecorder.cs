@@ -1049,7 +1049,7 @@ internal sealed unsafe class FrameRecorder : IDisposable
 
         // x is 1 for a quarter turn, y its sum; see QuarterTurn.
         [FieldOffset(128)]
-        public Vector4 Turn;
+        public Vector4 Turn; // NOSONAR: keeps the place of the turn, written into the uniform bytes at offset 128 and read by the shaders
     }
 
     private readonly record struct PendingFrame(WebGpuTarget Target, int FirstOp, int EndOp, int FirstSlot, bool HasClear, Rgba8 ClearColor);

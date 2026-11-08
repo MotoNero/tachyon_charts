@@ -584,6 +584,53 @@ internal sealed class SampleWindow : Window
         }
     }
 
+    // The 2D chart sits below in the same group, so ranges and cursor stay in step.
+    private Grid WithCompanion(string name, Tachyon.Charts.ThreeD.Wpf.Chart3D host, Action<Tachyon.Charts.Core.Fluent.ChartBuilder> companion)
+    {
+        var grid = new Grid();
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(3, GridUnitType.Star) });
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(2, GridUnitType.Star) });
+        var below = new Chart().Configure(companion);
+        if (SelectedTheme is { } chosen)
+        {
+            below.Theme = chosen;
+        }
+
+        _companions[name] = [below];
+        Grid.SetRow(below, 1);
+        grid.Children.Add(host);
+        grid.Children.Add(below);
+        return grid;
+    }
+
+    // Three 2D charts complete a 2 × 2 layout with the 3D chart top left.
+    private Grid WithGrid(string name, Tachyon.Charts.ThreeD.Wpf.Chart3D host, IReadOnlyList<Action<Tachyon.Charts.Core.Fluent.ChartBuilder>> companions)
+    {
+        var grid = new Grid();
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        var charts = new List<Chart>(companions.Count);
+        for (var index = 0; index < companions.Count; index++)
+        {
+            var chart = new Chart().Configure(companions[index]);
+            if (SelectedTheme is { } chosen)
+            {
+                chart.Theme = chosen;
+            }
+
+            Grid.SetRow(chart, (index + 1) / 2);
+            Grid.SetColumn(chart, (index + 1) % 2);
+            charts.Add(chart);
+            grid.Children.Add(chart);
+        }
+
+        _companions[name] = charts;
+        grid.Children.Add(host);
+        return grid;
+    }
+
     private Chart Find3D(Page3D page)
     {
         if (!_hosts3D.TryGetValue(page.Name, out var host))
@@ -599,47 +646,11 @@ internal sealed class SampleWindow : Window
             var view = (FrameworkElement)host;
             if (page.Companion is { } companion)
             {
-                // The 2D chart sits below in the same group, so ranges and cursor stay in step.
-                var grid = new Grid();
-                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(3, GridUnitType.Star) });
-                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(2, GridUnitType.Star) });
-                var below = new Chart().Configure(companion);
-                if (SelectedTheme is { } chosen)
-                {
-                    below.Theme = chosen;
-                }
-
-                _companions[page.Name] = [below];
-                Grid.SetRow(below, 1);
-                grid.Children.Add(host);
-                grid.Children.Add(below);
-                view = grid;
+                view = WithCompanion(page.Name, host, companion);
             }
             else if (page.GridCompanions is { Count: 3 } companions)
             {
-                var grid = new Grid();
-                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-                grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                var charts = new List<Chart>(companions.Count);
-                for (var index = 0; index < companions.Count; index++)
-                {
-                    var chart = new Chart().Configure(companions[index]);
-                    if (SelectedTheme is { } chosen)
-                    {
-                        chart.Theme = chosen;
-                    }
-
-                    Grid.SetRow(chart, (index + 1) / 2);
-                    Grid.SetColumn(chart, (index + 1) % 2);
-                    charts.Add(chart);
-                    grid.Children.Add(chart);
-                }
-
-                _companions[page.Name] = charts;
-                grid.Children.Add(host);
-                view = grid;
+                view = WithGrid(page.Name, host, companions);
             }
 
             _pages[page.Name] = host.Surface;
