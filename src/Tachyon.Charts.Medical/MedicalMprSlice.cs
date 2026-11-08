@@ -70,7 +70,27 @@ public sealed class MedicalMprSlice
             .Modifiers(modifiers => modifiers
                 .Custom(() => new MedicalMeasurementModifier(Measurements))
                 .Custom(() => new MedicalMprModifier(this))
+                .Custom(() => new MedicalColorBarModifier(() => _display.Window, _display.ApplyPreset, _display.InitialSetting))
                 .Custom(() => new ZoomPanModifier { PanButton = PointerButton.Middle }));
+    }
+
+    /// <summary>Copies the values of the slice shown now, row by row from the top left, for example to export or analyse them.</summary>
+    /// <param name="target">Receives <see cref="Width"/> × <see cref="Height"/> values.</param>
+    /// <exception cref="ArgumentException">The target is too short.</exception>
+    public void CopyValues(Span<float> target)
+    {
+        if (target.Length < Width * Height)
+        {
+            throw new ArgumentException("The target is shorter than the slice.", nameof(target));
+        }
+
+        for (var row = 0; row < Height; row++)
+        {
+            for (var column = 0; column < Width; column++)
+            {
+                target[(row * Width) + column] = _buffer.Read(column, row);
+            }
+        }
     }
 
     internal void Update(Point3D position) => _buffer.Update(position);

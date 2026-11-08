@@ -124,6 +124,8 @@ Use `DicomSegReader.Read` for uncompressed binary DICOM-SEG objects, or construc
 
 The constructor also accepts a `MedicalVolume` made from an application's own `VolumeData`, voxel spacing, origin and patient orientation. All geometry values must be finite, spacing must be positive and the two orientation directions must be independent.
 
+The grayscale bar beside every image sets the window too: the wheel on it widens or narrows the window around its centre, dragging it moves the window, and a double click brings back the window the image came with.
+
 ## Measurements
 
 Each image and each MPR plane has a `Measurements` layer: distances in millimetres, angles in degrees, and circles, rectangles and freehand outlines with their area and the mean, standard deviation, minimum and maximum of the pixels inside. Points are in millimetres from the upper-left image corner, so a pixel spacing that differs across and down is part of every result. A pixel counts for a region when its middle lies inside.
@@ -175,7 +177,7 @@ curvedChart.Configure(curved.Configure);
 
 ## Sample data
 
-`MedicalPhantoms.Head()` and `MedicalPhantoms.Thorax()` build synthetic CT volumes from simple shapes with typical Hounsfield units: a skull with brain, ventricles and a lesion, and a chest with lungs, branching vessels, a nodule, heart, aorta, spine, ribs and sternum. They hold no data of any person and need no download.
+`MedicalPhantoms.Head()` (256 × 256 × 192 at 0.75 mm) and `MedicalPhantoms.Thorax()` (384 × 288 × 200 at 1 mm) build synthetic CT volumes from smooth shapes with typical Hounsfield units, with edges that blend over about one voxel and a little noise, as in a real scan: scalp, skull, grey and folded white matter, ventricles and a lesion, and a chest with lungs, branching vessels, a nodule, heart, aorta, spine, ribs and sternum. They hold no data of any person and need no download.
 
 Real data are downloaded only on request, into a folder the application chooses, and checked against a SHA-256 checksum:
 
@@ -192,7 +194,7 @@ var volume = await dataset.LoadAsync(folder, new Progress<MedicalDownloadProgres
 var mpr = new MedicalMprDisplay(volume);
 ```
 
-A download that does not match its checksum is deleted and reported as `InvalidDataException`. `IsDownloaded(folder)` and `Read(folder)` reuse data that is already there. For the archive, which packs its files anew on each request, the checksum covers the names and bytes of the files rather than the archive itself. `NiftiImageReader.Read` reads NIfTI-1 images such as the head MRI; free-text header fields are never read. The showroom pages "Medical chest CT (real data)" and "Medical head MRI (real data)" show the phantom until the button "Download data" is pressed, and name source and license in their hint.
+A download that does not match its checksum is deleted and reported as `InvalidDataException`. `IsDownloaded(folder)` and `Read(folder)` reuse data that is already there. For the archive, which packs its files anew on each request, the checksum covers the names and bytes of the files rather than the archive itself. `NiftiImageReader.Read` reads NIfTI-1 images such as the head MRI; free-text header fields are never read. In the showroom, the pages "Medical CT and MRI", "Medical analysis" and "Medical oblique and curved" have a data list: the phantoms, or the real chest CT and head MRI, downloaded when chosen. Source and license show when the data are chosen; all measuring and analysis tools work on every choice.
 
 ## Large series
 

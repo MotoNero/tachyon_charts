@@ -93,6 +93,7 @@ public sealed class MedicalImageDisplay
         image.CopyValues(values);
         _data.SetValues(values);
         _window = InitialWindow(image.WindowCenter, image.WindowWidth, _data.ValueRange);
+        InitialSetting = _window;
         OrientationMarks = Marks(orientation);
     }
 
@@ -129,6 +130,7 @@ public sealed class MedicalImageDisplay
         _data = new HeatmapData(width, height);
         _data.SetValues(values);
         _window = InitialWindow(null, null, _data.ValueRange);
+        InitialSetting = _window;
         OrientationMarks = Marks(orientation);
     }
 
@@ -155,6 +157,9 @@ public sealed class MedicalImageDisplay
 
     /// <summary>Gets the active grayscale window.</summary>
     public MedicalWindow Window => _window;
+
+    /// <summary>Gets the window the image came with, which a double click on the grayscale bar brings back.</summary>
+    internal MedicalWindow InitialSetting { get; }
 
     /// <summary>Sets the active grayscale window.</summary>
     /// <param name="center">The value in the middle.</param>
@@ -204,6 +209,7 @@ public sealed class MedicalImageDisplay
             .Modifiers(modifiers => modifiers
                 .Custom(() => new MedicalMeasurementModifier(Measurements))
                 .Custom(() => new MedicalImageModifier(this))
+                .Custom(() => new MedicalColorBarModifier(() => Window, ApplyPreset, InitialSetting))
                 .Custom(() => new ZoomPanModifier { PanButton = PointerButton.Middle }));
     }
 

@@ -86,6 +86,8 @@ internal sealed class SampleWindow : Window
     private SamplePage? _selected;
     private bool _isSwitching;
     private readonly ComboBox _colormap = new() { Width = 130, Margin = new Thickness(0, 0, 8, 0), IsVisible = false };
+    private readonly ComboBox _data = new() { Width = 280, Margin = new Thickness(0, 0, 8, 0), IsVisible = false };
+    private bool _isFillingData;
     private readonly LiveSignal _signal = new();
     private readonly SpectrogramData _spectrogram = new(SpectrogramColumns, SpectrogramRows);
     private readonly Thread _producer;
@@ -180,6 +182,8 @@ internal sealed class SampleWindow : Window
         _select.Click += (_, _) => ToggleSelect();
         _selection.SelectionChanged += ShowSelected;
         bar.Children.Add(_select);
+        bar.Children.Add(_data);
+        _data.SelectionChanged += async (_, _) => await ChooseData();
         bar.Children.Add(_colormap);
         bar.Children.Add(_scopeControls);
         bar.Children.Add(CreateAction("Source code (F11)", () =>
@@ -581,7 +585,6 @@ internal sealed class SampleWindow : Window
         bar.Children.Add(_record);
         bar.Children.Add(CreateAction("Copy image", () => Run(chart => chart.CopyImageAsync(), "The image is on the clipboard")));
         bar.Children.Add(CreateAction("Copy data", () => Run(chart => chart.CopyDataAsync(), "The CSV is on the clipboard")));
-        bar.Children.Add(CreateAction("Download data", DownloadData));
     }
 
     // A hidden 3D page would keep its points on the graphics card, and a few large ones fill it up.
@@ -611,30 +614,53 @@ internal sealed class SampleWindow : Window
         _pages.Remove(name);
     }
 
-    // Real data come only on request; afterwards the page is built anew with them.
-    private async Task DownloadData()
+    // Some pages show one of several data, real data among them; choosing loads them on request and builds the page anew.
+    private async Task ChooseData()
     {
-        if (SelectedId is not { } id || Pages3D.Find(id) is not { Download: { } download })
+        if (_isFillingData || SelectedId is not { } id || Pages3D.Find(id) is not { Data: { } data } || _data.SelectedIndex < 0 || _data.SelectedIndex == data.Index)
         {
-            _hint.Text = SampleText.T("This page has no data to download.");
             return;
         }
 
         try
         {
-            await download(new Progress<string>(line => _hint.Text = line));
+            _data.IsEnabled = false;
+            _hint.Text = SampleText.T("Loading the data …");
+            var note = await data.ChooseAsync(_data.SelectedIndex, new Progress<string>(line => _hint.Text = line));
             if (_hosts3D.ContainsKey(id))
             {
                 Release3D(id);
             }
 
             ShowSelection();
-            _hint.Text = SampleText.T("Downloaded. The page shows the real data.");
+            _hint.Text = note;
         }
-        catch (Exception exception) when (exception is System.Net.Http.HttpRequestException or InvalidDataException or IOException or TaskCanceledException)
+        catch (Exception exception) when (exception is System.Net.Http.HttpRequestException or InvalidDataException or IOException or TaskCanceledException or InvalidOperationException)
         {
             _hint.Text = SampleText.T("Failed: ") + exception.Message;
+            ShowDataChoice();
         }
+        finally
+        {
+            _data.IsEnabled = true;
+        }
+    }
+
+    private void ShowDataChoice()
+    {
+        _isFillingData = true;
+        if (SelectedId is { } id && Pages3D.Find(id) is { Data: { } data })
+        {
+            _data.ItemsSource = data.Names;
+            _data.SelectedIndex = data.Index;
+            _data.IsVisible = true;
+        }
+        else
+        {
+            _data.IsVisible = false;
+        }
+
+        _isFillingData = false;
     }
 
     // The 2D chart sits below in the same group, so ranges and cursor stay in step.
@@ -922,6 +948,7 @@ internal sealed class SampleWindow : Window
             _ when isRaster => "Wheel: zoom | Drag: pan | Wheel over the color bar: color range | List: colormap",
             _ => "Still image of the scene. The pages above it are interactive.",
         });
+        ShowDataChoice();
 
         if (SelectedId is { } name && SceneCatalog.Find(name) is { } scene)
         {

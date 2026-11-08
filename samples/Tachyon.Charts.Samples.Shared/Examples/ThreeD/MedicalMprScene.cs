@@ -39,15 +39,25 @@ public sealed class MedicalMprScene : IScene
     public PixelSize Size { get; }
 
     // The categorical volume alone, in the whole picture.
-    private static void RenderVolumeOnly(IRenderDevice device, IRenderTarget target, ChartSurface[] charts)
+    private static void RenderVolumeOnly(IRenderDevice device, IRenderTarget target, ChartSurface[] charts, MedicalMprDisplay display)
     {
-        charts[0].Render(device, target);
-        charts[0].Render(device, target);
+        RenderUntilLoaded(device, target, charts[0], display);
         device.WaitForIdle();
         foreach (var chart in charts)
         {
             foreach (var series in chart.Series) (series as IDisposable)?.Dispose();
         }
+    }
+
+    // The volume reaches the GPU over several frames; the picture shows it whole.
+    private static void RenderUntilLoaded(IRenderDevice device, IRenderTarget target, ChartSurface chart, MedicalMprDisplay display)
+    {
+        for (var pass = 0; pass < 200 && (pass < 2 || !display.Volume.IsReady); pass++)
+        {
+            chart.Render(device, target);
+        }
+
+        chart.Render(device, target);
     }
 
     /// <inheritdoc />
@@ -68,7 +78,7 @@ public sealed class MedicalMprScene : IScene
         var charts = BuildCharts(display);
         if (_segmentationMode == MedicalSegmentation3DMode.Volume)
         {
-            RenderVolumeOnly(device, target, charts);
+            RenderVolumeOnly(device, target, charts, display);
             return;
         }
 
@@ -83,7 +93,7 @@ public sealed class MedicalMprScene : IScene
             for (var index = 1; index < ChartCount; index++) charts[index].Render(device, targets[index]);
         }
 
-        for (var pass = 0; pass < 2; pass++) charts[0].Render(device, targets[0]);
+        RenderUntilLoaded(device, targets[0], charts[0], display);
 
         device.WaitForIdle();
         using var frame = device.BeginFrame(target);

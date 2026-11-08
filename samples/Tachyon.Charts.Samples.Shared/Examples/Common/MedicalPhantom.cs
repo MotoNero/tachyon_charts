@@ -7,14 +7,14 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Common;
 /// <summary>Creates a synthetic CT-like image without personal or external data.</summary>
 public static class MedicalPhantom
 {
-    /// <summary>Creates an axial image.</summary>
-    public static MedicalImageDisplay Axial() => Create(new PatientOrientation(new Point3D(1, 0, 0), new Point3D(0, 1, 0)));
+    /// <summary>Creates an axial image through the lesion of the synthetic head.</summary>
+    public static MedicalImageDisplay Axial() => Cut(MedicalMprPlane.Axial, new Point3D(0, 0, 97));
 
-    /// <summary>Creates a coronal image.</summary>
-    public static MedicalImageDisplay Coronal() => Create(new PatientOrientation(new Point3D(1, 0, 0), new Point3D(0, 0, -1)));
+    /// <summary>Creates a coronal image through the lesion.</summary>
+    public static MedicalImageDisplay Coronal() => Cut(MedicalMprPlane.Coronal, new Point3D(0, 81.5, 0));
 
-    /// <summary>Creates a sagittal image.</summary>
-    public static MedicalImageDisplay Sagittal() => Create(new PatientOrientation(new Point3D(0, 1, 0), new Point3D(0, 0, -1)));
+    /// <summary>Creates a sagittal image through the left ventricle.</summary>
+    public static MedicalImageDisplay Sagittal() => Cut(MedicalMprPlane.Sagittal, new Point3D(86.5, 0, 0));
 
     /// <summary>Creates a small synthetic CT-like head volume for linked orthogonal views.</summary>
     public static MedicalVolume Volume() => MedicalPhantoms.Head();
@@ -61,50 +61,24 @@ public static class MedicalPhantom
         return Square((x - 0.56) / 0.12) + Square((y - 0.5) / 0.19) + Square((z - 0.5) / 0.28) < 1 ? (ushort)2 : (ushort)0;
     }
 
-    private static MedicalImageDisplay Create(PatientOrientation orientation)
+    // One plane of the synthetic head as a single image, the way a scanner would store it.
+    private static MedicalImageDisplay Cut(MedicalMprPlane plane, Point3D position)
     {
-        const int width = 320;
-        const int height = 256;
-        var values = new float[width * height];
-        for (var row = 0; row < height; row++)
+        var display = new MedicalMprDisplay(MedicalPhantoms.Head());
+        display.SetPosition(position);
+        var slice = plane switch
         {
-            var y = (row - (height / 2.0)) / (height * 0.42);
-            for (var column = 0; column < width; column++)
-            {
-                values[(row * width) + column] = Value((column - (width / 2.0)) / (width * 0.34), y);
-            }
-        }
+            MedicalMprPlane.Axial => display.Axial,
+            MedicalMprPlane.Coronal => display.Coronal,
+            _ => display.Sagittal,
+        };
+        var values = new float[slice.Width * slice.Height];
+        slice.CopyValues(values);
 
-        var display = new MedicalImageDisplay(values, width, height, new ImageSpacing(0.7, 0.7), orientation, "HU");
-        display.ApplyPreset(CtWindowPresets.Brain);
-        return display;
+        var image = new MedicalImageDisplay(values, slice.Width, slice.Height, slice.Spacing, slice.Orientation, "HU");
+        image.ApplyPreset(CtWindowPresets.Brain);
+        return image;
     }
-
-    // Air around a skull, two ventricles and a round lesion in the brain.
-    private static float Value(double x, double y)
-    {
-        var radius = (x * x) + (y * y);
-        if (radius >= 1)
-        {
-            return -1000f;
-        }
-
-        if (Ellipse(x + 0.18, y, 0.13, 0.28) || Ellipse(x - 0.18, y, 0.13, 0.28))
-        {
-            return 8;
-        }
-
-        if (Ellipse(x + 0.48, y + 0.15, 0.18, 0.22))
-        {
-            return 65;
-        }
-
-        var value = radius > 0.82 ? 1050f : 38f;
-        return value + (float)(12 * Math.Sin((x * 8) + (y * 5)));
-    }
-
-    private static bool Ellipse(double x, double y, double horizontal, double vertical) =>
-        ((x * x) / (horizontal * horizontal)) + ((y * y) / (vertical * vertical)) < 1;
 
     private static double Square(double value) => value * value;
 }

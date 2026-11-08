@@ -28,6 +28,7 @@ public sealed class MedicalMprDisplay
         Source = volume ?? throw new ArgumentNullException(nameof(volume));
         Unit = string.Equals(volume.Modality, "CT", StringComparison.OrdinalIgnoreCase) ? "HU" : "value";
         _window = MedicalImageDisplay.InitialWindow(volume.WindowCenter, volume.WindowWidth, volume.Data.ValueRange);
+        InitialSetting = _window;
         var maximum = MaximumPosition;
         _position = new Point3D(maximum.X / 2, maximum.Y / 2, maximum.Z / 2);
 
@@ -84,6 +85,9 @@ public sealed class MedicalMprDisplay
 
     /// <summary>Gets the active grayscale window.</summary>
     public MedicalWindow Window => _window;
+
+    /// <summary>Gets the window the image came with, which a double click on the grayscale bar brings back.</summary>
+    internal MedicalWindow InitialSetting { get; }
 
     internal long PositionVersion => Interlocked.Read(ref _positionVersion);
 

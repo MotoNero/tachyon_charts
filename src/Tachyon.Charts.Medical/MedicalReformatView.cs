@@ -72,6 +72,7 @@ internal sealed class MedicalReformatView
             .AddSeries((x, y) => new MedicalMprSeries(Display, Buffer, x, y))
             .Modifiers(modifiers => modifiers
                 .Custom(() => new Modifier(this))
+                .Custom(() => new MedicalColorBarModifier(() => Display.Window, Display.ApplyPreset, Display.InitialSetting))
                 .Custom(() => new ZoomPanModifier { PanButton = PointerButton.Middle }));
     }
 
