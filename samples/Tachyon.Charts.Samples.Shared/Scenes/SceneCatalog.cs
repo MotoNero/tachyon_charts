@@ -56,6 +56,8 @@ public static class SceneCatalog
         new AxisBreakScene("MedicalAnalysisSlice", Examples.ThreeD.MedicalAnalysisPage.ConfigureSlice),
         new AxisBreakScene("MedicalProfile", Examples.ThreeD.MedicalAnalysisPage.ConfigureProfile),
         new AxisBreakScene("MedicalHistogram", Examples.ThreeD.MedicalAnalysisPage.ConfigureHistogram),
+        new AxisBreakScene("MedicalThoraxAxial", Examples.ThreeD.MedicalThoraxPage.ConfigureAxial),
+        new AxisBreakScene("MedicalThoraxCoronal", Examples.ThreeD.MedicalThoraxPage.ConfigureCoronal),
         new SpectrogramScene(),
         new ContourScene(),
         new PointCloud50MScene(),

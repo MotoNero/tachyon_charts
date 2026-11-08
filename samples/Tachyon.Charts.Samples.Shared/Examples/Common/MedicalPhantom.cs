@@ -17,49 +17,7 @@ public static class MedicalPhantom
     public static MedicalImageDisplay Sagittal() => Create(new PatientOrientation(new Point3D(0, 1, 0), new Point3D(0, 0, -1)));
 
     /// <summary>Creates a small synthetic CT-like head volume for linked orthogonal views.</summary>
-    public static MedicalVolume Volume()
-    {
-        const int width = 128;
-        const int height = 112;
-        const int depth = 96;
-        var values = new float[width * height * depth];
-        for (var slice = 0; slice < depth; slice++)
-        {
-            var z = (slice - (depth / 2.0)) / (depth * 0.46);
-            for (var row = 0; row < height; row++)
-            {
-                var y = (row - (height / 2.0)) / (height * 0.43);
-                for (var column = 0; column < width; column++)
-                {
-                    var x = (column - (width / 2.0)) / (width * 0.36);
-                    var radius = (x * x) + (y * y) + (z * z);
-                    var value = -1000f;
-                    if (radius < 1)
-                    {
-                        value = radius > 0.82 ? 1050 : 38;
-                        if (Ellipse(x - 0.16, y, 0.11, 0.24) && Math.Abs(z) < 0.55
-                            || Ellipse(x + 0.16, y, 0.11, 0.24) && Math.Abs(z) < 0.55)
-                        {
-                            value = 8;
-                        }
-                        else if ((((x + 0.45) * (x + 0.45)) + ((y + 0.12) * (y + 0.12)) + (z * z)) < 0.035)
-                        {
-                            value = 68;
-                        }
-                        else
-                        {
-                            value += (float)(10 * Math.Sin((x * 8) + (y * 5) + (z * 4)));
-                        }
-                    }
-
-                    values[(slice * width * height) + (row * width) + column] = value;
-                }
-            }
-        }
-
-        var orientation = new PatientOrientation(new Point3D(1, 0, 0), new Point3D(0, 1, 0));
-        return new MedicalVolume(new VolumeData(values, width, height, depth), new ImageSpacing(0.8, 0.8), 1.2, default, orientation, 40, 80, "CT");
-    }
+    public static MedicalVolume Volume() => MedicalPhantoms.Head();
 
     /// <summary>Creates two synthetic structures aligned with a head volume.</summary>
     public static MedicalSegmentation Segmentation(MedicalVolume volume)

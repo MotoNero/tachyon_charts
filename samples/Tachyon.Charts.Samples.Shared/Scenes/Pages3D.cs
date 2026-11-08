@@ -11,13 +11,15 @@ namespace Tachyon.Charts.Samples.Shared.Scenes;
 /// <param name="Run">Starts and stops a live source, if the page has one.</param>
 /// <param name="Companion">A 2D chart below the 3D chart, in the same group, if any.</param>
 /// <param name="GridCompanions">Three 2D charts that complete a 2 × 2 layout with the 3D chart, if any.</param>
+/// <param name="Download">Fetches data on request, reporting the progress; afterwards the page is built anew.</param>
 public sealed record Page3D(
     string Name,
     string Hint,
     Action<Chart3DBuilder> Configure,
     Action<bool>? Run = null,
     Action<ChartBuilder>? Companion = null,
-    IReadOnlyList<Action<ChartBuilder>>? GridCompanions = null);
+    IReadOnlyList<Action<ChartBuilder>>? GridCompanions = null,
+    Func<IProgress<string>, Task>? Download = null);
 
 /// <summary>The 3D pages of the sample apps.</summary>
 public static class Pages3D
@@ -39,6 +41,9 @@ public static class Pages3D
         new(VolumeSlices512Page.Name, VolumeSlices512Page.Hint, VolumeSlices512Page.Configure),
         new(MedicalMprPage.Name, MedicalMprPage.Hint, MedicalMprPage.Configure, GridCompanions: MedicalMprPage.Slices),
         new(MedicalAnalysisPage.Name, MedicalAnalysisPage.Hint, MedicalAnalysisPage.Configure, GridCompanions: MedicalAnalysisPage.Charts),
+        new(MedicalThoraxPage.Name, MedicalThoraxPage.Hint, MedicalThoraxPage.Configure, GridCompanions: MedicalThoraxPage.Slices),
+        new(MedicalChestCtPage.Name, MedicalChestCtPage.Hint, MedicalChestCtPage.Configure, GridCompanions: MedicalChestCtPage.Slices, Download: MedicalChestCtPage.DownloadAsync),
+        new(MedicalHeadMriPage.Name, MedicalHeadMriPage.Hint, MedicalHeadMriPage.Configure, GridCompanions: MedicalHeadMriPage.Slices, Download: MedicalHeadMriPage.DownloadAsync),
         new(ThroughAVolume512Page.Name, ThroughAVolume512Page.Hint, ThroughAVolume512Page.Configure),
         new(ObjectsInsideAVolumePage.Name, ObjectsInsideAVolumePage.Hint, ObjectsInsideAVolumePage.Configure),
         new(MaximumProjection512Page.Name, MaximumProjection512Page.Hint, MaximumProjection512Page.Configure),

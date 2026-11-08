@@ -31,6 +31,11 @@ sealed class Tachyon.Charts.Medical.MedicalCinePlayer
   System.Void Toggle(Tachyon.Charts.Medical.MedicalMprPlane plane)
   Tachyon.Charts.Medical.MedicalMprPlane Plane { get; }
   event System.Action StateChanged
+struct Tachyon.Charts.Medical.MedicalDownloadProgress : System.IEquatable<Tachyon.Charts.Medical.MedicalDownloadProgress>
+  .ctor(System.Int64 Bytes, System.Nullable<System.Int64> Total)
+  System.Int64 Bytes { get; set; }
+  System.Nullable<System.Double> Share { get; }
+  System.Nullable<System.Int64> Total { get; set; }
 sealed class Tachyon.Charts.Medical.MedicalHistogram
   .ctor(Tachyon.Charts.Medical.MedicalImageDisplay display, System.Int32 bins = 512)
   .ctor(Tachyon.Charts.Medical.MedicalMprSlice slice, System.Int32 bins = 512)
@@ -153,6 +158,9 @@ struct Tachyon.Charts.Medical.MedicalOrientationMarks : System.IEquatable<Tachyo
   System.String Left { get; set; }
   System.String Right { get; set; }
   System.String Top { get; set; }
+static class Tachyon.Charts.Medical.MedicalPhantoms
+  static Tachyon.Charts.Medical.MedicalVolume Head()
+  static Tachyon.Charts.Medical.MedicalVolume Thorax()
 struct Tachyon.Charts.Medical.MedicalPoint : System.IEquatable<Tachyon.Charts.Medical.MedicalPoint>
   .ctor(System.Double X, System.Double Y)
   System.Double X { get; set; }
@@ -164,6 +172,25 @@ sealed class Tachyon.Charts.Medical.MedicalProfile
   Tachyon.Charts.Core.Data.DataSource<System.Double, System.Double> Data { get; }
   Tachyon.Charts.Medical.MedicalMeasurement Line { get; set; }
   Tachyon.Charts.Medical.MedicalMeasurement Shown { get; }
+sealed class Tachyon.Charts.Medical.MedicalSampleDataset
+  System.Boolean IsDownloaded(System.String folder)
+  System.Int64 Size { get; }
+  System.String Citation { get; }
+  System.String FolderName { get; }
+  System.String License { get; }
+  System.String Name { get; }
+  System.String Sha256 { get; }
+  System.Threading.Tasks.Task<System.String> DownloadAsync(System.String folder, System.IProgress<Tachyon.Charts.Medical.MedicalDownloadProgress> progress = null, System.Threading.CancellationToken cancellation = null)
+  System.Threading.Tasks.Task<Tachyon.Charts.Medical.MedicalVolume> LoadAsync(System.String folder, System.IProgress<Tachyon.Charts.Medical.MedicalDownloadProgress> progress = null, System.Threading.CancellationToken cancellation = null)
+  System.Uri DownloadUri { get; }
+  System.Uri LicenseUri { get; }
+  System.Uri SourceUri { get; }
+  System.Uri TermsUri { get; }
+  Tachyon.Charts.Medical.MedicalVolume Read(System.String folder)
+  static System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Medical.MedicalSampleDataset> All { get; }
+  static Tachyon.Charts.Medical.MedicalSampleDataset HeadMri { get; }
+  static Tachyon.Charts.Medical.MedicalSampleDataset ThoraxCt { get; }
+  virtual System.String ToString()
 sealed class Tachyon.Charts.Medical.MedicalSegment
   .ctor(System.Int32 label, System.String name, Tachyon.Charts.Rendering.Rgba8 color)
   System.Boolean IsVisible { get; set; }
@@ -198,6 +225,8 @@ struct Tachyon.Charts.Medical.MedicalWindow : System.IEquatable<Tachyon.Charts.M
   System.Double Minimum { get; }
   System.Double Width { get; set; }
   System.String Name { get; set; }
+static class Tachyon.Charts.Medical.NiftiImageReader
+  static Tachyon.Charts.Medical.MedicalVolume Read(System.IO.Stream stream)
 static class Tachyon.Charts.Medical.NiftiSegmentationReader
   static Tachyon.Charts.Medical.MedicalSegmentation Read(System.IO.Stream stream)
 struct Tachyon.Charts.Medical.PatientOrientation : System.IEquatable<Tachyon.Charts.Medical.PatientOrientation>

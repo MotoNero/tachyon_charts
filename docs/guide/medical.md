@@ -155,6 +155,27 @@ histogramChart.Configure(histogram.Configure);
 - **Profile:** samples every half pixel along the line, blended from the four nearest pixels; the distance from the start of the line runs across in millimetres. `Data` holds the samples for the application.
 - **Histogram:** 512 bins over all values of the image, so histograms of different regions compare directly. The grayscale window shows as a band, and the view shows the window and half its width on each side; both follow every change of the window. `Current` holds the counts.
 
+## Sample data
+
+`MedicalPhantoms.Head()` and `MedicalPhantoms.Thorax()` build synthetic CT volumes from simple shapes with typical Hounsfield units: a skull with brain, ventricles and a lesion, and a chest with lungs, branching vessels, a nodule, heart, aorta, spine, ribs and sternum. They hold no data of any person and need no download.
+
+Real data are downloaded only on request, into a folder the application chooses, and checked against a SHA-256 checksum:
+
+| Dataset | Content | License and source |
+|---|---|---|
+| `MedicalSampleDataset.ThoraxCt` | Chest CT, 512 × 512 × 133, DICOM, 35 MB download | CC BY 3.0. Armato III, S. G. et al. (2015), Data From LIDC-IDRI, The Cancer Imaging Archive, [doi:10.7937/K9/TCIA.2015.LO9QL9SX](https://doi.org/10.7937/K9/TCIA.2015.LO9QL9SX). The [data usage policy](https://www.cancerimagingarchive.net/data-usage-policies-and-restrictions/) of the archive applies: cite the data and never try to identify a person. |
+| `MedicalSampleDataset.HeadMri` | Head MRI T1, 160 × 192 × 192, NIfTI, 5.7 MB, face removed | CC0. Schonberg, T. et al. (2012), Balloon Analog Risk-taking Task, OpenNeuro ds000001, [doi:10.18112/openneuro.ds000001.v1.0.0](https://doi.org/10.18112/openneuro.ds000001.v1.0.0). |
+
+```csharp
+var dataset = MedicalSampleDataset.ThoraxCt;
+// Show dataset.License, dataset.Citation and dataset.TermsUri to the user before the download.
+var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MyApp", "SampleData");
+var volume = await dataset.LoadAsync(folder, new Progress<MedicalDownloadProgress>(p => status.Text = $"{p.Share:P0}"));
+var mpr = new MedicalMprDisplay(volume);
+```
+
+A download that does not match its checksum is deleted and reported as `InvalidDataException`. `IsDownloaded(folder)` and `Read(folder)` reuse data that is already there. For the archive, which packs its files anew on each request, the checksum covers the names and bytes of the files rather than the archive itself. `NiftiImageReader.Read` reads NIfTI-1 images such as the head MRI; free-text header fields are never read. The showroom pages "Medical chest CT (real data)" and "Medical head MRI (real data)" show the phantom until the button "Download data" is pressed, and name source and license in their hint.
+
 ## Large series
 
 A CT series of 1024 × 1024 × 1000 values of 16 bits takes about 2.1 GB of memory. Series with a rescale slope and intercept stay at two bytes per value; the scale is applied when a value is read. On the graphics card a volume takes four bytes per value when the card filters 32-bit floats, so the same series needs 4.2 GB there.

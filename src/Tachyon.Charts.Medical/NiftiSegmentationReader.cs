@@ -13,7 +13,14 @@ public static class NiftiSegmentationReader
     /// <param name="stream">The readable stream, which remains owned by the caller.</param>
     /// <returns>The segmentation.</returns>
     /// <exception cref="InvalidDataException">The stream is malformed, unsupported or does not contain integer labels.</exception>
-    public static MedicalSegmentation Read(Stream stream)
+    public static MedicalSegmentation Read(Stream stream) => Guarded(stream, ReadCore);
+
+    /// <summary>Reads the image values of a NIfTI-1 file, for <see cref="NiftiImageReader.Read"/>.</summary>
+    /// <param name="stream">The readable stream, which remains owned by the caller.</param>
+    /// <returns>The volume.</returns>
+    internal static MedicalVolume ReadVolume(Stream stream) => Guarded(stream, ReadVolumeCore);
+
+    private static T Guarded<T>(Stream stream, Func<Stream, T> read)
     {
         ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("The NIfTI stream must be readable.", nameof(stream));
@@ -21,7 +28,7 @@ public static class NiftiSegmentationReader
         try
         {
             using var source = OpenSource(stream);
-            return ReadCore(source);
+            return read(source);
         }
         catch (InvalidDataException)
         {
@@ -29,7 +36,7 @@ public static class NiftiSegmentationReader
         }
         catch (Exception exception) when (exception is EndOfStreamException or OverflowException)
         {
-            throw new InvalidDataException("The NIfTI label map is truncated or malformed.", exception);
+            throw new InvalidDataException("The NIfTI file is truncated or malformed.", exception);
         }
     }
 
@@ -70,24 +77,74 @@ public static class NiftiSegmentationReader
 
     private static MedicalSegmentation ReadCore(Stream stream)
     {
+        var header = ReadHeader(stream);
+        var labels = ReadLabels(stream, checked(header.Width * header.Height * header.Depth), header);
+        var geometry = GeometryFromAffine(header.Affine, labels, header.Width, header.Height, header.Depth);
+        return new MedicalSegmentation(
+            new VolumeData(labels, header.Width, header.Height, header.Depth),
+            new ImageSpacing(geometry.RowSpacing, geometry.ColumnSpacing),
+            geometry.SliceSpacing,
+            geometry.Origin,
+            geometry.Orientation);
+    }
+
+    // Integers of up to 16 bits stay two bytes per value with the scale beside them; everything else becomes floats.
+    private static MedicalVolume ReadVolumeCore(Stream stream)
+    {
+        var header = ReadHeader(stream);
+        var (width, height, depth) = (header.Width, header.Height, header.Depth);
+        var count = checked(width * height * depth);
+        var raw = new byte[checked(count * header.Bytes)];
+        stream.ReadExactly(raw);
+        VolumeData data;
+        GeometryResult geometry;
+        if (header.Type is 2 or 256 or 4 or 512)
+        {
+            var words = new ushort[count];
+            var lift = header.Type is 256 or 4 ? 32768 : 0;
+            for (var i = 0; i < count; i++)
+            {
+                words[i] = (ushort)(Stored(raw.AsSpan(i * header.Bytes, header.Bytes), header.Type, header.Little) + lift);
+            }
+
+            geometry = GeometryFromAffine(header.Affine, words, width, height, depth);
+            data = new VolumeData(words, width, height, depth, header.Slope, header.Intercept - (lift * header.Slope));
+        }
+        else
+        {
+            var values = new float[count];
+            for (var i = 0; i < count; i++)
+            {
+                values[i] = (float)((Stored(raw.AsSpan(i * header.Bytes, header.Bytes), header.Type, header.Little) * header.Slope) + header.Intercept);
+            }
+
+            geometry = GeometryFromAffine(header.Affine, values, width, height, depth);
+            data = new VolumeData(values, width, height, depth);
+        }
+
+        return new MedicalVolume(data, new ImageSpacing(geometry.RowSpacing, geometry.ColumnSpacing), geometry.SliceSpacing, geometry.Origin, geometry.Orientation, null, null, null);
+    }
+
+    private static Header ReadHeader(Stream stream)
+    {
         var header = new byte[HeaderSize];
         stream.ReadExactly(header);
         var little = Int32(header, 0, true) == HeaderSize;
         if (!little && Int32(header, 0, false) != HeaderSize)
             throw new InvalidDataException("The stream is not a NIfTI-1 file.");
         if (!header.AsSpan(344, 3).SequenceEqual("n+1"u8))
-            throw new InvalidDataException("Only single-file NIfTI-1 label maps are supported.");
+            throw new InvalidDataException("Only single-file NIfTI-1 files are supported.");
 
         var dimensions = Int16(header, 40, little);
         if (dimensions < 3 || dimensions > 7)
-            throw new InvalidDataException("A NIfTI label map needs three dimensions.");
+            throw new InvalidDataException("A NIfTI volume needs three dimensions.");
         var width = Positive(Int16(header, 42, little), "width");
         var height = Positive(Int16(header, 44, little), "height");
         var depth = Positive(Int16(header, 46, little), "depth");
         for (var axis = 4; axis <= dimensions; axis++)
         {
             if (Int16(header, 40 + (axis * 2), little) != 1)
-                throw new InvalidDataException("A NIfTI label map must contain one three-dimensional volume.");
+                throw new InvalidDataException("A NIfTI file must contain one three-dimensional volume.");
         }
 
         var datatype = Int16(header, 70, little);
@@ -98,18 +155,11 @@ public static class NiftiSegmentationReader
         var intercept = Single(header, 116, little);
         if (slope == 0) slope = 1;
         if (!float.IsFinite(slope) || !float.IsFinite(intercept))
-            throw new InvalidDataException("The NIfTI label scaling is not finite.");
+            throw new InvalidDataException("The NIfTI scaling is not finite.");
 
         var affine = ReadAffine(header, little);
         Skip(stream, offset - HeaderSize);
-        var labels = ReadLabels(stream, checked(width * height * depth), datatype, bytes, little, slope, intercept);
-        var geometry = GeometryFromAffine(affine, labels, width, height, depth);
-        return new MedicalSegmentation(
-            new VolumeData(geometry.Labels, width, height, depth),
-            new ImageSpacing(geometry.RowSpacing, geometry.ColumnSpacing),
-            geometry.SliceSpacing,
-            geometry.Origin,
-            geometry.Orientation);
+        return new Header(little, width, height, depth, datatype, bytes, slope, intercept, affine);
     }
 
     private static Affine ReadAffine(byte[] header, bool little)
@@ -123,7 +173,7 @@ public static class NiftiSegmentationReader
         }
 
         if (Int16(header, 252, little) <= 0)
-            throw new InvalidDataException("The NIfTI label map has neither an sform nor a qform transform.");
+            throw new InvalidDataException("The NIfTI file has neither an sform nor a qform transform.");
 
         var b = (double)Single(header, 256, little);
         var c = (double)Single(header, 260, little);
@@ -142,7 +192,7 @@ public static class NiftiSegmentationReader
             dx, dy, dz * qfac);
     }
 
-    private static GeometryResult GeometryFromAffine(Affine affine, ushort[] labels, int width, int height, int depth)
+    private static GeometryResult GeometryFromAffine<T>(Affine affine, T[] values, int width, int height, int depth)
     {
         var across = ToLps(new Point3D(affine.X.X, affine.Y.X, affine.Z.X));
         var down = ToLps(new Point3D(affine.X.Y, affine.Y.Y, affine.Z.Y));
@@ -159,37 +209,29 @@ public static class NiftiSegmentationReader
         if (Math.Abs(Point3D.Dot(across, down)) > 1e-5
             || Math.Abs(Point3D.Dot(across, slices)) > 1e-5
             || Math.Abs(Point3D.Dot(down, slices)) > 1e-5)
-            throw new InvalidDataException("Sheared NIfTI label maps are not supported.");
+            throw new InvalidDataException("Sheared NIfTI volumes are not supported.");
 
         var normal = Point3D.Cross(across, down).Normalized();
         if (Point3D.Dot(normal, slices) < 0)
         {
             origin += slices * ((depth - 1) * sliceSpacing);
-            ReverseSlices(labels, width, height, depth);
+            ReverseSlices(values, width, height, depth);
         }
 
-        return new GeometryResult(labels, columnSpacing, rowSpacing, sliceSpacing, origin, new PatientOrientation(across, down));
+        return new GeometryResult(columnSpacing, rowSpacing, sliceSpacing, origin, new PatientOrientation(across, down));
     }
 
-    private static ushort[] ReadLabels(Stream stream, int count, short type, int bytes, bool little, double slope, double intercept)
+    private static ushort[] ReadLabels(Stream stream, int count, Header header)
     {
-        var raw = new byte[checked(count * bytes)];
+        if (header.Type is 16 or 64)
+            throw new InvalidDataException("The NIfTI datatype is not an integer label type.");
+
+        var raw = new byte[checked(count * header.Bytes)];
         stream.ReadExactly(raw);
         var labels = new ushort[count];
         for (var i = 0; i < count; i++)
         {
-            var at = raw.AsSpan(i * bytes, bytes);
-            var stored = type switch
-            {
-                2 => (double)at[0],
-                256 => (double)(sbyte)at[0],
-                4 => little ? (double)BinaryPrimitives.ReadInt16LittleEndian(at) : BinaryPrimitives.ReadInt16BigEndian(at),
-                512 => little ? (double)BinaryPrimitives.ReadUInt16LittleEndian(at) : BinaryPrimitives.ReadUInt16BigEndian(at),
-                8 => little ? (double)BinaryPrimitives.ReadInt32LittleEndian(at) : BinaryPrimitives.ReadInt32BigEndian(at),
-                768 => little ? (double)BinaryPrimitives.ReadUInt32LittleEndian(at) : BinaryPrimitives.ReadUInt32BigEndian(at),
-                _ => throw new InvalidDataException("The NIfTI datatype is not an integer label type."),
-            };
-            var value = (stored * slope) + intercept;
+            var value = (Stored(raw.AsSpan(i * header.Bytes, header.Bytes), header.Type, header.Little) * header.Slope) + header.Intercept;
             if (!double.IsFinite(value) || value < 0 || value > ushort.MaxValue || value != Math.Truncate(value))
                 throw new InvalidDataException("The scaled NIfTI values are not integer labels from zero through 65,535.");
             labels[i] = (ushort)value;
@@ -198,14 +240,27 @@ public static class NiftiSegmentationReader
         return labels;
     }
 
-    private static void ReverseSlices(ushort[] labels, int width, int height, int depth)
+    private static double Stored(ReadOnlySpan<byte> at, short type, bool little) => type switch
+    {
+        2 => at[0],
+        256 => (sbyte)at[0],
+        4 => little ? BinaryPrimitives.ReadInt16LittleEndian(at) : BinaryPrimitives.ReadInt16BigEndian(at),
+        512 => little ? BinaryPrimitives.ReadUInt16LittleEndian(at) : BinaryPrimitives.ReadUInt16BigEndian(at),
+        8 => little ? BinaryPrimitives.ReadInt32LittleEndian(at) : BinaryPrimitives.ReadInt32BigEndian(at),
+        768 => little ? BinaryPrimitives.ReadUInt32LittleEndian(at) : BinaryPrimitives.ReadUInt32BigEndian(at),
+        16 => little ? BinaryPrimitives.ReadSingleLittleEndian(at) : BinaryPrimitives.ReadSingleBigEndian(at),
+        64 => little ? BinaryPrimitives.ReadDoubleLittleEndian(at) : BinaryPrimitives.ReadDoubleBigEndian(at),
+        _ => throw new InvalidDataException("The NIfTI datatype is not supported."),
+    };
+
+    private static void ReverseSlices<T>(T[] values, int width, int height, int depth)
     {
         var slice = width * height;
         for (var first = 0; first < depth / 2; first++)
         {
             var last = depth - 1 - first;
             for (var i = 0; i < slice; i++)
-                (labels[(first * slice) + i], labels[(last * slice) + i]) = (labels[(last * slice) + i], labels[(first * slice) + i]);
+                (values[(first * slice) + i], values[(last * slice) + i]) = (values[(last * slice) + i], values[(first * slice) + i]);
         }
     }
 
@@ -213,8 +268,9 @@ public static class NiftiSegmentationReader
     {
         2 or 256 => 1,
         4 or 512 => 2,
-        8 or 768 => 4,
-        _ => throw new InvalidDataException("Only 8-, 16- and 32-bit integer NIfTI label maps are supported."),
+        8 or 768 or 16 => 4,
+        64 => 8,
+        _ => throw new InvalidDataException("Only 8-, 16- and 32-bit integers and 32- and 64-bit floats are supported in NIfTI files."),
     };
 
     private static Row Vector(byte[] source, int offset, bool little) =>
@@ -254,7 +310,9 @@ public static class NiftiSegmentationReader
         { }
     }
 
-    private readonly record struct GeometryResult(ushort[] Labels, double ColumnSpacing, double RowSpacing, double SliceSpacing, Point3D Origin, PatientOrientation Orientation);
+    private readonly record struct Header(bool Little, int Width, int Height, int Depth, short Type, int Bytes, double Slope, double Intercept, Affine Affine);
+
+    private readonly record struct GeometryResult(double ColumnSpacing, double RowSpacing, double SliceSpacing, Point3D Origin, PatientOrientation Orientation);
 
     private sealed class NonOwningStream(Stream inner) : Stream
     {

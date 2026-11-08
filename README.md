@@ -204,6 +204,10 @@ Integer segmentation maps can come from arrays, affine NIfTI-1 files or uncompre
 
 Measurements work on every image and MPR plane: distances in millimetres, angles, and circles, rectangles and freehand regions with area, mean, standard deviation, minimum and maximum in the unit of the image. Uneven pixel spacing is part of every result, regions of one name on several slices give a volume, and all measurements can be edited, undone and saved as JSON. A profile along a line and a histogram of a region or slice follow their measurement, the slice and the window live.
 
+![An axial slice of the synthetic thorax in the lung window: lungs with branching vessels, heart, aorta and spine](docs/images/medical-thorax-phantom.png)
+
+Synthetic head and thorax volumes come with the package (`MedicalPhantoms`), free of any personal data. For real data, `MedicalSampleDataset` downloads a chest CT (LIDC-IDRI, CC BY 3.0) or a defaced head MRI (OpenNeuro ds000001, CC0) on request, with progress and a SHA-256 check; nothing is bundled. `NiftiImageReader` reads NIfTI-1 research images. Large series up to 1024 × 1024 × 1000 values stay at two bytes per value, and each volume fits itself to the graphics memory and says how.
+
 Tachyon Charts is not a medical device and is not approved or certified for diagnosis or therapy under the EU Medical Device Regulation (MDR). The application developer and operator remain responsible for the intended use, validation, privacy and every applicable regulatory requirement. See [Medical data and privacy](docs/guide/medical.md).
 
 ## Quick start
@@ -342,7 +346,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Polygons](docs/guide/polygons.md) | Polygons with holes, heatmaps inside an area |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
 | [Code signing policy](docs/guide/code-signing.md) | How the showroom apps are signed, who approves, privacy |
-| [Medical data and privacy](docs/guide/medical.md) | Reading, MPR, segmentations, measurements, data minimisation and regulatory scope |
+| [Medical data and privacy](docs/guide/medical.md) | Reading, MPR, segmentations, measurements, sample data, large series, data minimisation and regulatory scope |
 | [docs/api](docs/api) | Public API lists |
 
 ## License

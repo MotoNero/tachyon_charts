@@ -528,6 +528,7 @@ internal sealed class SampleWindow : Window
         bar.Children.Add(CreateAction("Copy image", () => Run(chart => chart.CopyImageAsync(), "The image is on the clipboard")));
         bar.Children.Add(CreateAction("Copy data", () => Run(chart => chart.CopyDataAsync(), "The CSV is on the clipboard")));
         bar.Children.Add(CreateAction("Print", () => Run(chart => chart.PrintAsync("Tachyon Charts"), "Printed or canceled")));
+        bar.Children.Add(CreateAction("Download data", DownloadData));
     }
 
     // A hidden 3D page would keep its points on the graphics card, and a few large ones fill it up.
@@ -536,12 +537,7 @@ internal sealed class SampleWindow : Window
         var isReleased = false;
         foreach (var name in _hosts3D.Keys.Where(name => name != SelectedId).ToArray())
         {
-            Pages3D.Find(name)?.Run?.Invoke(false);
-            _stage.Children.Remove(_views3D[name]);
-            _views3D.Remove(name);
-            _hosts3D.Remove(name);
-            _companions.Remove(name);
-            _pages.Remove(name);
+            Release3D(name);
             isReleased = true;
         }
 
@@ -549,6 +545,42 @@ internal sealed class SampleWindow : Window
         if (isReleased)
         {
             Dispatcher.BeginInvoke(() => GC.Collect(), System.Windows.Threading.DispatcherPriority.ApplicationIdle); // NOSONAR: arrays of several GB wait long for a collection, see the comment above
+        }
+    }
+
+    private void Release3D(string name)
+    {
+        Pages3D.Find(name)?.Run?.Invoke(false);
+        _stage.Children.Remove(_views3D[name]);
+        _views3D.Remove(name);
+        _hosts3D.Remove(name);
+        _companions.Remove(name);
+        _pages.Remove(name);
+    }
+
+    // Real data come only on request; afterwards the page is built anew with them.
+    private async Task DownloadData()
+    {
+        if (SelectedId is not { } id || Pages3D.Find(id) is not { Download: { } download })
+        {
+            _hint.Text = SampleText.T("This page has no data to download.");
+            return;
+        }
+
+        try
+        {
+            await download(new Progress<string>(line => _hint.Text = line));
+            if (_hosts3D.ContainsKey(id))
+            {
+                Release3D(id);
+            }
+
+            ShowSelection();
+            _hint.Text = SampleText.T("Downloaded. The page shows the real data.");
+        }
+        catch (Exception exception) when (exception is System.Net.Http.HttpRequestException or InvalidDataException or IOException or TaskCanceledException)
+        {
+            _hint.Text = SampleText.T("Failed: ") + exception.Message;
         }
     }
 
