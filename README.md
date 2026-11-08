@@ -215,6 +215,20 @@ Planes at any angle follow a line drawn on a slice or face the 3D view, and a cu
 
 Synthetic head and thorax volumes come with the package (`MedicalPhantoms`), free of any personal data. For real data, `MedicalSampleDataset` downloads a chest CT (LIDC-IDRI, CC BY 3.0) or a defaced head MRI (OpenNeuro ds000001, CC0) on request, with progress and a SHA-256 check; nothing is bundled. `NiftiImageReader` reads NIfTI-1 research images. Large series up to 1024 × 1024 × 1000 values stay at two bytes per value, and each volume fits itself to the graphics memory and says how.
 
+#### With real data
+
+The same tools on freely licensed, anonymized datasets: in the showroom, choose a dataset in the data list of the pages "Medical CT and MRI", "Medical analysis" or "Medical oblique and curved". It is downloaded once, checked against its checksum and kept in the local application data; nothing is bundled with the packages.
+
+![A chest CT in 3D and as an axial slice with a line and a circle in the right lung; the profile along the line shows lung, heart and chest wall, the histogram the lung tissue in the circle](docs/images/medical-real-analysis.png)
+
+![The measuring tools on a chest CT: a distance across the right lung, an angle, a rectangle on the aorta and a freehand region around the heart, each with its result, beside the linked coronal and sagittal planes](docs/images/medical-real-measurements.png)
+
+![An oblique plane through the chest CT along a drawn line, showing both lungs with their vessels, the heart and the upper abdomen, and a curved section along the front of the chest](docs/images/medical-real-sections.png)
+
+![A head MRI in 3D and as an axial slice with a line and an arc; the oblique plane shows the brain from the side and the curved section the folded cortex stretched flat. The face was removed before publication](docs/images/medical-real-mri.png)
+
+*Chest CT:* Armato III, S. G. et al. (2015). Data From LIDC-IDRI, The Cancer Imaging Archive, [doi:10.7937/K9/TCIA.2015.LO9QL9SX](https://doi.org/10.7937/K9/TCIA.2015.LO9QL9SX), licensed [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/); the [data usage policy](https://www.cancerimagingarchive.net/data-usage-policies-and-restrictions/) of the archive applies. *Head MRI:* Schonberg, T. et al. (2012). Balloon Analog Risk-taking Task, OpenNeuro ds000001, [doi:10.18112/openneuro.ds000001.v1.0.0](https://doi.org/10.18112/openneuro.ds000001.v1.0.0), [CC0](https://creativecommons.org/publicdomain/zero/1.0/), defaced. Both datasets were published anonymized; never try to identify a person. The pictures show cross-sections only, no 3D surfaces of a head.
+
 Tachyon Charts is not a medical device and is not approved or certified for diagnosis or therapy under the EU Medical Device Regulation (MDR). The application developer and operator remain responsible for the intended use, validation, privacy and every applicable regulatory requirement. See [Medical data and privacy](docs/guide/medical.md).
 
 ## Quick start
@@ -355,7 +369,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Polygons](docs/guide/polygons.md) | Polygons with holes, heatmaps inside an area |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
 | [Code signing policy](docs/guide/code-signing.md) | How the showroom apps are signed, who approves, privacy |
-| [Medical data and privacy](docs/guide/medical.md) | Reading, MPR, segmentations, measurements, oblique and curved sections, sample data, large series, data minimisation and regulatory scope |
+| [Medical data and privacy](docs/guide/medical.md) | Reading, MPR, segmentations, measurements, oblique and curved sections, sample and real data, large series, data minimisation and regulatory scope |
 | [docs/api](docs/api) | Public API lists |
 
 ## License

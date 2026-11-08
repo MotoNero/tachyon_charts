@@ -90,4 +90,6 @@ public static class Scenes3D
         new Scene3DPicture(Box3DLogAxisPicture.Name, Box3DLogAxisPicture.Configure),
     ];
 
+    /// <summary>Gets the pictures with real data, made only on request because the data must be downloaded first.</summary>
+    public static IReadOnlyList<IScene> OnRequest => MedicalRealDataScene.All;
 }

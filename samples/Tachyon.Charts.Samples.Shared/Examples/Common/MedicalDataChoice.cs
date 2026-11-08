@@ -51,6 +51,7 @@ public sealed class MedicalDataChoice : IPageData
         var source = _sources[Index];
         var volume = _volumes[Index] ??= source.Phantom is { } phantom ? phantom() : source.Dataset!.Read(Folder);
         var display = new MedicalMprDisplay(volume);
+        Current = display;
         if (source.Window.Width > 0)
         {
             display.ApplyPreset(source.Window);
@@ -63,6 +64,27 @@ public sealed class MedicalDataChoice : IPageData
         }
 
         return display;
+    }
+
+    /// <summary>Gets the display last created for the choice, or <see langword="null"/> before the first.</summary>
+    public MedicalMprDisplay? Current { get; private set; }
+
+    /// <summary>Chooses a volume that is there: a phantom, or a real dataset downloaded before.</summary>
+    /// <param name="index">The choice.</param>
+    /// <exception cref="InvalidOperationException">The real dataset has not been downloaded.</exception>
+    public void Select(int index)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _sources.Length);
+        if (_sources[index].Dataset is { } dataset && !dataset.IsDownloaded(Folder))
+        {
+            throw new InvalidOperationException($"{dataset.Name} is not downloaded yet; choose it once in the showroom.");
+        }
+
+        if (index != Index)
+        {
+            (Index, Version) = (index, Version + 1);
+        }
     }
 
     /// <summary>Chooses a volume, downloading a real dataset first when it is not there yet.</summary>
