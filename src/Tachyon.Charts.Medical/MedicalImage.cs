@@ -227,7 +227,13 @@ internal sealed class PixelBuffer
 
     public PixelBuffer(byte[] values) => _bytes = values;
 
-    public PixelBuffer(ushort[] values) => _words = values;
+    public PixelBuffer(ushort[] values, double slope = 1, double intercept = 0) => (_words, Slope, Intercept) = (values, slope, intercept);
+
+    /// <summary>Gets the factor of a stored 16-bit value.</summary>
+    public double Slope { get; } = 1;
+
+    /// <summary>Gets the value of a stored 16-bit zero.</summary>
+    public double Intercept { get; }
 
     public PixelBuffer(float[] values) => _floats = values;
 
@@ -235,7 +241,7 @@ internal sealed class PixelBuffer
 
     public int Length => _bytes?.Length ?? _words?.Length ?? _floats!.Length;
 
-    public double this[int index] => _bytes is not null ? _bytes[index] : _words is not null ? _words[index] : _floats![index];
+    public double this[int index] => _bytes is not null ? _bytes[index] : _words is not null ? (_words[index] * Slope) + Intercept : _floats![index];
 
     public void CopyValues(Span<float> target)
     {
@@ -252,7 +258,7 @@ internal sealed class PixelBuffer
 
         for (var i = 0; i < Length; i++)
         {
-            target[i] = _bytes is not null ? _bytes[i] : _words![i];
+            target[i] = (float)this[i];
         }
     }
 
@@ -270,7 +276,7 @@ internal sealed class PixelBuffer
 
         for (var i = 0; i < Length; i++)
         {
-            target[offset + i] = _bytes is not null ? _bytes[i] : _words![i];
+            target[offset + i] = (float)this[i];
         }
     }
 }

@@ -148,6 +148,8 @@ internal sealed class PickLabels3D(Scene3D scene, PointerPick3D pointer) : Chart
             }
         }
 
+        DrawVolumeState(canvas, pane, scene);
+
         foreach (var volume in scene.Volumes)
         {
             if (volume.Mode == VolumeMode.Surface && volume.ShowsEditor)
@@ -181,6 +183,26 @@ internal sealed class PickLabels3D(Scene3D scene, PointerPick3D pointer) : Chart
         canvas.DrawLine(new Vector2(x, (float)bar.Y - 6), new Vector2(x, (float)(bar.Y + bar.Height + 6)), 4, canvas.TextColor);
         var text = volume.IsoValue.ToString("G6", ChartText.Culture);
         canvas.DrawText(text, Math.Round(x - (canvas.MeasureWidth(text, canvas.LabelSize) / 2)), Math.Round(bar.Y + bar.Height + 22), canvas.LabelSize, canvas.TextColor);
+    }
+
+    // How far a volume has reached the GPU, and a line when the graphics card could not take it in full.
+    private static void DrawVolumeState(OverlayCanvas canvas, DipRect pane, Scene3D scene)
+    {
+        foreach (var volume in scene.Volumes)
+        {
+            if (volume.GpuFit is { } fit && (fit.IsReduced || !fit.IsExact))
+            {
+                var message = fit.Message;
+                var width = canvas.MeasureWidth(message, canvas.LabelSize);
+                canvas.DrawText(message, Math.Round(pane.X + ((pane.Width - width) / 2)), Math.Round(pane.Y + 20), canvas.LabelSize, canvas.TextColor);
+            }
+
+            if (!volume.IsReady && volume.IsVisible)
+            {
+                DrawProgress(canvas, pane, volume.Progress);
+                return;
+            }
+        }
     }
 
     private static void DrawProgress(OverlayCanvas canvas, DipRect pane, double progress)

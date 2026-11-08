@@ -10,6 +10,8 @@ public sealed class VolumeData
     private readonly ushort[]? _words;
     private readonly float[]? _floats;
     private readonly Lazy<DoubleRange> _range;
+    private readonly double _slope = 1;
+    private readonly double _intercept;
 
     /// <summary>Initializes a new instance of the <see cref="VolumeData"/> class with 8 bits per value.</summary>
     /// <param name="values">The values, row by row and slice by slice.</param>
@@ -31,6 +33,34 @@ public sealed class VolumeData
         : this(width, height, depth, (values ?? throw new ArgumentNullException(nameof(values))).Length)
     {
         _words = values;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="VolumeData"/> class with 16 bits per value and a linear scale, as
+    /// stored by scanners: each value is <paramref name="slope"/> × stored value + <paramref name="intercept"/>. This keeps
+    /// two bytes per value where floating point values would take four.
+    /// </summary>
+    /// <param name="values">The stored values, row by row and slice by slice.</param>
+    /// <param name="width">The number of values along the first axis.</param>
+    /// <param name="height">The number along the second axis.</param>
+    /// <param name="depth">The number along the third axis.</param>
+    /// <param name="slope">The factor of a stored value.</param>
+    /// <param name="intercept">The value of a stored zero.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The slope is zero or not finite, or the intercept is not finite.</exception>
+    public VolumeData(ushort[] values, int width, int height, int depth, double slope, double intercept)
+        : this(values, width, height, depth)
+    {
+        if (slope == 0 || !double.IsFinite(slope))
+        {
+            throw new ArgumentOutOfRangeException(nameof(slope), slope, "The slope must be finite and not zero.");
+        }
+
+        if (!double.IsFinite(intercept))
+        {
+            throw new ArgumentOutOfRangeException(nameof(intercept), intercept, "The intercept must be finite.");
+        }
+
+        (_slope, _intercept) = (slope, intercept);
     }
 
     /// <summary>Initializes a new instance of the <see cref="VolumeData"/> class with floating point values.</summary>
@@ -122,7 +152,7 @@ public sealed class VolumeData
             return _bytes[at];
         }
 
-        return _words is not null ? _words[at] : _floats![at];
+        return _words is not null ? (_words[at] * _slope) + _intercept : _floats![at];
     }
 
     private DoubleRange FindRange()
@@ -177,6 +207,7 @@ public sealed class Volume3D(VolumeData data, DoubleRange x, DoubleRange y, Doub
     private const double HalfCovered = 0.5;
 
     private long _stamp;
+    private int _loaded;
     private double _isoShare = 0.5;
     private DoubleRange? _colorRange;
     private Colormap _colormap = Colormaps.Viridis;
@@ -276,6 +307,43 @@ public sealed class Volume3D(VolumeData data, DoubleRange x, DoubleRange y, Doub
 
     /// <summary>Gets a value indicating whether all values have reached the GPU.</summary>
     public bool IsReady { get; internal set; }
+
+    /// <summary>
+    /// Gets the bytes the volume may take on the graphics card, or <see langword="null"/> for 60 % of its memory
+    /// (2 GiB where the system does not tell the memory). A volume above it shows with less precision or fewer values,
+    /// see <see cref="GpuFit"/>.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The limit is not positive.</exception>
+    public long? GpuMemoryLimit
+    {
+        get;
+        init
+        {
+            if (value is { } limit)
+            {
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+            }
+
+            field = value;
+        }
+    }
+
+    /// <summary>Gets how the volume fits on the graphics card, or <see langword="null"/> before it first shows.</summary>
+    public VolumeGpuFit? GpuFit { get; private set; }
+
+    /// <summary>Occurs once the volume has its place on the graphics card, on the render thread; see <see cref="GpuFit"/>.</summary>
+    public event Action<VolumeGpuFit>? GpuFitChosen;
+
+    /// <summary>Gets the share of the slices on the GPU, from 0 to 1.</summary>
+    internal double Progress => Data.Depth == 0 ? 1 : Math.Min(1, Volatile.Read(ref _loaded) / (double)Data.Depth);
+
+    internal void SetLoaded(int slices) => Volatile.Write(ref _loaded, slices);
+
+    internal void SetFit(VolumeGpuFit fit)
+    {
+        GpuFit = fit;
+        GpuFitChosen?.Invoke(fit);
+    }
 
     /// <summary>Gets a number that changes as new slices arrive.</summary>
     internal long Stamp => Interlocked.Read(ref _stamp);

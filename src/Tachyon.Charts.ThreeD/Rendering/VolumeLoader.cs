@@ -21,11 +21,17 @@ internal sealed class VolumeLoader(Volume3D volume, int bytesPerFrame = 1 << 23)
         }
 
         var bytesPerSlice = data.Width * data.Height * (data.IsBytes ? 1 : sizeof(float));
-        for (var written = 0; written < bytesPerFrame && _next < data.Depth; written += bytesPerSlice)
+        for (var written = 0; written < bytesPerFrame && _next < data.Depth; _next++)
         {
-            Write(data, target, _next++);
+            // A volume reduced on the GPU skips the slices it does not keep.
+            if (target.Keeps(_next))
+            {
+                Write(data, target, _next);
+                written += bytesPerSlice;
+            }
         }
 
+        volume.SetLoaded(_next);
         volume.IsReady = _next >= data.Depth;
         volume.Touch();
     }

@@ -63,6 +63,10 @@ public sealed unsafe partial class WebGpuRenderDevice : IRenderDevice
         MinUniformOffsetAlignment = limits.Limits.MinUniformBufferOffsetAlignment;
         HasFilterableFloat32 = Api.DeviceHasFeature(device, Float32Filterable);
         MaxStorageBinding = limits.Limits.MaxStorageBufferBindingSize;
+        MaxTextureDimension3D = limits.Limits.MaxTextureDimension3D;
+        Native.AdapterProperties properties = default;
+        Api.AdapterGetProperties(adapter, &properties);
+        GraphicsMemory = properties.AdapterType == Native.AdapterType.Cpu ? 0 : GraphicsMemoryProbe.Find(properties.VendorID, properties.DeviceID);
         Capabilities = new DeviceCapabilities
         {
             BackendName = $"WebGPU ({adapterName})",
@@ -120,6 +124,45 @@ public sealed unsafe partial class WebGpuRenderDevice : IRenderDevice
     internal uint MinUniformOffsetAlignment { get; }
 
     internal ulong MaxStorageBinding { get; }
+
+    /// <summary>Gets the largest side of a 3D texture.</summary>
+    internal uint MaxTextureDimension3D { get; }
+
+    /// <summary>Gets the memory of the graphics card in bytes, or 0 where the system does not tell.</summary>
+    internal long GraphicsMemory { get; }
+
+    /// <summary>
+    /// Creates a texture, or returns <see langword="null"/> when the graphics card has no memory or no room for it.
+    /// Validation errors still surface as usual.
+    /// </summary>
+    /// <param name="descriptor">The texture.</param>
+    /// <returns>The texture, or <see langword="null"/>.</returns>
+    internal Native.Texture* TryCreateTexture(Native.TextureDescriptor* descriptor)
+    {
+        var capture = new ErrorCapture();
+        var captureHandle = GCHandle.Alloc(capture);
+        try
+        {
+            Api.DevicePushErrorScope(_device, Native.ErrorFilter.OutOfMemory);
+            var texture = Api.DeviceCreateTexture(_device, descriptor);
+            Api.DevicePopErrorScope(_device, new Native.PfnErrorCallback(&OnErrorScopePopped), (void*)GCHandle.ToIntPtr(captureHandle));
+            if (capture.Message is null)
+            {
+                return texture;
+            }
+
+            if (texture is not null)
+            {
+                Api.TextureRelease(texture);
+            }
+
+            return null;
+        }
+        finally
+        {
+            captureHandle.Free();
+        }
+    }
 
     internal FrameRecorder Recorder => _recorder!;
 

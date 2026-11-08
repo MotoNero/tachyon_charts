@@ -371,6 +371,14 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
             }
         }
 
+        foreach (var volume in scene.Volumes)
+        {
+            if (!volume.IsReady)
+            {
+                text.Add("Loading volume", volume.Progress * 100, "F0", "%");
+            }
+        }
+
         _renderer?.WriteMemory(text);
     }
 
@@ -403,7 +411,8 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
 
         // Steps per voxel: the view may lose quality while it moves, but not the picture its shape.
         var (low, high) = volume.GetBox(scene);
-        var voxel = (high.X - low.X) / volume.Data.Width;
+        // A volume reduced on the GPU has bigger voxels, so the rays take fewer steps.
+        var voxel = (high.X - low.X) / volume.Data.Width * (volume.GpuFit?.Reduction ?? 1);
         // A surface must not slip through between two steps, so it never takes less than one step per voxel.
         var coarse = volume.Mode == VolumeMode.Surface ? 1 : CoarseSteps;
         var ratio = 1 / (isCoarse ? coarse : FineSteps);

@@ -11,6 +11,11 @@ internal interface IVolumeTarget
     /// <summary>Gets a value indicating whether 32 bits per value reach the GPU exactly.</summary>
     bool IsExact { get; }
 
+    /// <summary>Gets a value indicating whether the texture keeps a slice; a reduced volume keeps every n-th.</summary>
+    /// <param name="z">The slice.</param>
+    /// <returns><see langword="true"/> when the slice is to be written.</returns>
+    bool Keeps(int z);
+
     /// <summary>Writes a slice of shares.</summary>
     /// <param name="z">The slice.</param>
     /// <param name="shares">The values.</param>
@@ -74,7 +79,7 @@ internal sealed unsafe partial class Renderer3D
     {
         if (!_volumes.TryGetValue(volume, out var buffer))
         {
-            buffer = new VolumeBuffer(this, volume.Data, colors);
+            buffer = new VolumeBuffer(this, volume, colors);
             _volumes[volume] = buffer;
         }
         else if (!colors.IsEmpty)
@@ -251,29 +256,53 @@ internal sealed unsafe partial class Renderer3D
         private readonly Native.Buffer* _transfer;
         private Native.BindGroup* _marchGroup;
         private readonly ulong _colorBytes;
+        private readonly int _reduction;
+        private readonly int _width;
+        private readonly int _height;
+        private readonly int _depth;
         private Half[] _halves = [];
+        private float[] _reducedShares = [];
+        private byte[] _reducedBytes = [];
+        private float[] _byteValues = [];
         private VolumeUniforms _values;
 
         /// <summary>Gets the bytes it holds on the graphics card.</summary>
         public long Bytes { get; }
 
-        public VolumeBuffer(Renderer3D owner, VolumeData data, ReadOnlySpan<Vector4> colors)
+        public VolumeBuffer(Renderer3D owner, Volume3D volume, ReadOnlySpan<Vector4> colors)
         {
+            var data = volume.Data;
             (_owner, _data) = (owner, data);
-            IsExact = owner._device.HasFilterableFloat32;
-            _format = PickFormat(data, IsExact);
-            var voxelBytes = _format == Native.TextureFormat.R8Unorm ? 1L : _format == Native.TextureFormat.R16float ? 2L : 4L; // NOSONAR: three cases of one choice
-            Bytes = ((long)data.Width * data.Height * data.Depth * voxelBytes) + (colors.Length * 16L) + TransferBytes;
-            var texture = new Native.TextureDescriptor
+            var device = owner._device;
+            var budget = VolumeFit.Budget(volume.GpuMemoryLimit, device.GraphicsMemory);
+            while (true)
             {
-                Usage = Native.TextureUsage.TextureBinding | Native.TextureUsage.CopyDst,
-                Dimension = Native.TextureDimension.Dimension3D,
-                Size = new Native.Extent3D((uint)data.Width, (uint)data.Height, (uint)data.Depth),
-                Format = _format,
-                MipLevelCount = 1,
-                SampleCount = 1,
-            };
-            _texture = Api.DeviceCreateTexture(owner._device.Device, &texture);
+                var fit = VolumeFit.Choose(data.Width, data.Height, data.Depth, data.IsBytes, device.HasFilterableFloat32, device.MaxTextureDimension3D, budget, device.GraphicsMemory);
+                (_reduction, IsExact) = (fit.Reduction, fit.IsExact);
+                _format = data.IsBytes ? Native.TextureFormat.R8Unorm : fit.IsExact ? Native.TextureFormat.R32float : Native.TextureFormat.R16float;
+                (_width, _height, _depth) = (VolumeFit.Reduce(data.Width, _reduction), VolumeFit.Reduce(data.Height, _reduction), VolumeFit.Reduce(data.Depth, _reduction));
+                var texture = new Native.TextureDescriptor
+                {
+                    Usage = Native.TextureUsage.TextureBinding | Native.TextureUsage.CopyDst,
+                    Dimension = Native.TextureDimension.Dimension3D,
+                    Size = new Native.Extent3D((uint)_width, (uint)_height, (uint)_depth),
+                    Format = _format,
+                    MipLevelCount = 1,
+                    SampleCount = 1,
+                };
+
+                // The card may still refuse the memory; then the next smaller fit.
+                _texture = device.TryCreateTexture(&texture);
+                if (_texture is not null || fit.Bytes <= 1)
+                {
+                    Bytes = fit.Bytes + (colors.Length * 16L) + TransferBytes;
+                    volume.SetFit(fit with { Budget = budget });
+                    break;
+                }
+
+                budget = fit.Bytes - 1;
+            }
+
             _view = Api.TextureCreateView(_texture, null);
             var colorBytes = MemoryMarshal.AsBytes(colors);
             _colorBytes = (ulong)colorBytes.Length;
@@ -306,8 +335,15 @@ internal sealed unsafe partial class Renderer3D
 
         public bool Marches { get; private set; }
 
+        public bool Keeps(int z) => z % _reduction == 0;
+
         public void Write(int z, ReadOnlySpan<float> shares)
         {
+            if (_reduction > 1)
+            {
+                shares = Reduce(shares, ref _reducedShares);
+            }
+
             if (_format == Native.TextureFormat.R32float)
             {
                 fixed (float* source = shares)
@@ -336,10 +372,67 @@ internal sealed unsafe partial class Renderer3D
 
         public void Write(int z, ReadOnlySpan<byte> bytes)
         {
+            if (_reduction > 1)
+            {
+                if (_byteValues.Length < bytes.Length)
+                {
+                    _byteValues = new float[bytes.Length];
+                }
+
+                for (var i = 0; i < bytes.Length; i++)
+                {
+                    _byteValues[i] = bytes[i];
+                }
+
+                var means = Reduce(_byteValues.AsSpan(0, bytes.Length), ref _reducedShares);
+                if (_reducedBytes.Length < means.Length)
+                {
+                    _reducedBytes = new byte[means.Length];
+                }
+
+                for (var i = 0; i < means.Length; i++)
+                {
+                    _reducedBytes[i] = (byte)Math.Round(means[i]);
+                }
+
+                bytes = _reducedBytes.AsSpan(0, means.Length);
+            }
+
             fixed (byte* source = bytes)
             {
                 WriteSlice(z, source, (nuint)bytes.Length, 1);
             }
+        }
+
+        // The mean of each square of reduction × reduction values in the slice; the slices between are left out.
+        private ReadOnlySpan<float> Reduce(ReadOnlySpan<float> slice, ref float[] store)
+        {
+            var count = _width * _height;
+            if (store.Length < count)
+            {
+                store = new float[count];
+            }
+
+            var target = store;
+            for (var row = 0; row < _height; row++)
+            {
+                for (var column = 0; column < _width; column++)
+                {
+                    var (sum, n) = (0.0, 0);
+                    for (var y = row * _reduction; y < Math.Min((row + 1) * _reduction, _data.Height); y++)
+                    {
+                        for (var x = column * _reduction; x < Math.Min((column + 1) * _reduction, _data.Width); x++)
+                        {
+                            sum += slice[(y * _data.Width) + x];
+                            n++;
+                        }
+                    }
+
+                    target[(row * _width) + column] = (float)(sum / n);
+                }
+            }
+
+            return target.AsSpan(0, count);
         }
 
         public void SetPlace(Vector3 low, Vector3 high, Vector4 slices, Vector2 colorRange)
@@ -437,22 +530,11 @@ internal sealed unsafe partial class Renderer3D
             Api.TextureRelease(_texture);
         }
 
-        private static Native.TextureFormat PickFormat(VolumeData data, bool isExact)
-        {
-            if (data.IsBytes)
-            {
-                return Native.TextureFormat.R8Unorm;
-            }
-
-            // Filtering 32-bit floats is an optional feature. Without it, 16-bit floats keep about 11 bits of a value.
-            return isExact ? Native.TextureFormat.R32float : Native.TextureFormat.R16float;
-        }
-
         private void WriteSlice(int z, void* source, nuint bytes, int bytesPerValue)
         {
-            var layout = new Native.TextureDataLayout { BytesPerRow = (uint)(_data.Width * bytesPerValue), RowsPerImage = (uint)_data.Height };
-            var extent = new Native.Extent3D((uint)_data.Width, (uint)_data.Height, 1);
-            var destination = new Native.ImageCopyTexture { Texture = _texture, Origin = new Native.Origin3D(0, 0, (uint)z), Aspect = Native.TextureAspect.All };
+            var layout = new Native.TextureDataLayout { BytesPerRow = (uint)(_width * bytesPerValue), RowsPerImage = (uint)_height };
+            var extent = new Native.Extent3D((uint)_width, (uint)_height, 1);
+            var destination = new Native.ImageCopyTexture { Texture = _texture, Origin = new Native.Origin3D(0, 0, (uint)(z / _reduction)), Aspect = Native.TextureAspect.All };
             Api.QueueWriteTexture(_owner._device.Queue, &destination, source, bytes, &layout, &extent);
         }
     }

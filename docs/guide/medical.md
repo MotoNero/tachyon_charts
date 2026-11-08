@@ -155,6 +155,20 @@ histogramChart.Configure(histogram.Configure);
 - **Profile:** samples every half pixel along the line, blended from the four nearest pixels; the distance from the start of the line runs across in millimetres. `Data` holds the samples for the application.
 - **Histogram:** 512 bins over all values of the image, so histograms of different regions compare directly. The grayscale window shows as a band, and the view shows the window and half its width on each side; both follow every change of the window. `Current` holds the counts.
 
+## Large series
+
+A CT series of 1024 × 1024 × 1000 values of 16 bits takes about 2.1 GB of memory. Series with a rescale slope and intercept stay at two bytes per value; the scale is applied when a value is read. On the graphics card a volume takes four bytes per value when the card filters 32-bit floats, so the same series needs 4.2 GB there.
+
+Each volume gets a budget of 60 % of the graphics memory, or 2 GiB where the system does not report it (the memory is detected on Windows). A volume above its budget first keeps its resolution with 16-bit floats, about 11 bits per value. If it still does not fit, it shows every second, third … value along each axis. The 3D chart then says so in a line above the volume and shows a progress bar while the slices arrive. Slices, measurements, profiles and histograms always read the full volume on the CPU.
+
+```csharp
+var volume = new Volume3D(data, x, y, z) { GpuMemoryLimit = 3_000_000_000 };  // optional, bytes
+volume.GpuFitChosen += fit => log.Information(fit.Message);                   // also volume.GpuFit
+long gpuBytes = Volume3D.EstimateMemory(1024, 1024, 1000, 4);                  // before loading
+```
+
+On a laptop with an 8 GB card, the 1024 × 1024 × 1000 series loads from 1000 DICOM files in a few seconds. It reaches the card exactly, and turning in 3D, moving through the slices and windowing all run at the refresh rate of a 60 Hz screen.
+
 ## Package boundary
 
 The medical package builds on `Tachyon.Charts.ThreeD`, which in turn builds on the platform-neutral chart core. The regular 2D and 3D packages do not reference the medical package, so applications that do not install it receive no medical-data API.

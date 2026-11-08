@@ -247,9 +247,25 @@ public static class DicomReader
             return new PixelBuffer(words);
         }
 
-        var values = new float[count];
         var mask = metadata.BitsStored == 16 ? 0xFFFFu : (1u << metadata.BitsStored) - 1;
         var sign = 1u << (metadata.BitsStored - 1);
+
+        // 16-bit images keep two bytes per value with the scale beside them; signed values move up by 32768.
+        if (metadata.BitsAllocated == 16 && metadata.RescaleSlope != 0)
+        {
+            var words = new ushort[count];
+            var lift = metadata.IsSigned ? 32768 : 0;
+            for (var i = 0; i < count; i++)
+            {
+                var bits = ((uint)ReadWord(raw.AsSpan(i * 2, 2), little) >> shift) & mask;
+                var decoded = metadata.IsSigned && (bits & sign) != 0 ? (int)bits - (1 << metadata.BitsStored) : (int)bits;
+                words[i] = (ushort)(decoded + lift);
+            }
+
+            return new PixelBuffer(words, metadata.RescaleSlope, metadata.RescaleIntercept - (lift * metadata.RescaleSlope));
+        }
+
+        var values = new float[count];
         for (var i = 0; i < count; i++)
         {
             var stored = metadata.BitsAllocated == 8 ? raw[i] : ReadWord(raw.AsSpan(i * 2, 2), little);

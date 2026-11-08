@@ -124,7 +124,7 @@ public static class DicomSeriesReader
         var kind = slices[0].Pixels.Kind;
         for (var i = 1; i < slices.Count; i++)
         {
-            if (slices[i].Pixels.Kind != kind)
+            if (slices[i].Pixels.Kind != kind || slices[i].Pixels.Slope != slices[0].Pixels.Slope || slices[i].Pixels.Intercept != slices[0].Pixels.Intercept)
             {
                 kind = PixelBufferKind.Float;
                 break;
@@ -148,7 +148,7 @@ public static class DicomSeriesReader
                     slices[i].Pixels.CopyTo(words, i * sliceLength);
                 }
 
-                return new VolumeData(words, width, height, slices.Count);
+                return new VolumeData(words, width, height, slices.Count, slices[0].Pixels.Slope, slices[0].Pixels.Intercept);
             default:
                 var values = new float[length];
                 for (var i = 0; i < slices.Count; i++)

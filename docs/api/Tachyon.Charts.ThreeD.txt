@@ -331,6 +331,7 @@ sealed class Tachyon.Charts.ThreeD.Scene.Volume3D
   System.Boolean ShowsSlices { get; set; }
   System.Double IsoValue { get; set; }
   System.Double SliceThreshold { get; set; }
+  System.Nullable<System.Int64> GpuMemoryLimit { get; set; }
   System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> ColorRange { get; set; }
   Tachyon.Charts.Core.Colors.Colormap Colormap { get; set; }
   Tachyon.Charts.Core.Numerics.DoubleRange X { get; }
@@ -342,17 +343,30 @@ sealed class Tachyon.Charts.ThreeD.Scene.Volume3D
   Tachyon.Charts.ThreeD.Scene.Material3D Material { get; set; }
   Tachyon.Charts.ThreeD.Scene.TransferFunction3D Transfer { get; set; }
   Tachyon.Charts.ThreeD.Scene.VolumeData Data { get; }
+  Tachyon.Charts.ThreeD.Scene.VolumeGpuFit GpuFit { get; }
   Tachyon.Charts.ThreeD.Scene.VolumeMode Mode { get; set; }
+  event System.Action<Tachyon.Charts.ThreeD.Scene.VolumeGpuFit> GpuFitChosen
 sealed class Tachyon.Charts.ThreeD.Scene.VolumeData
   .ctor(System.Byte[] values, System.Int32 width, System.Int32 height, System.Int32 depth)
   .ctor(System.Single[] values, System.Int32 width, System.Int32 height, System.Int32 depth)
   .ctor(System.UInt16[] values, System.Int32 width, System.Int32 height, System.Int32 depth)
+  .ctor(System.UInt16[] values, System.Int32 width, System.Int32 height, System.Int32 depth, System.Double slope, System.Double intercept)
   System.Double Item[System.Int32, System.Int32, System.Int32] { get; }
   System.Int32 Depth { get; }
   System.Int32 Height { get; }
   System.Int32 Width { get; }
   Tachyon.Charts.Core.Numerics.DoubleRange ValueRange { get; }
   static System.Int64 EstimateMemory(System.Int32 width, System.Int32 height, System.Int32 depth, System.Int32 bytesPerValue)
+sealed class Tachyon.Charts.ThreeD.Scene.VolumeGpuFit : System.IEquatable<Tachyon.Charts.ThreeD.Scene.VolumeGpuFit>
+  .ctor(System.Int32 Reduction, System.Boolean IsExact, System.Int64 Bytes, System.Int64 FullBytes, System.Int64 Budget, System.Int64 GraphicsMemory)
+  System.Boolean IsExact { get; set; }
+  System.Boolean IsReduced { get; }
+  System.Int32 Reduction { get; set; }
+  System.Int64 Budget { get; set; }
+  System.Int64 Bytes { get; set; }
+  System.Int64 FullBytes { get; set; }
+  System.Int64 GraphicsMemory { get; set; }
+  System.String Message { get; }
 enum Tachyon.Charts.ThreeD.Scene.VolumeMode : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Maximum = 1
   Surface = 2
