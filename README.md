@@ -29,7 +29,7 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 - **Scientific types:** Smith chart, ternary plot, parallel coordinates, polar, radar, heatmap with cells of their own sizes, contour with labels along the lines
 - **Finance:** candles, OHLC bars, volume, market profile and drawing tools
 - **3D as an add-on:** surfaces, waterfalls, antenna patterns, point clouds of 100 million points, volumes and models from STL and OBJ files, live and with values under the pointer
-- **Medical data as an add-on:** privacy-first DICOM and NIfTI reading, linked axial, coronal, sagittal and 3D views, segmentations, measurements in millimetres, profiles and histograms, CT series up to 1024 × 1024 × 1000, phantoms and freely licensed sample data on request, without patient-information APIs
+- **Medical data as an add-on:** privacy-first DICOM and NIfTI reading, linked axial, coronal, sagittal and 3D views, segmentations, measurements in millimetres, profiles and histograms, oblique and curved sections, CT series up to 1024 × 1024 × 1000, phantoms and freely licensed sample data on request, without patient-information APIs
 - **Runs everywhere:** GPU, software adapter or CPU, chosen automatically, also over remote desktop
 - **Ready for reports:** export to PNG, SVG, PDF and CSV, clipboard and printing, MP4 videos of 2D and 3D charts
 
@@ -207,6 +207,12 @@ Measurements work on every image and MPR plane: distances in millimetres, angles
 
 ![An axial slice of the synthetic thorax in the lung window: lungs with branching vessels, heart, aorta and spine](docs/images/medical-thorax-phantom.png)
 
+| Oblique plane through a line | Curved section along the ribs |
+|---|---|
+| ![A plane standing upright on a line across the synthetic thorax: lungs, heart and ribs](docs/images/medical-oblique.png) | ![The chest wall of the synthetic thorax stretched flat: ribs as bands, the sternum in the middle](docs/images/medical-curved.png) |
+
+Planes at any angle follow a line drawn on a slice or face the 3D view, and a curved section follows a drawn line through all slices, stretched flat.
+
 Synthetic head and thorax volumes come with the package (`MedicalPhantoms`), free of any personal data. For real data, `MedicalSampleDataset` downloads a chest CT (LIDC-IDRI, CC BY 3.0) or a defaced head MRI (OpenNeuro ds000001, CC0) on request, with progress and a SHA-256 check; nothing is bundled. `NiftiImageReader` reads NIfTI-1 research images. Large series up to 1024 × 1024 × 1000 values stay at two bytes per value, and each volume fits itself to the graphics memory and says how.
 
 Tachyon Charts is not a medical device and is not approved or certified for diagnosis or therapy under the EU Medical Device Regulation (MDR). The application developer and operator remain responsible for the intended use, validation, privacy and every applicable regulatory requirement. See [Medical data and privacy](docs/guide/medical.md).
@@ -349,7 +355,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Polygons](docs/guide/polygons.md) | Polygons with holes, heatmaps inside an area |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
 | [Code signing policy](docs/guide/code-signing.md) | How the showroom apps are signed, who approves, privacy |
-| [Medical data and privacy](docs/guide/medical.md) | Reading, MPR, segmentations, measurements, sample data, large series, data minimisation and regulatory scope |
+| [Medical data and privacy](docs/guide/medical.md) | Reading, MPR, segmentations, measurements, oblique and curved sections, sample data, large series, data minimisation and regulatory scope |
 | [docs/api](docs/api) | Public API lists |
 
 ## License

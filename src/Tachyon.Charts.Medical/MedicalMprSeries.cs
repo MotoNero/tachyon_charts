@@ -12,7 +12,7 @@ internal sealed class MedicalMprSeries : ChartSeries, IDisposable
 {
     private readonly ColormapTexture _table = new();
     private readonly MedicalMprDisplay _display;
-    private readonly MedicalMprSliceBuffer _buffer;
+    private readonly IMedicalPixels _buffer;
     private readonly ColorAxis _scale;
     private readonly DoubleRange _xRange;
     private readonly DoubleRange _yRange;
@@ -23,12 +23,12 @@ internal sealed class MedicalMprSeries : ChartSeries, IDisposable
     private Vector2 _sectionOrigin;
     private Vector2 _sectionSize;
 
-    public MedicalMprSeries(MedicalMprDisplay display, MedicalMprSliceBuffer buffer, AxisBase xAxis, AxisBase yAxis)
+    public MedicalMprSeries(MedicalMprDisplay display, IMedicalPixels buffer, AxisBase xAxis, AxisBase yAxis)
         : this(display, buffer, xAxis, yAxis, CreateColorAxis(display))
     {
     }
 
-    private MedicalMprSeries(MedicalMprDisplay display, MedicalMprSliceBuffer buffer, AxisBase xAxis, AxisBase yAxis, ColorAxis scale)
+    private MedicalMprSeries(MedicalMprDisplay display, IMedicalPixels buffer, AxisBase xAxis, AxisBase yAxis, ColorAxis scale)
         : base(xAxis, yAxis)
     {
         _display = display;

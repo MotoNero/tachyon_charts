@@ -42,6 +42,7 @@ public static class Pages3D
         new(MedicalMprPage.Name, MedicalMprPage.Hint, MedicalMprPage.Configure, GridCompanions: MedicalMprPage.Slices),
         new(MedicalAnalysisPage.Name, MedicalAnalysisPage.Hint, MedicalAnalysisPage.Configure, GridCompanions: MedicalAnalysisPage.Charts),
         new(MedicalThoraxPage.Name, MedicalThoraxPage.Hint, MedicalThoraxPage.Configure, GridCompanions: MedicalThoraxPage.Slices),
+        new(MedicalReformatPage.Name, MedicalReformatPage.Hint, MedicalReformatPage.Configure, GridCompanions: MedicalReformatPage.Charts),
         new(MedicalChestCtPage.Name, MedicalChestCtPage.Hint, MedicalChestCtPage.Configure, GridCompanions: MedicalChestCtPage.Slices, Download: MedicalChestCtPage.DownloadAsync),
         new(MedicalHeadMriPage.Name, MedicalHeadMriPage.Hint, MedicalHeadMriPage.Configure, GridCompanions: MedicalHeadMriPage.Slices, Download: MedicalHeadMriPage.DownloadAsync),
         new(ThroughAVolume512Page.Name, ThroughAVolume512Page.Hint, ThroughAVolume512Page.Configure),

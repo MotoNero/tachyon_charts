@@ -120,6 +120,8 @@ public static class SampleText
         ["Medical measurements"] = "Medizinische Messungen",
         ["Medical analysis"] = "Medizinische Analyse",
         ["Medical thorax phantom"] = "Medizinisches Thorax-Phantom",
+        ["Medical oblique and curved"] = "Medizin: schräge und gekrümmte Schnitte",
+        ["Drag an end of the line: the oblique plane follows | Drag a point of the arc: the curved section follows | Wheel on the oblique plane: move it | Key V on the oblique plane: it faces the 3D view | Drag elsewhere: window"] = "Linienende ziehen: die schräge Ebene folgt | Punkt des Bogens ziehen: der gekrümmte Schnitt folgt | Mausrad auf der schrägen Ebene: verschieben | Taste V auf der schrägen Ebene: zur 3D-Ansicht drehen | Sonst ziehen: Fensterung",
         ["Medical chest CT (real data)"] = "Medizinisches Thorax-CT (echte Daten)",
         ["Medical head MRI (real data)"] = "Medizinisches Kopf-MRT (echte Daten)",
         ["Button 'Download data': loads the real data, the phantom shows until then | Data: LIDC-IDRI, The Cancer Imaging Archive, doi:10.7937/K9/TCIA.2015.LO9QL9SX, CC BY 3.0; cite the data, never identify a person | Wheel: slices | Drag: window/level"] = "Schaltfläche „Daten laden“: lädt die echten Daten, bis dahin das Phantom | Daten: LIDC-IDRI, The Cancer Imaging Archive, doi:10.7937/K9/TCIA.2015.LO9QL9SX, CC BY 3.0; Quelle nennen, niemals Personen identifizieren | Mausrad: Schichten | Ziehen: Fensterung",

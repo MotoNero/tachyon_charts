@@ -75,6 +75,10 @@ public sealed class MedicalMprSlice
 
     internal void Update(Point3D position) => _buffer.Update(position);
 
+    internal MedicalMprSliceBuffer Buffer => _buffer;
+
+    internal MedicalMprDisplay Display => _display;
+
     // The slices of the plane, read straight from the volume.
     private sealed class MeasurementSource : IMedicalMeasurementSource
     {

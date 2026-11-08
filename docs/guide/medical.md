@@ -155,6 +155,24 @@ histogramChart.Configure(histogram.Configure);
 - **Profile:** samples every half pixel along the line, blended from the four nearest pixels; the distance from the start of the line runs across in millimetres. `Data` holds the samples for the application.
 - **Histogram:** 512 bins over all values of the image, so histograms of different regions compare directly. The grayscale window shows as a band, and the view shows the window and half its width on each side; both follow every change of the window. `Current` holds the counts.
 
+## Oblique and curved sections
+
+`MedicalObliqueSlice` shows a plane at any angle through the volume of an MPR display, and `MedicalCurvedSlice` shows a section along a line drawn on an orthogonal plane, stretched flat. Both sample the eight nearest voxels and share the window of the display; dragging in their charts sets window and level.
+
+```csharp
+var oblique = new MedicalObliqueSlice(mpr);
+oblique.FollowLine(mpr.Axial);            // stands upright on the axial plane through the distance last touched
+oblique.ViewCamera = chart3D.Scene.Camera; // key V on the oblique chart turns the plane to face the 3D view
+obliqueChart.Configure(oblique.Configure);
+chart3D.Configure(c => { mpr.Configure3D(c); oblique.Configure3D(c); }); // outline of the plane in 3D
+
+var curved = new MedicalCurvedSlice(mpr.Axial); // follows the distance, angle or freehand line last touched
+curvedChart.Configure(curved.Configure);
+```
+
+- **Oblique plane:** `SetPlane(center, normal)` places it, `Move(mm)` and the wheel move it along its normal, `AlignToView(camera)` turns it to face the eye of a 3D chart. Its picture is a square that holds the volume in any direction; the chart opens on the part with values.
+- **Curved section:** across goes the length along the line, down goes the depth of the volume across the plane, through all of its slices, for example the ribs along the chest wall or a vessel. `Length` gives the length of the line.
+
 ## Sample data
 
 `MedicalPhantoms.Head()` and `MedicalPhantoms.Thorax()` build synthetic CT volumes from simple shapes with typical Hounsfield units: a skull with brain, ventricles and a lesion, and a chest with lungs, branching vessels, a nodule, heart, aorta, spine, ribs and sternum. They hold no data of any person and need no download.

@@ -17,7 +17,7 @@ public enum MedicalMprPlane
     Sagittal,
 }
 
-internal sealed class MedicalMprSliceBuffer
+internal sealed class MedicalMprSliceBuffer : IMedicalPixels
 {
     private readonly MedicalVolume _volume;
     private readonly object _gate = new();

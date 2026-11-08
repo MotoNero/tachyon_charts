@@ -56,8 +56,8 @@ public static class MedicalPhantoms
         var stored = new ushort[Width * Height * Depth];
         Parallel.For(0, Depth, slice =>
         {
-            // From the top of the chest (0) to the diaphragm (1).
-            var z = slice / (double)(Depth - 1);
+            // From the top of the chest (0) to the diaphragm (1); the slices count upwards in the patient, so the last is the top.
+            var z = 1 - (slice / (double)(Depth - 1));
             for (var row = 0; row < Height; row++)
             {
                 var y = (row - (Height / 2.0)) / (Height / 2.0);
@@ -95,7 +95,7 @@ public static class MedicalPhantoms
         return value + (float)(10 * Math.Sin((x * 8) + (y * 5) + (z * 4)));
     }
 
-    // x to the left of the patient, y backwards, z downwards; all in shares of the half width.
+    // x to the left of the patient, y backwards, z downwards from the top of the chest; x and y in shares of the half width.
     private static double ThoraxValue(double x, double y, double z)
     {
         var body = Square(x / 0.92) + Square(y / 0.66);

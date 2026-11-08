@@ -31,6 +31,14 @@ sealed class Tachyon.Charts.Medical.MedicalCinePlayer
   System.Void Toggle(Tachyon.Charts.Medical.MedicalMprPlane plane)
   Tachyon.Charts.Medical.MedicalMprPlane Plane { get; }
   event System.Action StateChanged
+sealed class Tachyon.Charts.Medical.MedicalCurvedSlice
+  .ctor(Tachyon.Charts.Medical.MedicalMprSlice slice)
+  System.Double Length { get; }
+  System.Double PixelSpacing { get; }
+  System.Void Configure(Tachyon.Charts.Core.Fluent.ChartBuilder chart)
+  Tachyon.Charts.Medical.MedicalMeasurement Path { get; set; }
+  Tachyon.Charts.Medical.MedicalMeasurement Shown { get; }
+  event System.Action Changed
 struct Tachyon.Charts.Medical.MedicalDownloadProgress : System.IEquatable<Tachyon.Charts.Medical.MedicalDownloadProgress>
   .ctor(System.Int64 Bytes, System.Nullable<System.Int64> Total)
   System.Int64 Bytes { get; set; }
@@ -152,6 +160,22 @@ sealed class Tachyon.Charts.Medical.MedicalMprSlice
   Tachyon.Charts.Medical.MedicalMprPlane Plane { get; }
   Tachyon.Charts.Medical.MedicalOrientationMarks OrientationMarks { get; }
   Tachyon.Charts.Medical.PatientOrientation Orientation { get; }
+sealed class Tachyon.Charts.Medical.MedicalObliqueSlice
+  .ctor(Tachyon.Charts.Medical.MedicalMprDisplay display)
+  System.Double PixelSpacing { get; }
+  System.Int32 Size { get; }
+  System.Void AlignToView(Tachyon.Charts.ThreeD.Scene.Camera3D camera)
+  System.Void Configure(Tachyon.Charts.Core.Fluent.ChartBuilder chart)
+  System.Void Configure3D(Tachyon.Charts.ThreeD.Chart3DBuilder chart)
+  System.Void FollowLine(Tachyon.Charts.Medical.MedicalMprSlice slice)
+  System.Void Move(System.Double millimetres)
+  System.Void SetPlane(Tachyon.Charts.ThreeD.Scene.Point3D center, Tachyon.Charts.ThreeD.Scene.Point3D normal)
+  Tachyon.Charts.ThreeD.Scene.Camera3D ViewCamera { get; set; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Across { get; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Center { get; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Down { get; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Normal { get; }
+  event System.Action Changed
 struct Tachyon.Charts.Medical.MedicalOrientationMarks : System.IEquatable<Tachyon.Charts.Medical.MedicalOrientationMarks>
   .ctor(System.String Top, System.String Right, System.String Bottom, System.String Left)
   System.String Bottom { get; set; }
