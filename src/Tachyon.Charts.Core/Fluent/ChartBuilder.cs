@@ -514,7 +514,12 @@ public sealed record ChartDefinition(
             var x = Find(xAxes, series.XAxisId, "X");
             var y = Find(yAxes, series.YAxisId, "Y");
             var created = series.Create(x, y, Array.Find(colorAxes, item => ReferenceEquals(item.Series, series)).Axis);
-            created.Name = series.Name;
+            // A series made by a factory may name itself; a name from the description wins.
+            if (series.Name is not null)
+            {
+                created.Name = series.Name;
+            }
+
             created.ShowsLastValue |= series.ShowsLastValue;
             surface.AddSeries(created);
         }
