@@ -198,7 +198,11 @@ Integer segmentation maps can come from arrays, affine NIfTI-1 files or uncompre
 
 ![A distance, an angle, a circle and a freehand region on a synthetic head image, each with its result](docs/images/medical-measurements.png)
 
-Measurements work on every image and MPR plane: distances in millimetres, angles, and circles, rectangles and freehand regions with area, mean, standard deviation, minimum and maximum in the unit of the image. Uneven pixel spacing is part of every result, regions of one name on several slices give a volume, and all measurements can be edited, undone and saved as JSON.
+| Profile along a line | Histogram of a region |
+|---|---|
+| ![The values along a line through a synthetic head: air, bone, tissue, ventricles](docs/images/medical-profile.png) | ![The values of a round region in bins of about 4 HU, with the grayscale window as a band](docs/images/medical-histogram.png) |
+
+Measurements work on every image and MPR plane: distances in millimetres, angles, and circles, rectangles and freehand regions with area, mean, standard deviation, minimum and maximum in the unit of the image. Uneven pixel spacing is part of every result, regions of one name on several slices give a volume, and all measurements can be edited, undone and saved as JSON. A profile along a line and a histogram of a region or slice follow their measurement, the slice and the window live.
 
 Tachyon Charts is not a medical device and is not approved or certified for diagnosis or therapy under the EU Medical Device Regulation (MDR). The application developer and operator remain responsible for the intended use, validation, privacy and every applicable regulatory requirement. See [Medical data and privacy](docs/guide/medical.md).
 

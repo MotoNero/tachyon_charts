@@ -199,7 +199,12 @@ public sealed class MedicalMeasurementLayer : ChartOverlay
         }
     }
 
-    internal void Attach(AxisBase xAxis, AxisBase yAxis) => (_xAxis, _yAxis) = (xAxis, yAxis);
+    /// <summary>Joins a chart: the image lies on its first horizontal axis and the first axis of its pane, both in millimetres.</summary>
+    internal MedicalMeasurementLayer Attach(Core.Pipeline.ChartSurface chart)
+    {
+        (_xAxis, _yAxis) = (chart.HorizontalAxes[0], chart.Panes[0].Axes[0]);
+        return this;
+    }
 
     internal void Insert(MedicalMeasurement measurement, int index)
     {

@@ -21,17 +21,6 @@ internal sealed class MedicalMeasurementModifier(MedicalMeasurementLayer layer) 
     private bool _isDrawing;
 
     /// <inheritdoc />
-    protected override void OnAttached(ChartInteraction interaction) =>
-        interaction.Dispatch(() =>
-        {
-            // The image lies on the first horizontal axis and the first axis of the pane, both in millimetres.
-            _layer.Attach(interaction.Chart.HorizontalAxes[0], interaction.Chart.Panes[0].Axes[0]);
-            interaction.Chart.AddOverlay(_layer);
-        });
-
-    /// <inheritdoc />
-    protected override void OnDetached(ChartInteraction interaction) =>
-        interaction.Dispatch(() => interaction.Chart.RemoveOverlay(_layer));
 
     /// <inheritdoc />
     protected override ModifierResult OnPointer(in PointerInputEvent input)

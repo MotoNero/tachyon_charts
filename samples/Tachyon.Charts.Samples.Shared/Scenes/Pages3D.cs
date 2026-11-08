@@ -38,6 +38,7 @@ public static class Pages3D
         new(CloudOf100MillionPointsPage.Name, CloudOf100MillionPointsPage.Hint, CloudOf100MillionPointsPage.Configure),
         new(VolumeSlices512Page.Name, VolumeSlices512Page.Hint, VolumeSlices512Page.Configure),
         new(MedicalMprPage.Name, MedicalMprPage.Hint, MedicalMprPage.Configure, GridCompanions: MedicalMprPage.Slices),
+        new(MedicalAnalysisPage.Name, MedicalAnalysisPage.Hint, MedicalAnalysisPage.Configure, GridCompanions: MedicalAnalysisPage.Charts),
         new(ThroughAVolume512Page.Name, ThroughAVolume512Page.Hint, ThroughAVolume512Page.Configure),
         new(ObjectsInsideAVolumePage.Name, ObjectsInsideAVolumePage.Hint, ObjectsInsideAVolumePage.Configure),
         new(MaximumProjection512Page.Name, MaximumProjection512Page.Hint, MaximumProjection512Page.Configure),

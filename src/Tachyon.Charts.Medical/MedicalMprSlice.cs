@@ -24,7 +24,7 @@ public sealed class MedicalMprSlice
     private MedicalMeasurementLayer? _measurements;
 
     /// <summary>Gets the distances, angles and regions measured on this plane, each on its own slice. Regions of one name on several slices form a volume.</summary>
-    public MedicalMeasurementLayer Measurements => _measurements ??= new MedicalMeasurementLayer(new MeasurementSource(_buffer, _display.Unit));
+    public MedicalMeasurementLayer Measurements => _measurements ??= new MedicalMeasurementLayer(new MeasurementSource(_buffer, _display));
 
     internal MedicalMprSlice(MedicalMprDisplay display, MedicalMprSliceBuffer buffer)
     {
@@ -66,6 +66,7 @@ public sealed class MedicalMprSlice
             .AddSeries((x, y) => new MedicalMprSeries(_display, _buffer, x, y))
             .AddSeries((x, y) => new MedicalSegmentationSeries(_display, this, x, y))
             .AddOverlay(surface => new MedicalMprOverlay(this, surface.HorizontalAxes[0], surface.Panes[0].Axes[0]))
+            .AddOverlay(Measurements.Attach)
             .Modifiers(modifiers => modifiers
                 .Custom(() => new MedicalMeasurementModifier(Measurements))
                 .Custom(() => new MedicalMprModifier(this))
@@ -75,23 +76,45 @@ public sealed class MedicalMprSlice
     internal void Update(Point3D position) => _buffer.Update(position);
 
     // The slices of the plane, read straight from the volume.
-    private sealed class MeasurementSource(MedicalMprSliceBuffer buffer, string unit) : IMedicalMeasurementSource
+    private sealed class MeasurementSource : IMedicalMeasurementSource
     {
-        public int Width => buffer.Width;
+        private readonly MedicalMprSliceBuffer _buffer;
+        private readonly MedicalMprDisplay _display;
 
-        public int Height => buffer.Height;
+        public MeasurementSource(MedicalMprSliceBuffer buffer, MedicalMprDisplay display)
+        {
+            (_buffer, _display) = (buffer, display);
+            display.PositionChanged += _ => SliceChanged?.Invoke();
+        }
 
-        public ImageSpacing Spacing => buffer.Spacing;
+        public int Width => _buffer.Width;
 
-        public int Slice => Math.Max(buffer.FixedIndex, 0);
+        public int Height => _buffer.Height;
 
-        public int SliceCount => buffer.SliceCount;
+        public ImageSpacing Spacing => _buffer.Spacing;
 
-        public double SliceDistance => buffer.SliceDistance;
+        public int Slice => Math.Max(_buffer.FixedIndex, 0);
 
-        public string Unit => unit;
+        public int SliceCount => _buffer.SliceCount;
 
-        public double Read(int slice, int column, int row) => buffer.Read(slice, column, row);
+        public double SliceDistance => _buffer.SliceDistance;
+
+        public string Unit => _display.Unit;
+
+        public double Read(int slice, int column, int row) => _buffer.Read(slice, column, row);
+
+        public Core.Numerics.DoubleRange ValueRange => _display.Source.Data.ValueRange;
+
+        public MedicalWindow Window => _display.Window;
+
+        public event Action<MedicalWindow>? WindowChanged
+        {
+            add => _display.WindowChanged += value;
+            remove => _display.WindowChanged -= value;
+        }
+
+        // The slice of a plane follows the position of the whole display.
+        public event Action? SliceChanged;
     }
 
     internal int FixedIndex => _buffer.FixedIndex;

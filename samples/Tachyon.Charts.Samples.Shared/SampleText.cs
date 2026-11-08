@@ -118,6 +118,8 @@ public static class SampleText
         ["Uneven heatmap 4096²"] = "Ungleiche Heatmap 4096²",
         ["Medical image"] = "Medizinisches Bild",
         ["Medical measurements"] = "Medizinische Messungen",
+        ["Medical analysis"] = "Medizinische Analyse",
+        ["Drag a point of the line or the circle: profile and histogram follow | Keys D, C, R, F: new line or region | Drag elsewhere: window, the band in the histogram follows | Wheel: slices"] = "Punkt der Linie oder des Kreises ziehen: Profil und Histogramm folgen | Tasten D, C, R, F: neue Linie oder Region | Sonst ziehen: Fensterung, das Band im Histogramm folgt | Rad: Schichten",
         ["Keys D, A, C, R, F: distance, angle, circle, rectangle, freehand, then drag | Drag a point: change | Delete: remove | Ctrl+Z: undo | Left drag elsewhere: window"] = "Tasten D, A, C, R, F: Distanz, Winkel, Kreis, Rechteck, Freihand, dann ziehen | Punkt ziehen: ändern | Entf: entfernen | Strg+Z: rückgängig | Links ziehen sonst: Fensterung",
         ["Left drag: window and level | Keys 1, 2, 3: brain, bone, lung | Middle drag: pan | Wheel: zoom | Pointer: value and position"] = "Links ziehen: Fenster und Pegel | Tasten 1, 2, 3: Gehirn, Knochen, Lunge | Mitte ziehen: Pan | Rad: Zoom | Zeiger: Wert und Position",
         ["Labelled contours"] = "Beschriftete Höhenlinien",

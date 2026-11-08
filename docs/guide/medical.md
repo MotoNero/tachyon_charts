@@ -141,6 +141,20 @@ string json = display.Measurements.Save();                     // and Load(json)
 - **Volumes:** on an MPR plane every measurement belongs to its slice. `Measurements.Volume("Lesion")` adds the areas of the regions named so on all slices and multiplies them by the distance between slices.
 - **Changes:** the `Changed` event reports each added, changed or removed measurement, for example to show the results in a table of the application.
 
+## Profile and histogram
+
+`MedicalProfile` shows the values along a distance measurement as a 2D chart beside the image, and `MedicalHistogram` the distribution of the values of a region, or of the whole slice when no region is chosen. Both follow their measurement while it is drawn or moved, and the slice while it changes.
+
+```csharp
+var profile = new MedicalProfile(mpr.Axial);      // follows the distance last touched, or set profile.Line
+var histogram = new MedicalHistogram(mpr.Axial);  // follows the region last touched, or set histogram.Region
+profileChart.Configure(profile.Configure);
+histogramChart.Configure(histogram.Configure);
+```
+
+- **Profile:** samples every half pixel along the line, blended from the four nearest pixels; the distance from the start of the line runs across in millimetres. `Data` holds the samples for the application.
+- **Histogram:** 512 bins over all values of the image, so histograms of different regions compare directly. The grayscale window shows as a band, and the view shows the window and half its width on each side; both follow every change of the window. `Current` holds the counts.
+
 ## Package boundary
 
 The medical package builds on `Tachyon.Charts.ThreeD`, which in turn builds on the platform-neutral chart core. The regular 2D and 3D packages do not reference the medical package, so applications that do not install it receive no medical-data API.

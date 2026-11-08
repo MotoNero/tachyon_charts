@@ -200,6 +200,7 @@ public sealed class MedicalImageDisplay
                 .Cells(0, Spacing.Column, 0, Spacing.Row)
                 .Interpolated()
                 .ColorAxis(axis => axis.Colormap(Colormaps.Grayscale).Range(window.Minimum, window.Maximum).Title(Unit)))
+            .AddOverlay(Measurements.Attach)
             .Modifiers(modifiers => modifiers
                 .Custom(() => new MedicalMeasurementModifier(Measurements))
                 .Custom(() => new MedicalImageModifier(this))
@@ -224,6 +225,23 @@ public sealed class MedicalImageDisplay
         public string Unit => display.Unit;
 
         public double Read(int slice, int column, int row) => display._data[column, row];
+
+        public Core.Numerics.DoubleRange ValueRange => display._data.ValueRange;
+
+        public MedicalWindow Window => display.Window;
+
+        public event Action<MedicalWindow>? WindowChanged
+        {
+            add => display.WindowChanged += value;
+            remove => display.WindowChanged -= value;
+        }
+
+        // A single image never shows another slice.
+        public event Action? SliceChanged
+        {
+            add { }
+            remove { }
+        }
     }
 
     private void SetWindow(MedicalWindow window)

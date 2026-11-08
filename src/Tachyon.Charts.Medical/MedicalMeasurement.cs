@@ -181,8 +181,26 @@ public sealed class MedicalMeasurement
         return length;
     }
 
-    // The pixels whose middle lies inside the outline, row by row between the crossings with its edges.
+    // The statistics of the pixels inside; Welford's running mean and sum of squares stay exact for large values such as Hounsfield units.
     private static MedicalMeasurementResult Statistics(MedicalPoint[] outline, int slice, IMedicalMeasurementSource source)
+    {
+        var (count, mean, squares, minimum, maximum) = (0, 0.0, 0.0, double.PositiveInfinity, double.NegativeInfinity);
+        ForEachInside(outline, slice, source, value =>
+        {
+            count++;
+            var delta = value - mean;
+            mean += delta / count;
+            squares += delta * (value - mean);
+            (minimum, maximum) = (Math.Min(minimum, value), Math.Max(maximum, value));
+        });
+
+        return count == 0
+            ? Empty with { PixelCount = 0 }
+            : Empty with { PixelCount = count, Mean = mean, StandardDeviation = Math.Sqrt(squares / count), Minimum = minimum, Maximum = maximum };
+    }
+
+    /// <summary>Visits the finite values of the pixels whose middle lies inside an outline, row by row between the crossings with its edges.</summary>
+    internal static void ForEachInside(MedicalPoint[] outline, int slice, IMedicalMeasurementSource source, Action<double> visit)
     {
         var spacing = source.Spacing;
         var (top, bottom) = (double.PositiveInfinity, double.NegativeInfinity);
@@ -194,7 +212,6 @@ public sealed class MedicalMeasurement
         var firstRow = Math.Max(0, (int)Math.Floor((top / spacing.Row) - 0.5));
         var lastRow = Math.Min(source.Height - 1, (int)Math.Ceiling((bottom / spacing.Row) - 0.5));
         var crossings = new List<double>();
-        var (count, mean, squares, minimum, maximum) = (0, 0.0, 0.0, double.PositiveInfinity, double.NegativeInfinity);
         for (var row = firstRow; row <= lastRow; row++)
         {
             var y = (row + 0.5) * spacing.Row;
@@ -216,24 +233,13 @@ public sealed class MedicalMeasurement
                 for (var column = first; column <= last; column++)
                 {
                     var value = source.Read(slice, column, row);
-                    if (!double.IsFinite(value))
+                    if (double.IsFinite(value))
                     {
-                        continue;
+                        visit(value);
                     }
-
-                    // Welford's running mean and sum of squares stay exact for large values such as Hounsfield units.
-                    count++;
-                    var delta = value - mean;
-                    mean += delta / count;
-                    squares += delta * (value - mean);
-                    (minimum, maximum) = (Math.Min(minimum, value), Math.Max(maximum, value));
                 }
             }
         }
-
-        return count == 0
-            ? Empty with { PixelCount = 0 }
-            : Empty with { PixelCount = count, Mean = mean, StandardDeviation = Math.Sqrt(squares / count), Minimum = minimum, Maximum = maximum };
     }
 
     private static MedicalPoint[] Validate(MedicalMeasurementKind kind, IReadOnlyList<MedicalPoint> points)
@@ -292,4 +298,16 @@ internal interface IMedicalMeasurementSource
 
     /// <summary>Reads a pixel of a slice.</summary>
     double Read(int slice, int column, int row);
+
+    /// <summary>Gets the smallest and largest value of all pixels.</summary>
+    Tachyon.Charts.Core.Numerics.DoubleRange ValueRange { get; }
+
+    /// <summary>Gets the grayscale window shown now.</summary>
+    MedicalWindow Window { get; }
+
+    /// <summary>Occurs on the thread of the chart when the window changes.</summary>
+    event Action<MedicalWindow>? WindowChanged;
+
+    /// <summary>Occurs on the thread of the chart when another slice may be shown.</summary>
+    event Action? SliceChanged;
 }

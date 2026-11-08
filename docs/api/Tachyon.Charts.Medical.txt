@@ -31,6 +31,13 @@ sealed class Tachyon.Charts.Medical.MedicalCinePlayer
   System.Void Toggle(Tachyon.Charts.Medical.MedicalMprPlane plane)
   Tachyon.Charts.Medical.MedicalMprPlane Plane { get; }
   event System.Action StateChanged
+sealed class Tachyon.Charts.Medical.MedicalHistogram
+  .ctor(Tachyon.Charts.Medical.MedicalImageDisplay display, System.Int32 bins = 512)
+  .ctor(Tachyon.Charts.Medical.MedicalMprSlice slice, System.Int32 bins = 512)
+  System.Void Configure(Tachyon.Charts.Core.Fluent.ChartBuilder chart)
+  Tachyon.Charts.Core.Numerics.Histogram Current { get; }
+  Tachyon.Charts.Medical.MedicalMeasurement Region { get; set; }
+  Tachyon.Charts.Medical.MedicalMeasurement Shown { get; }
 sealed class Tachyon.Charts.Medical.MedicalImage
   System.Boolean IsSigned { get; }
   System.Double Item[System.Int32, System.Int32] { get; }
@@ -150,6 +157,13 @@ struct Tachyon.Charts.Medical.MedicalPoint : System.IEquatable<Tachyon.Charts.Me
   .ctor(System.Double X, System.Double Y)
   System.Double X { get; set; }
   System.Double Y { get; set; }
+sealed class Tachyon.Charts.Medical.MedicalProfile
+  .ctor(Tachyon.Charts.Medical.MedicalImageDisplay display)
+  .ctor(Tachyon.Charts.Medical.MedicalMprSlice slice)
+  System.Void Configure(Tachyon.Charts.Core.Fluent.ChartBuilder chart)
+  Tachyon.Charts.Core.Data.DataSource<System.Double, System.Double> Data { get; }
+  Tachyon.Charts.Medical.MedicalMeasurement Line { get; set; }
+  Tachyon.Charts.Medical.MedicalMeasurement Shown { get; }
 sealed class Tachyon.Charts.Medical.MedicalSegment
   .ctor(System.Int32 label, System.String name, Tachyon.Charts.Rendering.Rgba8 color)
   System.Boolean IsVisible { get; set; }
