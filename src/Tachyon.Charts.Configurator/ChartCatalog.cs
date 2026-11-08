@@ -115,12 +115,13 @@ public sealed class ChartTypeInfo
     /// <param name="defaultSample">The generator of its sample data.</param>
     /// <param name="parameters">Its parameters.</param>
     /// <param name="apply">Adds a series of this type to a chart description.</param>
-    public ChartTypeInfo(string id, string name, ChartCategory category, DataShape shape, string defaultSample, IReadOnlyList<ParameterInfo> parameters, Action<ChartBuilder, SeriesSpec, SampleSet, SeriesAxes> apply)
+    /// <param name="code">Writes the same step as C#, see <see cref="SeriesCodeWriter"/>.</param>
+    public ChartTypeInfo(string id, string name, ChartCategory category, DataShape shape, string defaultSample, IReadOnlyList<ParameterInfo> parameters, Action<ChartBuilder, SeriesSpec, SampleSet, SeriesAxes> apply, SeriesCodeWriter code)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
         ArgumentException.ThrowIfNullOrEmpty(name);
-        (Id, Name, Category, Shape, DefaultSample, Parameters, Apply) =
-            (id, name, category, shape, defaultSample, parameters ?? throw new ArgumentNullException(nameof(parameters)), apply ?? throw new ArgumentNullException(nameof(apply)));
+        (Id, Name, Category, Shape, DefaultSample, Parameters, Apply, Code) =
+            (id, name, category, shape, defaultSample, parameters ?? throw new ArgumentNullException(nameof(parameters)), apply ?? throw new ArgumentNullException(nameof(apply)), code ?? throw new ArgumentNullException(nameof(code)));
     }
 
     /// <summary>Gets the identifier.</summary>
@@ -144,12 +145,28 @@ public sealed class ChartTypeInfo
     /// <summary>Gets how a series of this type is added to a chart description.</summary>
     public Action<ChartBuilder, SeriesSpec, SampleSet, SeriesAxes> Apply { get; }
 
+    /// <summary>Gets how the same step is written as C#.</summary>
+    public SeriesCodeWriter Code { get; }
+
+    /// <summary>Gets the namespaces the code of this type needs beyond the usual ones.</summary>
+    public IReadOnlyList<string> Usings { get; init; } = [];
+
     /// <summary>Gets a parameter by name.</summary>
     /// <param name="name">The name.</param>
     /// <returns>The parameter.</returns>
     /// <exception cref="KeyNotFoundException">The type has no such parameter.</exception>
     public ParameterInfo Parameter(string name) => Parameters.FirstOrDefault(parameter => parameter.Name == name) ?? throw new KeyNotFoundException($"{Name} has no parameter {name}.");
 }
+
+/// <summary>
+/// Writes the call that adds a series to a chart description, such as <c>.AddLine(data, s =&gt; s.Name("Signal"))</c>, the
+/// same step <see cref="ChartTypeInfo.Apply"/> takes for the preview.
+/// </summary>
+/// <param name="series">The series.</param>
+/// <param name="data">The C# name of the variable that holds its data.</param>
+/// <param name="axes">The axes it uses.</param>
+/// <returns>The call, starting with a dot.</returns>
+public delegate string SeriesCodeWriter(SeriesSpec series, string data, SeriesAxes axes);
 
 /// <summary>The axes a series uses, by identifier.</summary>
 /// <param name="X">The horizontal axis.</param>
@@ -161,7 +178,8 @@ public readonly record struct SeriesAxes(string X, string Y);
 /// <param name="Name">The name shown.</param>
 /// <param name="Parameters">Its parameters.</param>
 /// <param name="Apply">Adds it to the interactions of a chart.</param>
-public sealed record ModifierInfo(string Id, string Name, IReadOnlyList<ParameterInfo> Parameters, Action<ModifierBuilder, SpecValues> Apply);
+/// <param name="Code">Writes the same call as C#, such as <c>.ZoomPan()</c>.</param>
+public sealed record ModifierInfo(string Id, string Name, IReadOnlyList<ParameterInfo> Parameters, Action<ModifierBuilder, SpecValues> Apply, Func<SpecValues, string> Code);
 
 /// <summary>A part of the catalog, such as the 2D types of the core or the types of an add-on.</summary>
 public interface IChartModule

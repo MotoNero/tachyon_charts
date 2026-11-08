@@ -22,49 +22,49 @@ internal sealed class CoreModule : IChartModule
             _color,
             new("style", "Style", ParameterKind.Choice, "straight") { Choices = ["straight", "step", "spline"] },
             new("lastValue", "Last value at the axis", ParameterKind.Flag, false),
-        ], ApplyLine),
+        ], ApplyLine, LineCode),
         new("scatter", "Scatter", ChartCategory.TwoD, DataShape.Points, "signal",
         [
             new("size", "Size", ParameterKind.Number, 4.0) { Minimum = 1, Maximum = 30 },
             new("marker", "Marker", ParameterKind.Choice, nameof(MarkerShape.Circle)) { Choices = Enum.GetNames<MarkerShape>() },
             _color,
-        ], ApplyScatter),
+        ], ApplyScatter, ScatterCode) { Usings = ["Tachyon.Charts.Rendering"] },
         new("area", "Area", ChartCategory.TwoD, DataShape.Points, "damped",
         [
             new("baseline", "Baseline", ParameterKind.Number, 0.0),
             _color,
-        ], ApplyArea),
+        ], ApplyArea, AreaCode) { Usings = ["Tachyon.Charts.Core.Series"] },
         new("bars", "Bars", ChartCategory.TwoD, DataShape.Rows, "groups",
         [
             new("layout", "Layout", ParameterKind.Choice, nameof(BarLayout.Grouped)) { Choices = Enum.GetNames<BarLayout>() },
             new("width", "Width", ParameterKind.Number, 0.8) { Minimum = 0.05, Maximum = 1 },
             new("horizontal", "Horizontal", ParameterKind.Flag, false),
-        ], ApplyBars),
+        ], ApplyBars, BarsCode) { Usings = ["Tachyon.Charts.Core.Series"] },
         new("heatmap", "Heatmap", ChartCategory.TwoD, DataShape.Grid, "peaks",
         [
             new("colormap", "Colormap", ParameterKind.Choice, "Viridis") { Choices = Colormaps },
             new("interpolated", "Smooth", ParameterKind.Flag, false),
-        ], ApplyHeatmap),
+        ], ApplyHeatmap, HeatmapCode) { Usings = ["Tachyon.Charts.Core.Colors"] },
     ];
 
     public IReadOnlyList<SampleInfo> Samples { get; } = SampleCatalog.Create();
 
     public static IReadOnlyList<ModifierInfo> CreateModifiers() =>
     [
-        new("zoompan", "Zoom and pan", [], (m, _) => m.ZoomPan()),
-        new("rubberband", "Zoom into a rectangle", [], (m, _) => m.RubberBand()),
+        new("zoompan", "Zoom and pan", [], (m, _) => m.ZoomPan(), _ => ".ZoomPan()"),
+        new("rubberband", "Zoom into a rectangle", [], (m, _) => m.RubberBand(), _ => ".RubberBand()"),
         new("crosshair", "Crosshair",
         [
             new("snap", "Snap to the data", ParameterKind.Flag, false),
             new("values", "Values of all series", ParameterKind.Flag, false),
-        ], (m, values) => m.Crosshair(values.GetFlag("snap", false), values.GetFlag("values", false))),
-        new("tooltip", "Tooltip", [], (m, _) => m.Tooltip()),
-        new("rollover", "Rollover", [], (m, _) => m.Rollover()),
-        new("axisdrag", "Drag the axes", [], (m, _) => m.AxisDrag()),
-        new("measure", "Measuring cursors", [], (m, _) => m.MeasureCursors()),
-        new("keyboard", "Keyboard", [], (m, _) => m.Keyboard()),
-        new("legend", "Legend", [], (m, _) => m.Legend()),
-        new("diagnostics", "Diagnostics", [], (m, _) => m.Diagnostics()),
+        ], (m, values) => m.Crosshair(values.GetFlag("snap", false), values.GetFlag("values", false)), CrosshairCode),
+        new("tooltip", "Tooltip", [], (m, _) => m.Tooltip(), _ => ".Tooltip()"),
+        new("rollover", "Rollover", [], (m, _) => m.Rollover(), _ => ".Rollover()"),
+        new("axisdrag", "Drag the axes", [], (m, _) => m.AxisDrag(), _ => ".AxisDrag()"),
+        new("measure", "Measuring cursors", [], (m, _) => m.MeasureCursors(), _ => ".MeasureCursors()"),
+        new("keyboard", "Keyboard", [], (m, _) => m.Keyboard(), _ => ".Keyboard()"),
+        new("legend", "Legend", [], (m, _) => m.Legend(), _ => ".Legend()"),
+        new("diagnostics", "Diagnostics", [], (m, _) => m.Diagnostics(), _ => ".Diagnostics()"),
     ];
 
     /// <summary>Gets a colormap by name.</summary>
@@ -77,6 +77,61 @@ internal sealed class CoreModule : IChartModule
         "Grayscale" => Core.Colors.Colormaps.Grayscale,
         _ => Core.Colors.Colormaps.Viridis,
     };
+
+    private static string CrosshairCode(SpecValues values)
+    {
+        var (snap, all) = (values.GetFlag("snap", false), values.GetFlag("values", false));
+        return snap || all ? $".Crosshair(snap: {CodeText.Flag(snap)}, values: {CodeText.Flag(all)})" : ".Crosshair()";
+    }
+
+    private static string LineCode(SeriesSpec series, string data, SeriesAxes axes)
+    {
+        var values = series.Parameters;
+        var code = $".AddLine({data}, s => s.Name({CodeText.String(series.Name)}).XAxis({CodeText.String(axes.X)}).YAxis({CodeText.String(axes.Y)}).Thickness({CodeText.Number(values.GetNumber("thickness", 1.5))})";
+        if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
+        {
+            code += $".Stroke({CodeText.Color(color)})";
+        }
+
+        code += values.GetText("style", "straight") switch
+        {
+            "step" => ".Step()",
+            "spline" => ".Spline()",
+            _ => string.Empty,
+        };
+        return code + (values.GetFlag("lastValue", false) ? ".LastValue()" : string.Empty) + ")";
+    }
+
+    private static string ScatterCode(SeriesSpec series, string data, SeriesAxes axes)
+    {
+        var values = series.Parameters;
+        var code = $".AddScatter({data}, s => s.Name({CodeText.String(series.Name)}).XAxis({CodeText.String(axes.X)}).YAxis({CodeText.String(axes.Y)}).Size({CodeText.Number(values.GetNumber("size", 4))}).Marker(MarkerShape.{values.GetText("marker", nameof(MarkerShape.Circle))})";
+        if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
+        {
+            code += $".Fill({CodeText.Color(color)})";
+        }
+
+        return code + ")";
+    }
+
+    private static string AreaCode(SeriesSpec series, string data, SeriesAxes axes)
+    {
+        var values = series.Parameters;
+        var fill = SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? $", Fill = new SolidFill({CodeText.Color(color)})" : string.Empty;
+        return $".AddSeries((x, y) => new AreaSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Baseline = {CodeText.Number(values.GetNumber("baseline", 0))}{fill} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
+    }
+
+    private static string BarsCode(SeriesSpec series, string data, SeriesAxes axes)
+    {
+        var values = series.Parameters;
+        return $".AddSeries((x, y) => new BarSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Layout = BarLayout.{values.GetText("layout", nameof(BarLayout.Grouped))}, BarWidth = {CodeText.Number(values.GetNumber("width", 0.8))}, IsHorizontal = {CodeText.Flag(values.GetFlag("horizontal", false))} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
+    }
+
+    private static string HeatmapCode(SeriesSpec series, string data, SeriesAxes axes)
+    {
+        var values = series.Parameters;
+        return $".AddHeatmap({data}, h => h.Name({CodeText.String(series.Name)}).Cells(0, 10.0 / {data}.Width, 0, 10.0 / {data}.Height).Interpolated({CodeText.Flag(values.GetFlag("interpolated", false))}).ColorAxis(a => a.Colormap(Colormaps.{values.GetText("colormap", "Viridis")})))";
+    }
 
     private static DataSource<double, double> Source(SampleSet data)
     {

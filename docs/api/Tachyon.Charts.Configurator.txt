@@ -46,8 +46,9 @@ static class Tachyon.Charts.Configurator.ChartSpecJson
   static System.String Write(Tachyon.Charts.Configurator.ChartSpec spec)
   static Tachyon.Charts.Configurator.ChartSpec Read(System.String json)
 sealed class Tachyon.Charts.Configurator.ChartTypeInfo
-  .ctor(System.String id, System.String name, Tachyon.Charts.Configurator.ChartCategory category, Tachyon.Charts.Configurator.DataShape shape, System.String defaultSample, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> parameters, System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, Tachyon.Charts.Configurator.SampleSet, Tachyon.Charts.Configurator.SeriesAxes> apply)
+  .ctor(System.String id, System.String name, Tachyon.Charts.Configurator.ChartCategory category, Tachyon.Charts.Configurator.DataShape shape, System.String defaultSample, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> parameters, System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, Tachyon.Charts.Configurator.SampleSet, Tachyon.Charts.Configurator.SeriesAxes> apply, Tachyon.Charts.Configurator.SeriesCodeWriter code)
   System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, Tachyon.Charts.Configurator.SampleSet, Tachyon.Charts.Configurator.SeriesAxes> Apply { get; }
+  System.Collections.Generic.IReadOnlyList<System.String> Usings { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> Parameters { get; }
   System.String DefaultSample { get; }
   System.String Id { get; }
@@ -55,6 +56,29 @@ sealed class Tachyon.Charts.Configurator.ChartTypeInfo
   Tachyon.Charts.Configurator.ChartCategory Category { get; }
   Tachyon.Charts.Configurator.DataShape Shape { get; }
   Tachyon.Charts.Configurator.ParameterInfo Parameter(System.String name)
+  Tachyon.Charts.Configurator.SeriesCodeWriter Code { get; }
+sealed class Tachyon.Charts.Configurator.CodeGenerator
+  .ctor(Tachyon.Charts.Configurator.ChartCatalog catalog)
+  System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Project(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options)
+  System.String Setup(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options)
+  System.String ViewModel(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options)
+  System.String WindowMarkup(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options)
+  System.Void WriteFolder(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options, System.String folder)
+  System.Void WriteZip(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options, System.IO.Stream target)
+  static System.String WindowCode(Tachyon.Charts.Configurator.CodeOptions options)
+sealed class Tachyon.Charts.Configurator.CodeOptions : System.IEquatable<Tachyon.Charts.Configurator.CodeOptions>
+  .ctor(System.String Namespace = MyCharts, Tachyon.Charts.Configurator.UiFramework Framework = Wpf, System.String PackageVersion = 0.15.0)
+  System.String LocalSource { get; set; }
+  System.String Namespace { get; set; }
+  System.String PackageVersion { get; set; }
+  System.String ProjectName { get; set; }
+  Tachyon.Charts.Configurator.UiFramework Framework { get; set; }
+static class Tachyon.Charts.Configurator.CodeText
+  static System.String Color(Tachyon.Charts.Rendering.Rgba8 color)
+  static System.String Flag(System.Boolean value)
+  static System.String Identifier(System.String name, System.Boolean upper, System.String fallback)
+  static System.String Number(System.Double value)
+  static System.String String(System.String text)
 enum Tachyon.Charts.Configurator.DataKind : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Csv = 1
   Live = 2
@@ -79,9 +103,10 @@ sealed class Tachyon.Charts.Configurator.LegendSpec
   .ctor()
   System.String Title { get; set; }
 sealed class Tachyon.Charts.Configurator.ModifierInfo : System.IEquatable<Tachyon.Charts.Configurator.ModifierInfo>
-  .ctor(System.String Id, System.String Name, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> Parameters, System.Action<Tachyon.Charts.Core.Fluent.ModifierBuilder, Tachyon.Charts.Configurator.SpecValues> Apply)
+  .ctor(System.String Id, System.String Name, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> Parameters, System.Action<Tachyon.Charts.Core.Fluent.ModifierBuilder, Tachyon.Charts.Configurator.SpecValues> Apply, System.Func<Tachyon.Charts.Configurator.SpecValues, System.String> Code)
   System.Action<Tachyon.Charts.Core.Fluent.ModifierBuilder, Tachyon.Charts.Configurator.SpecValues> Apply { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> Parameters { get; set; }
+  System.Func<Tachyon.Charts.Configurator.SpecValues, System.String> Code { get; set; }
   System.String Id { get; set; }
   System.String Name { get; set; }
 sealed class Tachyon.Charts.Configurator.ModifierSpec
@@ -132,6 +157,11 @@ struct Tachyon.Charts.Configurator.SeriesAxes : System.IEquatable<Tachyon.Charts
   .ctor(System.String X, System.String Y)
   System.String X { get; set; }
   System.String Y { get; set; }
+delegate Tachyon.Charts.Configurator.SeriesCodeWriter : System.ICloneable, System.Runtime.Serialization.ISerializable
+  .ctor(System.Object object, System.IntPtr method)
+  virtual System.IAsyncResult BeginInvoke(Tachyon.Charts.Configurator.SeriesSpec series, System.String data, Tachyon.Charts.Configurator.SeriesAxes axes, System.AsyncCallback callback, System.Object object)
+  virtual System.String EndInvoke(System.IAsyncResult result)
+  virtual System.String Invoke(Tachyon.Charts.Configurator.SeriesSpec series, System.String data, Tachyon.Charts.Configurator.SeriesAxes axes)
 sealed class Tachyon.Charts.Configurator.SeriesSpec
   .ctor()
   System.String Name { get; set; }
@@ -159,3 +189,6 @@ sealed class Tachyon.Charts.Configurator.SpecValues
   System.Void Set(System.String name, System.Double value)
   System.Void Set(System.String name, System.String value)
   virtual System.String ToString()
+enum Tachyon.Charts.Configurator.UiFramework : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Avalonia = 1
+  Wpf = 0
