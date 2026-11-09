@@ -80,6 +80,9 @@ public sealed class AxisSpec
     /// <summary>Gets or sets a value indicating whether the axis sits on the far side: right or top.</summary>
     public bool IsOpposite { get; set; }
 
+    /// <summary>Gets or sets a value indicating whether a time axis leaves out the weekends, as for prices of working days.</summary>
+    public bool SkipsWeekends { get; set; }
+
     /// <summary>Gets a value indicating whether the range follows the data.</summary>
     public bool IsAutoRange => Minimum is null || Maximum is null;
 }

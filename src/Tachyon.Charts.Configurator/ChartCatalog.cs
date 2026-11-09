@@ -156,6 +156,12 @@ public enum DataShape
 
     /// <summary>Shapes, some with holes.</summary>
     Polygons,
+
+    /// <summary>Prices over time: open, high, low, close and volume.</summary>
+    Candles,
+
+    /// <summary>Tasks over time in rows, with links between them.</summary>
+    Gantt,
 }
 
 /// <summary>A chart type the configurator offers, with its parameters and how it is built.</summary>
@@ -210,6 +216,15 @@ public sealed class ChartTypeInfo
     /// The axes of the description are then left out.
     /// </summary>
     public bool OwnsAxes { get; init; }
+
+    /// <summary>Gets a value indicating whether the X axis of a new chart of this type is a time axis.</summary>
+    public bool UsesTime { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether a new chart of this type gets the usual interactions although it brings its own
+    /// axes; a pie or a 3D scene has interactions of its own and gets none.
+    /// </summary>
+    public bool TakesInteractions { get; init; }
 
     /// <summary>
     /// Gets how a series of this type is added to the scene of its category (see <see cref="SceneInfo"/>), with the
@@ -386,7 +401,12 @@ public sealed class ChartCatalog
         spec.XAxes.Add(new AxisSpec { Id = "x", Title = "x" });
         spec.YAxes.Add(new AxisSpec { Id = "y", Title = "y" });
         spec.Series.Add(new SeriesSpec { Type = type.Id, Name = type.Name, Data = new DataSpec { Sample = type.DefaultSample, Count = FindSample(type.DefaultSample)?.DefaultCount ?? 1000 } });
-        if (!type.OwnsAxes)
+        if (type.UsesTime)
+        {
+            (spec.XAxes[0].Kind, spec.XAxes[0].Id, spec.XAxes[0].Title) = (AxisKind.DateTime, "time", "Time");
+        }
+
+        if (!type.OwnsAxes || type.TakesInteractions)
         {
             spec.Modifiers.Add(new ModifierSpec { Type = "zoompan" });
             spec.Modifiers.Add(new ModifierSpec { Type = "crosshair" });

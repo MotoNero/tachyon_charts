@@ -17,7 +17,7 @@ internal sealed class CoreModule : IChartModule
     /// <summary>Gets the names of the colormaps of heatmaps.</summary>
     public static IReadOnlyList<string> Colormaps { get; } = ["Viridis", "Inferno", "Magma", "Plasma", "Turbo", "Grayscale"];
 
-    public IReadOnlyList<ChartTypeInfo> Types { get; } = [.. Basic(), .. ScienceTypes.Create()];
+    public IReadOnlyList<ChartTypeInfo> Types { get; } = [.. Basic(), .. ScienceTypes.Create(), .. FinanceTypes.Create()];
 
     private static IReadOnlyList<ChartTypeInfo> Basic() =>
     [
@@ -73,7 +73,7 @@ internal sealed class CoreModule : IChartModule
         ], ApplyHeatmap, HeatmapCode) { Usings = ["Tachyon.Charts.Core.Colors"] },
     ];
 
-    public IReadOnlyList<SampleInfo> Samples { get; } = [.. SampleCatalog.Create(), .. ScienceSamples.Create()];
+    public IReadOnlyList<SampleInfo> Samples { get; } = [.. SampleCatalog.Create(), .. ScienceSamples.Create(), .. FinanceTypes.Samples()];
 
     public static IReadOnlyList<ModifierInfo> CreateModifiers() =>
     [

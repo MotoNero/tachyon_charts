@@ -493,6 +493,12 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             code.Append(".Position(AxisPosition.").Append(opposite).Append(')');
         }
 
+        if (axis.SkipsWeekends && axis.Kind == AxisKind.DateTime)
+        {
+            usings.Add("Tachyon.Charts.Core.Axes");
+            code.Append(".Gaps(TimeGapMap.Weekends(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc), TimeZoneInfo.Utc))");
+        }
+
         return code.ToString();
     }
 

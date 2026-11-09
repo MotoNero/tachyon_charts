@@ -172,6 +172,10 @@ public sealed class ConfiguratorSession
                     fields.Add(Field(group, new("maximum", "Maximum", ParameterKind.Number, 10.0), () => axis.Maximum ?? 10, value => (axis.Minimum, axis.Maximum) = (axis.Minimum ?? 0, (double)value)));
                     fields.Add(Field(group, new("inverted", "Inverted", ParameterKind.Flag, false), () => axis.IsInverted, value => axis.IsInverted = (bool)value));
                     fields.Add(Field(group, new("opposite", "Far side", ParameterKind.Flag, false), () => axis.IsOpposite, value => axis.IsOpposite = (bool)value));
+                    if (axis.Kind == AxisKind.DateTime)
+                    {
+                        fields.Add(Field(group, new("weekends", "Without weekends", ParameterKind.Flag, false), () => axis.SkipsWeekends, value => axis.SkipsWeekends = (bool)value));
+                    }
                 }
             }
 

@@ -7,6 +7,7 @@ sealed class Tachyon.Charts.Configurator.AxisSpec
   System.Boolean IsAutoRange { get; }
   System.Boolean IsInverted { get; set; }
   System.Boolean IsOpposite { get; set; }
+  System.Boolean SkipsWeekends { get; set; }
   System.Nullable<System.Double> Maximum { get; set; }
   System.Nullable<System.Double> Minimum { get; set; }
   System.String Id { get; set; }
@@ -54,6 +55,8 @@ sealed class Tachyon.Charts.Configurator.ChartTypeInfo
   System.Action<System.Object, Tachyon.Charts.Configurator.SeriesSpec, System.Object> SceneApply { get; set; }
   System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, System.Object, Tachyon.Charts.Configurator.SeriesAxes> Apply { get; }
   System.Boolean OwnsAxes { get; set; }
+  System.Boolean TakesInteractions { get; set; }
+  System.Boolean UsesTime { get; set; }
   System.Collections.Generic.IReadOnlyList<System.String> Usings { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> Parameters { get; }
   System.String DefaultSample { get; }
@@ -115,7 +118,9 @@ enum Tachyon.Charts.Configurator.DataShape : System.IComparable, System.IConvert
   Band = 4
   Bubbles = 3
   Bubbles3D = 11
+  Candles = 21
   Errors = 6
+  Gantt = 22
   Grid = 2
   Groups = 7
   Layers = 5

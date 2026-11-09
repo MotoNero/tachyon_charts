@@ -119,6 +119,9 @@ public static class SpecChartBuilder
         _ => BuiltInThemes.TachyonDark,
     };
 
+    /// <summary>Gets the weekends of this century, the gaps of a time axis without weekends; the code writes the same.</summary>
+    internal static TimeGapMap Weekends { get; } = TimeGapMap.Weekends(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc), TimeZoneInfo.Utc);
+
     private static void Axis(AxisBuilder builder, AxisSpec axis, AxisPosition opposite)
     {
         _ = axis.Kind switch
@@ -149,6 +152,11 @@ public static class SpecChartBuilder
         if (axis.IsOpposite)
         {
             builder.Position(opposite);
+        }
+
+        if (axis.SkipsWeekends && axis.Kind == AxisKind.DateTime)
+        {
+            builder.Gaps(Weekends);
         }
     }
 
