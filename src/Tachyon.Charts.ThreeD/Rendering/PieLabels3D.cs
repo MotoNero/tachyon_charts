@@ -127,6 +127,9 @@ internal sealed class PieLabels3D(Scene3D scene) : ChartOverlay
             y[i] = Math.Min(y[i], i == y.Length - 1 ? pane.Bottom - step : y[i + 1] - step);
         }
 
+        // The column stays inside the chart, even when the pie fills it and the labels then lie over its edge.
+        var widest = labels.Max(static label => label.Width) + (2 * Inset);
+        column = isLeft ? Math.Max(column, pane.X + widest) : Math.Min(column, pane.X + pane.Width - widest);
         var color = canvas.TextColor with { A = 150 };
         for (var i = 0; i < labels.Count; i++)
         {

@@ -307,6 +307,13 @@ public sealed class Chart : Control, IRecordableChart
         ChartTheme = definition.Theme;
         GroupName = definition.GroupName;
         _overlayFactories = definition.Overlays;
+
+        // A running chart builds itself anew with the new elements below; it must take the new overlays along.
+        if (_controller is not null)
+        {
+            _controller.OverlayFactories = _overlayFactories;
+        }
+
         Replace(XAxes, definition.XAxes.Select(ChartElementFactory.Create));
         Replace(YAxes, definition.YAxes.Select(ChartElementFactory.Create));
         Replace(Series, definition.Series.Select(ChartElementFactory.Create));
