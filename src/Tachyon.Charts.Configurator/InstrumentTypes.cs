@@ -19,6 +19,9 @@ internal static class InstrumentTypes
 
     public static IReadOnlyList<SampleInfo> Samples() => [ScopeSample(), SpectrumSample(), NetworkSample(), MonitorSample()];
 
+    private static readonly string[] _signals = ["Sine", "Square", "Burst", "Triangle"];
+
+    // Any number of channels: one signal, scale and position per channel, given as lists; the code adds them one by one.
     private static ChartTypeInfo Oscilloscope() => new(
         "oscilloscope",
         "Oscilloscope",
@@ -26,44 +29,80 @@ internal static class InstrumentTypes
         DataShape.Scope,
         "scope",
         [
+            new("channels", "Number of channels", ParameterKind.Integer, 2.0) { Minimum = 1, Maximum = 8 },
+            new("signals", "Signal per channel", ParameterKind.Text, "Sine, Square") { Description = "Sine, Square, Burst or Triangle, separated by commas; missing ones repeat the list." },
+            new("volts", "Volts per division per channel", ParameterKind.Text, "1, 0.5") { Description = "Separated by commas; a missing one takes the last." },
+            new("positions", "Position per channel in divisions", ParameterKind.Text, "2, -2") { Description = "From -4 to 4, separated by commas; without any the channels spread over the screen." },
             new("timePerDivision", "Time per division in s", ParameterKind.Number, 5e-4) { Minimum = 1e-12 },
             new("timeOffset", "Time offset in s", ParameterKind.Number, 0.0),
             new("trigger", "Trigger level in V", ParameterKind.Number, 0.5),
             new("persistence", "Persistence", ParameterKind.Choice, nameof(ScopePersistence.Off)) { Choices = Enum.GetNames<ScopePersistence>() },
-            new("volts1", "Channel 1: volts per division", ParameterKind.Number, 1.0) { Minimum = 1e-9 },
-            new("position1", "Channel 1: position in divisions", ParameterKind.Number, 2.0) { Minimum = -4, Maximum = 4 },
-            new("volts2", "Channel 2: volts per division", ParameterKind.Number, 0.5) { Minimum = 1e-9 },
-            new("position2", "Channel 2: position in divisions", ParameterKind.Number, -2.0) { Minimum = -4, Maximum = 4 },
         ],
-        (chart, _, data, _) => chart.Oscilloscope((ScopeDisplay)data),
-        (_, data, _) => $".Oscilloscope({data})")
+        (chart, series, data, _) =>
+        {
+            var ((time, waves), values) = (((double[], float[][]))data, series.Parameters);
+            var scope = new ScopeDisplay
+            {
+                TimePerDivision = values.GetNumber("timePerDivision", 5e-4),
+                TimeOffset = values.GetNumber("timeOffset", 0),
+                TriggerLevel = values.GetNumber("trigger", 0.5),
+                Persistence = Enum.Parse<ScopePersistence>(values.GetText("persistence", nameof(ScopePersistence.Off))),
+            };
+            foreach (var (signal, volts, position) in Channels(values))
+            {
+                var channel = scope.AddChannel();
+                (channel.VoltsPerDivision, channel.Position) = (volts, position);
+                channel.SetWaveform(time, waves[signal]);
+            }
+
+            chart.Oscilloscope(scope);
+        },
+        (_, data, _) => $".Oscilloscope({data}Display)")
     {
         Usings = ["Tachyon.Charts.Core.Instruments"],
         OwnsAxes = true,
-        Prepare = (series, data) =>
-        {
-            var (scope, values) = ((ScopeDisplay)data, series.Parameters);
-            scope.TimePerDivision = values.GetNumber("timePerDivision", 5e-4);
-            scope.TimeOffset = values.GetNumber("timeOffset", 0);
-            scope.TriggerLevel = values.GetNumber("trigger", 0.5);
-            scope.Persistence = Enum.Parse<ScopePersistence>(values.GetText("persistence", nameof(ScopePersistence.Off)));
-            (scope.Channels[0].VoltsPerDivision, scope.Channels[0].Position) = (values.GetNumber("volts1", 1), values.GetNumber("position1", 2));
-            (scope.Channels[1].VoltsPerDivision, scope.Channels[1].Position) = (values.GetNumber("volts2", 0.5), values.GetNumber("position2", -2));
-        },
         PrepareCode = (series, data) =>
         {
             var values = series.Parameters;
-            return
-            [
-                $"{data}.TimePerDivision = {CodeText.Number(values.GetNumber("timePerDivision", 5e-4))};",
-                $"{data}.TimeOffset = {CodeText.Number(values.GetNumber("timeOffset", 0))};",
-                $"{data}.TriggerLevel = {CodeText.Number(values.GetNumber("trigger", 0.5))};",
-                $"{data}.Persistence = ScopePersistence.{values.GetText("persistence", nameof(ScopePersistence.Off))};",
-                $"({data}.Channels[0].VoltsPerDivision, {data}.Channels[0].Position) = ({CodeText.Number(values.GetNumber("volts1", 1))}, {CodeText.Number(values.GetNumber("position1", 2))});",
-                $"({data}.Channels[1].VoltsPerDivision, {data}.Channels[1].Position) = ({CodeText.Number(values.GetNumber("volts2", 0.5))}, {CodeText.Number(values.GetNumber("position2", -2))});",
-            ];
+            var lines = new List<string>
+            {
+                $"var {data}Display = new ScopeDisplay {{ TimePerDivision = {CodeText.Number(values.GetNumber("timePerDivision", 5e-4))}, TimeOffset = {CodeText.Number(values.GetNumber("timeOffset", 0))}, TriggerLevel = {CodeText.Number(values.GetNumber("trigger", 0.5))}, Persistence = ScopePersistence.{values.GetText("persistence", nameof(ScopePersistence.Off))} }};",
+                $"foreach (var (signal, volts, position) in new (int Signal, double Volts, double Position)[] {{ {string.Join(", ", Channels(values).Select(channel => $"({channel.Signal}, {CodeText.Number(channel.Volts)}, {CodeText.Number(channel.Position)})"))} }})",
+                "{",
+                $"    var channel = {data}Display.AddChannel();",
+                "    (channel.VoltsPerDivision, channel.Position) = (volts, position);",
+                $"    channel.SetWaveform({data}.Time, {data}.Waves[signal]);",
+                "}",
+            };
+            return lines;
         },
     };
+
+    // The channels as the lists give them: missing signals repeat the list, a missing scale takes the last, missing
+    // positions spread the channels evenly from top to bottom.
+    private static List<(int Signal, double Volts, double Position)> Channels(SpecValues values)
+    {
+        var count = (int)values.GetNumber("channels", 2);
+        var signals = values.GetText("signals", "Sine, Square").Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(name => Array.FindIndex(_signals, known => known.Equals(name, StringComparison.OrdinalIgnoreCase))).Where(index => index >= 0).ToArray();
+        var volts = Numbers(values.GetText("volts", "1, 0.5"));
+        var positions = Numbers(values.GetText("positions", "2, -2"));
+        var channels = new List<(int, double, double)>(count);
+        for (var c = 0; c < count; c++)
+        {
+            var signal = signals.Length > 0 ? signals[c % signals.Length] : c % _signals.Length;
+            var scale = volts.Length > 0 ? volts[Math.Min(c, volts.Length - 1)] : 1;
+            var position = c < positions.Length ? Math.Clamp(positions[c], -4, 4) : count == 1 ? 0 : 3 - (c * 6.0 / (count - 1));
+            channels.Add((signal, scale > 0 ? scale : 1, position));
+        }
+
+        return channels;
+    }
+
+    private static double[] Numbers(string text) =>
+        [.. text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => double.TryParse(part, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var number) ? number : double.NaN)
+            .Where(double.IsFinite)];
 
     private static ChartTypeInfo Spectrum() => new(
         "spectrum",
@@ -205,52 +244,60 @@ internal static class InstrumentTypes
     private static string[] Names(SeriesSpec series) =>
         series.Parameters.GetText("names", string.Empty).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
-    // Two channels: a sine of 1 kHz and a square wave, 10 ms around the trigger.
-    private static SampleInfo ScopeSample() => new(
-        "scope",
-        "Sine and square",
-        DataShape.Scope,
-        5000,
-        count =>
-        {
-            var display = new ScopeDisplay();
-            for (var c = 0; c < 2; c++)
+    // Four signals of 1 kHz over 10 ms around the trigger: sine, square, a decaying burst and a triangle.
+    private static SampleInfo ScopeSample()
+    {
+        const string Type = "(double[] Time, float[][] Waves)";
+        return new(
+            "scope",
+            "Sine, square, burst and triangle",
+            DataShape.Scope,
+            5000,
+            count =>
             {
-                var (time, volts) = (new double[count], new float[count]);
+                var (time, waves) = (new double[count], new float[4][]);
+                for (var k = 0; k < 4; k++)
+                {
+                    waves[k] = new float[count];
+                }
+
                 for (var i = 0; i < count; i++)
                 {
                     time[i] = (i * 0.01 / count) - 0.005;
                     var angle = 2 * Math.PI * 1000 * time[i];
-                    volts[i] = (float)(c == 0 ? 1.5 * Math.Sin(angle) : Math.Sin(angle) >= 0 ? 1 : -1);
+                    waves[0][i] = (float)(1.5 * Math.Sin(angle));
+                    waves[1][i] = Math.Sin(angle) >= 0 ? 1 : -1;
+                    waves[2][i] = (float)(2 * Math.Exp(-Math.Abs((time[i] + 0.01) * 1000 % 1 * 6)) * Math.Cos(angle * 12));
+                    waves[3][i] = (float)(2 / Math.PI * Math.Asin(Math.Sin(angle)));
                 }
 
-                display.AddChannel().SetWaveform(time, volts);
-            }
-
-            return display;
-        },
-        "ScopeDisplay",
-        method => SampleCatalog.Header("a sine and a square wave", method, "ScopeDisplay", "The number of samples per channel.") + """
-                {
-                    var display = new ScopeDisplay();
-                    for (var c = 0; c < 2; c++)
+                return (time, waves);
+            },
+            Type,
+            method => SampleCatalog.Header("a sine, a square wave, a burst and a triangle", method, Type, "The number of samples per signal.") + """
                     {
-                        var (time, volts) = (new double[count], new float[count]);
+                        var (time, waves) = (new double[count], new float[4][]);
+                        for (var k = 0; k < 4; k++)
+                        {
+                            waves[k] = new float[count];
+                        }
+
                         for (var i = 0; i < count; i++)
                         {
                             time[i] = (i * 0.01 / count) - 0.005;
                             var angle = 2 * Math.PI * 1000 * time[i];
-                            volts[i] = (float)(c == 0 ? 1.5 * Math.Sin(angle) : Math.Sin(angle) >= 0 ? 1 : -1);
+                            waves[0][i] = (float)(1.5 * Math.Sin(angle));
+                            waves[1][i] = Math.Sin(angle) >= 0 ? 1 : -1;
+                            waves[2][i] = (float)(2 * Math.Exp(-Math.Abs((time[i] + 0.01) * 1000 % 1 * 6)) * Math.Cos(angle * 12));
+                            waves[3][i] = (float)(2 / Math.PI * Math.Asin(Math.Sin(angle)));
                         }
 
-                        display.AddChannel().SetWaveform(time, volts);
+                        return (time, waves);
                     }
 
-                    return display;
-                }
-
-            """)
-    { MinimumCount = 2 };
+                """)
+        { MinimumCount = 2 };
+    }
 
     // Noise around -67 dBm and three carriers from 0 to 10 MHz.
     private static SampleInfo SpectrumSample() => new(

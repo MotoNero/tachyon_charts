@@ -228,6 +228,12 @@ public sealed class ScopeChannel
     /// <summary>Gets or sets where the scale of this channel ends on the screen.</summary>
     internal double ReadoutRight { get; set; }
 
+    /// <summary>Gets or sets the top of the line of the scale of this channel on the screen.</summary>
+    internal double ReadoutTop { get; set; }
+
+    /// <summary>Gets or sets the bottom of the line of the scale of this channel on the screen.</summary>
+    internal double ReadoutBottom { get; set; }
+
     /// <summary>Gets the name of the vertical axis of this channel.</summary>
     internal string AxisId => "ch" + Number.ToString(CultureInfo.InvariantCulture);
 
@@ -480,19 +486,26 @@ public sealed class ScopeOverlay(ScopeDisplay display) : ChartOverlay
     private void DrawReadouts(OverlayCanvas canvas, Layout.DipRect pane)
     {
         var height = canvas.GetLineHeight(LabelSize) + RowPadding;
-        var x = pane.X + 36;
+        var timeText = (display.TriggerStatus is { } status ? ChartText.Get(status) + "   " : string.Empty) + ScopeFormat.Value(display.TimePerDivision, "s") + "/div   T " + ScopeFormat.Value(display.TriggerLevel, "V");
+        var timeLeft = pane.Right - canvas.MeasureWidth(timeText, LabelSize) - 28;
+        canvas.DrawText(timeText, Math.Round(timeLeft), Math.Round(pane.Y + height - RowPadding), LabelSize, canvas.TextColor);
+
+        // The scales of the channels run from the left; one that would reach the time goes to the next line.
+        var (x, row) = (pane.X + 36, 0);
         foreach (var channel in display.Channels)
         {
             var text = channel.Number.ToString(CultureInfo.InvariantCulture) + ": " + ScopeFormat.Value(channel.VoltsPerDivision, "V") + "/div";
-            canvas.DrawText(text, Math.Round(x), Math.Round(pane.Y + height - RowPadding), LabelSize, channel.Color);
             var width = canvas.MeasureWidth(text, LabelSize);
-            channel.ReadoutLeft = x;
-            channel.ReadoutRight = x + width;
+            if (x + width > timeLeft - 18 && x > pane.X + 36)
+            {
+                (x, row) = (pane.X + 36, row + 1);
+            }
+
+            canvas.DrawText(text, Math.Round(x), Math.Round(pane.Y + (height * (row + 1)) - RowPadding), LabelSize, channel.Color);
+            (channel.ReadoutLeft, channel.ReadoutRight) = (x, x + width);
+            (channel.ReadoutTop, channel.ReadoutBottom) = (pane.Y + (height * row), pane.Y + (height * (row + 1)));
             x += width + 18;
         }
-
-        var timeText = (display.TriggerStatus is { } status ? ChartText.Get(status) + "   " : string.Empty) + ScopeFormat.Value(display.TimePerDivision, "s") + "/div   T " + ScopeFormat.Value(display.TriggerLevel, "V");
-        canvas.DrawText(timeText, Math.Round(pane.Right - canvas.MeasureWidth(timeText, LabelSize) - 28), Math.Round(pane.Y + height - RowPadding), LabelSize, canvas.TextColor);
 
         var rows = display.Channels.Count;
         var top = pane.Bottom - (rows * height) - RowPadding;
@@ -599,14 +612,11 @@ public sealed class ScopeModifier(ScopeDisplay display) : ChartModifier(ZoomPanM
 
     private ScopeChannel? FindChannelForScale(in WheelInputEvent input, Layout.DipRect pane)
     {
-        if (input.Position.Y <= pane.Y + ReadoutHeight)
+        foreach (var channel in display.Channels)
         {
-            foreach (var channel in display.Channels)
+            if (input.Position.X >= channel.ReadoutLeft && input.Position.X <= channel.ReadoutRight && input.Position.Y >= channel.ReadoutTop && input.Position.Y <= channel.ReadoutBottom)
             {
-                if (input.Position.X >= channel.ReadoutLeft && input.Position.X <= channel.ReadoutRight)
-                {
-                    return channel;
-                }
+                return channel;
             }
         }
 

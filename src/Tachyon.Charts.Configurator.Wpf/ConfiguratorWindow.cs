@@ -209,7 +209,10 @@ internal sealed class ConfiguratorWindow : Window
 
     private FrameworkElement Control(FieldModel field)
     {
-        var row = new DockPanel { Margin = new Thickness(0, 2, 0, 2), ToolTip = field.Info.Description.Length > 0 ? field.Info.Description : null };
+        var row = new Grid { Margin = new Thickness(0, 3, 0, 3), ToolTip = field.Info.Description.Length > 0 ? field.Info.Description : null };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 70 });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(12) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1.2, GridUnitType.Star), MinWidth = 110 });
         var problem = new TextBlock { Foreground = Brushes.OrangeRed, TextWrapping = TextWrapping.Wrap, Visibility = Visibility.Collapsed };
         void Report(string? text) => (problem.Text, problem.Visibility) = (text ?? string.Empty, text is null ? Visibility.Collapsed : Visibility.Visible);
         FrameworkElement editor;
@@ -220,20 +223,22 @@ internal sealed class ConfiguratorWindow : Window
                 check.Click += (_, _) => Report(field.Set(check.IsChecked == true));
                 return check;
             case ParameterKind.Choice:
-                var choice = new ComboBox { ItemsSource = field.Info.Choices, SelectedItem = field.Value, Width = 190 };
+                var choice = new ComboBox { ItemsSource = field.Info.Choices, SelectedItem = field.Value, HorizontalAlignment = HorizontalAlignment.Stretch };
                 choice.SelectionChanged += (_, _) => Report(choice.SelectedItem is string text ? field.Set(text) : null);
                 editor = choice;
                 break;
             default:
-                var box = new TextBox { Text = field.Text, Width = 190, Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2) };
+                var box = new TextBox { Text = field.Text, Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2) };
                 box.TextChanged += (_, _) => Report(field.SetText(box.Text));
                 editor = box;
                 break;
         }
 
-        DockPanel.SetDock(editor, Dock.Right);
+        // The label in a column of its own that wraps, a gap, then the editor, which grows and shrinks with the panel.
+        var label = new TextBlock { Text = field.Info.Label, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource("Muted") };
+        Grid.SetColumn(editor, 2);
+        row.Children.Add(label);
         row.Children.Add(editor);
-        row.Children.Add(new TextBlock { Text = field.Info.Label, VerticalAlignment = VerticalAlignment.Center, Foreground = (Brush)FindResource("Muted") });
         var stack = new StackPanel();
         stack.Children.Add(row);
         stack.Children.Add(problem);

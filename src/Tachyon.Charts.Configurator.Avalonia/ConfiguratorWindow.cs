@@ -216,26 +216,29 @@ internal sealed class ConfiguratorWindow : Window
                 check.IsCheckedChanged += (_, _) => Report(field.Set(check.IsChecked == true));
                 return check;
             case ParameterKind.Choice:
-                var choice = new ComboBox { ItemsSource = field.Info.Choices, SelectedItem = field.Value, Width = 190 };
+                var choice = new ComboBox { ItemsSource = field.Info.Choices, SelectedItem = field.Value, HorizontalAlignment = HorizontalAlignment.Stretch };
                 choice.SelectionChanged += (_, _) => Report(choice.SelectedItem is string text ? field.Set(text) : null);
                 editor = choice;
                 break;
             default:
-                var box = new TextBox { Text = field.Text, Width = 190 };
+                var box = new TextBox { Text = field.Text, HorizontalAlignment = HorizontalAlignment.Stretch };
                 box.TextChanged += (_, _) => Report(field.SetText(box.Text ?? string.Empty));
                 editor = box;
                 break;
         }
 
-        var row = new DockPanel { Margin = new Thickness(0, 2, 0, 2) };
+        // The label in a column of its own that wraps, a gap, then the editor, which grows and shrinks with the panel.
+        var row = new Grid { Margin = new Thickness(0, 3, 0, 3), ColumnDefinitions = new ColumnDefinitions("*,12,1.2*") };
+        row.ColumnDefinitions[0].MinWidth = 70;
+        row.ColumnDefinitions[2].MinWidth = 110;
         if (field.Info.Description.Length > 0)
         {
             ToolTip.SetTip(row, field.Info.Description);
         }
 
-        DockPanel.SetDock(editor, Dock.Right);
+        Grid.SetColumn(editor, 2);
+        row.Children.Add(new TextBlock { Text = field.Info.Label, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = _muted });
         row.Children.Add(editor);
-        row.Children.Add(new TextBlock { Text = field.Info.Label, VerticalAlignment = VerticalAlignment.Center, Foreground = _muted });
         var stack = new StackPanel();
         stack.Children.Add(row);
         stack.Children.Add(problem);
