@@ -22,6 +22,9 @@ internal readonly record struct BarInstance(Vector4 Place, float Low, float High
 /// <param name="y">The range that the cells fill from front to back.</param>
 public sealed class Bars3D(HeatmapData data, DoubleRange x, DoubleRange y)
 {
+    /// <summary>Gets a value indicating whether the values show as labels above their points; labels that would cover others are left out.</summary>
+    public bool ShowsValues { get; init; }
+
     /// <summary>Gets the values.</summary>
     public HeatmapData Data { get; } = data ?? throw new ArgumentNullException(nameof(data));
 

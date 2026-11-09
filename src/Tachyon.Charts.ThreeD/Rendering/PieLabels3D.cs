@@ -27,8 +27,9 @@ internal sealed class PieLabels3D(Scene3D scene) : ChartOverlay
         get
         {
             var version = scene.Camera.Version + scene.Version + ChartText.Version;
-            foreach (var pie in scene.Pies)
+            for (var n = 0; n < scene.Pies.Count; n++)
             {
+                var pie = scene.Pies[n];
                 version += pie.Version;
             }
 
@@ -42,8 +43,9 @@ internal sealed class PieLabels3D(Scene3D scene) : ChartOverlay
         var pane = canvas.Layout.Panes[0];
         var matrix = scene.Camera.CreateMatrix(pane.Width / pane.Height);
         var line = canvas.GetLineHeight(canvas.LabelSize);
-        foreach (var pie in scene.Pies)
+        for (var n = 0; n < scene.Pies.Count; n++)
         {
+            var pie = scene.Pies[n];
             _left.Clear();
             _right.Clear();
             _placed.Clear();

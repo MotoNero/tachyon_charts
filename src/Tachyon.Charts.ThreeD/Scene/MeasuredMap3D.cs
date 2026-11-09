@@ -13,6 +13,9 @@ namespace Tachyon.Charts.ThreeD.Scene;
 /// <param name="z">The measured values.</param>
 public sealed class MeasuredMap3D(double[] x, double[] y, double[] z)
 {
+    /// <summary>Gets a value indicating whether the values show as labels above their points; labels that would cover others are left out.</summary>
+    public bool ShowsValues { get; init; }
+
     /// <summary>Gets the first coordinates.</summary>
     public double[] X { get; } = x ?? throw new ArgumentNullException(nameof(x));
 

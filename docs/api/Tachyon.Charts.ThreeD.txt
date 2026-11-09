@@ -71,6 +71,7 @@ sealed class Tachyon.Charts.ThreeD.Scene.AntennaPattern3D
   Tachyon.Charts.ThreeD.Scene.Material3D Material { get; set; }
 sealed class Tachyon.Charts.ThreeD.Scene.Bars3D
   .ctor(Tachyon.Charts.Core.Data.HeatmapData data, Tachyon.Charts.Core.Numerics.DoubleRange x, Tachyon.Charts.Core.Numerics.DoubleRange y)
+  System.Boolean ShowsValues { get; set; }
   System.Double Baseline { get; set; }
   System.Double Width { get; set; }
   System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> ColorRange { get; set; }
@@ -84,6 +85,7 @@ enum Tachyon.Charts.ThreeD.Scene.BubbleSizeUnit : System.IComparable, System.ICo
   Screen = 1
 sealed class Tachyon.Charts.ThreeD.Scene.Bubbles3D
   .ctor(System.Double[] x, System.Double[] y, System.Double[] z, System.Double[] diameters)
+  System.Boolean ShowsValues { get; set; }
   System.Double[] Diameters { get; }
   System.Double[] Values { get; set; }
   System.Double[] X { get; }
@@ -157,6 +159,7 @@ struct Tachyon.Charts.ThreeD.Scene.CutMarker : System.IEquatable<Tachyon.Charts.
   System.Int32 Number { get; set; }
 sealed class Tachyon.Charts.ThreeD.Scene.Line3D
   .ctor(Tachyon.Charts.ThreeD.Scene.Points3D points)
+  System.Boolean ShowsValues { get; set; }
   System.Double Width { get; set; }
   Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
   Tachyon.Charts.ThreeD.Scene.Points3D Points { get; }
@@ -169,6 +172,7 @@ sealed class Tachyon.Charts.ThreeD.Scene.Material3D : System.IEquatable<Tachyon.
 sealed class Tachyon.Charts.ThreeD.Scene.MeasuredMap3D
   .ctor(System.Double[] x, System.Double[] y, System.Double[] z)
   System.Boolean ShowsPoints { get; set; }
+  System.Boolean ShowsValues { get; set; }
   System.Double[] X { get; }
   System.Double[] Y { get; }
   System.Double[] Z { get; }
@@ -225,6 +229,7 @@ sealed class Tachyon.Charts.ThreeD.Scene.PointCloud3D
   .ctor(System.Double[] x, System.Double[] y, System.Double[] z, Tachyon.Charts.Rendering.Rgba8[] colors = null)
   .ctor(System.Func<System.IProgress<System.Double>, Tachyon.Charts.ThreeD.Scene.PointCloudArrays> load)
   System.Boolean IsReady { get; }
+  System.Boolean ShowsValues { get; set; }
   System.Double PointSize { get; set; }
   System.Double Progress { get; }
   System.Double[] X { get; }
@@ -254,6 +259,7 @@ sealed class Tachyon.Charts.ThreeD.Scene.Points3D
   static Tachyon.Charts.ThreeD.Scene.Points3D From(System.Double[] x, System.Double[] y, System.Double[] z, Tachyon.Charts.Rendering.Rgba8[] colors = null)
 sealed class Tachyon.Charts.ThreeD.Scene.Scatter3D
   .ctor(Tachyon.Charts.ThreeD.Scene.Points3D points)
+  System.Boolean ShowsValues { get; set; }
   System.Double Size { get; set; }
   System.Int32 PointBudget { get; set; }
   Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
@@ -307,6 +313,7 @@ static class Tachyon.Charts.ThreeD.Scene.Shapes3D
   static Tachyon.Charts.ThreeD.Scene.Mesh3D Rectangle(Tachyon.Charts.ThreeD.Scene.Point3D corner, Tachyon.Charts.ThreeD.Scene.Point3D across, Tachyon.Charts.ThreeD.Scene.Point3D up, Tachyon.Charts.Rendering.Rgba8 color, Tachyon.Charts.ThreeD.Scene.Material3D material = null)
 sealed class Tachyon.Charts.ThreeD.Scene.Surface3D
   .ctor(Tachyon.Charts.Core.Data.HeatmapData data, Tachyon.Charts.Core.Numerics.DoubleRange x, Tachyon.Charts.Core.Numerics.DoubleRange y)
+  System.Boolean ShowsValues { get; set; }
   System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> ColorRange { get; set; }
   Tachyon.Charts.Core.Colors.Colormap Colormap { get; set; }
   Tachyon.Charts.Core.Data.HeatmapData Data { get; }

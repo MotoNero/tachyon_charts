@@ -104,6 +104,8 @@ sealed class Tachyon.Charts.Wpf.ChartElementCollection<T> : System.Collections.O
 abstract class Tachyon.Charts.Wpf.ChartModifierElement : Tachyon.Charts.Wpf.ChartElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
   protected .ctor()
 abstract class Tachyon.Charts.Wpf.ChartSeriesElement : Tachyon.Charts.Wpf.ChartElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  System.Boolean ShowsLastValue { get; set; }
+  System.Boolean ShowsValues { get; set; }
   System.Collections.IEnumerable ItemsSource { get; set; }
   System.Object DataSource { get; set; }
   System.String SeriesName { get; set; }

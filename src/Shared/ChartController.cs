@@ -480,6 +480,9 @@ internal sealed class ChartController : IChartElementHost, IDisposable
             var y = Find(_yAxes, element.YAxisId, "Y");
             if (element.Build(x, y) is { } series)
             {
+                // A series from code may switch these on itself; the element adds what its description asks for.
+                series.ShowsLastValue |= element.ShowsLastValue;
+                series.ShowsValues |= element.ShowsValues;
                 created.Add(series);
             }
         }

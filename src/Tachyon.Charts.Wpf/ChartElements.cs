@@ -312,6 +312,9 @@ public sealed class DateTimeAxis : ChartAxis
 /// </summary>
 public abstract class ChartSeriesElement : ChartElement
 {
+    private bool _showsLastValue;
+    private bool _showsValues;
+
     private ItemsDataSource? _items;
 
     /// <summary>Identifies the <see cref="DataSource"/> property.</summary>
@@ -329,6 +332,28 @@ public abstract class ChartSeriesElement : ChartElement
     /// <summary>Identifies the <see cref="YAxisId"/> property.</summary>
     public static readonly DependencyProperty YAxisIdProperty = DependencyProperty.Register(
         nameof(YAxisId), typeof(string), typeof(ChartSeriesElement), new PropertyMetadata(null, OnChanged));
+
+    /// <summary>Gets or sets a value indicating whether the newest value shows as a mark at the vertical axis, live.</summary>
+    public bool ShowsLastValue
+    {
+        get => _showsLastValue;
+        set
+        {
+            _showsLastValue = value;
+            Host?.OnSeriesChanged();
+        }
+    }
+
+    /// <summary>Gets or sets a value indicating whether the values show as labels at their points.</summary>
+    public bool ShowsValues
+    {
+        get => _showsValues;
+        set
+        {
+            _showsValues = value;
+            Host?.OnSeriesChanged();
+        }
+    }
 
     /// <summary>Gets or sets the name shown in rollovers and legends.</summary>
     public string? SeriesName
@@ -1289,6 +1314,8 @@ internal static class ChartElementFactory
         };
 
         series.SeriesName = definition.Name;
+        series.ShowsLastValue = definition.ShowsLastValue;
+        series.ShowsValues = definition.ShowsValues;
         series.DataSource = definition.Source;
         series.XAxisId = definition.XAxisId;
         series.YAxisId = definition.YAxisId;

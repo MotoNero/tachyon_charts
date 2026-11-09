@@ -19,6 +19,9 @@ public enum BubbleSizeUnit
 /// </summary>
 public sealed class Bubbles3D
 {
+    /// <summary>Gets a value indicating whether the values show as labels above their points; labels that would cover others are left out.</summary>
+    public bool ShowsValues { get; init; }
+
     /// <summary>Initializes a new instance of the <see cref="Bubbles3D"/> class.</summary>
     /// <param name="x">The first coordinates.</param>
     /// <param name="y">The second coordinates.</param>

@@ -95,9 +95,9 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|---|---|
 | ![Three live temperatures with their newest values as colored marks at the axis, moved apart where they meet](docs/images/last-value.png) | ![A function whose axes cross at zero](docs/images/axes-origin.png) | ![A borehole log with the depth running down: gamma rays as an area, temperature as a line, core samples as points](docs/images/depth-profile.png) |
 
-| Scale break | Candles without weekends |
-|---|---|
-| ![A line with small values and one high peak, the empty range between left out](docs/images/scale-break.png) | ![Daily candles on working days, the weekends take no room](docs/images/candles-weekends.png) |
+| Scale break | Candles without weekends | Values at the points |
+|---|---|---|
+| ![A line with small values and one high peak, the empty range between left out](docs/images/scale-break.png) | ![Daily candles on working days, the weekends take no room](docs/images/candles-weekends.png) | ![Sales per quarter as grouped bars with their values on top and a target line with its values](docs/images/value-labels.png) |
 
 | Market profile | Drawing tools |
 |---|---|
@@ -296,7 +296,7 @@ The showroom lists the interactive pages, the instruments and all scenes. Theme 
 
 ### Configurator (preview)
 
-Put a chart together and copy its code: the configurator shows the chart and its C# side by side, and every change shows at once in both. It writes the fluent C#, a view model with the data, the window in XAML and a complete WPF or Avalonia project. It offers line (straight, step, spline), scatter, bubbles, area, stacked area, band, bars (grouped, stacked, horizontal), error bars, stems, histogram, box plot, violin, pie, donut and heatmap, each with its options. With the 3D package it adds surface, columns, waterfall, line, scatter, bubbles, point cloud, map from measurements, volume, antenna pattern and pie in 3D, with camera, cut plane, light and a group shared with 2D charts; without the package it leaves 3D out. More types follow with each release. `--type boxplot` starts with a given type.
+Put a chart together and copy its code: the configurator shows the chart and its C# side by side, and every change shows at once in both. It writes the fluent C#, a view model with the data, the window in XAML and a complete WPF or Avalonia project. It offers line (straight, step, spline), scatter, bubbles, area, stacked area, band, bars (grouped, stacked, horizontal), error bars, stems, histogram, box plot, violin, pie, donut and heatmap, each with its options and a switch for the values at the points. With the 3D package it adds surface, columns, waterfall, line, scatter, bubbles, point cloud, map from measurements, volume, antenna pattern and pie in 3D, with camera, cut plane, light and a group shared with 2D charts; without the package it leaves 3D out. More types follow with each release. `--type boxplot` starts with a given type.
 
 ```bash
 dotnet run --project src/Tachyon.Charts.Configurator.Wpf -c Release

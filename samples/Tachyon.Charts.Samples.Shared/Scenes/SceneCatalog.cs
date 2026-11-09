@@ -103,6 +103,7 @@ public static class SceneCatalog
         new AxisBreakScene("CandlesWithoutWeekends", Examples.ChartTypes.CandlesWithoutWeekendsPage.Configure),
         new AxisBreakScene("ContourLabels", Examples.ChartTypes.LabelledContoursPage.Configure),
         new LastValueScene(),
+        new ValueLabelsScene(),
         new AxisBreakScene("AxesInTheOrigin", Examples.ChartTypes.AxesInTheOriginPage.Configure),
         new AxisBreakScene("DepthProfile", Examples.ChartTypes.DepthProfilePage.Configure),
         new CrosshairValuesScene("CrosshairValues", Examples.ChartTypes.SeveralLegendsPage.Configure, new System.Numerics.Vector2(0.62f, 0.4f)),

@@ -91,6 +91,9 @@ public abstract record SeriesDefinition
     /// <summary>Gets a value indicating whether the newest value shows as a mark at the vertical axis.</summary>
     public bool ShowsLastValue { get; init; }
 
+    /// <summary>Gets a value indicating whether the values show as labels at their points.</summary>
+    public bool ShowsValues { get; init; }
+
     /// <summary>Gets the name of the X axis, or <see langword="null"/> for the first one.</summary>
     public string? XAxisId { get; init; }
 
@@ -521,6 +524,7 @@ public sealed record ChartDefinition(
             }
 
             created.ShowsLastValue |= series.ShowsLastValue;
+            created.ShowsValues |= series.ShowsValues;
             surface.AddSeries(created);
         }
 
@@ -715,6 +719,11 @@ public sealed class HeatmapBuilder
     }
 
     internal HeatmapDefinition Definition { get; private set; }
+
+    /// <summary>Shows the values as labels at their points; labels that would cover others are left out.</summary>
+    /// <param name="show">Whether the labels show.</param>
+    /// <returns>This builder.</returns>
+    public HeatmapBuilder Values(bool show = true) => Change(Definition with { ShowsValues = show });
 
     /// <summary>Sets the name shown in rollovers and legends.</summary>
     /// <param name="name">The name.</param>
@@ -984,6 +993,11 @@ public sealed class LineBuilder<TX, TY>
 
     internal LineDefinition<TX, TY> Definition { get; private set; }
 
+    /// <summary>Shows the values as labels at their points; labels that would cover others are left out.</summary>
+    /// <param name="show">Whether the labels show.</param>
+    /// <returns>This builder.</returns>
+    public LineBuilder<TX, TY> Values(bool show = true) => Change(Definition with { ShowsValues = show });
+
     /// <summary>Selects the X axis.</summary>
     /// <param name="id">The name of the axis.</param>
     /// <returns>This builder.</returns>
@@ -1046,6 +1060,11 @@ public sealed class ScatterBuilder<TX, TY>
     }
 
     internal ScatterDefinition<TX, TY> Definition { get; private set; }
+
+    /// <summary>Shows the values as labels at their points; labels that would cover others are left out.</summary>
+    /// <param name="show">Whether the labels show.</param>
+    /// <returns>This builder.</returns>
+    public ScatterBuilder<TX, TY> Values(bool show = true) => Change(Definition with { ShowsValues = show });
 
     /// <summary>Selects the X axis.</summary>
     /// <param name="id">The name of the axis.</param>

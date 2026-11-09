@@ -23,3 +23,12 @@ c.AddLine(temperature, s => s.Name("Core").LastValue());
 The newest value of the line shows as a plate in its color at its vertical axis, with a small arrow at the value, and follows live data. Plates of several series move apart so that they never overlap; a value outside the view sticks to the edge. In code, set `ShowsLastValue` on any series; candles show the close of the last candle. The marks allocate nothing per frame.
 
 In the showroom: *Last value at the axis*.
+
+## Values at the points
+
+```csharp
+c.AddLine(target, s => s.Name("Target").Values());
+c.AddSeries((x, y) => new BarSeries(rows, x, y) { ShowsValues = true });
+```
+
+Every series can write its values at its points: `ShowsValues` on any series, `.Values()` on lines, scatters and heatmaps. Bars and histograms get their value on top (horizontal bars beside them), stacked parts and heatmap cells in their middle, box plots and violins their median, areas, bands, stems, error bars and points above each point. A label that would cover another is left out, so dense data stay readable and show only some values; a large heatmap labels an even grid of its cells. In 3D, columns, surfaces, lines, points, bubbles, clouds and measured maps have `ShowsValues` too; pies label their slices with `Labels`. The labels allocate nothing per frame.

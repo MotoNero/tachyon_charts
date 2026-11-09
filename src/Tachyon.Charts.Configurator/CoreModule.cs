@@ -11,6 +11,9 @@ internal sealed class CoreModule : IChartModule
 {
     private static readonly ParameterInfo _color = new("color", "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the theme." };
 
+    /// <summary>Gets the switch for labels with the values, which every type with points offers.</summary>
+    public static ParameterInfo ValuesParameter { get; } = new("values", "Show values", ParameterKind.Flag, false) { Description = "Labels with the values at the points; labels that would cover others are left out." };
+
     /// <summary>Gets the names of the colormaps of heatmaps.</summary>
     public static IReadOnlyList<string> Colormaps { get; } = ["Viridis", "Inferno", "Magma", "Plasma", "Turbo", "Grayscale"];
 
@@ -22,22 +25,26 @@ internal sealed class CoreModule : IChartModule
             _color,
             new("style", "Style", ParameterKind.Choice, "straight") { Choices = ["straight", "step", "spline"] },
             new("lastValue", "Last value at the axis", ParameterKind.Flag, false),
+            ValuesParameter,
         ], ApplyLine, LineCode),
         new("scatter", "Scatter", ChartCategory.TwoD, DataShape.Points, "signal",
         [
             new("size", "Size", ParameterKind.Number, 4.0) { Minimum = 1, Maximum = 30 },
             new("marker", "Marker", ParameterKind.Choice, nameof(MarkerShape.Circle)) { Choices = Enum.GetNames<MarkerShape>() },
             _color,
+            ValuesParameter,
         ], ApplyScatter, ScatterCode) { Usings = ["Tachyon.Charts.Rendering"] },
         new("bubbles", "Bubbles", ChartCategory.TwoD, DataShape.Bubbles, "bubbles",
         [
             new("marker", "Marker", ParameterKind.Choice, nameof(MarkerShape.Circle)) { Choices = Enum.GetNames<MarkerShape>() },
             _color,
+            ValuesParameter,
         ], ApplyBubbles, BubblesCode) { Usings = ["Tachyon.Charts.Rendering"] },
         new("area", "Area", ChartCategory.TwoD, DataShape.Points, "damped",
         [
             new("baseline", "Baseline", ParameterKind.Number, 0.0),
             _color,
+            ValuesParameter,
         ], ApplyArea, AreaCode) { Usings = ["Tachyon.Charts.Core.Series"] },
         CoreTypes.StackedArea,
         CoreTypes.Band,
@@ -46,6 +53,7 @@ internal sealed class CoreModule : IChartModule
             new("layout", "Layout", ParameterKind.Choice, nameof(BarLayout.Grouped)) { Choices = Enum.GetNames<BarLayout>() },
             new("width", "Width", ParameterKind.Number, 0.8) { Minimum = 0.05, Maximum = 1 },
             new("horizontal", "Horizontal", ParameterKind.Flag, false),
+            ValuesParameter,
         ], ApplyBars, BarsCode) { Usings = ["Tachyon.Charts.Core.Series"] },
         CoreTypes.ErrorBars,
         CoreTypes.Stems,
@@ -58,6 +66,7 @@ internal sealed class CoreModule : IChartModule
         [
             new("colormap", "Colormap", ParameterKind.Choice, "Viridis") { Choices = Colormaps },
             new("interpolated", "Smooth", ParameterKind.Flag, false),
+            ValuesParameter,
         ], ApplyHeatmap, HeatmapCode) { Usings = ["Tachyon.Charts.Core.Colors"] },
     ];
 
@@ -113,7 +122,7 @@ internal sealed class CoreModule : IChartModule
             "spline" => ".Spline()",
             _ => string.Empty,
         };
-        return code + (values.GetFlag("lastValue", false) ? ".LastValue()" : string.Empty) + ")";
+        return code + (values.GetFlag("lastValue", false) ? ".LastValue()" : string.Empty) + Values(values) + ")";
     }
 
     private static string ScatterCode(SeriesSpec series, string data, SeriesAxes axes)
@@ -125,27 +134,29 @@ internal sealed class CoreModule : IChartModule
             code += $".Fill({CodeText.Color(color)})";
         }
 
-        return code + ")";
+        return code + Values(values) + ")";
     }
 
     private static string AreaCode(SeriesSpec series, string data, SeriesAxes axes)
     {
         var values = series.Parameters;
         var fill = SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? $", Fill = new SolidFill({CodeText.Color(color)})" : string.Empty;
-        return $".AddSeries((x, y) => new AreaSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Baseline = {CodeText.Number(values.GetNumber("baseline", 0))}{fill} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
+        return $".AddSeries((x, y) => new AreaSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Baseline = {CodeText.Number(values.GetNumber("baseline", 0))}{fill}, ShowsValues = {CodeText.Flag(values.GetFlag("values", false))} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
     }
 
     private static string BarsCode(SeriesSpec series, string data, SeriesAxes axes)
     {
         var values = series.Parameters;
-        return $".AddSeries((x, y) => new BarSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Layout = BarLayout.{values.GetText("layout", nameof(BarLayout.Grouped))}, BarWidth = {CodeText.Number(values.GetNumber("width", 0.8))}, IsHorizontal = {CodeText.Flag(values.GetFlag("horizontal", false))} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
+        return $".AddSeries((x, y) => new BarSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Layout = BarLayout.{values.GetText("layout", nameof(BarLayout.Grouped))}, BarWidth = {CodeText.Number(values.GetNumber("width", 0.8))}, IsHorizontal = {CodeText.Flag(values.GetFlag("horizontal", false))}, ShowsValues = {CodeText.Flag(values.GetFlag("values", false))} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
     }
 
     private static string HeatmapCode(SeriesSpec series, string data, SeriesAxes axes)
     {
         var values = series.Parameters;
-        return $".AddHeatmap({data}, h => h.Name({CodeText.String(series.Name)}).Cells(0, 10.0 / {data}.Width, 0, 10.0 / {data}.Height).Interpolated({CodeText.Flag(values.GetFlag("interpolated", false))}).ColorAxis(a => a.Colormap(Colormaps.{values.GetText("colormap", "Viridis")})))";
+        return $".AddHeatmap({data}, h => h.Name({CodeText.String(series.Name)}).Cells(0, 10.0 / {data}.Width, 0, 10.0 / {data}.Height).Interpolated({CodeText.Flag(values.GetFlag("interpolated", false))}).ColorAxis(a => a.Colormap(Colormaps.{values.GetText("colormap", "Viridis")})){Values(values)})";
     }
+
+    private static string Values(SpecValues values) => values.GetFlag("values", false) ? ".Values()" : string.Empty;
 
     private static DataSource<double, double> Source(object data) => (DataSource<double, double>)data;
 
@@ -174,6 +185,11 @@ internal sealed class CoreModule : IChartModule
             {
                 line.LastValue();
             }
+
+            if (values.GetFlag("values", false))
+            {
+                line.Values();
+            }
         });
     }
 
@@ -188,6 +204,11 @@ internal sealed class CoreModule : IChartModule
             {
                 scatter.Fill(color);
             }
+
+            if (values.GetFlag("values", false))
+            {
+                scatter.Values();
+            }
         });
     }
 
@@ -200,7 +221,7 @@ internal sealed class CoreModule : IChartModule
             code += $".Fill({CodeText.Color(color)})";
         }
 
-        return code + ")";
+        return code + Values(values) + ")";
     }
 
     private static void ApplyBubbles(ChartBuilder chart, SeriesSpec series, object data, SeriesAxes axes)
@@ -214,6 +235,11 @@ internal sealed class CoreModule : IChartModule
             {
                 scatter.Fill(color);
             }
+
+            if (values.GetFlag("values", false))
+            {
+                scatter.Values();
+            }
         });
     }
 
@@ -223,7 +249,7 @@ internal sealed class CoreModule : IChartModule
         chart.AddSeries(
             (x, y) =>
             {
-                var area = new AreaSeries(Source(data), x, y) { Name = series.Name, Baseline = values.GetNumber("baseline", 0) };
+                var area = new AreaSeries(Source(data), x, y) { Name = series.Name, Baseline = values.GetNumber("baseline", 0), ShowsValues = values.GetFlag("values", false) };
                 if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
                 {
                     area.Fill = new SolidFill(color);
@@ -245,6 +271,7 @@ internal sealed class CoreModule : IChartModule
                 Layout = Enum.Parse<BarLayout>(values.GetText("layout", nameof(BarLayout.Grouped))),
                 BarWidth = values.GetNumber("width", 0.8),
                 IsHorizontal = values.GetFlag("horizontal", false),
+                ShowsValues = values.GetFlag("values", false),
             },
             axes.X,
             axes.Y);
@@ -258,6 +285,7 @@ internal sealed class CoreModule : IChartModule
             .Name(series.Name)
             .Cells(0, 10.0 / grid.Width, 0, 10.0 / grid.Height)
             .Interpolated(values.GetFlag("interpolated", false))
-            .ColorAxis(axis => axis.Colormap(Colormap(values.GetText("colormap", "Viridis")))));
+            .ColorAxis(axis => axis.Colormap(Colormap(values.GetText("colormap", "Viridis"))))
+            .Values(values.GetFlag("values", false)));
     }
 }

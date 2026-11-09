@@ -50,6 +50,9 @@ public sealed record Contours3D(IReadOnlyList<double> Levels)
 /// <param name="y">The range of the rows on the second axis.</param>
 public sealed class Surface3D(HeatmapData data, DoubleRange x, DoubleRange y)
 {
+    /// <summary>Gets a value indicating whether the values show as labels above their points; labels that would cover others are left out.</summary>
+    public bool ShowsValues { get; init; }
+
     /// <summary>The height that marks a hole for the GPU.</summary>
     internal const float MissingHeight = 1e30f;
 

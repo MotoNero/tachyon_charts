@@ -24,6 +24,13 @@ internal sealed class SeriesRecipe
     /// <param name="properties">Which parameter sets which property of the series; parameters not listed are read by the constructor.</param>
     public SeriesRecipe(Type series, IReadOnlyList<ParameterInfo> parameters, params (string Parameter, string Property)[] properties)
     {
+        // Every type that can label its values offers the switch, unless it has labels of its own, as a pie has.
+        if (series.GetProperty("ShowsValues") is { CanWrite: true } && parameters.All(parameter => parameter.Name is not "values" and not "labels"))
+        {
+            parameters = [.. parameters, CoreModule.ValuesParameter];
+            properties = [.. properties, ("values", "ShowsValues")];
+        }
+
         Parameters = parameters;
         _name = series.GetProperty("Name") is { CanWrite: true, PropertyType: var type } name && type == typeof(string) ? name : null;
         _bound = [.. properties.Select(pair => Bind(series, parameters, pair.Parameter, pair.Property))];

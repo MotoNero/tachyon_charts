@@ -206,6 +206,22 @@ public sealed class AreaSeries : RibbonSeries
     protected internal override bool TryReadPoint(long index, out double x, out double y) =>
         _hitTester.TryReadPoint(0, index, out x, out y);
 
+    /// <inheritdoc />
+    protected internal override void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
+    {
+        ArgumentNullException.ThrowIfNull(labels);
+        var snapshot = _source.GetSnapshot();
+        var xs = snapshot.X.Span;
+        var ys = snapshot.Y.Span;
+        for (var i = 0; i < xs.Length && labels.Count < Overlays.ValueLabelMarks.Limit; i++)
+        {
+            if (x.Contains(xs[i]) && y.Contains(ys[i]))
+            {
+                labels.Add(new ValueLabel(xs[i], ys[i], ys[i], ValueLabelPlace.Above));
+            }
+        }
+    }
+
     /// <summary>Gets or sets the value the area reaches down to.</summary>
     public double Baseline
     {
@@ -267,6 +283,7 @@ public sealed class AreaSeries : RibbonSeries
 /// </summary>
 public sealed class StackedAreaSeries : RibbonSeries
 {
+    private double[] _sums = [];
     private readonly IReadOnlyList<IDataSource<double, double>> _layers;
     private IReadOnlyList<SeriesFill> _fills;
     private bool _isPercent;
@@ -289,6 +306,47 @@ public sealed class StackedAreaSeries : RibbonSeries
         _fills = [.. layers.Select((_, index) => (SeriesFill)new SolidFill(DefaultColor(index)))];
     }
 
+
+    /// <inheritdoc />
+    protected internal override void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
+    {
+        ArgumentNullException.ThrowIfNull(labels);
+        var count = _layers.Count == 0 ? 0 : _layers[0].GetSnapshot().X.Length;
+        if (_sums.Length < count)
+        {
+            _sums = new double[count];
+        }
+
+        // The total of each place first, for shares in percent; then each layer at the top of its part.
+        Array.Clear(_sums, 0, count);
+        for (var layer = 0; layer < _layers.Count; layer++)
+        {
+            var values = _layers[layer].GetSnapshot().Y.Span;
+            for (var i = 0; i < Math.Min(count, values.Length); i++)
+            {
+                _sums[i] += double.IsFinite(values[i]) ? values[i] : 0;
+            }
+        }
+
+        var places = _layers.Count == 0 ? default : _layers[0].GetSnapshot().X.Span;
+        for (var i = 0; i < count && labels.Count < Overlays.ValueLabelMarks.Limit; i++)
+        {
+            if (!x.Contains(places[i]))
+            {
+                continue;
+            }
+
+            var top = 0.0;
+            for (var layer = 0; layer < _layers.Count; layer++)
+            {
+                var values = _layers[layer].GetSnapshot().Y.Span;
+                var value = i < values.Length && double.IsFinite(values[i]) ? values[i] : 0;
+                var part = _isPercent && _sums[i] != 0 ? value / _sums[i] * 100 : value;
+                labels.Add(new ValueLabel(places[i], top + (part / 2), value, ValueLabelPlace.Center));
+                top += part;
+            }
+        }
+    }
     /// <summary>Gets or sets the fills of the layers.</summary>
     public IReadOnlyList<SeriesFill> Fills
     {
@@ -417,6 +475,25 @@ public sealed class BandSeries : RibbonSeries
         _second = second ?? throw new ArgumentNullException(nameof(second));
     }
 
+
+    /// <inheritdoc />
+    protected internal override void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
+    {
+        ArgumentNullException.ThrowIfNull(labels);
+        foreach (var source in (ReadOnlySpan<IDataSource<double, double>>)[_first, _second])
+        {
+            var snapshot = source.GetSnapshot();
+            var xs = snapshot.X.Span;
+            var ys = snapshot.Y.Span;
+            for (var i = 0; i < xs.Length && labels.Count < Overlays.ValueLabelMarks.Limit; i++)
+            {
+                if (x.Contains(xs[i]) && y.Contains(ys[i]))
+                {
+                    labels.Add(new ValueLabel(xs[i], ys[i], ys[i], ValueLabelPlace.Above));
+                }
+            }
+        }
+    }
     /// <summary>Gets or sets the fill where the first curve lies above the second one.</summary>
     public SeriesFill FirstAboveFill
     {

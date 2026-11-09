@@ -198,6 +198,33 @@ public abstract class ChartSeries(AxisBase xAxis, AxisBase yAxis)
     /// </summary>
     public bool ShowsLastValue { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the values show as labels at their points: above a point or bar, in the
+    /// middle of a cell or a stacked part. Labels that would cover others are left out, so dense data show only some.
+    /// </summary>
+    public bool ShowsValues { get; set; }
+
+    /// <summary>
+    /// Hands over the labels of the values within the visible ranges, in the units of the axes, for
+    /// <see cref="ShowsValues"/>. Runs on the render thread. By default the points that <see cref="TryReadPoint"/> reads,
+    /// above each point; series with bars, cells or groups write their own.
+    /// </summary>
+    /// <param name="x">The visible range of the X axis.</param>
+    /// <param name="y">The visible range of the Y axis.</param>
+    /// <param name="labels">Receives the labels.</param>
+    protected internal virtual void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
+    {
+        ArgumentNullException.ThrowIfNull(labels);
+        var count = SourcePointCount;
+        for (long i = 0; i < count && labels.Count < Overlays.ValueLabelMarks.Limit; i++)
+        {
+            if (TryReadPoint(i, out var px, out var py) && x.Contains(px) && y.Contains(py))
+            {
+                labels.Add(new ValueLabel(px, py, py, ValueLabelPlace.Above));
+            }
+        }
+    }
+
     /// <summary>Reads the newest value for the mark at the axis. Runs on the render thread.</summary>
     /// <param name="value">Receives the value.</param>
     /// <returns>Whether there is one. The default is that a series has none.</returns>
@@ -331,3 +358,23 @@ public abstract class DataSeries<TX, TY>(IDataSource<TX, TY> source, AxisBase xA
     /// </summary>
     protected void OnAppearanceChanged() => Interlocked.Increment(ref _appearanceVersion);
 }
+
+/// <summary>Where a value label sits at its point.</summary>
+public enum ValueLabelPlace
+{
+    /// <summary>Above the point, as on a bar or a marker.</summary>
+    Above,
+
+    /// <summary>Centered on the point, as in a cell or a stacked part.</summary>
+    Center,
+
+    /// <summary>To the right of the point, as at a horizontal bar or a median.</summary>
+    Right,
+}
+
+/// <summary>A value label of a series, in the units of its axes.</summary>
+/// <param name="X">The place on the X axis.</param>
+/// <param name="Y">The place on the Y axis.</param>
+/// <param name="Value">The value written.</param>
+/// <param name="Place">Where the label sits at the place.</param>
+public readonly record struct ValueLabel(double X, double Y, double Value, ValueLabelPlace Place);

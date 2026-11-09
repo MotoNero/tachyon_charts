@@ -102,6 +102,7 @@ public static class KernelDensity
 /// </summary>
 public abstract class SampleSeries : RibbonSeries
 {
+    private double[]? _medians;
     private readonly double[][] _samples;
     private double _width = 0.6;
     private SeriesFill _fill = new SolidFill(new Rgba8(76, 201, 240, 170));
@@ -148,6 +149,22 @@ public abstract class SampleSeries : RibbonSeries
         {
             _lineColor = value;
             OnAppearanceChanged();
+        }
+    }
+
+    /// <inheritdoc />
+    protected internal override void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
+    {
+        ArgumentNullException.ThrowIfNull(labels);
+
+        // The groups do not change, so their medians are computed once.
+        _medians ??= [.. _samples.Select(sample => BoxStatistics.Compute(sample)?.Median ?? double.NaN)];
+        for (var i = 0; i < _medians.Length; i++)
+        {
+            if (double.IsFinite(_medians[i]) && x.Contains(i) && y.Contains(_medians[i]))
+            {
+                labels.Add(new ValueLabel(i + (Width / 2), _medians[i], _medians[i], ValueLabelPlace.Right));
+            }
         }
     }
 

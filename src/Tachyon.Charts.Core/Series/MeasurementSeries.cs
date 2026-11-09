@@ -65,6 +65,22 @@ public abstract class MarkSeries : RibbonSeries, IDisposable
     protected IDataSource<double, double> Source => _source;
 
     /// <inheritdoc />
+    protected internal override void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
+    {
+        ArgumentNullException.ThrowIfNull(labels);
+        var snapshot = _source.GetSnapshot();
+        var xs = snapshot.X.Span;
+        var ys = snapshot.Y.Span;
+        for (var i = 0; i < xs.Length && labels.Count < Overlays.ValueLabelMarks.Limit; i++)
+        {
+            if (x.Contains(xs[i]) && y.Contains(ys[i]))
+            {
+                labels.Add(new ValueLabel(xs[i], ys[i], ys[i], ValueLabelPlace.Above));
+            }
+        }
+    }
+
+    /// <inheritdoc />
     protected override ReadOnlyMemory<double> ReadX() => _source.GetSnapshot().X;
 
     /// <summary>Adds a filled rectangle.</summary>

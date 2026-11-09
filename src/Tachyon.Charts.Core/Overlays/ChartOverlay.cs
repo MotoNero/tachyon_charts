@@ -80,10 +80,18 @@ public sealed class OverlayCanvas
     public float MeasureWidth(string text, float size) => _textEngine.MeasureWidth(text, size);
 
     /// <summary>Measures text from a buffer, without a string.</summary>
-    internal float MeasureWidth(ReadOnlySpan<char> text, float size) => _textEngine.MeasureWidth(text, size);
+    /// <param name="text">The text.</param>
+    /// <param name="size">The font size.</param>
+    /// <returns>The width.</returns>
+    public float MeasureWidth(ReadOnlySpan<char> text, float size) => _textEngine.MeasureWidth(text, size);
 
     /// <summary>Draws text from a buffer, without a string, for marks that change every frame.</summary>
-    internal void DrawText(ReadOnlySpan<char> text, double x, double baseline, float size, Rgba8 color)
+    /// <param name="text">The text.</param>
+    /// <param name="x">The left edge.</param>
+    /// <param name="baseline">The baseline.</param>
+    /// <param name="size">The font size.</param>
+    /// <param name="color">The color.</param>
+    public void DrawText(ReadOnlySpan<char> text, double x, double baseline, float size, Rgba8 color)
     {
         if (_glyphCount + text.Length > _glyphs.Length)
         {

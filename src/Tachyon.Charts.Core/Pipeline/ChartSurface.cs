@@ -65,6 +65,7 @@ public sealed class ChartSurface
     private bool _usedCanvas;
     private bool _drawsLastValues;
     private readonly Tachyon.Charts.Core.Overlays.LastValueMarks _lastValues = new();
+    private readonly Tachyon.Charts.Core.Overlays.ValueLabelMarks _valueLabels = new();
     private ChartOverlay[] _overlays = [];
     private long _renderedOverlayVersions = -1;
     private readonly OverlayCanvas _canvas = null!;
@@ -887,7 +888,8 @@ public sealed class ChartSurface
         var hasBreaks = Tachyon.Charts.Core.Overlays.AxisBreakMarks.Any(layout);
         var hasLabels = Tachyon.Charts.Core.Overlays.ContourLabels.Any(_series);
         var hasLastValues = Tachyon.Charts.Core.Overlays.LastValueMarks.Any(_series);
-        if (_overlays.Length == 0 && !hasBreaks && !hasLabels && !hasLastValues)
+        var hasValues = Tachyon.Charts.Core.Overlays.ValueLabelMarks.Any(_series);
+        if (_overlays.Length == 0 && !hasBreaks && !hasLabels && !hasLastValues && !hasValues)
         {
             return;
         }
@@ -903,6 +905,11 @@ public sealed class ChartSurface
         if (hasLabels)
         {
             Tachyon.Charts.Core.Overlays.ContourLabels.Draw(_canvas, layout, _series);
+        }
+
+        if (hasValues)
+        {
+            _valueLabels.Draw(_canvas, layout, _series);
         }
 
         // The marks of the last values come after the labels of the axes, which they cover; see DrawText.

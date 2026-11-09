@@ -278,6 +278,12 @@ public sealed class PieSeries : ChartSeries
     }
 
     /// <inheritdoc />
+    /// <inheritdoc />
+    protected internal override void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
+    {
+    }
+
+    /// <inheritdoc />
     protected internal override bool TryGetDataRange(out DoubleRange x, out DoubleRange y)
     {
         x = new DoubleRange(0, 1);

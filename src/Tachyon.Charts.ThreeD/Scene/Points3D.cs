@@ -46,6 +46,18 @@ public sealed class Points3D
     /// <summary>Gets how many points it holds.</summary>
     public int Count => (int)Math.Min(Total, Capacity);
 
+    /// <summary>Reads a point that it holds, from the oldest at 0 to the newest at <see cref="Count"/> - 1.</summary>
+    /// <param name="index">The number of the point.</param>
+    /// <returns>The point.</returns>
+    internal Point3D Read(int index)
+    {
+        lock (_gate)
+        {
+            var slot = (int)((Math.Max(_total - Capacity, 0) + index) % Capacity);
+            return new Point3D(_x[slot], _y[slot], _z[slot]);
+        }
+    }
+
     /// <summary>Creates a list from arrays.</summary>
     /// <param name="x">The first coordinates.</param>
     /// <param name="y">The second coordinates.</param>
@@ -351,6 +363,9 @@ internal readonly struct BoxMap(Scene3D scene)
 /// <param name="points">The points.</param>
 public sealed class Line3D(Points3D points)
 {
+    /// <summary>Gets a value indicating whether the values show as labels above their points; labels that would cover others are left out.</summary>
+    public bool ShowsValues { get; init; }
+
     /// <summary>Gets the points.</summary>
     public Points3D Points { get; } = points ?? throw new ArgumentNullException(nameof(points));
 

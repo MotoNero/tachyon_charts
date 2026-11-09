@@ -228,6 +228,26 @@ public sealed class HeatmapSeries : RasterSeries
     }
 
     /// <inheritdoc />
+    protected internal override void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
+    {
+        ArgumentNullException.ThrowIfNull(labels);
+        // Every cell when few, otherwise an even grid of them, so that labels spread over the whole map.
+        var (columns, rows) = (Data.Width, Data.Height);
+        var step = (int)Math.Max(1, Math.Ceiling(Math.Sqrt((double)columns * rows / 600)));
+        for (var row = step / 2; row < rows && labels.Count < Overlays.ValueLabelMarks.Limit; row += step)
+        {
+            for (var column = step / 2; column < columns; column += step)
+            {
+                var i = ((long)row * columns) + column;
+                if (TryReadPoint(i, out var px, out var py) && x.Contains(px) && y.Contains(py) && TryReadValue(i, out var value))
+                {
+                    labels.Add(new ValueLabel(px, py, value, ValueLabelPlace.Center));
+                }
+            }
+        }
+    }
+
+    /// <inheritdoc />
     protected internal override bool TryReadPoint(long index, out double x, out double y)
     {
         x = 0;

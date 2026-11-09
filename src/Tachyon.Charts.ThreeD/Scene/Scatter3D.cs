@@ -6,6 +6,9 @@ namespace Tachyon.Charts.ThreeD.Scene;
 /// <param name="points">The points. Their colors and sizes win over the ones here.</param>
 public sealed class Scatter3D(Points3D points)
 {
+    /// <summary>Gets a value indicating whether the values show as labels above their points; labels that would cover others are left out.</summary>
+    public bool ShowsValues { get; init; }
+
     /// <summary>Gets the points.</summary>
     public Points3D Points { get; } = points ?? throw new ArgumentNullException(nameof(points));
 

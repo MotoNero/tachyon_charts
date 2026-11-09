@@ -297,6 +297,41 @@ public sealed class BarSeries : ChartSeries
     protected internal override void Draw(ICommandList commands, in SeriesFrame frame) =>
         commands.FillMesh(_vertices, frame.Bounds);
 
+    /// <inheritdoc />
+    protected internal override void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
+    {
+        ArgumentNullException.ThrowIfNull(labels);
+        var count = _rows[0].Length;
+        var places = _isHorizontal ? y : x;
+        var step = Step();
+        var isGrouped = _layout == BarLayout.Grouped;
+        var width = step * _barWidth;
+        var slot = isGrouped ? width / _rows.Length : width;
+        var (lower, upper) = _layout == BarLayout.Grouped ? (_rows, _rows) : ComputeEnds(_rows, _layout);
+        for (var i = 0; i < count && labels.Count < Overlays.ValueLabelMarks.Limit; i++)
+        {
+            if (!places.Contains(Position(i)))
+            {
+                continue;
+            }
+
+            for (var row = 0; row < _rows.Length; row++)
+            {
+                var value = _rows[row][i];
+                if (!double.IsFinite(value))
+                {
+                    continue;
+                }
+
+                var place = Position(i) - (width / 2) + ((isGrouped ? row + 0.5 : 0.5) * slot);
+                var (end, kind) = isGrouped
+                    ? (upper[row][i], _isHorizontal ? ValueLabelPlace.Right : ValueLabelPlace.Above)
+                    : ((lower[row][i] + upper[row][i]) / 2, ValueLabelPlace.Center);
+                labels.Add(_isHorizontal ? new ValueLabel(end, place, value, kind) : new ValueLabel(place, end, value, kind));
+            }
+        }
+    }
+
     private static double[][] Validate(IReadOnlyList<double[]> rows)
     {
         ArgumentNullException.ThrowIfNull(rows);

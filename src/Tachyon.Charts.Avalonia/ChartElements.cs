@@ -298,6 +298,9 @@ public sealed class DateTimeAxis : ChartAxis
 /// <summary>A series of a <see cref="Chart"/>.</summary>
 public abstract class ChartSeriesElement : ChartElement
 {
+    private bool _showsLastValue;
+    private bool _showsValues;
+
     private ItemsDataSource? _items;
 
     /// <summary>Identifies the <see cref="DataSource"/> property.</summary>
@@ -317,6 +320,28 @@ public abstract class ChartSeriesElement : ChartElement
     {
         get => GetValue(DataSourceProperty);
         set => SetValue(DataSourceProperty, value);
+    }
+
+    /// <summary>Gets or sets a value indicating whether the newest value shows as a mark at the vertical axis, live.</summary>
+    public bool ShowsLastValue
+    {
+        get => _showsLastValue;
+        set
+        {
+            _showsLastValue = value;
+            Host?.OnSeriesChanged();
+        }
+    }
+
+    /// <summary>Gets or sets a value indicating whether the values show as labels at their points.</summary>
+    public bool ShowsValues
+    {
+        get => _showsValues;
+        set
+        {
+            _showsValues = value;
+            Host?.OnSeriesChanged();
+        }
     }
 
     /// <summary>Gets or sets the name shown in rollovers and legends.</summary>
@@ -1099,6 +1124,8 @@ internal static class ChartElementFactory
         };
 
         series.SeriesName = definition.Name;
+        series.ShowsLastValue = definition.ShowsLastValue;
+        series.ShowsValues = definition.ShowsValues;
         series.DataSource = definition.Source;
         series.XAxisId = definition.XAxisId;
         series.YAxisId = definition.YAxisId;

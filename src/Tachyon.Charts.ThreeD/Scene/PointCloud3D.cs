@@ -21,6 +21,9 @@ public sealed record PointCloudArrays(double[] X, double[] Y, double[] Z, Rgba8[
 /// </summary>
 public sealed class PointCloud3D
 {
+    /// <summary>Gets a value indicating whether the values show as labels above their points; labels that would cover others are left out.</summary>
+    public bool ShowsValues { get; init; }
+
     /// <summary>The most points on the GPU. One buffer holds 2 GiB, so a larger cloud shows an even sample.</summary>
     internal const int MaximumPoints = 130_000_000;
 

@@ -85,6 +85,8 @@ abstract class Tachyon.Charts.Avalonia.ChartModifierElement : Tachyon.Charts.Ava
   protected .ctor()
   protected virtual System.Void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs change)
 abstract class Tachyon.Charts.Avalonia.ChartSeriesElement : Tachyon.Charts.Avalonia.ChartElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  System.Boolean ShowsLastValue { get; set; }
+  System.Boolean ShowsValues { get; set; }
   System.Collections.IEnumerable ItemsSource { get; set; }
   System.Object DataSource { get; set; }
   System.String SeriesName { get; set; }
