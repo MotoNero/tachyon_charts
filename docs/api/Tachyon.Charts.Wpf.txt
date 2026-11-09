@@ -85,10 +85,15 @@ abstract class Tachyon.Charts.Wpf.ChartAxis : Tachyon.Charts.Wpf.ChartElement, S
   System.Boolean IsAutoRange { get; set; }
   System.Boolean IsHidden { get; set; }
   System.Boolean IsInverted { get; set; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Numerics.DoubleRange> Breaks { get; set; }
+  System.Double PaneWeight { get; set; }
+  System.Int32 Pane { get; set; }
+  System.Nullable<System.Double> CrossesAt { get; set; }
   System.Nullable<Tachyon.Charts.Core.Axes.AxisPosition> Position { get; set; }
   System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> Limits { get; set; }
   System.String Id { get; set; }
   System.String Title { get; set; }
+  Tachyon.Charts.Core.Axes.TimeGapMap Gaps { get; set; }
   Tachyon.Charts.Core.Numerics.DoubleRange VisibleRange { get; set; }
   protected .ctor()
   static System.Windows.DependencyProperty IdProperty

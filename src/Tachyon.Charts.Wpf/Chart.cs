@@ -51,6 +51,7 @@ public sealed class Chart : FrameworkElement, IRecordableChart
 
     private ChartRuntime? _runtime;
     private IReadOnlyList<Func<Core.Pipeline.ChartSurface, Core.Overlays.ChartOverlay>> _overlayFactories = [];
+    private bool _isXDown;
     private bool _showsDiagnostics;
     private ChartController? _controller;
     private IChartRecording? _recording;
@@ -334,12 +335,14 @@ public sealed class Chart : FrameworkElement, IRecordableChart
         Title = definition.Title;
         Theme = definition.Theme;
         GroupName = definition.GroupName;
+        _isXDown = definition.IsXDown;
         _overlayFactories = definition.Overlays;
 
         // A running chart builds itself anew with the new elements below; it must take the new overlays along.
         if (_controller is not null)
         {
             _controller.OverlayFactories = _overlayFactories;
+            _controller.IsXDown = _isXDown;
         }
 
         Replace(XAxes, definition.XAxes.Select(ChartElementFactory.Create));
@@ -545,6 +548,7 @@ public sealed class Chart : FrameworkElement, IRecordableChart
             Modifiers,
             Annotations);
         _controller.OverlayFactories = _overlayFactories;
+        _controller.IsXDown = _isXDown;
         _controller.ShowsDiagnostics = _showsDiagnostics;
         foreach (var element in _logicalChildren)
         {

@@ -7,6 +7,7 @@ using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 using Tachyon.Charts.Avalonia;
@@ -251,6 +252,52 @@ internal sealed class ConfiguratorWindow : Window
         return stack;
     }
 
+    // The menu the generated window gets with the export option, here on the preview.
+    private ContextMenu ExportMenu()
+    {
+        var items = new List<MenuItem>
+        {
+            ExportItem("Save as PNG …", "chart.png", () => _preview.ExportPngAsync()),
+            ExportItem("Save as SVG …", "chart.svg", () => _preview.ExportSvgAsync()),
+            ExportItem("Save as PDF …", "chart.pdf", () => _preview.ExportPdfAsync()),
+            ExportItem("Save data as CSV …", "chart.csv", () => _preview.ExportCsvAsync()),
+        };
+        var video = new MenuItem { Header = _preview.IsRecording ? "Stop recording" : "Record video …" };
+        video.Click += async (_, _) =>
+        {
+            if (_preview.IsRecording)
+            {
+                await _preview.StopRecordingAsync();
+                video.Header = "Record video …";
+                return;
+            }
+
+            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions { SuggestedFileName = "chart.mp4" });
+            if (file?.TryGetLocalPath() is { } path)
+            {
+                _preview.StartRecording(path);
+                video.Header = "Stop recording";
+            }
+        };
+        items.Add(video);
+        return new ContextMenu { ItemsSource = items };
+    }
+
+    private MenuItem ExportItem(string header, string name, Func<Task<byte[]>> export)
+    {
+        var item = new MenuItem { Header = header };
+        item.Click += async (_, _) =>
+        {
+            var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions { SuggestedFileName = name });
+            if (file is not null)
+            {
+                await using var stream = await file.OpenWriteAsync();
+                await stream.WriteAsync(await export());
+            }
+        };
+        return item;
+    }
+
     // Code at once, the preview right after; the status says how long both took.
     private static TextBox CodeBox()
     {
@@ -283,6 +330,7 @@ internal sealed class ConfiguratorWindow : Window
         try
         {
             _preview.Configure(_session.Apply);
+            _preview.ContextMenu = _session.Spec.ExportMenu ? ExportMenu() : null;
         }
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
         {

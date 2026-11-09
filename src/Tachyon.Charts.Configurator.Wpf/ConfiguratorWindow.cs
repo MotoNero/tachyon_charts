@@ -251,6 +251,49 @@ internal sealed class ConfiguratorWindow : Window
         return stack;
     }
 
+    // The menu the generated window gets with the export option, here on the preview.
+    private ContextMenu ExportMenu()
+    {
+        var menu = new ContextMenu();
+        AddExport(menu, "Save as PNG …", "PNG image|*.png", () => _preview.ExportPngAsync());
+        AddExport(menu, "Save as SVG …", "SVG drawing|*.svg", () => _preview.ExportSvgAsync());
+        AddExport(menu, "Save as PDF …", "PDF document|*.pdf", () => _preview.ExportPdfAsync());
+        AddExport(menu, "Save data as CSV …", "CSV table|*.csv", () => _preview.ExportCsvAsync());
+        var video = new MenuItem { Header = _preview.IsRecording ? "Stop recording" : "Record video …" };
+        video.Click += async (_, _) =>
+        {
+            if (_preview.IsRecording)
+            {
+                await _preview.StopRecordingAsync();
+                video.Header = "Record video …";
+                return;
+            }
+
+            var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "MP4 video|*.mp4" };
+            if (dialog.ShowDialog(this) == true)
+            {
+                _preview.StartRecording(dialog.FileName);
+                video.Header = "Stop recording";
+            }
+        };
+        menu.Items.Add(video);
+        return menu;
+    }
+
+    private void AddExport(ContextMenu menu, string header, string filter, Func<Task<byte[]>> export)
+    {
+        var item = new MenuItem { Header = header };
+        item.Click += async (_, _) =>
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog { Filter = filter };
+            if (dialog.ShowDialog(this) == true)
+            {
+                await File.WriteAllBytesAsync(dialog.FileName, await export());
+            }
+        };
+        menu.Items.Add(item);
+    }
+
     // Code at once, the preview right after; the status says how long both took.
     private void ShowState()
     {
@@ -265,6 +308,7 @@ internal sealed class ConfiguratorWindow : Window
         try
         {
             _preview.Configure(_session.Apply);
+            _preview.ContextMenu = _session.Spec.ExportMenu ? ExportMenu() : null;
         }
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
         {

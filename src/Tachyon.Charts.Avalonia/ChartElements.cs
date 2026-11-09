@@ -155,11 +155,66 @@ public abstract class ChartAxis : ChartElement
     /// <summary>Gets or sets a value indicating whether the axis takes no room and shows nothing.</summary>
     public bool IsHidden { get; set; }
 
-    internal AxisBase Build(string fallbackId, AxisPosition fallbackPosition)
+    /// <summary>Gets or sets the pane of a vertical axis, from 0 at the top; panes stack and share the horizontal axis.</summary>
+    public int Pane { get; set; }
+
+    /// <summary>Gets or sets the share of the height of its pane, against the other panes.</summary>
+    public double PaneWeight { get; set; } = 1;
+
+    /// <summary>Gets or sets the value of the other axis where this one runs through the plot, or <see langword="null"/> for the edge.</summary>
+    public double? CrossesAt { get; set; }
+
+    /// <summary>Gets or sets the ranges a numeric axis leaves out.</summary>
+    public IReadOnlyList<DoubleRange> Breaks { get; set; } = [];
+
+    /// <summary>Gets or sets the times a time axis leaves out, such as weekends, or <see langword="null"/> for none.</summary>
+    public TimeGapMap? Gaps { get; set; }
+
+    /// <summary>Builds the axis with the X axis downwards: positions turn and an X axis runs down.</summary>
+    /// <param name="fallbackId">The name when the element has none.</param>
+    /// <param name="fallbackPosition">The position when the element has none, already turned.</param>
+    /// <param name="isX">Whether it is an X axis.</param>
+    /// <returns>The axis.</returns>
+    internal AxisBase BuildTurned(string fallbackId, AxisPosition fallbackPosition, bool isX)
     {
-        var core = CreateCore(Id ?? fallbackId, Position ?? fallbackPosition);
+        var turned = Position switch
+        {
+            AxisPosition.Bottom => AxisPosition.Left,
+            AxisPosition.Left => AxisPosition.Bottom,
+            AxisPosition.Top => AxisPosition.Right,
+            AxisPosition.Right => AxisPosition.Top,
+            _ => fallbackPosition,
+        };
+        var core = Build(fallbackId, turned, ignorePosition: true);
+        if (isX)
+        {
+            core.IsInverted = !core.IsInverted;
+        }
+
+        return core;
+    }
+
+    // What only some kinds of axes have, set after the axis is made.
+    private void Shape(AxisBase core)
+    {
+        core.CrossesAt = CrossesAt;
+        if (core is CoreNumericAxis numeric && Breaks.Count > 0)
+        {
+            numeric.Breaks = Breaks;
+        }
+
+        if (core is CoreDateTimeAxis time && Gaps is not null)
+        {
+            time.Gaps = Gaps;
+        }
+    }
+
+    internal AxisBase Build(string fallbackId, AxisPosition fallbackPosition, bool ignorePosition = false)
+    {
+        var core = CreateCore(Id ?? fallbackId, ignorePosition ? fallbackPosition : Position ?? fallbackPosition);
         ReadState().ApplyTo(core);
         core.IsHidden = IsHidden;
+        Shape(core);
         Core = core;
         return core;
     }
@@ -1075,6 +1130,11 @@ internal static class ChartElementFactory
         axis.Limits = definition.Limits;
         axis.IsInverted = definition.IsInverted;
         axis.IsHidden = definition.IsHidden;
+        axis.Pane = definition.Pane;
+        axis.PaneWeight = definition.PaneWeight;
+        axis.CrossesAt = definition.CrossesAt;
+        axis.Breaks = definition.Breaks;
+        axis.Gaps = definition.Gaps;
         if (definition.Range is { } range)
         {
             axis.VisibleRange = range;

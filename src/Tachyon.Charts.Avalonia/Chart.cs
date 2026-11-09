@@ -52,6 +52,7 @@ public sealed class Chart : Control, IRecordableChart
 
     private ChartRuntime? _runtime;
     private IReadOnlyList<Func<Core.Pipeline.ChartSurface, Core.Overlays.ChartOverlay>> _overlayFactories = [];
+    private bool _isXDown;
     private bool _showsDiagnostics;
     private ChartController? _controller;
     private IChartRecording? _recording;
@@ -306,12 +307,14 @@ public sealed class Chart : Control, IRecordableChart
         Title = definition.Title;
         ChartTheme = definition.Theme;
         GroupName = definition.GroupName;
+        _isXDown = definition.IsXDown;
         _overlayFactories = definition.Overlays;
 
         // A running chart builds itself anew with the new elements below; it must take the new overlays along.
         if (_controller is not null)
         {
             _controller.OverlayFactories = _overlayFactories;
+            _controller.IsXDown = _isXDown;
         }
 
         Replace(XAxes, definition.XAxes.Select(ChartElementFactory.Create));
@@ -439,10 +442,18 @@ public sealed class Chart : Control, IRecordableChart
     {
         base.OnPointerReleased(e);
         var point = e.GetCurrentPoint(this);
-        e.Handled |= Process(e, point, PointerEventKind.Released, AvaloniaInput.ToButton(point.Properties.PointerUpdateKind), 0);
+        var button = AvaloniaInput.ToButton(point.Properties.PointerUpdateKind);
+        e.Handled |= Process(e, point, PointerEventKind.Released, button, 0);
         if (AvaloniaInput.ToButtons(point.Properties) == PointerButtons.None)
         {
             e.Pointer.Capture(null);
+        }
+
+        // The chart handles the pointer itself, so a context menu would not open by itself; it opens here, as in WPF.
+        if (button == PointerButton.Secondary && ContextMenu is { } menu)
+        {
+            menu.Open(this);
+            e.Handled = true;
         }
     }
 
@@ -553,6 +564,7 @@ public sealed class Chart : Control, IRecordableChart
             Modifiers,
             []);
         _controller.OverlayFactories = _overlayFactories;
+        _controller.IsXDown = _isXDown;
         _controller.ShowsDiagnostics = _showsDiagnostics;
         foreach (var element in LogicalChildren.OfType<ChartElement>())
         {

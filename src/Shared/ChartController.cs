@@ -109,6 +109,9 @@ internal sealed class ChartController : IChartElementHost, IDisposable
     /// <summary>Gets or sets what creates the overlays of a chart from its description.</summary>
     public IReadOnlyList<Func<ChartSurface, Core.Overlays.ChartOverlay>> OverlayFactories { get; set; } = [];
 
+    /// <summary>Gets or sets a value indicating whether the X axis runs down the side and the values along the bottom.</summary>
+    public bool IsXDown { get; set; }
+
     /// <summary>Gets the input pipeline, used on the UI thread.</summary>
     public ModifierPipeline Pipeline { get; } = new();
 
@@ -380,28 +383,31 @@ internal sealed class ChartController : IChartElementHost, IDisposable
 
         var old = _surface;
         _published.Clear();
+        // As a chart built without a UI: turned with the X axis down, otherwise the vertical axes in their panes.
         var xAxes = new AxisBase[_xAxes.Count];
         for (var i = 0; i < xAxes.Length; i++)
         {
-            xAxes[i] = _xAxes[i].Build($"x{i}", AxisPosition.Bottom);
+            xAxes[i] = IsXDown ? _xAxes[i].BuildTurned($"x{i}", AxisPosition.Left, isX: true) : _xAxes[i].Build($"x{i}", AxisPosition.Bottom);
         }
 
         var yAxes = new AxisBase[_yAxes.Count];
         for (var i = 0; i < yAxes.Length; i++)
         {
-            yAxes[i] = _yAxes[i].Build($"y{i}", AxisPosition.Left);
+            yAxes[i] = IsXDown ? _yAxes[i].BuildTurned($"y{i}", AxisPosition.Bottom, isX: false) : _yAxes[i].Build($"y{i}", AxisPosition.Left);
         }
 
-        var paneAxes = new List<AxisBase>(yAxes);
+        var colorAxes = new List<AxisBase>();
         for (var i = 0; i < _series.Count; i++)
         {
             if (_series[i].GetColorAxis($"color{i}") is { } colorAxis)
             {
-                paneAxes.Add(colorAxis);
+                colorAxes.Add(colorAxis);
             }
         }
 
-        var surface = new ChartSurface(xAxes, [new LayoutPane(paneAxes)], _textEngine) { Title = _title, Theme = _theme };
+        var surface = IsXDown
+            ? new ChartSurface(yAxes, [new LayoutPane([.. xAxes, .. colorAxes])], _textEngine) { Title = _title, Theme = _theme, IsXDown = true }
+            : new ChartSurface(xAxes, Panes(yAxes, colorAxes), _textEngine) { Title = _title, Theme = _theme };
         var series = BuildSeries();
         var annotations = BuildAnnotations();
         _builtAnnotations.Clear();
@@ -471,6 +477,35 @@ internal sealed class ChartController : IChartElementHost, IDisposable
     }
 
     // On the UI thread, before anything waits for the render thread: elements belong to this thread.
+    // Vertical axes go into the pane they name, from the top, with the weight of the last of them; color axes join the first.
+    private LayoutPane[] Panes(AxisBase[] yAxes, List<AxisBase> colorAxes)
+    {
+        var count = _yAxes.Count == 0 ? 1 : _yAxes.Max(axis => axis.Pane) + 1;
+        var panes = new LayoutPane[count];
+        for (var pane = 0; pane < count; pane++)
+        {
+            var axes = new List<AxisBase>();
+            var weight = 1.0;
+            for (var i = 0; i < yAxes.Length; i++)
+            {
+                if (_yAxes[i].Pane == pane)
+                {
+                    axes.Add(yAxes[i]);
+                    weight = _yAxes[i].PaneWeight;
+                }
+            }
+
+            if (pane == 0)
+            {
+                axes.AddRange(colorAxes);
+            }
+
+            panes[pane] = new LayoutPane(axes, weight);
+        }
+
+        return panes;
+    }
+
     private List<ChartSeries> BuildSeries()
     {
         var created = new List<ChartSeries>(_series.Count);
