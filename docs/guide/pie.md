@@ -33,6 +33,8 @@ var pie = new Pie3D(values, names) { ExplodedIndex = 1 };          // InnerRadiu
 var chart = new Chart3D().Configure(c => c.Title("Power mix").AddPie(pie));
 ```
 
+Each slice carries a label as in 2D: `Labels = PieLabels.NameAndPercent` by default, or `Name`, `Percent`, `Value` or `None`. Wide slices show it on their top; narrow ones, and slices seen flat at the back, show it beside the pie with a line to their edge.
+
 `AddPie` puts the pie in the middle of the box, hides the axes and moves the view closer. Slices run clockwise from the top as in 2D; zero, negative and missing values get no slice. The pointer shows name, value and share of a slice, and a click pulls it out or back. `Height`, `Gap`, `ExplodeDistance`, `Colors` and `Material` set the look; without `Colors` the slices take the palette of the theme.
 
 In the showroom: *Pie*, *Donut*, *Pie 3D*, *Donut 3D*.

@@ -1,6 +1,7 @@
 using System.Globalization;
 using Tachyon.Charts.Core.Data;
 using Tachyon.Charts.Core.Numerics;
+using Tachyon.Charts.Core.Series;
 using Tachyon.Charts.ThreeD;
 using Tachyon.Charts.ThreeD.Scene;
 
@@ -86,8 +87,8 @@ public sealed class ThreeDModule : IChartModule
 
     // A pie in 3D; with a hole it is a donut.
     private static ChartTypeInfo Pie3DType(string id, string name, double hole) => Type(id, name, DataShape.Slices, "mix", typeof(Pie3D), nameof(Chart3DBuilder.AddPie), null,
-        [new("innerRadius", "Hole", ParameterKind.Number, hole) { Minimum = 0, Maximum = 0.9, Description = "The radius of the hole as a share of the radius; above 0 for a donut." }, new("height", "Height", ParameterKind.Number, 0.3) { Minimum = 0.02, Maximum = 1 }, new("explodeDistance", "Pulled out by", ParameterKind.Number, 0.15) { Minimum = 0, Maximum = 0.5 }],
-        [("innerRadius", nameof(Pie3D.InnerRadius)), ("height", nameof(Pie3D.Height)), ("explodeDistance", nameof(Pie3D.ExplodeDistance))],
+        [new("labels", "Labels", ParameterKind.Choice, nameof(PieLabels.NameAndPercent)) { Choices = Enum.GetNames<PieLabels>() }, new("innerRadius", "Hole", ParameterKind.Number, hole) { Minimum = 0, Maximum = 0.9, Description = "The radius of the hole as a share of the radius; above 0 for a donut." }, new("height", "Height", ParameterKind.Number, 0.3) { Minimum = 0.02, Maximum = 1 }, new("explodeDistance", "Pulled out by", ParameterKind.Number, 0.15) { Minimum = 0, Maximum = 0.5 }],
+        [("labels", nameof(Pie3D.Labels)), ("innerRadius", nameof(Pie3D.InnerRadius)), ("height", nameof(Pie3D.Height)), ("explodeDistance", nameof(Pie3D.ExplodeDistance))],
         data => Pie(data), data => $"new Pie3D({data}.Values, {data}.Names)");
 
     // The camera and the group first, then the series, then the cut plane, the same in the preview and in the code.

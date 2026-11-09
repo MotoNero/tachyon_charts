@@ -264,6 +264,7 @@ public sealed class Chart3DBuilder
                 series?.Bind(chart, _group is { } name ? ChartGroup.Get(name) : null);
                 return new AxisLabels3D(Scene);
             })
+            .AddOverlay(_ => new PieLabels3D(Scene))
             .AddOverlay(_ => new PickLabels3D(Scene, pointer))
             .Modifiers(m => m.Custom(() => new Orbit3DModifier(Scene, pointer)));
     }

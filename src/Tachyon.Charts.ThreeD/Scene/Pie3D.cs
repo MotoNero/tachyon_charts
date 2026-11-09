@@ -1,3 +1,5 @@
+using Tachyon.Charts.Core.Instruments;
+using Tachyon.Charts.Core.Series;
 using Tachyon.Charts.Rendering;
 
 namespace Tachyon.Charts.ThreeD.Scene;
@@ -88,6 +90,9 @@ public sealed class Pie3D
     /// <summary>Gets the colors of the slices, or <see langword="null"/> for the palette of the theme.</summary>
     public IReadOnlyList<Rgba8>? Colors { get; init; }
 
+    /// <summary>Gets what the label on each slice shows: name, share, value or nothing, as on a pie in 2D.</summary>
+    public PieLabels Labels { get; init; } = PieLabels.NameAndPercent;
+
     /// <summary>Gets how the slices take the light.</summary>
     public Material3D Material { get; init; } = new() { Gloss = 0.25, Sharpness = 32 };
 
@@ -162,6 +167,53 @@ public sealed class Pie3D
 
             start += sweep;
         }
+    }
+
+    /// <summary>Gets the place of the label of a slice: the middle of its top, in data units, moved with the slice.</summary>
+    /// <param name="index">The number of the slice.</param>
+    /// <returns>The place, or <see langword="null"/> for a value without a slice.</returns>
+    internal Point3D? LabelPoint(int index) => TopPoint(index, InnerRadius > 0 ? (InnerRadius + 1) / 2 : 0.62);
+
+    /// <summary>Gets a point on the top of a slice along its middle, in data units, moved with the slice.</summary>
+    /// <param name="index">The number of the slice.</param>
+    /// <param name="radius">The distance from the axis in units of the radius.</param>
+    /// <returns>The point, or <see langword="null"/> for a value without a slice.</returns>
+    internal Point3D? TopPoint(int index, double radius)
+    {
+        if (!Counts(Values[index]) || Total <= 0)
+        {
+            return null;
+        }
+
+        var start = 0.0;
+        for (var i = 0; i < index; i++)
+        {
+            start += Counts(Values[i]) ? Values[i] / Total * 2 * Math.PI : 0;
+        }
+
+        var sweep = Values[index] / Total * 2 * Math.PI;
+        var middle = (Math.PI / 2) - start - (sweep / 2);
+        var direction = new Point3D(Math.Cos(middle), Math.Sin(middle), 0);
+        var lift = sweep >= (2 * Math.PI) - 1e-9 ? 0 : Math.Min(Gap / 2 / Math.Max(Math.Sin(Math.Min(sweep, Math.PI) / 2), 1e-3), 0.05);
+        var place = direction * (radius + lift + (index == ExplodedIndex ? ExplodeDistance : 0));
+        return new Point3D(place.X, place.Y, Height / 2);
+    }
+
+    /// <summary>Writes the label of a slice as <see cref="Labels"/> asks.</summary>
+    /// <param name="index">The number of the slice.</param>
+    /// <returns>The text; empty for none.</returns>
+    internal string LabelText(int index)
+    {
+        var share = GetShare(index);
+        var percent = (share * 100).ToString(share < 0.1 ? "0.#" : "0", ChartText.Culture) + " %";
+        return Labels switch
+        {
+            PieLabels.None => string.Empty,
+            PieLabels.Name => Names[index],
+            PieLabels.Percent => percent,
+            PieLabels.Value => Values[index].ToString("G4", ChartText.Culture),
+            _ => Names[index].Length == 0 ? percent : Names[index] + " " + percent,
+        };
     }
 
     private static bool Counts(double value) => double.IsFinite(value) && value > 0;
