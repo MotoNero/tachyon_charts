@@ -386,6 +386,11 @@ public sealed class ChartCatalog
         return catalog;
     }
 
+    /// <summary>Gets a kind of annotation by identifier.</summary>
+    /// <param name="id">The identifier.</param>
+    /// <returns>The kind, or <see langword="null"/>.</returns>
+    internal static AnnotationInfo? FindAnnotation(string id) => AnnotationCatalog.All.FirstOrDefault(info => info.Id == id);
+
     /// <summary>Gets the scene the series of a description go into, or <see langword="null"/> when they go into the chart itself.</summary>
     /// <param name="spec">The description.</param>
     /// <returns>The scene.</returns>
@@ -468,6 +473,38 @@ public sealed class ChartCatalog
         }
 
         CheckOwners(spec, problems);
+        foreach (var annotation in spec.Annotations)
+        {
+            if (FindAnnotation(annotation.Type) is not { } info)
+            {
+                problems.Add($"The annotation {annotation.Type} is unknown.");
+            }
+            else
+            {
+                CheckValues(info.Name, info.Parameters, annotation.Parameters, problems);
+            }
+        }
+
+        foreach (var legend in new[] { spec.Legend, spec.SecondLegend })
+        {
+            if (legend is not null && !Enum.TryParse<Core.Input.LegendPlacement>(legend.Placement, out _))
+            {
+                problems.Add($"The place {legend.Placement} of a legend is unknown.");
+            }
+        }
+
+        foreach (var axis in spec.XAxes.Concat(spec.YAxes))
+        {
+            if (axis.ReadBreaks() is null)
+            {
+                problems.Add($"The scale breaks of the axis {axis.Id} must read like 10..90, 120..150.");
+            }
+
+            if (axis.Kind == AxisKind.Category && axis.ReadCategories().Length == 0)
+            {
+                problems.Add($"The category axis {axis.Id} needs names for its places.");
+            }
+        }
         if (spec.Series.Count(series => series.Type == "candles" && series.Parameters.GetFlag("volume", true)) > 1)
         {
             problems.Add("Only one candles series per chart can show its volume below; switch \"Volume below\" off for the others.");

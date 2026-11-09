@@ -185,7 +185,9 @@ sealed class Tachyon.Charts.Wpf.LineSeries : Tachyon.Charts.Wpf.ChartSeriesEleme
   .ctor()
   System.Boolean IsSpline { get; set; }
   System.Boolean IsStep { get; set; }
+  System.Double GlowIntensity { get; set; }
   System.Double StrokeThickness { get; set; }
+  System.Nullable<System.Double> GlowRadius { get; set; }
   System.Windows.Media.Color Stroke { get; set; }
   System.Windows.Media.DoubleCollection StrokeDashArray { get; set; }
   static System.Windows.DependencyProperty IsStepProperty

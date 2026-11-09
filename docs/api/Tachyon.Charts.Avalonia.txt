@@ -139,7 +139,9 @@ sealed class Tachyon.Charts.Avalonia.LineSeries : Tachyon.Charts.Avalonia.ChartS
   System.Boolean IsSpline { get; set; }
   System.Boolean IsStep { get; set; }
   System.Collections.Generic.IReadOnlyList<System.Single> StrokeDashArray { get; set; }
+  System.Double GlowIntensity { get; set; }
   System.Double StrokeThickness { get; set; }
+  System.Nullable<System.Double> GlowRadius { get; set; }
   static Avalonia.StyledProperty<Avalonia.Media.Color> StrokeProperty
   static Avalonia.StyledProperty<System.Boolean> IsStepProperty
   static Avalonia.StyledProperty<System.Double> StrokeThicknessProperty

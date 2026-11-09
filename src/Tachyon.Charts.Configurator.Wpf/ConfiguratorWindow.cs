@@ -132,6 +132,11 @@ internal sealed class ConfiguratorWindow : Window
         buttons.Children.Add(Action("+ Series", () => _session.AddSeries(_session.Catalog.Types[add.SelectedIndex].Id)));
         buttons.Children.Add(Action("− Series", _session.RemoveSeries));
         buttons.Children.Add(Action("+ Y axis", _session.AddYAxis));
+        var kinds = new ComboBox { Margin = new Thickness(0, 0, 6, 0), ItemsSource = ConfiguratorSession.AnnotationKinds.Select(kind => kind.Name).ToList(), SelectedIndex = 0, MinWidth = 120 };
+        var notes = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
+        notes.Children.Add(kinds);
+        notes.Children.Add(Action("+ Annotation", () => _session.AddAnnotation(ConfiguratorSession.AnnotationKinds[kinds.SelectedIndex].Id)));
+        notes.Children.Add(Action("− Annotation", _session.RemoveAnnotation));
         _series.SelectionChanged += (_, _) =>
         {
             if (!_isFilling && _series.SelectedIndex >= 0)
@@ -144,6 +149,7 @@ internal sealed class ConfiguratorWindow : Window
         top.Children.Add(Heading("Chart type"));
         top.Children.Add(types);
         top.Children.Add(buttons);
+        top.Children.Add(notes);
         top.Children.Add(Heading("Series"));
         top.Children.Add(_series);
         var panel = new DockPanel { Background = (Brush)FindResource("Sidebar") };
@@ -195,7 +201,7 @@ internal sealed class ConfiguratorWindow : Window
         _isFilling = false;
         _fields.Children.Clear();
         string? group = null;
-        foreach (var field in _session.SeriesFields.Concat(_session.ChartFields).Concat(_session.AxisFields).Concat(_session.ModifierFields))
+        foreach (var field in _session.SeriesFields.Concat(_session.ChartFields).Concat(_session.AxisFields).Concat(_session.ModifierFields).Concat(_session.AnnotationFields))
         {
             if (field.Group != group)
             {

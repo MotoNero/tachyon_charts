@@ -39,8 +39,27 @@ public sealed class ChartSpec
     /// <summary>Gets or sets the legend, or <see langword="null"/> for none.</summary>
     public LegendSpec? Legend { get; set; }
 
+    /// <summary>Gets or sets a value indicating whether the generated window gives the chart a context menu that saves it.</summary>
+    public bool ExportMenu { get; set; }
+
+    /// <summary>Gets the annotations: lines, bands, boxes and text on the first axes.</summary>
+    public List<AnnotationSpec> Annotations { get; init; } = [];
+
+    /// <summary>Gets or sets a second legend, for example for the series of a second axis, or <see langword="null"/> for none.</summary>
+    public LegendSpec? SecondLegend { get; set; }
+
     /// <summary>Gets the settings of the scene the series go into, such as the camera of a 3D chart; see <see cref="SceneInfo"/>.</summary>
     public SpecValues Scene { get; init; } = new();
+}
+
+/// <summary>An annotation of the chart.</summary>
+public sealed class AnnotationSpec
+{
+    /// <summary>Gets or sets the kind: <c>hline</c>, <c>vline</c>, <c>band</c>, <c>box</c> or <c>text</c>.</summary>
+    public string Type { get; set; } = "hline";
+
+    /// <summary>Gets the values of its parameters.</summary>
+    public SpecValues Parameters { get; init; } = new();
 }
 
 /// <summary>How an axis maps its values.</summary>
@@ -54,6 +73,9 @@ public enum AxisKind
 
     /// <summary>Dates and times.</summary>
     DateTime,
+
+    /// <summary>Names instead of numbers, one per place 0, 1, 2 and so on.</summary>
+    Category,
 }
 
 /// <summary>An axis of a <see cref="ChartSpec"/>.</summary>
@@ -82,6 +104,50 @@ public sealed class AxisSpec
 
     /// <summary>Gets or sets a value indicating whether a time axis leaves out the weekends, as for prices of working days.</summary>
     public bool SkipsWeekends { get; set; }
+
+    /// <summary>Gets or sets the names of the places of a <see cref="AxisKind.Category"/> axis, separated by commas.</summary>
+    public string Categories { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets a value indicating whether the axis runs through the plot where the other axis is 0, as for axes in the origin.</summary>
+    public bool CrossesZero { get; set; }
+
+    /// <summary>Gets or sets the ranges left out of the axis, written as <c>from..to</c> and separated by commas, such as <c>10..90</c>.</summary>
+    public string Breaks { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets the pane of a vertical axis, from 0 at the top; panes stack and share the horizontal axis.</summary>
+    public int Pane { get; set; }
+
+    /// <summary>Gets or sets the share of the height the pane takes, against the other panes.</summary>
+    public double PaneWeight { get; set; } = 1;
+
+    /// <summary>Gets or sets a value indicating whether the axis is hidden; it still scales its series.</summary>
+    public bool IsHidden { get; set; }
+
+    /// <summary>Reads <see cref="Breaks"/>.</summary>
+    /// <returns>The ranges, or <see langword="null"/> when the text is no list of ranges.</returns>
+    public IReadOnlyList<(double From, double To)>? ReadBreaks()
+    {
+        var ranges = new List<(double, double)>();
+        foreach (var part in Breaks.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            var ends = part.Split("..", StringSplitOptions.TrimEntries);
+            if (ends.Length != 2
+                || !double.TryParse(ends[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var from)
+                || !double.TryParse(ends[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var to)
+                || !(to > from))
+            {
+                return null;
+            }
+
+            ranges.Add((from, to));
+        }
+
+        return ranges;
+    }
+
+    /// <summary>Reads <see cref="Categories"/>.</summary>
+    /// <returns>The names.</returns>
+    public string[] ReadCategories() => Categories.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
     /// <summary>Gets a value indicating whether the range follows the data.</summary>
     public bool IsAutoRange => Minimum is null || Maximum is null;
@@ -180,4 +246,14 @@ public sealed class LegendSpec
 {
     /// <summary>Gets or sets the title, empty for none.</summary>
     public string Title { get; set; } = string.Empty;
+
+    /// <summary>Gets or sets where the legend stands, the name of a <c>LegendPlacement</c> such as <c>TopRight</c> or <c>Bottom</c>.</summary>
+    public string Placement { get; set; } = "TopRight";
+
+    /// <summary>Gets or sets the names of the series it lists, separated by commas; empty for all.</summary>
+    public string Series { get; set; } = string.Empty;
+
+    /// <summary>Reads <see cref="Series"/>.</summary>
+    /// <returns>The names.</returns>
+    public string[] ReadSeries() => Series.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 }

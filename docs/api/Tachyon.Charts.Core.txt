@@ -584,6 +584,7 @@ sealed class Tachyon.Charts.Core.Fluent.LegendDefinition : Tachyon.Charts.Core.F
   virtual Tachyon.Charts.Core.Input.ChartModifier Create()
 sealed class Tachyon.Charts.Core.Fluent.LineBuilder<TX, TY>
   Tachyon.Charts.Core.Fluent.LineBuilder<TX, TY> Dash(System.Single[] lengths)
+  Tachyon.Charts.Core.Fluent.LineBuilder<TX, TY> Glow(System.Double radius, System.Double intensity = 0,8)
   Tachyon.Charts.Core.Fluent.LineBuilder<TX, TY> LastValue()
   Tachyon.Charts.Core.Fluent.LineBuilder<TX, TY> Name(System.String name)
   Tachyon.Charts.Core.Fluent.LineBuilder<TX, TY> Spline()
@@ -597,7 +598,9 @@ abstract class Tachyon.Charts.Core.Fluent.LineDefinition : Tachyon.Charts.Core.F
   System.Boolean IsSpline { get; set; }
   System.Boolean IsStep { get; set; }
   System.Collections.Generic.IReadOnlyList<System.Single> DashPattern { get; set; }
+  System.Double GlowIntensity { get; set; }
   System.Double Thickness { get; set; }
+  System.Nullable<System.Double> GlowRadius { get; set; }
   Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
   protected .ctor()
 sealed class Tachyon.Charts.Core.Fluent.LineDefinition<TX, TY> : Tachyon.Charts.Core.Fluent.LineDefinition, System.IEquatable<Tachyon.Charts.Core.Fluent.LineDefinition<TX, TY>>, System.IEquatable<Tachyon.Charts.Core.Fluent.LineDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.SeriesDefinition>

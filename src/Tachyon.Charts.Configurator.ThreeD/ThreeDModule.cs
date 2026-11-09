@@ -2,6 +2,7 @@ using System.Globalization;
 using Tachyon.Charts.Core.Data;
 using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Core.Series;
+using Tachyon.Charts.Rendering;
 using Tachyon.Charts.ThreeD;
 using Tachyon.Charts.ThreeD.Scene;
 
@@ -22,8 +23,32 @@ public sealed class ThreeDModule : IChartModule
     public IReadOnlyList<ChartTypeInfo> Types { get; } =
     [
         Type("surface3d", "Surface 3D", DataShape.Grid, "hill", typeof(Surface3D), nameof(Chart3DBuilder.AddSurface), (-1, 1),
-            [Colormap("Viridis"), Lit(), Opacity()], [("colormap", nameof(Surface3D.Colormap)), ("lit", "Material.IsLit"), ("opacity", "Material.Opacity")],
-            data => new Surface3D((HeatmapData)data, Box, Box), data => $"new Surface3D({data}, new DoubleRange(0, 10), new DoubleRange(0, 10))"),
+            [
+                Colormap("Viridis"), Lit(), Opacity(),
+                new("heightLines", "Height lines", ParameterKind.Integer, 0.0) { Minimum = 0, Maximum = 50, Description = "Lines of equal height, evenly over the Z range; 0 for none." },
+                new("limit", "Limit plane", ParameterKind.Flag, false) { Description = "A red plane at a limit; where the surface crosses it is easy to see." },
+                new("limitValue", "Limit at", ParameterKind.Number, 0.5),
+            ],
+            [("colormap", nameof(Surface3D.Colormap)), ("lit", "Material.IsLit"), ("opacity", "Material.Opacity")],
+            data => new Surface3D((HeatmapData)data, Box, Box), data => $"new Surface3D({data}, new DoubleRange(0, 10), new DoubleRange(0, 10))",
+            new SceneExtra(
+                (created, values) =>
+                {
+                    if (values.GetNumber("heightLines", 0) > 0)
+                    {
+                        // Contours can only be given when the surface is made; the preview sets it the same way.
+                        typeof(Surface3D).GetProperty(nameof(Surface3D.Contours))!.SetValue(created, HeightLines(values));
+                    }
+                },
+                values => values.GetNumber("heightLines", 0) > 0 ? $"Contours = Contours3D.Even(new DoubleRange({CodeText.Number(values.GetNumber("zFrom", -1))}, {CodeText.Number(values.GetNumber("zTo", 1))}), {(int)values.GetNumber("heightLines", 0)})" : null,
+                (scene, values) =>
+                {
+                    if (values.GetFlag("limit", false))
+                    {
+                        scene.AddMesh(Shapes3D.Limit(Box, Box, values.GetNumber("limitValue", 0.5), LimitColor));
+                    }
+                },
+                values => values.GetFlag("limit", false) ? $".AddMesh(Shapes3D.Limit(new DoubleRange(0, 10), new DoubleRange(0, 10), {CodeText.Number(values.GetNumber("limitValue", 0.5))}, new Rgba8(255, 70, 70, 255)))" : string.Empty)),
         Type("columns3d", "Columns 3D", DataShape.Grid, "blocks", typeof(Bars3D), nameof(Chart3DBuilder.AddBars), (0, 1),
             [Colormap("Viridis"), new("width", "Width", ParameterKind.Number, 0.8) { Minimum = 0.05, Maximum = 1 }, Lit(), Opacity()],
             [("colormap", nameof(Bars3D.Colormap)), ("width", nameof(Bars3D.Width)), ("lit", "Material.IsLit"), ("opacity", "Material.Opacity")],
@@ -85,6 +110,12 @@ public sealed class ThreeDModule : IChartModule
 
     private static DoubleRange Box => new(0, 10);
 
+    private static Rgba8 LimitColor => new(255, 70, 70, 255);
+
+    // An object initializer ends with " }"; a further assignment goes in before.
+    private static string WithExtra(string expression, string? assignment) =>
+        assignment is null ? expression : expression[..^2].TrimEnd() + (expression.EndsWith("{  }", StringComparison.Ordinal) ? " " : ", ") + assignment + " }";
+
     // A pie in 3D; with a hole it is a donut.
     private static ChartTypeInfo Pie3DType(string id, string name, double hole) => Type(id, name, DataShape.Slices, "mix", typeof(Pie3D), nameof(Chart3DBuilder.AddPie), null,
         [new("labels", "Labels", ParameterKind.Choice, nameof(PieLabels.NameAndPercent)) { Choices = Enum.GetNames<PieLabels>() }, new("innerRadius", "Hole", ParameterKind.Number, hole) { Minimum = 0, Maximum = 0.9, Description = "The radius of the hole as a share of the radius; above 0 for a donut." }, new("height", "Height", ParameterKind.Number, 0.3) { Minimum = 0.02, Maximum = 1 }, new("explodeDistance", "Pulled out by", ParameterKind.Number, 0.15) { Minimum = 0, Maximum = 0.5 }],
@@ -138,7 +169,10 @@ public sealed class ThreeDModule : IChartModule
     private static ParameterInfo Color() => new("color", "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the type." };
 
     // A type that goes into the scene: the axes of the box (unless the type sets its own), then the object with its properties.
-    private static ChartTypeInfo Type(string id, string name, DataShape shape, string sample, Type type, string add, (double From, double To)? height, IReadOnlyList<ParameterInfo> parameters, (string, string)[] properties, Func<object, object> create, Func<string, string> constructor)
+    private static Contours3D HeightLines(SpecValues values) =>
+        Contours3D.Even(new DoubleRange(values.GetNumber("zFrom", -1), values.GetNumber("zTo", 1)), (int)values.GetNumber("heightLines", 0));
+
+    private static ChartTypeInfo Type(string id, string name, DataShape shape, string sample, Type type, string add, (double From, double To)? height, IReadOnlyList<ParameterInfo> parameters, (string, string)[] properties, Func<object, object> create, Func<string, string> constructor, SceneExtra? extra = null)
     {
         var all = height is { } z ? [.. parameters, new("zFrom", "Z from", ParameterKind.Number, z.From), new("zTo", "Z to", ParameterKind.Number, z.To)] : parameters;
         var recipe = new SeriesRecipe(type, all, properties);
@@ -151,7 +185,7 @@ public sealed class ThreeDModule : IChartModule
             sample,
             recipe.Parameters,
             (_, _, _, _) => throw new InvalidOperationException($"{name} goes into a 3D scene."),
-            (series, data, _) => Axes(series.Parameters, height) + $".{add}({recipe.Expression(constructor(data), series)})")
+            (series, data, _) => Axes(series.Parameters, height) + $".{add}({WithExtra(recipe.Expression(constructor(data), series), extra?.InitCode(series.Parameters))})" + (extra?.AfterCode(series.Parameters) ?? string.Empty))
         {
             Usings = recipe.Usings,
             OwnsAxes = true,
@@ -166,7 +200,9 @@ public sealed class ThreeDModule : IChartModule
 
                 var created = create(data);
                 recipe.Set(created, series);
+                extra?.Init(created, series.Parameters);
                 method.Invoke(scene, [created]);
+                extra?.After(scene, series.Parameters);
             },
         };
     }
@@ -211,3 +247,10 @@ public sealed class ThreeDModule : IChartModule
         return new Pie3D(values, names);
     }
 }
+
+/// <summary>What a 3D type adds beyond its properties: values only its creation takes, and objects after it.</summary>
+/// <param name="Init">Sets what only the creation takes, on the new object.</param>
+/// <param name="InitCode">Writes the same as one more assignment of the initializer, or <see langword="null"/> for none.</param>
+/// <param name="After">Adds objects to the scene after the type.</param>
+/// <param name="AfterCode">Writes the same as calls on the scene.</param>
+internal sealed record SceneExtra(Action<object, SpecValues> Init, Func<SpecValues, string?> InitCode, Action<Chart3DBuilder, SpecValues> After, Func<SpecValues, string> AfterCode);

@@ -1,6 +1,7 @@
 using Tachyon.Charts.Core.Colors;
 using Tachyon.Charts.Core.Data;
 using Tachyon.Charts.Core.Fluent;
+using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Core.Series;
 using Tachyon.Charts.Rendering;
 
@@ -9,6 +10,15 @@ namespace Tachyon.Charts.Configurator;
 /// <summary>The 2D types of the core and the interactions; more types follow over the same metadata.</summary>
 internal sealed class CoreModule : IChartModule
 {
+    // The dash patterns by name: lengths of dash and gap in device independent units.
+    private static readonly Dictionary<string, float[]> _dashes = new()
+    {
+        ["Solid"] = [],
+        ["Dashed"] = [8, 4],
+        ["Dotted"] = [2, 3],
+        ["Dash dot"] = [8, 3, 2, 3],
+    };
+
     private static readonly ParameterInfo _color = new("color", "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the theme." };
 
     /// <summary>Gets the switch for labels with the values, which every type with points offers.</summary>
@@ -26,6 +36,8 @@ internal sealed class CoreModule : IChartModule
             new("thickness", "Thickness", ParameterKind.Number, 1.5) { Minimum = 0.5, Maximum = 10 },
             _color,
             new("style", "Style", ParameterKind.Choice, "straight") { Choices = ["straight", "step", "spline"] },
+            new("dash", "Dashes", ParameterKind.Choice, "Solid") { Choices = [.. _dashes.Keys] },
+            new("glow", "Glow radius", ParameterKind.Number, 0.0) { Minimum = 0, Maximum = 40, Description = "0 for the glow of the theme." },
             new("lastValue", "Last value at the axis", ParameterKind.Flag, false),
             ValuesParameter,
         ], ApplyLine, LineCode),
@@ -46,9 +58,13 @@ internal sealed class CoreModule : IChartModule
         new("area", "Area", ChartCategory.TwoD, DataShape.Points, "damped",
         [
             new("baseline", "Baseline", ParameterKind.Number, 0.0),
+            new("valueColors", "Colors by value", ParameterKind.Flag, false) { Description = "The fill takes the color of its value from a colormap." },
+            new("colormap", "Colormap", ParameterKind.Choice, "Turbo") { Choices = Colormaps },
+            new("colorFrom", "Lowest color at", ParameterKind.Number, -1.0),
+            new("colorTo", "Highest color at", ParameterKind.Number, 1.0),
             _color,
             ValuesParameter,
-        ], ApplyArea, AreaCode) { Usings = ["Tachyon.Charts.Core.Series"] },
+        ], ApplyArea, AreaCode) { Usings = ["Tachyon.Charts.Core.Series", "Tachyon.Charts.Core.Colors", "Tachyon.Charts.Core.Numerics"] },
         CoreTypes.StackedArea,
         CoreTypes.Band,
         new("bars", "Bars", ChartCategory.TwoD, DataShape.Rows, "groups",
@@ -56,8 +72,10 @@ internal sealed class CoreModule : IChartModule
             new("layout", "Layout", ParameterKind.Choice, nameof(BarLayout.Grouped)) { Choices = Enum.GetNames<BarLayout>() },
             new("width", "Width", ParameterKind.Number, 0.8) { Minimum = 0.05, Maximum = 1 },
             new("horizontal", "Horizontal", ParameterKind.Flag, false),
+            new("corners", "Corner radius", ParameterKind.Number, 0.0) { Minimum = 0, Maximum = 30 },
+            new("shadow", "Soft shadow", ParameterKind.Flag, false),
             ValuesParameter,
-        ], ApplyBars, BarsCode) { Usings = ["Tachyon.Charts.Core.Series"] },
+        ], ApplyBars, BarsCode) { Usings = ["Tachyon.Charts.Core.Series", "Tachyon.Charts.Rendering"] },
         CoreTypes.ErrorBars,
         CoreTypes.Stems,
         CoreTypes.Histogram,
@@ -91,6 +109,8 @@ internal sealed class CoreModule : IChartModule
         new("keyboard", "Keyboard", [], (m, _) => m.Keyboard(), _ => ".Keyboard()"),
         new("legend", "Legend", [], (m, _) => m.Legend(), _ => ".Legend()"),
         new("diagnostics", "Diagnostics", [], (m, _) => m.Diagnostics(), _ => ".Diagnostics()"),
+        new("selection", "Select points", [], (m, _) => m.Selection(), _ => ".Selection()"),
+        new("annotationedit", "Move annotations", [], (m, _) => m.AnnotationEdit(), _ => ".AnnotationEdit()"),
     ];
 
     /// <summary>Gets a colormap by name.</summary>
@@ -125,6 +145,16 @@ internal sealed class CoreModule : IChartModule
             "spline" => ".Spline()",
             _ => string.Empty,
         };
+        if (_dashes[values.GetText("dash", "Solid")] is { Length: > 0 } dashes)
+        {
+            code += $".Dash({string.Join(", ", dashes.Select(length => CodeText.Number(length)))})";
+        }
+
+        if (values.GetNumber("glow", 0) > 0)
+        {
+            code += $".Glow({CodeText.Number(values.GetNumber("glow", 0))})";
+        }
+
         return code + (values.GetFlag("lastValue", false) ? ".LastValue()" : string.Empty) + Values(values) + ")";
     }
 
@@ -143,14 +173,16 @@ internal sealed class CoreModule : IChartModule
     private static string AreaCode(SeriesSpec series, string data, SeriesAxes axes)
     {
         var values = series.Parameters;
-        var fill = SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? $", Fill = new SolidFill({CodeText.Color(color)})" : string.Empty;
+        var fill = values.GetFlag("valueColors", false)
+            ? $", Fill = new ValueGradientFill(Colormaps.{values.GetText("colormap", "Turbo")}, new DoubleRange({CodeText.Number(values.GetNumber("colorFrom", -1))}, {CodeText.Number(values.GetNumber("colorTo", 1))}))"
+            : SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? $", Fill = new SolidFill({CodeText.Color(color)})" : string.Empty;
         return $".AddSeries((x, y) => new AreaSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Baseline = {CodeText.Number(values.GetNumber("baseline", 0))}{fill}, ShowsValues = {CodeText.Flag(values.GetFlag("values", false))} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
     }
 
     private static string BarsCode(SeriesSpec series, string data, SeriesAxes axes)
     {
         var values = series.Parameters;
-        return $".AddSeries((x, y) => new BarSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Layout = BarLayout.{values.GetText("layout", nameof(BarLayout.Grouped))}, BarWidth = {CodeText.Number(values.GetNumber("width", 0.8))}, IsHorizontal = {CodeText.Flag(values.GetFlag("horizontal", false))}, ShowsValues = {CodeText.Flag(values.GetFlag("values", false))} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
+        return $".AddSeries((x, y) => new BarSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Layout = BarLayout.{values.GetText("layout", nameof(BarLayout.Grouped))}, BarWidth = {CodeText.Number(values.GetNumber("width", 0.8))}, IsHorizontal = {CodeText.Flag(values.GetFlag("horizontal", false))}, CornerRadius = {CodeText.Number(values.GetNumber("corners", 0))}{(values.GetFlag("shadow", false) ? ", ShadowColor = new Rgba8(0, 0, 0, 110)" : string.Empty)}, ShowsValues = {CodeText.Flag(values.GetFlag("values", false))} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
     }
 
     private static string HeatmapCode(SeriesSpec series, string data, SeriesAxes axes)
@@ -182,6 +214,16 @@ internal sealed class CoreModule : IChartModule
                 case "spline":
                     line.Spline();
                     break;
+            }
+
+            if (_dashes[values.GetText("dash", "Solid")] is { Length: > 0 } dashes)
+            {
+                line.Dash(dashes);
+            }
+
+            if (values.GetNumber("glow", 0) > 0)
+            {
+                line.Glow(values.GetNumber("glow", 0));
             }
 
             if (values.GetFlag("lastValue", false))
@@ -258,7 +300,11 @@ internal sealed class CoreModule : IChartModule
             (x, y) =>
             {
                 var area = new AreaSeries(Source(data), x, y) { Name = series.Name, Baseline = values.GetNumber("baseline", 0), ShowsValues = values.GetFlag("values", false) };
-                if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
+                if (values.GetFlag("valueColors", false))
+                {
+                    area.Fill = new ValueGradientFill(Colormap(values.GetText("colormap", "Turbo")), new DoubleRange(values.GetNumber("colorFrom", -1), values.GetNumber("colorTo", 1)));
+                }
+                else if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
                 {
                     area.Fill = new SolidFill(color);
                 }
@@ -279,6 +325,8 @@ internal sealed class CoreModule : IChartModule
                 Layout = Enum.Parse<BarLayout>(values.GetText("layout", nameof(BarLayout.Grouped))),
                 BarWidth = values.GetNumber("width", 0.8),
                 IsHorizontal = values.GetFlag("horizontal", false),
+                CornerRadius = values.GetNumber("corners", 0),
+                ShadowColor = values.GetFlag("shadow", false) ? new Rgba8(0, 0, 0, 110) : null,
                 ShowsValues = values.GetFlag("values", false),
             },
             axes.X,

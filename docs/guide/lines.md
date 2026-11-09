@@ -24,6 +24,14 @@ The newest value of the line shows as a plate in its color at its vertical axis,
 
 In the showroom: *Last value at the axis*.
 
+## Glow
+
+```csharp
+c.AddLine(signal, s => s.Name("Signal").Thickness(2).Glow(10, 0.8));
+```
+
+A line can glow, as on a dark plot: the radius in pixels and the strength from 0 to 1. Without it the line takes the glow of the theme.
+
 ## Values at the points
 
 ```csharp

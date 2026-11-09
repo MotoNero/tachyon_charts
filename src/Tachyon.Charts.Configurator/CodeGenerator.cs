@@ -37,7 +37,7 @@ public sealed record CodeOptions(string Namespace = "MyCharts", UiFramework Fram
 public sealed class CodeGenerator(ChartCatalog catalog)
 {
     // Names the generated code uses for itself, which data must not take.
-    private static readonly string[] _reserved = ["chart", "x", "y", "a", "s", "h", "m", "l", "data", "values", "rows", "count", "side"];
+    private static readonly string[] _reserved = ["chart", "x", "y", "a", "s", "h", "m", "l", "data", "values", "rows", "count", "side", "c"];
     private readonly ChartCatalog _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
 
     /// <summary>Writes <c>ChartSetup.cs</c>: the chart with the fluent API and the methods that make its sample data.</summary>
@@ -93,6 +93,10 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         }
 
         code.AppendLine(";").AppendLine("    }");
+        if (spec.Annotations.Exists(annotation => annotation.Type is "band" or "box" or "text"))
+        {
+            code.Append(AnnotationCatalog.Helpers());
+        }
         foreach (var method in plan.Data.DistinctBy(data => data.Method))
         {
             code.AppendLine();
@@ -166,28 +170,175 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     /// <summary>Writes the code behind the window: it creates the view model and describes the chart with it.</summary>
     /// <param name="options">The options.</param>
     /// <returns>The C# file.</returns>
-    public static string WindowCode(CodeOptions options)
+    public static string WindowCode(CodeOptions options) => WindowCode(new ChartSpec(), options);
+
+    /// <summary>
+    /// Writes the code behind the window: it creates the view model and describes the chart with it, and with
+    /// <see cref="ChartSpec.ExportMenu"/> it gives the chart a context menu that saves it.
+    /// </summary>
+    /// <param name="spec">The description.</param>
+    /// <param name="options">The options.</param>
+    /// <returns>The C# file.</returns>
+    public static string WindowCode(ChartSpec spec, CodeOptions options)
     {
+        ArgumentNullException.ThrowIfNull(spec);
         ArgumentNullException.ThrowIfNull(options);
-        var usings = options.Framework == UiFramework.Wpf ? "using System.Windows;\n" : "using Avalonia.Controls;\n";
-        return $$"""
-                 {{usings}}
-                 namespace {{options.Namespace}};
+        var wpf = options.Framework == UiFramework.Wpf;
+        if (!spec.ExportMenu)
+        {
+            return $$"""
+                     {{(wpf ? "using System.Windows;" : "using Avalonia.Controls;")}}
 
-                 /// <summary>The window with the chart.</summary>
-                 public partial class MainWindow : Window
-                 {
-                     /// <summary>Initializes the window and its chart.</summary>
-                     public MainWindow()
+                     namespace {{options.Namespace}};
+
+                     /// <summary>The window with the chart.</summary>
+                     public partial class MainWindow : Window
                      {
-                         InitializeComponent();
-                         var model = new ChartViewModel();
-                         DataContext = model;
-                         Chart.Configure(model.Configure);
+                         /// <summary>Initializes the window and its chart.</summary>
+                         public MainWindow()
+                         {
+                             InitializeComponent();
+                             var model = new ChartViewModel();
+                             DataContext = model;
+                             Chart.Configure(model.Configure);
+                         }
                      }
-                 }
 
-                 """;
+                     """;
+        }
+
+        return wpf ? $$"""
+            using System.IO;
+            using System.Windows;
+            using System.Windows.Controls;
+            using Microsoft.Win32;
+
+            namespace {{options.Namespace}};
+
+            /// <summary>The window with the chart; a right click on the chart saves it.</summary>
+            public partial class MainWindow : Window
+            {
+                /// <summary>Initializes the window and its chart.</summary>
+                public MainWindow()
+                {
+                    InitializeComponent();
+                    var model = new ChartViewModel();
+                    DataContext = model;
+                    Chart.Configure(model.Configure);
+                    Chart.ContextMenu = ExportMenu();
+                }
+
+                // Saves the chart as an image or a document, its data as a table, or records a video.
+                private ContextMenu ExportMenu()
+                {
+                    var menu = new ContextMenu();
+                    Add(menu, "Save as PNG …", "PNG image|*.png", () => Chart.ExportPngAsync());
+                    Add(menu, "Save as SVG …", "SVG drawing|*.svg", () => Chart.ExportSvgAsync());
+                    Add(menu, "Save as PDF …", "PDF document|*.pdf", () => Chart.ExportPdfAsync());
+                    Add(menu, "Save data as CSV …", "CSV table|*.csv", () => Chart.ExportCsvAsync());
+                    var video = new MenuItem { Header = "Record video …" };
+                    video.Click += async (_, _) =>
+                    {
+                        if (Chart.IsRecording)
+                        {
+                            await Chart.StopRecordingAsync();
+                            video.Header = "Record video …";
+                            return;
+                        }
+
+                        var dialog = new SaveFileDialog { Filter = "MP4 video|*.mp4" };
+                        if (dialog.ShowDialog(this) == true)
+                        {
+                            Chart.StartRecording(dialog.FileName);
+                            video.Header = "Stop recording";
+                        }
+                    };
+                    menu.Items.Add(video);
+                    return menu;
+                }
+
+                private void Add(ContextMenu menu, string header, string filter, Func<Task<byte[]>> export)
+                {
+                    var item = new MenuItem { Header = header };
+                    item.Click += async (_, _) =>
+                    {
+                        var dialog = new SaveFileDialog { Filter = filter };
+                        if (dialog.ShowDialog(this) == true)
+                        {
+                            await File.WriteAllBytesAsync(dialog.FileName, await export());
+                        }
+                    };
+                    menu.Items.Add(item);
+                }
+            }
+
+            """ : $$"""
+            using Avalonia.Controls;
+            using Avalonia.Platform.Storage;
+
+            namespace {{options.Namespace}};
+
+            /// <summary>The window with the chart; a right click on the chart saves it.</summary>
+            public partial class MainWindow : Window
+            {
+                /// <summary>Initializes the window and its chart.</summary>
+                public MainWindow()
+                {
+                    InitializeComponent();
+                    var model = new ChartViewModel();
+                    DataContext = model;
+                    Chart.Configure(model.Configure);
+                    Chart.ContextMenu = ExportMenu();
+                }
+
+                // Saves the chart as an image or a document, its data as a table, or records a video.
+                private ContextMenu ExportMenu()
+                {
+                    var items = new List<MenuItem>
+                    {
+                        Item("Save as PNG …", "chart.png", () => Chart.ExportPngAsync()),
+                        Item("Save as SVG …", "chart.svg", () => Chart.ExportSvgAsync()),
+                        Item("Save as PDF …", "chart.pdf", () => Chart.ExportPdfAsync()),
+                        Item("Save data as CSV …", "chart.csv", () => Chart.ExportCsvAsync()),
+                    };
+                    var video = new MenuItem { Header = "Record video …" };
+                    video.Click += async (_, _) =>
+                    {
+                        if (Chart.IsRecording)
+                        {
+                            await Chart.StopRecordingAsync();
+                            video.Header = "Record video …";
+                            return;
+                        }
+
+                        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions { SuggestedFileName = "chart.mp4" });
+                        if (file?.TryGetLocalPath() is { } path)
+                        {
+                            Chart.StartRecording(path);
+                            video.Header = "Stop recording";
+                        }
+                    };
+                    items.Add(video);
+                    return new ContextMenu { ItemsSource = items };
+                }
+
+                private MenuItem Item(string header, string name, Func<Task<byte[]>> export)
+                {
+                    var item = new MenuItem { Header = header };
+                    item.Click += async (_, _) =>
+                    {
+                        var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions { SuggestedFileName = name });
+                        if (file is not null)
+                        {
+                            await using var stream = await file.OpenWriteAsync();
+                            await stream.WriteAsync(await export());
+                        }
+                    };
+                    return item;
+                }
+            }
+
+            """;
     }
 
     /// <summary>Writes a complete project: project file, application, window, view model and chart.</summary>
@@ -201,7 +352,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         {
             ["ChartSetup.cs"] = Setup(spec, options),
             ["ChartViewModel.cs"] = ViewModel(spec, options),
-            ["MainWindow.xaml.cs".Replace(".xaml", options.Framework == UiFramework.Wpf ? ".xaml" : ".axaml", StringComparison.Ordinal)] = WindowCode(options),
+            ["MainWindow.xaml.cs".Replace(".xaml", options.Framework == UiFramework.Wpf ? ".xaml" : ".axaml", StringComparison.Ordinal)] = WindowCode(spec, options),
             [options.Framework == UiFramework.Wpf ? "MainWindow.xaml" : "MainWindow.axaml"] = WindowMarkup(spec, options),
             [options.ProjectName + ".csproj"] = ProjectFile(options, _catalog.SceneOf(spec)),
         };
@@ -465,9 +616,28 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             calls.Add(".Modifiers(m => m" + string.Concat(spec.Modifiers.Select(modifier => _catalog.FindModifier(modifier.Type)!.Code(modifier.Parameters))) + ")");
         }
 
-        if (spec.Legend is { } legend)
+        foreach (var annotation in spec.Annotations)
         {
-            calls.Add(legend.Title.Length > 0 ? $".Legend(l => l.Title({CodeText.String(legend.Title)}))" : ".Legend()");
+            usings.Add("Tachyon.Charts.Core.Annotations");
+            calls.Add($".AddOverlay(c => {AnnotationCatalog.Expression(ChartCatalog.FindAnnotation(annotation.Type)!, annotation.Parameters)})");
+        }
+
+        foreach (var legend in new[] { spec.Legend, spec.SecondLegend })
+        {
+            if (legend is null)
+            {
+                continue;
+            }
+
+            var parts = (legend.Title.Length > 0 ? $".Title({CodeText.String(legend.Title)})" : string.Empty)
+                + (legend.Placement != "TopRight" ? $".Place(LegendPlacement.{legend.Placement})" : string.Empty)
+                + (legend.ReadSeries() is { Length: > 0 } names ? $".Series([{string.Join(", ", names.Select(CodeText.String))}])" : string.Empty);
+            if (legend.Placement != "TopRight")
+            {
+                usings.Add("Tachyon.Charts.Core.Input");
+            }
+
+            calls.Add(parts.Length > 0 ? $".Legend(l => l{parts})" : ".Legend()");
         }
 
         if (spec.Group is { Length: > 0 } group && scene is null)
@@ -475,7 +645,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             calls.Add($".Group({CodeText.String(group)})");
         }
 
-        if (calls.Any(call => call.Contains("new Rgba8(", StringComparison.Ordinal)))
+        if (calls.Any(call => call.Contains("new Rgba8(", StringComparison.Ordinal)) || spec.Annotations.Exists(annotation => annotation.Type is "band" or "box" or "text"))
         {
             usings.Add("Tachyon.Charts.Rendering");
         }
@@ -489,6 +659,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         {
             AxisKind.Logarithmic => $".Log({CodeText.String(axis.Id)})",
             AxisKind.DateTime => $".DateTime({CodeText.String(axis.Id)})",
+            AxisKind.Category => $".Category([{string.Join(", ", axis.ReadCategories().Select(CodeText.String))}], {CodeText.String(axis.Id)})",
             _ => $".Numeric({CodeText.String(axis.Id)})",
         });
         if (axis.Title.Length > 0)
@@ -514,6 +685,27 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         {
             usings.Add("Tachyon.Charts.Core.Axes");
             code.Append(".Gaps(TimeGapMap.Weekends(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc), TimeZoneInfo.Utc))");
+        }
+
+        if (axis.CrossesZero)
+        {
+            code.Append(".CrossesAt(0)");
+        }
+
+        if (axis.ReadBreaks() is { Count: > 0 } breaks)
+        {
+            usings.Add("Tachyon.Charts.Core.Numerics");
+            code.Append(".Breaks(").Append(string.Join(", ", breaks.Select(range => $"new DoubleRange({CodeText.Number(range.From)}, {CodeText.Number(range.To)})"))).Append(')');
+        }
+
+        if (axis.Pane > 0 || axis.PaneWeight != 1)
+        {
+            code.Append(".Pane(").Append(axis.Pane.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(", ").Append(CodeText.Number(axis.PaneWeight)).Append(')');
+        }
+
+        if (axis.IsHidden)
+        {
+            code.Append(".Hidden()");
         }
 
         return code.ToString();

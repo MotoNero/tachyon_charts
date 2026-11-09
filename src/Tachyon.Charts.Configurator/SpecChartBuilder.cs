@@ -1,5 +1,7 @@
 using Tachyon.Charts.Core.Axes;
 using Tachyon.Charts.Core.Fluent;
+using Tachyon.Charts.Core.Input;
+using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Core.Themes;
 
 namespace Tachyon.Charts.Configurator;
@@ -88,15 +90,18 @@ public static class SpecChartBuilder
             });
         }
 
-        if (spec.Legend is { } legend)
+        foreach (var annotation in spec.Annotations)
         {
-            chart.Legend(builder =>
+            var info = ChartCatalog.FindAnnotation(annotation.Type)!;
+            chart.AddOverlay(surface => info.Create(surface, annotation.Parameters));
+        }
+
+        foreach (var legend in (ReadOnlySpan<LegendSpec?>)[spec.Legend, spec.SecondLegend])
+        {
+            if (legend is not null)
             {
-                if (legend.Title.Length > 0)
-                {
-                    builder.Title(legend.Title);
-                }
-            });
+                chart.Legend(builder => Legend(builder, legend));
+            }
         }
 
         if (spec.Group is { Length: > 0 } group && scene is null)
@@ -128,6 +133,7 @@ public static class SpecChartBuilder
         {
             AxisKind.Logarithmic => builder.Log(axis.Id),
             AxisKind.DateTime => builder.DateTime(axis.Id),
+            AxisKind.Category => builder.Category(axis.ReadCategories(), axis.Id),
             _ => builder.Numeric(axis.Id),
         };
         if (axis.Title.Length > 0)
@@ -157,6 +163,44 @@ public static class SpecChartBuilder
         if (axis.SkipsWeekends && axis.Kind == AxisKind.DateTime)
         {
             builder.Gaps(Weekends);
+        }
+
+        if (axis.CrossesZero)
+        {
+            builder.CrossesAt(0);
+        }
+
+        if (axis.ReadBreaks() is { Count: > 0 } breaks)
+        {
+            builder.Breaks([.. breaks.Select(range => new DoubleRange(range.From, range.To))]);
+        }
+
+        if (axis.Pane > 0 || axis.PaneWeight != 1)
+        {
+            builder.Pane(axis.Pane, axis.PaneWeight);
+        }
+
+        if (axis.IsHidden)
+        {
+            builder.Hidden();
+        }
+    }
+
+    private static void Legend(LegendBuilder builder, LegendSpec legend)
+    {
+        if (legend.Title.Length > 0)
+        {
+            builder.Title(legend.Title);
+        }
+
+        if (legend.Placement != "TopRight")
+        {
+            builder.Place(Enum.Parse<LegendPlacement>(legend.Placement));
+        }
+
+        if (legend.ReadSeries() is { Length: > 0 } names)
+        {
+            builder.Series(names);
         }
     }
 

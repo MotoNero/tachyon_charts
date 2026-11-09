@@ -145,7 +145,11 @@ public sealed class ConfiguratorSession
         Field("Chart", new("title", "Title", ParameterKind.Text, string.Empty), () => _spec.Title, value => _spec.Title = (string)value),
         Field("Chart", new("theme", "Theme", ParameterKind.Choice, "Application") { Choices = ["Application", .. ChartCatalog.Themes] }, () => _spec.Theme ?? "Application", value => _spec.Theme = (string)value == "Application" ? null : (string)value),
         Field("Chart", new("xDown", "X axis downwards", ParameterKind.Flag, false), () => _spec.XDown, value => _spec.XDown = (bool)value),
-        Field("Chart", new("legend", "Legend", ParameterKind.Flag, false), () => _spec.Legend is not null, value => _spec.Legend = (bool)value ? _spec.Legend ?? new LegendSpec() : null),
+        Field("Chart", new("legend", "Legend", ParameterKind.Flag, false), () => _spec.Legend is not null, value => _spec.Legend = (bool)value ? _spec.Legend ?? new LegendSpec() : null, structural: true),
+        .. LegendFields("Legend", _spec.Legend),
+        Field("Chart", new("secondLegend", "Second legend", ParameterKind.Flag, false) { Description = "For example for the series of a second axis." }, () => _spec.SecondLegend is not null, value => _spec.SecondLegend = (bool)value ? _spec.SecondLegend ?? new LegendSpec { Placement = "BottomRight" } : null, structural: true),
+        .. LegendFields("Second legend", _spec.SecondLegend),
+        Field("Chart", new("export", "Export menu", ParameterKind.Flag, false) { Description = "In the generated window a right click on the chart saves it as PNG, SVG or PDF, its data as CSV, or records a video." }, () => _spec.ExportMenu, value => _spec.ExportMenu = (bool)value),
         Field("Chart", new("group", "Group", ParameterKind.Text, string.Empty) { Description = "Charts of one group share range and cursor." }, () => _spec.Group ?? string.Empty, value => _spec.Group = ((string)value).Length > 0 ? (string)value : null),
     ];
 
@@ -166,7 +170,7 @@ public sealed class ConfiguratorSession
                 {
                     var group = $"{name} {axis.Id}";
                     fields.Add(Field(group, new("title", "Title", ParameterKind.Text, string.Empty), () => axis.Title, value => axis.Title = (string)value));
-                    fields.Add(Field(group, new("kind", "Scale", ParameterKind.Choice, nameof(AxisKind.Numeric)) { Choices = Enum.GetNames<AxisKind>() }, () => axis.Kind.ToString(), value => axis.Kind = Enum.Parse<AxisKind>((string)value)));
+                    fields.Add(Field(group, new("kind", "Scale", ParameterKind.Choice, nameof(AxisKind.Numeric)) { Choices = Enum.GetNames<AxisKind>() }, () => axis.Kind.ToString(), value => axis.Kind = Enum.Parse<AxisKind>((string)value), structural: true));
                     fields.Add(Field(group, new("auto", "Follow the data", ParameterKind.Flag, true), () => axis.IsAutoRange, value => (axis.Minimum, axis.Maximum) = (bool)value ? ((double?)null, (double?)null) : (axis.Minimum ?? 0, axis.Maximum ?? 10)));
                     fields.Add(Field(group, new("minimum", "Minimum", ParameterKind.Number, 0.0), () => axis.Minimum ?? 0, value => (axis.Minimum, axis.Maximum) = ((double)value, axis.Maximum ?? 10)));
                     fields.Add(Field(group, new("maximum", "Maximum", ParameterKind.Number, 10.0), () => axis.Maximum ?? 10, value => (axis.Minimum, axis.Maximum) = (axis.Minimum ?? 0, (double)value)));
@@ -175,6 +179,20 @@ public sealed class ConfiguratorSession
                     if (axis.Kind == AxisKind.DateTime)
                     {
                         fields.Add(Field(group, new("weekends", "Without weekends", ParameterKind.Flag, false), () => axis.SkipsWeekends, value => axis.SkipsWeekends = (bool)value));
+                    }
+
+                    if (axis.Kind == AxisKind.Category)
+                    {
+                        fields.Add(Field(group, new("categories", "Names of the places", ParameterKind.Text, string.Empty) { Description = "One per place 0, 1, 2 …, separated by commas." }, () => axis.Categories, value => axis.Categories = (string)value));
+                    }
+
+                    fields.Add(Field(group, new("origin", "Through the origin", ParameterKind.Flag, false) { Description = "The axis runs where the other axis is 0." }, () => axis.CrossesZero, value => axis.CrossesZero = (bool)value));
+                    fields.Add(Field(group, new("breaks", "Scale breaks", ParameterKind.Text, string.Empty) { Description = "Ranges left out, such as 10..90, separated by commas." }, () => axis.Breaks, value => axis.Breaks = (string)value));
+                    fields.Add(Field(group, new("hidden", "Hidden", ParameterKind.Flag, false), () => axis.IsHidden, value => axis.IsHidden = (bool)value));
+                    if (name == "Y axis")
+                    {
+                        fields.Add(Field(group, new("pane", "Pane", ParameterKind.Integer, 0.0) { Minimum = 0, Maximum = 9, Description = "Panes stack from 0 at the top and share the horizontal axis." }, () => (double)axis.Pane, value => axis.Pane = (int)(double)value));
+                        fields.Add(Field(group, new("paneWeight", "Height of the pane", ParameterKind.Number, 1.0) { Minimum = 0.05, Maximum = 20, Description = "Its share against the other panes." }, () => axis.PaneWeight, value => axis.PaneWeight = (double)value));
                     }
                 }
             }
@@ -317,6 +335,55 @@ public sealed class ConfiguratorSession
         }
     }
 
+    /// <summary>Gets the fields of the annotations, one group each.</summary>
+    public IReadOnlyList<FieldModel> AnnotationFields
+    {
+        get
+        {
+            var fields = new List<FieldModel>();
+            for (var i = 0; i < _spec.Annotations.Count; i++)
+            {
+                var annotation = _spec.Annotations[i];
+                var info = ChartCatalog.FindAnnotation(annotation.Type)!;
+                var group = $"Annotation {i + 1} · {info.Name}";
+                foreach (var parameter in info.Parameters)
+                {
+                    fields.Add(Field(group, parameter, () => annotation.Parameters.Get(parameter.Name) ?? parameter.Default, value => SetValue(annotation.Parameters, parameter.Name, value)));
+                }
+            }
+
+            return fields;
+        }
+    }
+
+    /// <summary>Gets the kinds of annotations, by identifier and name.</summary>
+    public static IReadOnlyList<(string Id, string Name)> AnnotationKinds { get; } = [.. AnnotationCatalog.All.Select(info => (info.Id, info.Name))];
+
+    /// <summary>Adds an annotation of a kind.</summary>
+    /// <param name="kind">The identifier of the kind.</param>
+    public void AddAnnotation(string kind)
+    {
+        _spec.Annotations.Add(new AnnotationSpec { Type = kind });
+        Structure();
+    }
+
+    /// <summary>Removes the last annotation.</summary>
+    public void RemoveAnnotation()
+    {
+        if (_spec.Annotations.Count > 0)
+        {
+            _spec.Annotations.RemoveAt(_spec.Annotations.Count - 1);
+            Structure();
+        }
+    }
+
+    private IEnumerable<FieldModel> LegendFields(string name, LegendSpec? legend) => legend is null ? [] :
+    [
+        Field("Chart", new(name + "Title", "   Title", ParameterKind.Text, string.Empty), () => legend.Title, value => legend.Title = (string)value),
+        Field("Chart", new(name + "Placement", "   Place", ParameterKind.Choice, "TopRight") { Choices = Enum.GetNames<Core.Input.LegendPlacement>() }, () => legend.Placement, value => legend.Placement = (string)value),
+        Field("Chart", new(name + "Series", "   Series", ParameterKind.Text, string.Empty) { Description = "The names of the series it lists, separated by commas; empty for all." }, () => legend.Series, value => legend.Series = (string)value),
+    ];
+
     private FieldModel Field(string group, ParameterInfo info, Func<object> read, Action<object> write, bool structural = false) =>
         new(group, info, read, value =>
         {
@@ -393,7 +460,7 @@ public sealed class ConfiguratorSession
                 ["C#"] = _generator.Setup(_spec, options),
                 ["View model"] = _generator.ViewModel(_spec, options),
                 [window] = _generator.WindowMarkup(_spec, options),
-                ["Code behind"] = CodeGenerator.WindowCode(options),
+                ["Code behind"] = CodeGenerator.WindowCode(_spec, options),
                 ["Project"] = _generator.Project(_spec, options)[options.ProjectName + ".csproj"],
             };
         }

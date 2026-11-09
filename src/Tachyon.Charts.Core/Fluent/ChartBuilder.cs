@@ -284,6 +284,8 @@ public sealed record LineDefinition<TX, TY> : LineDefinition
         DashPattern = DashPattern,
         IsStep = IsStep,
         IsSpline = IsSpline,
+        GlowRadius = GlowRadius,
+        GlowIntensity = GlowIntensity,
     };
 }
 
@@ -304,6 +306,12 @@ public abstract record LineDefinition : SeriesDefinition
 
     /// <summary>Gets a value indicating whether the line runs as a smooth curve.</summary>
     public bool IsSpline { get; init; }
+
+    /// <summary>Gets the radius of the glow around the line in pixels, or <see langword="null"/> for the glow of the theme.</summary>
+    public double? GlowRadius { get; init; }
+
+    /// <summary>Gets the strength of the glow from 0 to 1.</summary>
+    public double GlowIntensity { get; init; } = 0.8;
 }
 
 /// <summary>Described markers.</summary>
@@ -1035,6 +1043,12 @@ public sealed class LineBuilder<TX, TY>
     /// <summary>Keeps each value until the next point.</summary>
     /// <returns>This builder.</returns>
     public LineBuilder<TX, TY> Step() => Change(Definition with { IsStep = true });
+
+    /// <summary>Lets the line glow, as on a dark plot.</summary>
+    /// <param name="radius">The radius of the glow in pixels.</param>
+    /// <param name="intensity">The strength from 0 to 1.</param>
+    /// <returns>This builder.</returns>
+    public LineBuilder<TX, TY> Glow(double radius, double intensity = 0.8) => Change(Definition with { GlowRadius = radius, GlowIntensity = intensity });
 
     /// <summary>Draws a smooth curve through the points, without overshooting them.</summary>
     /// <returns>This builder.</returns>

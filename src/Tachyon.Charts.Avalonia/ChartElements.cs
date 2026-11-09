@@ -489,6 +489,12 @@ public sealed class LineSeries : ChartSeriesElement
     /// <summary>Gets or sets a value indicating whether the line runs as a smooth curve.</summary>
     public bool IsSpline { get; set; }
 
+    /// <summary>Gets or sets the radius of the glow around the line in pixels, or <see langword="null"/> for the glow of the theme.</summary>
+    public double? GlowRadius { get; set; }
+
+    /// <summary>Gets or sets the strength of the glow from 0 to 1.</summary>
+    public double GlowIntensity { get; set; } = 0.8;
+
     private protected override ChartSeries BuildTyped(object source, Type[] valueTypes, AxisBase x, AxisBase y) =>
         (ChartSeries)typeof(LineSeries).GetMethod(nameof(Create), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!
             .MakeGenericMethod(valueTypes)
@@ -503,6 +509,8 @@ public sealed class LineSeries : ChartSeriesElement
             DashPattern = StrokeDashArray,
             IsStep = IsStep,
             IsSpline = IsSpline,
+            GlowRadius = GlowRadius,
+            GlowIntensity = GlowIntensity,
         };
 }
 
@@ -1088,6 +1096,8 @@ internal static class ChartElementFactory
                 StrokeDashArray = line.DashPattern,
                 IsStep = line.IsStep,
                 IsSpline = line.IsSpline,
+                GlowRadius = line.GlowRadius,
+                GlowIntensity = line.GlowIntensity,
             },
             ScatterDefinition scatter => new ScatterSeries
             {
