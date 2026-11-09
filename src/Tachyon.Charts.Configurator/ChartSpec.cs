@@ -38,6 +38,9 @@ public sealed class ChartSpec
 
     /// <summary>Gets or sets the legend, or <see langword="null"/> for none.</summary>
     public LegendSpec? Legend { get; set; }
+
+    /// <summary>Gets the settings of the scene the series go into, such as the camera of a 3D chart; see <see cref="SceneInfo"/>.</summary>
+    public SpecValues Scene { get; init; } = new();
 }
 
 /// <summary>How an axis maps its values.</summary>

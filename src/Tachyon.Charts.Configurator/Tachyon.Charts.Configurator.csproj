@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Tachyon.Charts.Configurator.Tests" />
+    <InternalsVisibleTo Include="Tachyon.Charts.Configurator.ThreeD" />
   </ItemGroup>
 
 </Project>

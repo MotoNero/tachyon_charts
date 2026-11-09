@@ -19,7 +19,7 @@ namespace Tachyon.Charts.Configurator.Wpf;
 /// </summary>
 internal sealed class ConfiguratorWindow : Window
 {
-    private readonly ConfiguratorSession _session = new(new ChartCatalog());
+    private readonly ConfiguratorSession _session = new(ChartCatalog.CreateWithAddOns());
     private readonly Chart _preview = new();
     private readonly StackPanel _fields = new() { Margin = new Thickness(0, 0, 8, 0) };
     private readonly ComboBox _series = new() { Margin = new Thickness(0, 0, 0, 8) };

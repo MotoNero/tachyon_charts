@@ -26,7 +26,7 @@ internal sealed class ConfiguratorWindow : Window
     private static readonly IBrush _shell = new SolidColorBrush(Color.Parse("#0D1016"));
     private static readonly IBrush _problem = new SolidColorBrush(Color.Parse("#FF7043"));
 
-    private readonly ConfiguratorSession _session = new(new ChartCatalog());
+    private readonly ConfiguratorSession _session = new(ChartCatalog.CreateWithAddOns());
     private readonly Chart _preview = new();
     private readonly StackPanel _fields = new() { Margin = new Thickness(0, 0, 8, 0) };
     private readonly ComboBox _series = new() { Margin = new Thickness(0, 0, 0, 8), HorizontalAlignment = HorizontalAlignment.Stretch };

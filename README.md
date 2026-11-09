@@ -296,7 +296,7 @@ The showroom lists the interactive pages, the instruments and all scenes. Theme 
 
 ### Configurator (preview)
 
-Put a chart together and copy its code: the configurator shows the chart and its C# side by side, and every change shows at once in both. It writes the fluent C#, a view model with the data, the window in XAML and a complete WPF or Avalonia project. It offers line (straight, step, spline), scatter, bubbles, area, stacked area, band, bars (grouped, stacked, horizontal), error bars, stems, histogram, box plot, violin, pie, donut and heatmap, each with its options; more types follow with each release. `--type boxplot` starts with a given type.
+Put a chart together and copy its code: the configurator shows the chart and its C# side by side, and every change shows at once in both. It writes the fluent C#, a view model with the data, the window in XAML and a complete WPF or Avalonia project. It offers line (straight, step, spline), scatter, bubbles, area, stacked area, band, bars (grouped, stacked, horizontal), error bars, stems, histogram, box plot, violin, pie, donut and heatmap, each with its options. With the 3D package it adds surface, columns, waterfall, line, scatter, bubbles, point cloud, map from measurements, volume, antenna pattern and pie in 3D, with camera, cut plane, light and a group shared with 2D charts; without the package it leaves 3D out. More types follow with each release. `--type boxplot` starts with a given type.
 
 ```bash
 dotnet run --project src/Tachyon.Charts.Configurator.Wpf -c Release
@@ -304,6 +304,8 @@ dotnet run --project src/Tachyon.Charts.Configurator.Avalonia -c Release
 ```
 
 ![The configurator with a box plot: settings on the left, the chart in the middle, the generated C# on the right](docs/images/configurator.png)
+
+![The configurator with a 3D surface and the scene settings: camera, cut plane](docs/images/configurator-3d.png)
 
 ## Performance
 

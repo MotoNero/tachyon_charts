@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 using Tachyon.Charts.Core.Axes;
+using Tachyon.Charts.Core.Colors;
 using Tachyon.Charts.Core.Pipeline;
 using Tachyon.Charts.Core.Series;
 using Tachyon.Charts.Rendering;
@@ -9,11 +10,13 @@ namespace Tachyon.Charts.Configurator;
 
 /// <summary>
 /// Describes a series type once: which parameter sets which property. From that come both the step of the preview
-/// and the C# of the generated code, so the two cannot drift apart.
+/// and the C# of the generated code, so the two cannot drift apart. A property may be one of an object the series
+/// holds, written as <c>Outer.Inner</c>, such as <c>Material.Opacity</c>; that object is then created anew.
 /// </summary>
 internal sealed class SeriesRecipe
 {
-    private readonly (ParameterInfo Info, PropertyInfo Property)[] _bound;
+    private readonly (ParameterInfo Info, PropertyInfo Outer, PropertyInfo? Inner)[] _bound;
+    private readonly PropertyInfo? _name;
 
     /// <summary>Initializes a recipe.</summary>
     /// <param name="series">The type of the series.</param>
@@ -22,16 +25,18 @@ internal sealed class SeriesRecipe
     public SeriesRecipe(Type series, IReadOnlyList<ParameterInfo> parameters, params (string Parameter, string Property)[] properties)
     {
         Parameters = parameters;
-        _bound = [.. properties.Select(pair => (
-            parameters.First(parameter => parameter.Name == pair.Parameter),
-            series.GetProperty(pair.Property) ?? throw new ArgumentException($"{series.Name} has no property {pair.Property}.", nameof(properties))))];
-        Usings = [.. _bound.Select(bound => bound.Property.PropertyType).Where(type => type.IsEnum).Select(type => type.Namespace!).Append(series.Namespace!).Distinct()];
+        _name = series.GetProperty("Name") is { CanWrite: true, PropertyType: var type } name && type == typeof(string) ? name : null;
+        _bound = [.. properties.Select(pair => Bind(series, parameters, pair.Parameter, pair.Property))];
+        Usings = [.. _bound.Select(bound => (bound.Inner ?? bound.Outer).PropertyType).Where(type => type.IsEnum).Select(type => type.Namespace!)
+            .Concat(_bound.Where(bound => bound.Inner is not null).Select(bound => bound.Outer.PropertyType.Namespace!))
+            .Concat(_bound.Any(bound => (bound.Inner ?? bound.Outer).PropertyType == typeof(Colormap)) ? ["Tachyon.Charts.Core.Colors"] : [])
+            .Append(series.Namespace!).Distinct()];
     }
 
     /// <summary>Gets the parameters.</summary>
     public IReadOnlyList<ParameterInfo> Parameters { get; }
 
-    /// <summary>Gets the namespaces of the series and of the enums its properties take.</summary>
+    /// <summary>Gets the namespaces of the series and of the types its properties take.</summary>
     public IReadOnlyList<string> Usings { get; }
 
     /// <summary>Makes a type whose series is added with <c>AddSeries</c>.</summary>
@@ -64,18 +69,37 @@ internal sealed class SeriesRecipe
         Usings = [.. Usings, .. usings],
     };
 
-    /// <summary>Sets the name and the properties of a series.</summary>
-    /// <param name="created">The series.</param>
+    /// <summary>Sets the name, if the object has one, and the properties of an object.</summary>
+    /// <param name="created">The object.</param>
     /// <param name="series">Its description.</param>
-    public void Set(ChartSeries created, SeriesSpec series)
+    public void Set(object created, SeriesSpec series)
     {
-        created.Name = series.Name;
-        foreach (var (info, property) in _bound)
+        _name?.SetValue(created, series.Name);
+        foreach (var group in _bound.GroupBy(bound => bound.Outer))
         {
-            if (Value(info, property.PropertyType, series.Parameters) is { } value)
+            if (group.All(bound => bound.Inner is null))
             {
-                property.SetValue(created, value);
+                foreach (var (info, property, _) in group)
+                {
+                    if (Value(info, property.PropertyType, series.Parameters) is { } value)
+                    {
+                        property.SetValue(created, Resolve(value));
+                    }
+                }
+
+                continue;
             }
+
+            var inner = Activator.CreateInstance(group.Key.PropertyType)!;
+            foreach (var (info, _, property) in group)
+            {
+                if (Value(info, property!.PropertyType, series.Parameters) is { } value)
+                {
+                    property.SetValue(inner, Resolve(value));
+                }
+            }
+
+            group.Key.SetValue(created, inner);
         }
     }
 
@@ -84,19 +108,51 @@ internal sealed class SeriesRecipe
     /// <returns>The assignments.</returns>
     public IEnumerable<string> Assignments(SeriesSpec series)
     {
-        yield return "Name = " + CodeText.String(series.Name);
-        foreach (var (info, property) in _bound)
+        if (_name is not null)
         {
-            if (Code(info, property.PropertyType, series.Parameters) is { } code)
-            {
-                yield return property.Name + " = " + code;
-            }
+            yield return "Name = " + CodeText.String(series.Name);
         }
+
+        foreach (var group in _bound.GroupBy(bound => bound.Outer))
+        {
+            if (group.All(bound => bound.Inner is null))
+            {
+                foreach (var (info, property, _) in group)
+                {
+                    if (Code(info, property.PropertyType, series.Parameters) is { } code)
+                    {
+                        yield return property.Name + " = " + code;
+                    }
+                }
+
+                continue;
+            }
+
+            var inner = group.Select(bound => Code(bound.Info, bound.Inner!.PropertyType, series.Parameters) is { } code ? bound.Inner.Name + " = " + code : null).OfType<string>();
+            yield return $"{group.Key.Name} = new {group.Key.PropertyType.Name} {{ {string.Join(", ", inner)} }}";
+        }
+    }
+
+    /// <summary>Writes the object with its properties: an initializer after a constructor, single assignments after a method.</summary>
+    /// <param name="create">The constructor or method call.</param>
+    /// <param name="series">The description.</param>
+    /// <returns>An expression of the object.</returns>
+    public string Expression(string create, SeriesSpec series) => create.StartsWith("new ", StringComparison.Ordinal)
+        ? $"{create} {{ {string.Join(", ", Assignments(series))} }}"
+        : throw new ArgumentException("Only constructors take an initializer.", nameof(create));
+
+    private static (ParameterInfo, PropertyInfo, PropertyInfo?) Bind(Type series, IReadOnlyList<ParameterInfo> parameters, string parameter, string path)
+    {
+        var info = parameters.First(candidate => candidate.Name == parameter);
+        var names = path.Split('.');
+        var outer = series.GetProperty(names[0]) ?? throw new ArgumentException($"{series.Name} has no property {names[0]}.", nameof(path));
+        var inner = names.Length > 1 ? outer.PropertyType.GetProperty(names[1]) ?? throw new ArgumentException($"{outer.PropertyType.Name} has no property {names[1]}.", nameof(path)) : null;
+        return (info, outer, inner);
     }
 
     // A constructor takes an object initializer; a factory method gets its properties set one by one.
     private string Factory(string create, SeriesSpec series) => create.StartsWith("new ", StringComparison.Ordinal)
-        ? $"(x, y) => {create} {{ {string.Join(", ", Assignments(series))} }}"
+        ? $"(x, y) => {Expression(create, series)}"
         : $"(x, y) => {{ var s = {create}; {string.Concat(Assignments(series).Select(assignment => "s." + assignment + "; "))}return s; }}";
 
     // An empty color keeps the color of the theme, so the property is left alone.
@@ -113,6 +169,7 @@ internal sealed class SeriesRecipe
             _ when type == typeof(double) => values.GetNumber(info.Name, (double)info.Default),
             _ when type == typeof(int) => (int)values.GetNumber(info.Name, (double)info.Default),
             _ when type == typeof(bool) => values.GetFlag(info.Name, (bool)info.Default),
+            _ when type == typeof(Colormap) => new NamedColormap(values.GetText(info.Name, (string)info.Default)),
             { IsEnum: true } => Enum.Parse(type, values.GetText(info.Name, (string)info.Default)),
             _ => throw new NotSupportedException($"Properties of type {type.Name} are not written yet."),
         };
@@ -126,7 +183,13 @@ internal sealed class SeriesRecipe
         double number => CodeText.Number(number),
         int number => number.ToString(CultureInfo.InvariantCulture),
         bool flag => CodeText.Flag(flag),
+        NamedColormap colormap => "Colormaps." + colormap.Name,
         Enum choice => $"{type.Name}.{choice}",
         var other => throw new NotSupportedException($"Values of type {other.GetType().Name} are not written yet."),
     };
+
+    private static object Resolve(object value) => value is NamedColormap colormap ? CoreModule.Colormap(colormap.Name) : value;
+
+    // A colormap chosen by name: written as its name, set as the colormap itself.
+    private sealed record NamedColormap(string Name);
 }

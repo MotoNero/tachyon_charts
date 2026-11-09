@@ -99,7 +99,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     {
         var plan = Plan(spec, options);
         var code = new StringBuilder();
-        WriteUsings(code, ["Tachyon.Charts.Core.Data", "Tachyon.Charts.Core.Fluent"]);
+        WriteUsings(code, plan.Usings);
         code.Append("namespace ").Append(options.Namespace).AppendLine(";").AppendLine();
         code.AppendLine("/// <summary>The data of the chart. Append to them from any thread; the chart follows.</summary>");
         code.AppendLine("public sealed class ChartViewModel").AppendLine("{");
@@ -192,7 +192,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             ["ChartViewModel.cs"] = ViewModel(spec, options),
             ["MainWindow.xaml.cs".Replace(".xaml", options.Framework == UiFramework.Wpf ? ".xaml" : ".axaml", StringComparison.Ordinal)] = WindowCode(options),
             [options.Framework == UiFramework.Wpf ? "MainWindow.xaml" : "MainWindow.axaml"] = WindowMarkup(spec, options),
-            [options.ProjectName + ".csproj"] = ProjectFile(options),
+            [options.ProjectName + ".csproj"] = ProjectFile(options, _catalog.SceneOf(spec)),
         };
         foreach (var (path, content) in ApplicationFiles(options))
         {
@@ -243,7 +243,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         code.AppendLine();
     }
 
-    private static string ProjectFile(CodeOptions options)
+    private static string ProjectFile(CodeOptions options, SceneInfo? scene)
     {
         var wpf = options.Framework == UiFramework.Wpf;
         var adapter = wpf ? "Tachyon.Charts.Wpf" : "Tachyon.Charts.Avalonia";
@@ -256,9 +256,13 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             }
         }
 
-        references.Append(options.LocalSource is { } source
-            ? $"    <ProjectReference Include=\"{Path.Combine(source, adapter, adapter + ".csproj")}\" />\n"
-            : $"    <PackageReference Include=\"{adapter}\" Version=\"{options.PackageVersion}\" />\n");
+        foreach (var (package, version) in scene is null ? [(adapter, options.PackageVersion)] : new[] { (adapter, options.PackageVersion), (scene.Package, scene.PackageVersion) })
+        {
+            references.Append(options.LocalSource is { } source
+                ? $"    <ProjectReference Include=\"{Path.Combine(source, package, package + ".csproj")}\" />\n"
+                : $"    <PackageReference Include=\"{package}\" Version=\"{version}\" />\n");
+        }
+
         return $"""
                 <Project Sdk="Microsoft.NET.Sdk">
 
@@ -392,7 +396,8 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             calls.Add($".Title({CodeText.String(spec.Title)})");
         }
 
-        if (spec.Theme is { } theme)
+        var scene = _catalog.SceneOf(spec);
+        if (spec.Theme is { } theme && scene is null)
         {
             usings.Add("Tachyon.Charts.Core.Themes");
             calls.Add($".Theme(BuiltInThemes.{theme})");
@@ -410,6 +415,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         }
 
         var data = new List<DataPlan>();
+        var inScene = new List<string>();
         foreach (var series in spec.Series)
         {
             if (series.Data.Kind != DataKind.Sample)
@@ -422,7 +428,19 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             usings.AddRange(type.Usings);
             var variable = Unique(CodeText.Identifier(series.Name, upper: false, "series"), data.Select(item => item.Variable).Concat(_reserved));
             data.Add(new DataPlan(series.Name, variable, CodeText.Identifier(variable, upper: true, "Series"), sample, Count(sample, series.Data.Count)));
-            calls.Add(type.Code(series, variable, new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id)));
+            (scene is null ? calls : inScene).Add(type.Code(series, variable, new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id)));
+        }
+
+        if (scene is not null)
+        {
+            usings.AddRange(scene.Usings);
+            var (start, end) = scene.Code(spec);
+            calls.Add(start + string.Concat(inScene) + end);
+            if (spec.Theme is { } chosen)
+            {
+                usings.Add("Tachyon.Charts.Core.Themes");
+                calls.Add($".Theme(BuiltInThemes.{chosen})");
+            }
         }
 
         if (spec.Modifiers.Count > 0)
@@ -435,7 +453,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             calls.Add(legend.Title.Length > 0 ? $".Legend(l => l.Title({CodeText.String(legend.Title)}))" : ".Legend()");
         }
 
-        if (spec.Group is { Length: > 0 } group)
+        if (spec.Group is { Length: > 0 } group && scene is null)
         {
             calls.Add($".Group({CodeText.String(group)})");
         }

@@ -271,3 +271,24 @@ public sealed class Chart3DBuilder
     private static NumericAxis Create(string id, double minimum, double maximum, string? title) =>
         new(id, AxisPosition.Bottom) { VisibleRange = new DoubleRange(minimum, maximum), Title = title };
 }
+
+/// <summary>Puts a 3D chart into the description of a 2D chart.</summary>
+public static class Chart3DExtensions
+{
+    /// <summary>
+    /// Describes a 3D chart inside the description of a 2D chart, which then carries its picture, text and input, as a
+    /// <c>Chart3D</c> control does. The 3D chart sets the theme; set another one after this call.
+    /// </summary>
+    /// <param name="builder">The description of the 2D chart.</param>
+    /// <param name="configure">Describes the 3D chart.</param>
+    /// <returns>The description of the 2D chart.</returns>
+    public static ChartBuilder Scene3D(this ChartBuilder builder, Action<Chart3DBuilder> configure)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(configure);
+        var scene = new Chart3DBuilder();
+        configure(scene);
+        scene.Apply(builder);
+        return builder;
+    }
+}

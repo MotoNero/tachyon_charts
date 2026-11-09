@@ -80,7 +80,7 @@ internal static class SampleCatalog
         return data;
     }
 
-    private static string Header(string summary, string name, string type, string count = "The number of values.") => $$"""
+    internal static string Header(string summary, string name, string type, string count = "The number of values.") => $$"""
             /// <summary>Makes the sample data: {{summary}}.</summary>
             /// <param name="count">{{count}}</param>
             /// <returns>The data.</returns>

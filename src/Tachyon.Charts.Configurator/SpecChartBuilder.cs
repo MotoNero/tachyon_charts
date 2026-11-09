@@ -30,7 +30,9 @@ public static class SpecChartBuilder
             chart.Title(spec.Title);
         }
 
-        if (spec.Theme is { } theme)
+        // A scene sets its own theme, so the chosen one follows it.
+        var scene = catalog.SceneOf(spec);
+        if (spec.Theme is { } theme && scene is null)
         {
             chart.Theme(Theme(theme));
         }
@@ -53,12 +55,26 @@ public static class SpecChartBuilder
             }
         }
 
-        foreach (var series in spec.Series)
+        if (scene is not null)
         {
-            var type = catalog.FindType(series.Type)!;
-            var sample = catalog.FindSample(series.Data.Sample)!;
-            var data = sample.Create(Math.Max(sample.MinimumCount, series.Data.Count));
-            type.Apply(chart, series, data, new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id));
+            scene.Apply(chart, spec, builder =>
+            {
+                foreach (var series in spec.Series)
+                {
+                    catalog.FindType(series.Type)!.SceneApply!(builder, series, Data(catalog, series));
+                }
+            });
+            if (spec.Theme is { } chosen)
+            {
+                chart.Theme(Theme(chosen));
+            }
+        }
+        else
+        {
+            foreach (var series in spec.Series)
+            {
+                catalog.FindType(series.Type)!.Apply(chart, series, Data(catalog, series), new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id));
+            }
         }
 
         if (spec.Modifiers.Count > 0)
@@ -83,7 +99,7 @@ public static class SpecChartBuilder
             });
         }
 
-        if (spec.Group is { Length: > 0 } group)
+        if (spec.Group is { Length: > 0 } group && scene is null)
         {
             chart.Group(group);
         }
@@ -134,5 +150,11 @@ public static class SpecChartBuilder
         {
             builder.Position(opposite);
         }
+    }
+
+    private static object Data(ChartCatalog catalog, SeriesSpec series)
+    {
+        var sample = catalog.FindSample(series.Data.Sample)!;
+        return sample.Create(Math.Max(sample.MinimumCount, series.Data.Count));
     }
 }

@@ -26,6 +26,8 @@ sealed class Tachyon.Charts.ThreeD.Chart3DBuilder
   Tachyon.Charts.ThreeD.Chart3DBuilder ZAxis(System.Double minimum, System.Double maximum, System.String title = null)
   Tachyon.Charts.ThreeD.Chart3DBuilder ZAxis(Tachyon.Charts.Core.Axes.AxisBase axis)
   Tachyon.Charts.ThreeD.Scene.Scene3D Scene { get; }
+static class Tachyon.Charts.ThreeD.Chart3DExtensions
+  static Tachyon.Charts.Core.Fluent.ChartBuilder Scene3D(Tachyon.Charts.Core.Fluent.ChartBuilder builder, System.Action<Tachyon.Charts.ThreeD.Chart3DBuilder> configure)
 sealed class Tachyon.Charts.ThreeD.CutMarkerModifier : Tachyon.Charts.Core.Input.ChartModifier
   .ctor(Tachyon.Charts.ThreeD.Scene.CutCurveFeed feed)
   protected virtual System.Void OnCaptureLost(Tachyon.Charts.Core.Input.InputCapture capture)

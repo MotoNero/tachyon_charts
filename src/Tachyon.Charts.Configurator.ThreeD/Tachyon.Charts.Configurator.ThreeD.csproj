@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Description>The 3D types of the Tachyon Charts configurator.</Description>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Tachyon.Charts.Configurator/Tachyon.Charts.Configurator.csproj" />
+    <ProjectReference Include="../Tachyon.Charts.ThreeD/Tachyon.Charts.ThreeD.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Tachyon.Charts.Configurator.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -134,6 +134,14 @@ public sealed class ConfiguratorSession
     /// <summary>Gets the fields of the whole chart: title, theme, X downwards, group and legend.</summary>
     public IReadOnlyList<FieldModel> ChartFields =>
     [
+        .. ChartOptionFields,
+        .. Catalog.SceneOf(_spec) is { } scene
+            ? scene.Parameters.Select(parameter => Field("Scene", parameter, () => _spec.Scene.Get(parameter.Name) ?? parameter.Default, value => SetValue(_spec.Scene, parameter.Name, value)))
+            : [],
+    ];
+
+    private IReadOnlyList<FieldModel> ChartOptionFields =>
+    [
         Field("Chart", new("title", "Title", ParameterKind.Text, string.Empty), () => _spec.Title, value => _spec.Title = (string)value),
         Field("Chart", new("theme", "Theme", ParameterKind.Choice, "Application") { Choices = ["Application", .. ChartCatalog.Themes] }, () => _spec.Theme ?? "Application", value => _spec.Theme = (string)value == "Application" ? null : (string)value),
         Field("Chart", new("xDown", "X axis downwards", ParameterKind.Flag, false), () => _spec.XDown, value => _spec.XDown = (bool)value),

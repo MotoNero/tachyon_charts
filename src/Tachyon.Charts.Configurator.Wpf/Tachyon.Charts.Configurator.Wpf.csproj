@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Tachyon.Charts.Configurator/Tachyon.Charts.Configurator.csproj" />
+    <ProjectReference Include="../Tachyon.Charts.Configurator.ThreeD/Tachyon.Charts.Configurator.ThreeD.csproj" />
     <ProjectReference Include="../Tachyon.Charts.Wpf/Tachyon.Charts.Wpf.csproj" />
   </ItemGroup>
 

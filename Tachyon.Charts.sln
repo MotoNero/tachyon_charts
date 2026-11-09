@@ -45,6 +45,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tachyon.Charts.Configurator
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tachyon.Charts.Configurator.Avalonia", "src\Tachyon.Charts.Configurator.Avalonia\Tachyon.Charts.Configurator.Avalonia.csproj", "{B9449177-45B8-480C-8BE3-EBA9CAD258BC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tachyon.Charts.Configurator.ThreeD", "src\Tachyon.Charts.Configurator.ThreeD\Tachyon.Charts.Configurator.ThreeD.csproj", "{D5EEAA87-CA34-4346-9941-A94AE9120B5C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -283,6 +285,18 @@ Global
 		{B9449177-45B8-480C-8BE3-EBA9CAD258BC}.Release|x64.Build.0 = Release|Any CPU
 		{B9449177-45B8-480C-8BE3-EBA9CAD258BC}.Release|x86.ActiveCfg = Release|Any CPU
 		{B9449177-45B8-480C-8BE3-EBA9CAD258BC}.Release|x86.Build.0 = Release|Any CPU
+		{D5EEAA87-CA34-4346-9941-A94AE9120B5C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D5EEAA87-CA34-4346-9941-A94AE9120B5C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D5EEAA87-CA34-4346-9941-A94AE9120B5C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D5EEAA87-CA34-4346-9941-A94AE9120B5C}.Debug|x64.Build.0 = Debug|Any CPU
+		{D5EEAA87-CA34-4346-9941-A94AE9120B5C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D5EEAA87-CA34-4346-9941-A94AE9120B5C}.Debug|x86.Build.0 = Debug|Any CPU
+		{D5EEAA87-CA34-4346-9941-A94AE9120B5C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D5EEAA87-CA34-4346-9941-A94AE9120B5C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D5EEAA87-CA34-4346-9941-A94AE9120B5C}.Release|x64.ActiveCfg = Release|Any CPU
+		{D5EEAA87-CA34-4346-9941-A94AE9120B5C}.Release|x64.Build.0 = Release|Any CPU
+		{D5EEAA87-CA34-4346-9941-A94AE9120B5C}.Release|x86.ActiveCfg = Release|Any CPU
+		{D5EEAA87-CA34-4346-9941-A94AE9120B5C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -307,5 +321,6 @@ Global
 		{C027A80D-EC05-48BA-BFFC-8098A5395C90} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{79BB73AF-ABDC-4D3A-8249-5BAE1E0110EA} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{B9449177-45B8-480C-8BE3-EBA9CAD258BC} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{D5EEAA87-CA34-4346-9941-A94AE9120B5C} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

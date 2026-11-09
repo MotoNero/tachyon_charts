@@ -123,6 +123,21 @@ public enum DataShape
 
     /// <summary>Values with names, one slice each.</summary>
     Slices,
+
+    /// <summary>Points in space: X, Y and Z.</summary>
+    Points3D,
+
+    /// <summary>Points in space with a diameter each.</summary>
+    Bubbles3D,
+
+    /// <summary>Rows of a spectrum over time.</summary>
+    Spectrogram,
+
+    /// <summary>Values in a box of voxels.</summary>
+    Volume,
+
+    /// <summary>Gains over azimuth and elevation.</summary>
+    Pattern,
 }
 
 /// <summary>A chart type the configurator offers, with its parameters and how it is built.</summary>
@@ -178,6 +193,13 @@ public sealed class ChartTypeInfo
     /// </summary>
     public bool OwnsAxes { get; init; }
 
+    /// <summary>
+    /// Gets how a series of this type is added to the scene of its category (see <see cref="SceneInfo"/>), with the
+    /// builder of the scene, the series and its data; <see langword="null"/> for types that go into the chart itself.
+    /// Such types own the axes; their code writer writes the call on the builder of the scene.
+    /// </summary>
+    public Action<object, SeriesSpec, object>? SceneApply { get; init; }
+
     /// <summary>Gets a parameter by name.</summary>
     /// <param name="name">The name.</param>
     /// <returns>The parameter.</returns>
@@ -216,7 +238,23 @@ public interface IChartModule
 
     /// <summary>Gets the generators of sample data.</summary>
     IReadOnlyList<SampleInfo> Samples { get; }
+
+    /// <summary>Gets the scenes that take the series of a category, such as the 3D scene.</summary>
+    IReadOnlyList<SceneInfo> Scenes => [];
 }
+
+/// <summary>
+/// A builder of its own that takes all series of a category, as a 3D scene does. The series go into it in one call,
+/// which then writes them into the chart.
+/// </summary>
+/// <param name="Category">The category whose series it takes.</param>
+/// <param name="Parameters">The settings of the scene, kept in <see cref="ChartSpec.Scene"/>.</param>
+/// <param name="Apply">Creates the builder from the description, hands it to the action that adds the series, and writes it into the chart.</param>
+/// <param name="Code">Writes the same call in C#: the part before the series, such as <c>.Scene3D(s => s</c>, and the part after them.</param>
+/// <param name="Usings">The namespaces of the call.</param>
+/// <param name="Package">The package the generated project needs for it.</param>
+/// <param name="PackageVersion">The version of that package.</param>
+public sealed record SceneInfo(ChartCategory Category, IReadOnlyList<ParameterInfo> Parameters, Action<ChartBuilder, ChartSpec, Action<object>> Apply, Func<ChartSpec, (string Start, string End)> Code, IReadOnlyList<string> Usings, string Package, string PackageVersion);
 
 /// <summary>
 /// All chart types, sample data and interactions the configurator offers. Add-ons such as 3D and Medical add their
@@ -226,6 +264,10 @@ public sealed class ChartCatalog
 {
     private readonly List<ChartTypeInfo> _types = [];
     private readonly List<SampleInfo> _samples = [];
+    private readonly List<SceneInfo> _scenes = [];
+
+    // The modules of the add-ons by type and assembly; loaded only when the assembly is there.
+    private static readonly string[] _addOns = ["Tachyon.Charts.Configurator.ThreeD.ThreeDModule, Tachyon.Charts.Configurator.ThreeD"];
 
     /// <summary>Initializes a catalog with the 2D types of the core.</summary>
     public ChartCatalog()
@@ -270,6 +312,34 @@ public sealed class ChartCatalog
 
             _samples.Add(sample);
         }
+
+        _scenes.AddRange(module.Scenes.Where(scene => _scenes.TrueForAll(known => known.Category != scene.Category)));
+    }
+
+    /// <summary>Creates the catalog with the core and every add-on module whose assembly is there; the others stay out.</summary>
+    /// <returns>The catalog.</returns>
+    public static ChartCatalog CreateWithAddOns()
+    {
+        var catalog = new ChartCatalog();
+        foreach (var name in _addOns)
+        {
+            if (Type.GetType(name, throwOnError: false) is { } type && Activator.CreateInstance(type) is IChartModule module)
+            {
+                catalog.Add(module);
+            }
+        }
+
+        return catalog;
+    }
+
+    /// <summary>Gets the scene the series of a description go into, or <see langword="null"/> when they go into the chart itself.</summary>
+    /// <param name="spec">The description.</param>
+    /// <returns>The scene.</returns>
+    public SceneInfo? SceneOf(ChartSpec spec)
+    {
+        ArgumentNullException.ThrowIfNull(spec);
+        var type = spec.Series.Select(series => FindType(series.Type)).FirstOrDefault(type => type?.SceneApply is not null);
+        return type is null ? null : _scenes.Find(scene => scene.Category == type.Category);
     }
 
     /// <summary>Gets a type by identifier.</summary>
@@ -338,9 +408,10 @@ public sealed class ChartCatalog
             CheckSeries(spec, series, problems);
         }
 
-        if (spec.Series.Count > 1 && OwnsAxes(spec))
+        CheckOwners(spec, problems);
+        if (SceneOf(spec) is { } scene)
         {
-            problems.Add("A pie or donut fills the chart alone; it cannot share it with other series.");
+            CheckValues("The scene", scene.Parameters, spec.Scene, problems);
         }
 
         foreach (var modifier in spec.Modifiers)
@@ -355,6 +426,28 @@ public sealed class ChartCatalog
         }
 
         return problems;
+    }
+
+    private void CheckOwners(ChartSpec spec, List<string> problems)
+    {
+        var owners = spec.Series.Select(series => FindType(series.Type)).Where(type => type?.OwnsAxes == true).ToList();
+        if (owners.Count == 0 || spec.Series.Count < 2)
+        {
+            return;
+        }
+
+        if (owners.Exists(type => type!.SceneApply is null))
+        {
+            problems.Add("A pie or donut fills the chart alone; it cannot share it with other series.");
+        }
+        else if (owners.Count != spec.Series.Count || owners.Select(type => type!.Category).Distinct().Count() > 1)
+        {
+            problems.Add($"A {owners[0]!.Category} chart takes only series of its own kind.");
+        }
+        else if (SceneOf(spec) is null)
+        {
+            problems.Add($"The scene of {owners[0]!.Category} is missing.");
+        }
     }
 
     private static void CheckValues(string owner, IReadOnlyList<ParameterInfo> parameters, SpecValues values, List<string> problems)
