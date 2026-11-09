@@ -294,6 +294,17 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 
 The showroom lists the interactive pages, the instruments and all scenes. Theme and language are at the top right. F11 shows the source code of a page, the red button records what the page shows as an MP4 video.
 
+### Configurator (preview)
+
+Put a chart together and copy its code: the configurator shows the chart and its C# side by side, and every change shows at once in both. It writes the fluent C#, a view model with the data, the window in XAML and a complete WPF or Avalonia project. The chart types grow with each release.
+
+```bash
+dotnet run --project src/Tachyon.Charts.Configurator.Wpf -c Release
+dotnet run --project src/Tachyon.Charts.Configurator.Avalonia -c Release
+```
+
+![The configurator: settings on the left, the chart in the middle, the generated C# on the right](docs/images/configurator.png)
+
 ## Performance
 
 Offscreen on an RTX 4070 Laptop GPU at 4K.

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Tachyon.Charts.Configurator.Wpf</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Tachyon.Charts.Configurator/Tachyon.Charts.Configurator.csproj" />
+    <ProjectReference Include="../Tachyon.Charts.Wpf/Tachyon.Charts.Wpf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The look of the showroom, shared as source. -->
+    <Compile Include="../../samples/Tachyon.Charts.Samples.Wpf/SampleStyle.cs" Link="SampleStyle.cs" />
+  </ItemGroup>
+
+</Project>

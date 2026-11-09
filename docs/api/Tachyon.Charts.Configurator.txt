@@ -79,6 +79,27 @@ static class Tachyon.Charts.Configurator.CodeText
   static System.String Identifier(System.String name, System.Boolean upper, System.String fallback)
   static System.String Number(System.Double value)
   static System.String String(System.String text)
+sealed class Tachyon.Charts.Configurator.ConfiguratorSession
+  .ctor(Tachyon.Charts.Configurator.ChartCatalog catalog)
+  System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Code { get; }
+  System.Collections.Generic.IReadOnlyList<System.String> Problems { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.FieldModel> AxisFields { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.FieldModel> ChartFields { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.FieldModel> ModifierFields { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.FieldModel> SeriesFields { get; }
+  System.Int32 SelectedSeries { get; set; }
+  System.TimeSpan LastUpdate { get; }
+  System.Void AddSeries(System.String typeId)
+  System.Void AddYAxis()
+  System.Void Apply(Tachyon.Charts.Core.Fluent.ChartBuilder chart)
+  System.Void Load(Tachyon.Charts.Configurator.ChartSpec spec)
+  System.Void NewChart(System.String typeId)
+  System.Void RemoveSeries()
+  Tachyon.Charts.Configurator.ChartCatalog Catalog { get; }
+  Tachyon.Charts.Configurator.ChartSpec Spec { get; }
+  Tachyon.Charts.Configurator.CodeOptions Options { get; set; }
+  event System.Action Changed
+  event System.Action FieldsChanged
 enum Tachyon.Charts.Configurator.DataKind : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Csv = 1
   Live = 2
@@ -96,6 +117,13 @@ sealed class Tachyon.Charts.Configurator.DataSpec
   System.String SavedPath { get; set; }
   Tachyon.Charts.Configurator.DataKind Kind { get; set; }
   Tachyon.Charts.Configurator.SpecValues Options { get; set; }
+sealed class Tachyon.Charts.Configurator.FieldModel
+  System.Object Value { get; }
+  System.String Group { get; }
+  System.String Set(System.Object value)
+  System.String SetText(System.String text)
+  System.String Text { get; }
+  Tachyon.Charts.Configurator.ParameterInfo Info { get; }
 interface Tachyon.Charts.Configurator.IChartModule
   abstract System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ChartTypeInfo> Types { get; }
   abstract System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.SampleInfo> Samples { get; }
