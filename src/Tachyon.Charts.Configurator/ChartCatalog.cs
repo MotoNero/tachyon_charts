@@ -447,6 +447,10 @@ public sealed class ChartCatalog
         }
 
         CheckOwners(spec, problems);
+        if (spec.Series.Count(series => series.Type == "candles" && series.Parameters.GetFlag("volume", true)) > 1)
+        {
+            problems.Add("Only one candles series per chart can show its volume below; switch \"Volume below\" off for the others.");
+        }
         if (SceneOf(spec) is { } scene)
         {
             CheckValues("The scene", scene.Parameters, spec.Scene, problems);
@@ -474,9 +478,9 @@ public sealed class ChartCatalog
             return;
         }
 
-        if (owners.Exists(type => type!.SceneApply is null))
+        if (owners.Find(type => type!.SceneApply is null) is { } alone)
         {
-            problems.Add("A pie or donut fills the chart alone; it cannot share it with other series.");
+            problems.Add($"{alone.Name} brings its own axes and fills the chart alone; it cannot share it with other series.");
         }
         else if (owners.Count != spec.Series.Count || owners.Select(type => type!.Category).Distinct().Count() > 1)
         {

@@ -266,6 +266,13 @@ public sealed class ConfiguratorSession
     {
         var added = Catalog.CreateSpec(typeId).Series[0];
         added.Name = Unique(added.Name);
+
+        // One volume pane per chart: further candles start without one.
+        if (typeId == "candles" && _spec.Series.Exists(series => series.Type == "candles" && series.Parameters.GetFlag("volume", true)))
+        {
+            added.Parameters.Set("volume", false);
+        }
+
         _spec.Series.Add(added);
         _selected = _spec.Series.Count - 1;
         Structure();
@@ -350,11 +357,33 @@ public sealed class ConfiguratorSession
         FieldsChanged?.Invoke();
     }
 
+    // Describes the chart once without drawing it, so that what only the description finds, such as an axis name that
+    // occurs twice, shows as a problem instead of failing in the preview.
+    private string? Describe()
+    {
+        try
+        {
+            var builder = new ChartBuilder();
+            SpecChartBuilder.Apply(_spec, Catalog, builder);
+            builder.ToDefinition();
+            return null;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or KeyNotFoundException or InvalidCastException)
+        {
+            return exception.Message;
+        }
+    }
+
     // Writes the code; the preview follows in the apps through Changed. Problems keep the last good code.
     private void Refresh()
     {
         var clock = Stopwatch.StartNew();
         Problems = Catalog.Check(_spec);
+        if (Problems.Count == 0 && Describe() is { } failure)
+        {
+            Problems = [failure];
+        }
+
         if (Problems.Count == 0)
         {
             var options = Options;

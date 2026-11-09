@@ -271,7 +271,17 @@ internal sealed class ConfiguratorWindow : Window
             return;
         }
 
-        _preview.Configure(_session.Apply);
+        try
+        {
+            _preview.Configure(_session.Apply);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
+        {
+            // The session checks the description first; whatever still fails shows here instead of closing the app.
+            _status.Text = exception.Message;
+            _status.Foreground = _problem;
+            return;
+        }
         // The boxes stay while the tabs keep their names, so selection and scrolling survive a change.
         var selected = _code.SelectedIndex;
         if (!_session.Code.Keys.SequenceEqual(_tabs.Select(tab => (string)tab.Header!)))
