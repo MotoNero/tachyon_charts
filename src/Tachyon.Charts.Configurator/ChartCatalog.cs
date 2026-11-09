@@ -102,6 +102,27 @@ public enum DataShape
 
     /// <summary>A grid of values, as for a heatmap.</summary>
     Grid,
+
+    /// <summary>Pairs of X and Y with a size per point.</summary>
+    Bubbles,
+
+    /// <summary>Two curves over the same X.</summary>
+    Band,
+
+    /// <summary>Several curves over the same X that stack.</summary>
+    Layers,
+
+    /// <summary>Pairs of X and Y with a lower and an upper error per point.</summary>
+    Errors,
+
+    /// <summary>Groups of measured values, one distribution per group.</summary>
+    Groups,
+
+    /// <summary>One list of measured values.</summary>
+    Values,
+
+    /// <summary>Values with names, one slice each.</summary>
+    Slices,
 }
 
 /// <summary>A chart type the configurator offers, with its parameters and how it is built.</summary>
@@ -114,9 +135,9 @@ public sealed class ChartTypeInfo
     /// <param name="shape">The form of its data.</param>
     /// <param name="defaultSample">The generator of its sample data.</param>
     /// <param name="parameters">Its parameters.</param>
-    /// <param name="apply">Adds a series of this type to a chart description.</param>
+    /// <param name="apply">Adds a series of this type to a chart description; the data have the type of the sample's <see cref="SampleInfo.ReturnType"/>.</param>
     /// <param name="code">Writes the same step as C#, see <see cref="SeriesCodeWriter"/>.</param>
-    public ChartTypeInfo(string id, string name, ChartCategory category, DataShape shape, string defaultSample, IReadOnlyList<ParameterInfo> parameters, Action<ChartBuilder, SeriesSpec, SampleSet, SeriesAxes> apply, SeriesCodeWriter code)
+    public ChartTypeInfo(string id, string name, ChartCategory category, DataShape shape, string defaultSample, IReadOnlyList<ParameterInfo> parameters, Action<ChartBuilder, SeriesSpec, object, SeriesAxes> apply, SeriesCodeWriter code)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -143,13 +164,19 @@ public sealed class ChartTypeInfo
     public IReadOnlyList<ParameterInfo> Parameters { get; }
 
     /// <summary>Gets how a series of this type is added to a chart description.</summary>
-    public Action<ChartBuilder, SeriesSpec, SampleSet, SeriesAxes> Apply { get; }
+    public Action<ChartBuilder, SeriesSpec, object, SeriesAxes> Apply { get; }
 
     /// <summary>Gets how the same step is written as C#.</summary>
     public SeriesCodeWriter Code { get; }
 
     /// <summary>Gets the namespaces the code of this type needs beyond the usual ones.</summary>
     public IReadOnlyList<string> Usings { get; init; } = [];
+
+    /// <summary>
+    /// Gets a value indicating whether the type brings its own hidden axes and fills the chart alone, as a pie does.
+    /// The axes of the description are then left out.
+    /// </summary>
+    public bool OwnsAxes { get; init; }
 
     /// <summary>Gets a parameter by name.</summary>
     /// <param name="name">The name.</param>
@@ -271,9 +298,22 @@ public sealed class ChartCatalog
         spec.XAxes.Add(new AxisSpec { Id = "x", Title = "x" });
         spec.YAxes.Add(new AxisSpec { Id = "y", Title = "y" });
         spec.Series.Add(new SeriesSpec { Type = type.Id, Name = type.Name, Data = new DataSpec { Sample = type.DefaultSample, Count = FindSample(type.DefaultSample)?.DefaultCount ?? 1000 } });
-        spec.Modifiers.Add(new ModifierSpec { Type = "zoompan" });
-        spec.Modifiers.Add(new ModifierSpec { Type = "crosshair" });
+        if (!type.OwnsAxes)
+        {
+            spec.Modifiers.Add(new ModifierSpec { Type = "zoompan" });
+            spec.Modifiers.Add(new ModifierSpec { Type = "crosshair" });
+        }
+
         return spec;
+    }
+
+    /// <summary>Gets a value indicating whether a series of the description brings its own axes, see <see cref="ChartTypeInfo.OwnsAxes"/>.</summary>
+    /// <param name="spec">The description.</param>
+    /// <returns><see langword="true"/> when the axes of the description are left out.</returns>
+    public bool OwnsAxes(ChartSpec spec)
+    {
+        ArgumentNullException.ThrowIfNull(spec);
+        return spec.Series.Exists(series => FindType(series.Type)?.OwnsAxes == true);
     }
 
     /// <summary>Lists what is wrong with a description: unknown types, axes, samples and interactions, and values that do not fit.</summary>
@@ -296,6 +336,11 @@ public sealed class ChartCatalog
         foreach (var series in spec.Series)
         {
             CheckSeries(spec, series, problems);
+        }
+
+        if (spec.Series.Count > 1 && OwnsAxes(spec))
+        {
+            problems.Add("A pie or donut fills the chart alone; it cannot share it with other series.");
         }
 
         foreach (var modifier in spec.Modifiers)

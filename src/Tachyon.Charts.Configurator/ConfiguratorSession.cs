@@ -147,6 +147,11 @@ public sealed class ConfiguratorSession
         get
         {
             var fields = new List<FieldModel>();
+            if (Catalog.OwnsAxes(_spec))
+            {
+                return fields;
+            }
+
             foreach (var (axes, name) in new[] { (_spec.XAxes, "X axis"), (_spec.YAxes, "Y axis") })
             {
                 foreach (var axis in axes)
@@ -184,7 +189,7 @@ public sealed class ConfiguratorSession
             {
                 Field(group, new("name", "Name", ParameterKind.Text, string.Empty), () => series.Name, value => series.Name = (string)value),
                 Field(group, new("sample", "Sample data", ParameterKind.Choice, type.DefaultSample) { Choices = samples }, () => series.Data.Sample, value => series.Data.Sample = (string)value),
-                Field(group, new("count", "Number of values", ParameterKind.Integer, 1000.0) { Minimum = 2, Maximum = 10_000_000 }, () => (double)series.Data.Count, value => series.Data.Count = (int)(double)value),
+                Field(group, new("count", "Number of values", ParameterKind.Integer, 1000.0) { Minimum = Catalog.FindSample(series.Data.Sample)?.MinimumCount ?? 2, Maximum = 10_000_000 }, () => (double)series.Data.Count, value => series.Data.Count = (int)(double)value),
             };
             if (_spec.YAxes.Count > 1)
             {

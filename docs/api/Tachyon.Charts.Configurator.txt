@@ -14,6 +14,7 @@ sealed class Tachyon.Charts.Configurator.AxisSpec
   Tachyon.Charts.Configurator.AxisKind Kind { get; set; }
 sealed class Tachyon.Charts.Configurator.ChartCatalog
   .ctor()
+  System.Boolean OwnsAxes(Tachyon.Charts.Configurator.ChartSpec spec)
   System.Collections.Generic.IReadOnlyList<System.String> Check(Tachyon.Charts.Configurator.ChartSpec spec)
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ChartTypeInfo> Types { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ModifierInfo> Modifiers { get; }
@@ -46,8 +47,9 @@ static class Tachyon.Charts.Configurator.ChartSpecJson
   static System.String Write(Tachyon.Charts.Configurator.ChartSpec spec)
   static Tachyon.Charts.Configurator.ChartSpec Read(System.String json)
 sealed class Tachyon.Charts.Configurator.ChartTypeInfo
-  .ctor(System.String id, System.String name, Tachyon.Charts.Configurator.ChartCategory category, Tachyon.Charts.Configurator.DataShape shape, System.String defaultSample, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> parameters, System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, Tachyon.Charts.Configurator.SampleSet, Tachyon.Charts.Configurator.SeriesAxes> apply, Tachyon.Charts.Configurator.SeriesCodeWriter code)
-  System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, Tachyon.Charts.Configurator.SampleSet, Tachyon.Charts.Configurator.SeriesAxes> Apply { get; }
+  .ctor(System.String id, System.String name, Tachyon.Charts.Configurator.ChartCategory category, Tachyon.Charts.Configurator.DataShape shape, System.String defaultSample, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> parameters, System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, System.Object, Tachyon.Charts.Configurator.SeriesAxes> apply, Tachyon.Charts.Configurator.SeriesCodeWriter code)
+  System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, System.Object, Tachyon.Charts.Configurator.SeriesAxes> Apply { get; }
+  System.Boolean OwnsAxes { get; set; }
   System.Collections.Generic.IReadOnlyList<System.String> Usings { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> Parameters { get; }
   System.String DefaultSample { get; }
@@ -106,9 +108,16 @@ enum Tachyon.Charts.Configurator.DataKind : System.IComparable, System.IConverti
   MedicalFile = 3
   Sample = 0
 enum Tachyon.Charts.Configurator.DataShape : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Band = 4
+  Bubbles = 3
+  Errors = 6
   Grid = 2
+  Groups = 7
+  Layers = 5
   Points = 0
   Rows = 1
+  Slices = 9
+  Values = 8
 sealed class Tachyon.Charts.Configurator.DataSpec
   .ctor()
   System.Int32 Count { get; set; }
@@ -163,24 +172,15 @@ enum Tachyon.Charts.Configurator.ParameterKind : System.IComparable, System.ICon
   Number = 0
   Text = 5
 sealed class Tachyon.Charts.Configurator.SampleInfo : System.IEquatable<Tachyon.Charts.Configurator.SampleInfo>
-  .ctor(System.String Id, System.String Name, Tachyon.Charts.Configurator.DataShape Shape, System.Int32 DefaultCount, System.Func<System.Int32, Tachyon.Charts.Configurator.SampleSet> Create, System.String Formula)
-  System.Func<System.Int32, Tachyon.Charts.Configurator.SampleSet> Create { get; set; }
+  .ctor(System.String Id, System.String Name, Tachyon.Charts.Configurator.DataShape Shape, System.Int32 DefaultCount, System.Func<System.Int32, System.Object> Create, System.String ReturnType, System.Func<System.String, System.String> Method)
+  System.Func<System.Int32, System.Object> Create { get; set; }
+  System.Func<System.String, System.String> Method { get; set; }
   System.Int32 DefaultCount { get; set; }
-  System.String Formula { get; set; }
+  System.Int32 MinimumCount { get; set; }
   System.String Id { get; set; }
   System.String Name { get; set; }
+  System.String ReturnType { get; set; }
   Tachyon.Charts.Configurator.DataShape Shape { get; set; }
-sealed class Tachyon.Charts.Configurator.SampleSet : System.IEquatable<Tachyon.Charts.Configurator.SampleSet>
-  .ctor(System.Double[] X, System.Double[] Y, System.Collections.Generic.IReadOnlyList<System.Double[]> Rows, System.Int32 GridWidth, System.Int32 GridHeight, System.Single[] Grid)
-  System.Collections.Generic.IReadOnlyList<System.Double[]> Rows { get; set; }
-  System.Double[] X { get; set; }
-  System.Double[] Y { get; set; }
-  System.Int32 GridHeight { get; set; }
-  System.Int32 GridWidth { get; set; }
-  System.Single[] Grid { get; set; }
-  static Tachyon.Charts.Configurator.SampleSet FromGrid(System.Int32 width, System.Int32 height, System.Single[] values)
-  static Tachyon.Charts.Configurator.SampleSet FromRows(System.Collections.Generic.IReadOnlyList<System.Double[]> rows)
-  static Tachyon.Charts.Configurator.SampleSet Points(System.Double[] x, System.Double[] y)
 struct Tachyon.Charts.Configurator.SeriesAxes : System.IEquatable<Tachyon.Charts.Configurator.SeriesAxes>
   .ctor(System.String X, System.String Y)
   System.String X { get; set; }

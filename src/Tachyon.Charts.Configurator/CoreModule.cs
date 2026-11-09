@@ -29,17 +29,31 @@ internal sealed class CoreModule : IChartModule
             new("marker", "Marker", ParameterKind.Choice, nameof(MarkerShape.Circle)) { Choices = Enum.GetNames<MarkerShape>() },
             _color,
         ], ApplyScatter, ScatterCode) { Usings = ["Tachyon.Charts.Rendering"] },
+        new("bubbles", "Bubbles", ChartCategory.TwoD, DataShape.Bubbles, "bubbles",
+        [
+            new("marker", "Marker", ParameterKind.Choice, nameof(MarkerShape.Circle)) { Choices = Enum.GetNames<MarkerShape>() },
+            _color,
+        ], ApplyBubbles, BubblesCode) { Usings = ["Tachyon.Charts.Rendering"] },
         new("area", "Area", ChartCategory.TwoD, DataShape.Points, "damped",
         [
             new("baseline", "Baseline", ParameterKind.Number, 0.0),
             _color,
         ], ApplyArea, AreaCode) { Usings = ["Tachyon.Charts.Core.Series"] },
+        CoreTypes.StackedArea,
+        CoreTypes.Band,
         new("bars", "Bars", ChartCategory.TwoD, DataShape.Rows, "groups",
         [
             new("layout", "Layout", ParameterKind.Choice, nameof(BarLayout.Grouped)) { Choices = Enum.GetNames<BarLayout>() },
             new("width", "Width", ParameterKind.Number, 0.8) { Minimum = 0.05, Maximum = 1 },
             new("horizontal", "Horizontal", ParameterKind.Flag, false),
         ], ApplyBars, BarsCode) { Usings = ["Tachyon.Charts.Core.Series"] },
+        CoreTypes.ErrorBars,
+        CoreTypes.Stems,
+        CoreTypes.Histogram,
+        CoreTypes.BoxPlot,
+        CoreTypes.Violin,
+        CoreTypes.Pie("pie", "Pie", 0),
+        CoreTypes.Pie("donut", "Donut", 0.55),
         new("heatmap", "Heatmap", ChartCategory.TwoD, DataShape.Grid, "peaks",
         [
             new("colormap", "Colormap", ParameterKind.Choice, "Viridis") { Choices = Colormaps },
@@ -133,14 +147,9 @@ internal sealed class CoreModule : IChartModule
         return $".AddHeatmap({data}, h => h.Name({CodeText.String(series.Name)}).Cells(0, 10.0 / {data}.Width, 0, 10.0 / {data}.Height).Interpolated({CodeText.Flag(values.GetFlag("interpolated", false))}).ColorAxis(a => a.Colormap(Colormaps.{values.GetText("colormap", "Viridis")})))";
     }
 
-    private static DataSource<double, double> Source(SampleSet data)
-    {
-        var source = new DataSource<double, double>(Math.Max(1, data.X.Length));
-        source.Append(data.X, data.Y);
-        return source;
-    }
+    private static DataSource<double, double> Source(object data) => (DataSource<double, double>)data;
 
-    private static void ApplyLine(ChartBuilder chart, SeriesSpec series, SampleSet data, SeriesAxes axes)
+    private static void ApplyLine(ChartBuilder chart, SeriesSpec series, object data, SeriesAxes axes)
     {
         var values = series.Parameters;
         chart.AddLine(Source(data), line =>
@@ -168,7 +177,7 @@ internal sealed class CoreModule : IChartModule
         });
     }
 
-    private static void ApplyScatter(ChartBuilder chart, SeriesSpec series, SampleSet data, SeriesAxes axes)
+    private static void ApplyScatter(ChartBuilder chart, SeriesSpec series, object data, SeriesAxes axes)
     {
         var values = series.Parameters;
         chart.AddScatter(Source(data), scatter =>
@@ -182,7 +191,33 @@ internal sealed class CoreModule : IChartModule
         });
     }
 
-    private static void ApplyArea(ChartBuilder chart, SeriesSpec series, SampleSet data, SeriesAxes axes)
+    private static string BubblesCode(SeriesSpec series, string data, SeriesAxes axes)
+    {
+        var values = series.Parameters;
+        var code = $".AddScatter({data}.Points, s => s.Name({CodeText.String(series.Name)}).XAxis({CodeText.String(axes.X)}).YAxis({CodeText.String(axes.Y)}).Marker(MarkerShape.{values.GetText("marker", nameof(MarkerShape.Circle))}).Sizes({data}.Sizes)";
+        if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
+        {
+            code += $".Fill({CodeText.Color(color)})";
+        }
+
+        return code + ")";
+    }
+
+    private static void ApplyBubbles(ChartBuilder chart, SeriesSpec series, object data, SeriesAxes axes)
+    {
+        var values = series.Parameters;
+        var (points, sizes) = ((DataSource<double, double>, float[]))data;
+        chart.AddScatter(points, scatter =>
+        {
+            scatter.Name(series.Name).XAxis(axes.X).YAxis(axes.Y).Marker(Enum.Parse<MarkerShape>(values.GetText("marker", nameof(MarkerShape.Circle)))).Sizes(sizes);
+            if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
+            {
+                scatter.Fill(color);
+            }
+        });
+    }
+
+    private static void ApplyArea(ChartBuilder chart, SeriesSpec series, object data, SeriesAxes axes)
     {
         var values = series.Parameters;
         chart.AddSeries(
@@ -200,11 +235,11 @@ internal sealed class CoreModule : IChartModule
             axes.Y);
     }
 
-    private static void ApplyBars(ChartBuilder chart, SeriesSpec series, SampleSet data, SeriesAxes axes)
+    private static void ApplyBars(ChartBuilder chart, SeriesSpec series, object data, SeriesAxes axes)
     {
         var values = series.Parameters;
         chart.AddSeries(
-            (x, y) => new BarSeries(data.Rows, x, y)
+            (x, y) => new BarSeries((double[][])data, x, y)
             {
                 Name = series.Name,
                 Layout = Enum.Parse<BarLayout>(values.GetText("layout", nameof(BarLayout.Grouped))),
@@ -215,14 +250,13 @@ internal sealed class CoreModule : IChartModule
             axes.Y);
     }
 
-    private static void ApplyHeatmap(ChartBuilder chart, SeriesSpec series, SampleSet data, SeriesAxes axes)
+    private static void ApplyHeatmap(ChartBuilder chart, SeriesSpec series, object data, SeriesAxes axes)
     {
         var values = series.Parameters;
-        var grid = new HeatmapData(data.GridWidth, data.GridHeight);
-        grid.SetValues(data.Grid);
+        var grid = (HeatmapData)data;
         chart.AddHeatmap(grid, heatmap => heatmap
             .Name(series.Name)
-            .Cells(0, 10.0 / data.GridWidth, 0, 10.0 / data.GridHeight)
+            .Cells(0, 10.0 / grid.Width, 0, 10.0 / grid.Height)
             .Interpolated(values.GetFlag("interpolated", false))
             .ColorAxis(axis => axis.Colormap(Colormap(values.GetText("colormap", "Viridis")))));
     }

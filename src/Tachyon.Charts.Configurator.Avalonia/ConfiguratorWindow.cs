@@ -62,9 +62,24 @@ internal sealed class ConfiguratorWindow : Window
     /// <summary>Saves a picture of the window once it shows, then closes it.</summary>
     public string? ScreenshotPath { get; init; }
 
+    /// <summary>Gets the identifier of the type to start with, or <see langword="null"/> for the first.</summary>
+    public string? StartType { get; init; }
+
+    private ComboBox? _types;
+
+    private void SelectStartType()
+    {
+        var index = _session.Catalog.Types.ToList().FindIndex(type => type.Id == StartType);
+        if (index >= 0 && _types is not null)
+        {
+            _types.SelectedIndex = index;
+        }
+    }
+
     protected override async void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
+        SelectStartType();
         if (ScreenshotPath is { } path && Content is Control content)
         {
             await Task.Delay(2000);
@@ -88,7 +103,7 @@ internal sealed class ConfiguratorWindow : Window
     private Control CreateSettings()
     {
         var names = _session.Catalog.Types.Select(type => type.Name).ToList();
-        var types = new ComboBox { Margin = new Thickness(0, 0, 0, 8), ItemsSource = names, SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
+        var types = _types = new ComboBox { Margin = new Thickness(0, 0, 0, 8), ItemsSource = names, SelectedIndex = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
         types.SelectionChanged += (_, _) => _session.NewChart(_session.Catalog.Types[types.SelectedIndex].Id);
         var add = new ComboBox { Margin = new Thickness(0, 0, 6, 6), ItemsSource = names, SelectedIndex = 0, MinWidth = 120 };
         var buttons = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
@@ -260,6 +275,8 @@ internal sealed class ConfiguratorApplication : Application
 {
     public static string? ScreenshotPath { get; set; }
 
+    public static string? StartType { get; set; }
+
     public override void Initialize()
     {
         RequestedThemeVariant = ThemeVariant.Dark;
@@ -270,7 +287,7 @@ internal sealed class ConfiguratorApplication : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new ConfiguratorWindow { ScreenshotPath = ScreenshotPath };
+            desktop.MainWindow = new ConfiguratorWindow { ScreenshotPath = ScreenshotPath, StartType = StartType };
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -283,6 +300,12 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        var type = Array.IndexOf(args, "--type");
+        if (type >= 0 && type + 1 < args.Length)
+        {
+            ConfiguratorApplication.StartType = args[type + 1];
+        }
+
         var screenshot = Array.IndexOf(args, "--screenshot");
         if (screenshot >= 0 && screenshot + 1 < args.Length)
         {

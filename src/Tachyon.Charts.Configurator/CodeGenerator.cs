@@ -36,8 +36,6 @@ public sealed record CodeOptions(string Namespace = "MyCharts", UiFramework Fram
 /// <param name="catalog">The types, samples and interactions.</param>
 public sealed class CodeGenerator(ChartCatalog catalog)
 {
-    private const string Indent = "    ";
-
     // Names the generated code uses for itself, which data must not take.
     private static readonly string[] _reserved = ["chart", "x", "y", "a", "s", "h", "m", "l", "data", "values", "rows", "count", "side"];
     private readonly ChartCatalog _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -87,7 +85,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         foreach (var method in plan.Data.DistinctBy(data => data.Method))
         {
             code.AppendLine();
-            WriteSample(code, method);
+            code.Append(method.Sample.Method(method.Method));
         }
 
         return code.AppendLine("}").ToString();
@@ -405,8 +403,12 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             calls.Add(".XDown()");
         }
 
-        calls.AddRange(spec.XAxes.Select(axis => ".XAxis(a => a" + AxisCode(axis, "Top", usings) + ")"));
-        calls.AddRange(spec.YAxes.Select(axis => ".YAxis(a => a" + AxisCode(axis, "Right", usings) + ")"));
+        if (!_catalog.OwnsAxes(spec))
+        {
+            calls.AddRange(spec.XAxes.Select(axis => ".XAxis(a => a" + AxisCode(axis, "Top", usings) + ")"));
+            calls.AddRange(spec.YAxes.Select(axis => ".YAxis(a => a" + AxisCode(axis, "Right", usings) + ")"));
+        }
+
         var data = new List<DataPlan>();
         foreach (var series in spec.Series)
         {
@@ -476,8 +478,8 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         return code.ToString();
     }
 
-    // The same lower bounds the generators of the preview keep.
-    private static int Count(SampleInfo sample, int count) => sample.Shape == DataShape.Rows ? Math.Max(1, count) : Math.Max(2, count);
+    // The same lower bound the preview keeps.
+    private static int Count(SampleInfo sample, int count) => Math.Max(sample.MinimumCount, count);
 
     private static string Unique(string name, IEnumerable<string> taken)
     {
@@ -491,71 +493,12 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         return unique;
     }
 
-    private static void WriteSample(StringBuilder code, DataPlan data)
-    {
-        var sample = data.Sample;
-        code.Append(Indent).Append("/// <summary>Makes the sample data: ").Append(System.Security.SecurityElement.Escape(sample.Name).ToLowerInvariant()).AppendLine(".</summary>");
-        code.Append(Indent).AppendLine(sample.Shape == DataShape.Grid ? "/// <param name=\"side\">The columns and rows of the grid.</param>" : "/// <param name=\"count\">The number of values.</param>");
-        code.Append(Indent).AppendLine("/// <returns>The data.</returns>");
-        switch (sample.Shape)
-        {
-            case DataShape.Points:
-                code.Append(Indent).Append("public static DataSource<double, double> ").Append(data.Method).AppendLine("(int count)");
-                code.AppendLine("""
-                        {
-                            var data = new DataSource<double, double>(count);
-                            for (var i = 0; i < count; i++)
-                            {
-                                var x = i * 10.0 / (count - 1);
-                    """.TrimEnd('\n', '\r')).Append("            data.Append(x, ").Append(sample.Formula).AppendLine(");");
-                code.AppendLine("        }").AppendLine().AppendLine("        return data;").AppendLine("    }");
-                break;
-            case DataShape.Rows:
-                var rows = sample.Formula.Split(" | ");
-                code.Append(Indent).Append("public static double[][] ").Append(data.Method).AppendLine("(int count)").AppendLine("    {");
-                code.AppendLine("        var rows = new double[" + rows.Length + "][];");
-                for (var row = 0; row < rows.Length; row++)
-                {
-                    code.Append("        rows[").Append(row).AppendLine("] = new double[count];");
-                }
-
-                code.AppendLine("        for (var i = 0; i < count; i++)").AppendLine("        {");
-                for (var row = 0; row < rows.Length; row++)
-                {
-                    code.Append("            rows[").Append(row).Append("][i] = ").Append(rows[row]).AppendLine(";");
-                }
-
-                code.AppendLine("        }").AppendLine().AppendLine("        return rows;").AppendLine("    }");
-                break;
-            default:
-                code.Append(Indent).Append("public static HeatmapData ").Append(data.Method).AppendLine("(int side)");
-                code.AppendLine("""
-                        {
-                            var values = new float[side * side];
-                            for (var row = 0; row < side; row++)
-                            {
-                                var v = row / (double)(side - 1);
-                                for (var column = 0; column < side; column++)
-                                {
-                                    var u = column / (double)(side - 1);
-                    """.TrimEnd('\n', '\r')).Append("                values[(row * side) + column] = (float)(").Append(sample.Formula).AppendLine(");");
-                code.AppendLine("            }").AppendLine("        }").AppendLine();
-                code.AppendLine("        var data = new HeatmapData(side, side);").AppendLine("        data.SetValues(values);").AppendLine("        return data;").AppendLine("    }");
-                break;
-        }
-    }
-
     private sealed record CodePlan(List<string> Usings, List<string> Calls, List<DataPlan> Data);
 
     private sealed record DataPlan(string SeriesName, string Variable, string Property, SampleInfo Sample, int Count)
     {
         public string Method => CodeText.Identifier(Sample.Id, upper: true, "Sample");
 
-        public string Type => Sample.Shape switch
-        {
-            DataShape.Points => "DataSource<double, double>",
-            DataShape.Rows => "double[][]",
-            _ => "HeatmapData",
-        };
+        public string Type => Sample.ReturnType;
     }
 }

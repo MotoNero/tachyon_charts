@@ -59,9 +59,24 @@ internal sealed class ConfiguratorWindow : Window
     /// <summary>Saves a picture of the window once it shows, then closes it.</summary>
     public string? ScreenshotPath { get; init; }
 
+    /// <summary>Gets the identifier of the type to start with, or <see langword="null"/> for the first.</summary>
+    public string? StartType { get; init; }
+
+    private ComboBox? _types;
+
+    private void SelectStartType()
+    {
+        var index = _session.Catalog.Types.ToList().FindIndex(type => type.Id == StartType);
+        if (index >= 0 && _types is not null)
+        {
+            _types.SelectedIndex = index;
+        }
+    }
+
     protected override async void OnContentRendered(EventArgs e)
     {
         base.OnContentRendered(e);
+        SelectStartType();
         if (ScreenshotPath is { } path)
         {
             await Task.Delay(1500);
@@ -83,7 +98,7 @@ internal sealed class ConfiguratorWindow : Window
 
     private UIElement CreateSettings()
     {
-        var types = new ComboBox { Margin = new Thickness(0, 0, 0, 8), ItemsSource = _session.Catalog.Types.Select(type => type.Name).ToList(), SelectedIndex = 0 };
+        var types = _types = new ComboBox { Margin = new Thickness(0, 0, 0, 8), ItemsSource = _session.Catalog.Types.Select(type => type.Name).ToList(), SelectedIndex = 0 };
         types.SelectionChanged += (_, _) => _session.NewChart(_session.Catalog.Types[types.SelectedIndex].Id);
         var add = new ComboBox { Margin = new Thickness(0, 0, 6, 0), ItemsSource = _session.Catalog.Types.Select(type => type.Name).ToList(), SelectedIndex = 0, MinWidth = 120 };
         var buttons = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
@@ -248,6 +263,7 @@ internal static class Program
     {
         var screenshot = Array.IndexOf(args, "--screenshot");
         var path = screenshot >= 0 && screenshot + 1 < args.Length ? args[screenshot + 1] : null;
+        var type = Array.IndexOf(args, "--type");
         if (path is not null)
         {
             // Pictures draw on the CPU, so that the chart is part of the picture of the window.
@@ -256,6 +272,6 @@ internal static class Program
 
         var application = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
         SampleStyle.Apply(application);
-        application.Run(new ConfiguratorWindow { ScreenshotPath = path });
+        application.Run(new ConfiguratorWindow { ScreenshotPath = path, StartType = type >= 0 && type + 1 < args.Length ? args[type + 1] : null });
     }
 }

@@ -40,20 +40,24 @@ public static class SpecChartBuilder
             chart.XDown();
         }
 
-        foreach (var axis in spec.XAxes)
+        if (!catalog.OwnsAxes(spec))
         {
-            chart.XAxis(builder => Axis(builder, axis, AxisPosition.Top));
-        }
+            foreach (var axis in spec.XAxes)
+            {
+                chart.XAxis(builder => Axis(builder, axis, AxisPosition.Top));
+            }
 
-        foreach (var axis in spec.YAxes)
-        {
-            chart.YAxis(builder => Axis(builder, axis, AxisPosition.Right));
+            foreach (var axis in spec.YAxes)
+            {
+                chart.YAxis(builder => Axis(builder, axis, AxisPosition.Right));
+            }
         }
 
         foreach (var series in spec.Series)
         {
             var type = catalog.FindType(series.Type)!;
-            var data = catalog.FindSample(series.Data.Sample)!.Create(series.Data.Count);
+            var sample = catalog.FindSample(series.Data.Sample)!;
+            var data = sample.Create(Math.Max(sample.MinimumCount, series.Data.Count));
             type.Apply(chart, series, data, new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id));
         }
 
