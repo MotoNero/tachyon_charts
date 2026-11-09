@@ -35,18 +35,28 @@ internal sealed class ConfiguratorWindow : Window
         Background = (Brush)FindResource("Shell");
         TextElement.SetForeground(this, (Brush)FindResource("Ink"));
         var root = new Grid();
-        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(380) });
-        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(560) });
+        // Settings, preview and code, with splitters between them to share the width as needed.
+        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(380), MinWidth = 260 });
+        root.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = 240 });
+        root.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(560), MinWidth = 240 });
+        foreach (var column in new[] { 1, 3 })
+        {
+            var splitter = new GridSplitter { Width = 6, HorizontalAlignment = HorizontalAlignment.Stretch, Background = (Brush)FindResource("Line"), ResizeBehavior = GridResizeBehavior.PreviousAndNext, Cursor = System.Windows.Input.Cursors.SizeWE };
+            Grid.SetColumn(splitter, column);
+            root.Children.Add(splitter);
+        }
+
         root.Children.Add(CreateSettings());
         var middle = new DockPanel();
         DockPanel.SetDock(_status, Dock.Bottom);
         middle.Children.Add(_status);
         middle.Children.Add(new Border { Child = _preview, Margin = new Thickness(8), CornerRadius = new CornerRadius(8), ClipToBounds = true });
-        Grid.SetColumn(middle, 1);
+        Grid.SetColumn(middle, 2);
         root.Children.Add(middle);
         var code = CreateCode();
-        Grid.SetColumn(code, 2);
+        Grid.SetColumn(code, 4);
         root.Children.Add(code);
         Content = root;
         SourceInitialized += (_, _) => SampleStyle.DarkenTitleBar(this);
@@ -93,6 +103,22 @@ internal sealed class ConfiguratorWindow : Window
             Close();
         }
     }
+
+    private TextBox CodeBox() => new()
+    {
+        IsReadOnly = true,
+        IsReadOnlyCaretVisible = true,
+        TextWrapping = TextWrapping.NoWrap,
+        FontFamily = new FontFamily("Cascadia Mono, Consolas"),
+        FontSize = 12.5,
+        Background = (Brush)FindResource("Panel"),
+        Foreground = (Brush)FindResource("Ink"),
+        SelectionBrush = new SolidColorBrush(Color.FromRgb(0x3A, 0x86, 0xFF)),
+        BorderThickness = new Thickness(0),
+        Padding = new Thickness(10),
+        HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+        VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+    };
 
     private static TextBlock Heading(string text) => new() { Text = text, FontWeight = FontWeights.SemiBold, FontSize = 13, Margin = new Thickness(0, 14, 0, 6) };
 
@@ -226,27 +252,24 @@ internal sealed class ConfiguratorWindow : Window
         }
 
         _preview.Configure(_session.Apply);
+        // The boxes stay while the tabs keep their names, so selection and scrolling survive a change.
         var selected = _code.SelectedIndex;
-        _code.Items.Clear();
-        foreach (var (name, text) in _session.Code)
+        if (!_session.Code.Keys.SequenceEqual(_code.Items.Cast<TabItem>().Select(tab => (string)tab.Header)))
         {
-            _code.Items.Add(new TabItem
+            _code.Items.Clear();
+            foreach (var name in _session.Code.Keys)
             {
-                Header = name,
-                Content = new TextBox
-                {
-                    Text = text,
-                    IsReadOnly = true,
-                    FontFamily = new FontFamily("Cascadia Mono, Consolas"),
-                    FontSize = 12.5,
-                    Background = (Brush)FindResource("Panel"),
-                    Foreground = (Brush)FindResource("Ink"),
-                    BorderThickness = new Thickness(0),
-                    Padding = new Thickness(10),
-                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                },
-            });
+                _code.Items.Add(new TabItem { Header = name, Content = CodeBox() });
+            }
+        }
+
+        foreach (TabItem tab in _code.Items)
+        {
+            var box = (TextBox)tab.Content;
+            if (box.Text != _session.Code[(string)tab.Header])
+            {
+                box.Text = _session.Code[(string)tab.Header];
+            }
         }
 
         _code.SelectedIndex = Math.Max(0, selected);

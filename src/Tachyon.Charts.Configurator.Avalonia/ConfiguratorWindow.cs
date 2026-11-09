@@ -31,6 +31,7 @@ internal sealed class ConfiguratorWindow : Window
     private readonly StackPanel _fields = new() { Margin = new Thickness(0, 0, 8, 0) };
     private readonly ComboBox _series = new() { Margin = new Thickness(0, 0, 0, 8), HorizontalAlignment = HorizontalAlignment.Stretch };
     private readonly TabControl _code = new();
+    private List<TabItem> _tabs = [];
     private readonly TextBlock _status = new() { Margin = new Thickness(12, 6, 12, 8), TextWrapping = TextWrapping.Wrap };
     private bool _isFilling;
 
@@ -41,16 +42,27 @@ internal sealed class ConfiguratorWindow : Window
         Height = 950;
         Background = _shell;
         Foreground = _ink;
-        var root = new Grid { ColumnDefinitions = new ColumnDefinitions("380,*,560") };
+        // Settings, preview and code, with splitters between them to share the width as needed.
+        var root = new Grid { ColumnDefinitions = new ColumnDefinitions("380,Auto,*,Auto,560") };
+        root.ColumnDefinitions[0].MinWidth = 260;
+        root.ColumnDefinitions[2].MinWidth = 240;
+        root.ColumnDefinitions[4].MinWidth = 240;
+        foreach (var column in new[] { 1, 3 })
+        {
+            var splitter = new GridSplitter { Width = 6, Background = new SolidColorBrush(Color.Parse("#232B37")), ResizeDirection = GridResizeDirection.Columns };
+            Grid.SetColumn(splitter, column);
+            root.Children.Add(splitter);
+        }
+
         root.Children.Add(CreateSettings());
         var middle = new DockPanel();
         DockPanel.SetDock(_status, Dock.Bottom);
         middle.Children.Add(_status);
         middle.Children.Add(new Border { Child = _preview, Margin = new Thickness(8), CornerRadius = new CornerRadius(8), ClipToBounds = true });
-        Grid.SetColumn(middle, 1);
+        Grid.SetColumn(middle, 2);
         root.Children.Add(middle);
         var code = CreateCode();
-        Grid.SetColumn(code, 2);
+        Grid.SetColumn(code, 4);
         root.Children.Add(code);
         Content = root;
         _session.Changed += ShowState;
@@ -231,6 +243,24 @@ internal sealed class ConfiguratorWindow : Window
     }
 
     // Code at once, the preview right after; the status says how long both took.
+    private static TextBox CodeBox()
+    {
+        var box = new TextBox
+        {
+            IsReadOnly = true,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.NoWrap,
+            FontFamily = new FontFamily("Cascadia Mono, Consolas, monospace"),
+            FontSize = 12.5,
+            Background = _panel,
+            BorderThickness = new Thickness(0),
+            SelectionBrush = new SolidColorBrush(Color.Parse("#3A86FF")),
+        };
+        ScrollViewer.SetHorizontalScrollBarVisibility(box, global::Avalonia.Controls.Primitives.ScrollBarVisibility.Auto);
+        ScrollViewer.SetVerticalScrollBarVisibility(box, global::Avalonia.Controls.Primitives.ScrollBarVisibility.Auto);
+        return box;
+    }
+
     private void ShowState()
     {
         var clock = Stopwatch.StartNew();
@@ -242,28 +272,23 @@ internal sealed class ConfiguratorWindow : Window
         }
 
         _preview.Configure(_session.Apply);
+        // The boxes stay while the tabs keep their names, so selection and scrolling survive a change.
         var selected = _code.SelectedIndex;
-        var tabs = new List<TabItem>();
-        foreach (var (name, text) in _session.Code)
+        if (!_session.Code.Keys.SequenceEqual(_tabs.Select(tab => (string)tab.Header!)))
         {
-            tabs.Add(new TabItem
-            {
-                Header = name,
-                FontSize = 13,
-                Content = new TextBox
-                {
-                    Text = text,
-                    IsReadOnly = true,
-                    FontFamily = new FontFamily("Cascadia Mono, Consolas, monospace"),
-                    FontSize = 12.5,
-                    Background = _panel,
-                    BorderThickness = new Thickness(0),
-                    AcceptsReturn = true,
-                },
-            });
+            _tabs = [.. _session.Code.Keys.Select(name => new TabItem { Header = name, FontSize = 13, Content = CodeBox() })];
+            _code.ItemsSource = _tabs;
         }
 
-        _code.ItemsSource = tabs;
+        foreach (var tab in _tabs)
+        {
+            var box = (TextBox)tab.Content!;
+            if (box.Text != _session.Code[(string)tab.Header!])
+            {
+                box.Text = _session.Code[(string)tab.Header!];
+            }
+        }
+
         _code.SelectedIndex = Math.Max(0, selected);
         _status.Foreground = _muted;
         _status.Text = string.Create(CultureInfo.InvariantCulture, $"Code in {_session.LastUpdate.TotalMilliseconds:F1} ms, preview described in {clock.Elapsed.TotalMilliseconds:F1} ms.");

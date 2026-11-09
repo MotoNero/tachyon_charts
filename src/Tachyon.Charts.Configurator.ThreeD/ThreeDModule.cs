@@ -58,10 +58,8 @@ public sealed class ThreeDModule : IChartModule
             [Colormap("Viridis"), new("range", "Dynamic range in dB", ParameterKind.Number, 40.0) { Minimum = 3, Maximum = 120 }, Lit()],
             [("colormap", nameof(AntennaPattern3D.Colormap)), ("range", nameof(AntennaPattern3D.DynamicRange)), ("lit", "Material.IsLit")],
             data => Antenna(data), data => $"new AntennaPattern3D({data}.Azimuths, {data}.Elevations, {data}.Gains)"),
-        Type("pie3d", "Pie 3D", DataShape.Slices, "mix", typeof(Pie3D), nameof(Chart3DBuilder.AddPie), null,
-            [new("innerRadius", "Hole", ParameterKind.Number, 0.0) { Minimum = 0, Maximum = 0.9, Description = "The radius of the hole as a share of the radius; above 0 for a donut." }, new("height", "Height", ParameterKind.Number, 0.3) { Minimum = 0.02, Maximum = 1 }, new("explodeDistance", "Pulled out by", ParameterKind.Number, 0.15) { Minimum = 0, Maximum = 0.5 }],
-            [("innerRadius", nameof(Pie3D.InnerRadius)), ("height", nameof(Pie3D.Height)), ("explodeDistance", nameof(Pie3D.ExplodeDistance))],
-            data => Pie(data), data => $"new Pie3D({data}.Values, {data}.Names)"),
+        Pie3DType("pie3d", "Pie 3D", 0),
+        Pie3DType("donut3d", "Donut 3D", 0.5),
     ];
 
     /// <inheritdoc />
@@ -85,6 +83,12 @@ public sealed class ThreeDModule : IChartModule
     ];
 
     private static DoubleRange Box => new(0, 10);
+
+    // A pie in 3D; with a hole it is a donut.
+    private static ChartTypeInfo Pie3DType(string id, string name, double hole) => Type(id, name, DataShape.Slices, "mix", typeof(Pie3D), nameof(Chart3DBuilder.AddPie), null,
+        [new("innerRadius", "Hole", ParameterKind.Number, hole) { Minimum = 0, Maximum = 0.9, Description = "The radius of the hole as a share of the radius; above 0 for a donut." }, new("height", "Height", ParameterKind.Number, 0.3) { Minimum = 0.02, Maximum = 1 }, new("explodeDistance", "Pulled out by", ParameterKind.Number, 0.15) { Minimum = 0, Maximum = 0.5 }],
+        [("innerRadius", nameof(Pie3D.InnerRadius)), ("height", nameof(Pie3D.Height)), ("explodeDistance", nameof(Pie3D.ExplodeDistance))],
+        data => Pie(data), data => $"new Pie3D({data}.Values, {data}.Names)");
 
     // The camera and the group first, then the series, then the cut plane, the same in the preview and in the code.
     private static void Apply(Core.Fluent.ChartBuilder chart, ChartSpec spec, Action<object> add) => chart.Scene3D(scene =>
