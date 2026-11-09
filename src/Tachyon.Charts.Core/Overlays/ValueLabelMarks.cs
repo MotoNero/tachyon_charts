@@ -87,7 +87,11 @@ internal sealed class ValueLabelMarks
     // The X axis may lie vertically, as with the X axis downwards; each axis then gives the other coordinate.
     private static bool TryPlace(OverlayCanvas canvas, ChartSeries series, in ValueLabel label, out Vector2 point)
     {
-        point = default;
+        if (series.TryPlaceValueLabel(canvas.Layout.Panes[0], label, out point))
+        {
+            return true;
+        }
+
         if (!canvas.TryGetPosition(series.XAxis, label.X, out var x) || !canvas.TryGetPosition(series.YAxis, label.Y, out var y) || !double.IsFinite(x) || !double.IsFinite(y))
         {
             return false;

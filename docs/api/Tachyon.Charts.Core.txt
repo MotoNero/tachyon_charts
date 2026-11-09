@@ -1527,6 +1527,7 @@ abstract class Tachyon.Charts.Core.Pipeline.ChartSeries
   protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
   protected virtual System.Boolean TryGetLatestValue(out System.Double value)
   protected virtual System.Boolean TryGetValueRange(out Tachyon.Charts.Core.Numerics.DoubleRange range)
+  protected virtual System.Boolean TryPlaceValueLabel(Tachyon.Charts.Core.Layout.DipRect pane, in Tachyon.Charts.Core.Pipeline.ValueLabel label, out System.Numerics.Vector2 point)
   protected virtual System.Boolean TryReadPoint(System.Int64 index, out System.Double x, out System.Double y)
   protected virtual System.Boolean TryReadValue(System.Int64 index, out System.Double value)
   protected virtual System.Int32 DrawnPointCount { get; }
@@ -1977,6 +1978,8 @@ sealed class Tachyon.Charts.Core.Series.PieSeries : Tachyon.Charts.Core.Pipeline
   virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
 static class Tachyon.Charts.Core.Series.PolarChart
   static System.ValueTuple<Tachyon.Charts.Core.Pipeline.ChartSurface, Tachyon.Charts.Core.Axes.NumericAxis, Tachyon.Charts.Core.Axes.NumericAxis> Create(Tachyon.Charts.Rendering.ITextEngine textEngine, Tachyon.Charts.Core.Numerics.DoubleRange range, System.Collections.Generic.IReadOnlyList<System.String> spokes = null)
+static class Tachyon.Charts.Core.Series.PolarCharts
+  static Tachyon.Charts.Core.Fluent.ChartBuilder Polar(Tachyon.Charts.Core.Fluent.ChartBuilder builder, System.Double radius, System.Collections.Generic.IReadOnlyList<System.String> spokes, System.Func<Tachyon.Charts.Core.Axes.AxisBase, Tachyon.Charts.Core.Axes.AxisBase, Tachyon.Charts.Core.Pipeline.ChartSeries> series)
 sealed class Tachyon.Charts.Core.Series.PolarGridOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
   .ctor(Tachyon.Charts.Core.Axes.AxisBase radialAxis, System.Collections.Generic.IReadOnlyList<System.String> spokes)
   protected virtual System.Int64 ExternalVersion { get; }
@@ -2002,7 +2005,9 @@ sealed class Tachyon.Charts.Core.Series.PolarSeries : Tachyon.Charts.Core.Pipeli
   Tachyon.Charts.Core.Series.SeriesFill Fill { get; set; }
   Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
   protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Boolean TryPlaceValueLabel(Tachyon.Charts.Core.Layout.DipRect pane, in Tachyon.Charts.Core.Pipeline.ValueLabel label, out System.Numerics.Vector2 point)
   protected virtual System.Int64 Version { get; }
+  protected virtual System.Void CollectValueLabels(Tachyon.Charts.Core.Numerics.DoubleRange x, Tachyon.Charts.Core.Numerics.DoubleRange y, System.Collections.Generic.List<Tachyon.Charts.Core.Pipeline.ValueLabel> labels)
   protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
   protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
   protected virtual System.Void ReleaseResources()
@@ -2218,6 +2223,7 @@ sealed class Tachyon.Charts.Core.Series.TernarySeries : Tachyon.Charts.Core.Seri
   System.Single PointSize { get; set; }
   protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
   protected virtual System.Void Build(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh)
+  protected virtual System.Void CollectValueLabels(Tachyon.Charts.Core.Numerics.DoubleRange x, Tachyon.Charts.Core.Numerics.DoubleRange y, System.Collections.Generic.List<Tachyon.Charts.Core.Pipeline.ValueLabel> labels)
   protected virtual System.Void OnPalette(System.ReadOnlySpan<Tachyon.Charts.Rendering.Rgba8> palette)
 sealed class Tachyon.Charts.Core.Series.ValueGradientFill : Tachyon.Charts.Core.Series.SeriesFill, System.IEquatable<Tachyon.Charts.Core.Series.SeriesFill>, System.IEquatable<Tachyon.Charts.Core.Series.ValueGradientFill>
   .ctor(Tachyon.Charts.Core.Colors.Colormap Colormap, Tachyon.Charts.Core.Numerics.DoubleRange Range)

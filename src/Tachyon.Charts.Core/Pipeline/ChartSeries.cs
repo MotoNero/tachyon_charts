@@ -212,7 +212,23 @@ public abstract class ChartSeries(AxisBase xAxis, AxisBase yAxis)
     /// <param name="x">The visible range of the X axis.</param>
     /// <param name="y">The visible range of the Y axis.</param>
     /// <param name="labels">Receives the labels.</param>
-    protected internal virtual void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
+    protected internal virtual void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels) => CollectPointLabels(x, y, labels);
+
+    /// <summary>
+    /// Places a value label on the screen for series that draw in a geometry of their own, as polar charts do. By
+    /// default it returns <see langword="false"/>, and the axes place the label.
+    /// </summary>
+    /// <param name="pane">The pane in device independent pixels.</param>
+    /// <param name="label">The label from <see cref="CollectValueLabels"/>.</param>
+    /// <param name="point">Receives the point in device independent pixels.</param>
+    /// <returns><see langword="true"/> when the series placed the label.</returns>
+    protected internal virtual bool TryPlaceValueLabel(Layout.DipRect pane, in ValueLabel label, out Vector2 point)
+    {
+        point = default;
+        return false;
+    }
+
+    private void CollectPointLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
     {
         ArgumentNullException.ThrowIfNull(labels);
         var count = SourcePointCount;

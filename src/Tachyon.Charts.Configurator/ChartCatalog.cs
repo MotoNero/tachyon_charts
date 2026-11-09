@@ -138,6 +138,24 @@ public enum DataShape
 
     /// <summary>Gains over azimuth and elevation.</summary>
     Pattern,
+
+    /// <summary>A grid with the edges of its cells, which may differ in size.</summary>
+    UnevenGrid,
+
+    /// <summary>A grid and the region it was measured in.</summary>
+    MaskedGrid,
+
+    /// <summary>Values over the angle.</summary>
+    Polar,
+
+    /// <summary>Mixtures of three parts.</summary>
+    Ternary,
+
+    /// <summary>Impedances: resistance and reactance.</summary>
+    Smith,
+
+    /// <summary>Shapes, some with holes.</summary>
+    Polygons,
 }
 
 /// <summary>A chart type the configurator offers, with its parameters and how it is built.</summary>

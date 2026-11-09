@@ -17,7 +17,9 @@ internal sealed class CoreModule : IChartModule
     /// <summary>Gets the names of the colormaps of heatmaps.</summary>
     public static IReadOnlyList<string> Colormaps { get; } = ["Viridis", "Inferno", "Magma", "Plasma", "Turbo", "Grayscale"];
 
-    public IReadOnlyList<ChartTypeInfo> Types { get; } =
+    public IReadOnlyList<ChartTypeInfo> Types { get; } = [.. Basic(), .. ScienceTypes.Create()];
+
+    private static IReadOnlyList<ChartTypeInfo> Basic() =>
     [
         new("line", "Line", ChartCategory.TwoD, DataShape.Points, "sine",
         [
@@ -32,6 +34,7 @@ internal sealed class CoreModule : IChartModule
             new("size", "Size", ParameterKind.Number, 4.0) { Minimum = 1, Maximum = 30 },
             new("marker", "Marker", ParameterKind.Choice, nameof(MarkerShape.Circle)) { Choices = Enum.GetNames<MarkerShape>() },
             _color,
+            new("density", "Density colors", ParameterKind.Flag, false) { Description = "Colors by how many points lie close together." },
             ValuesParameter,
         ], ApplyScatter, ScatterCode) { Usings = ["Tachyon.Charts.Rendering"] },
         new("bubbles", "Bubbles", ChartCategory.TwoD, DataShape.Bubbles, "bubbles",
@@ -70,7 +73,7 @@ internal sealed class CoreModule : IChartModule
         ], ApplyHeatmap, HeatmapCode) { Usings = ["Tachyon.Charts.Core.Colors"] },
     ];
 
-    public IReadOnlyList<SampleInfo> Samples { get; } = SampleCatalog.Create();
+    public IReadOnlyList<SampleInfo> Samples { get; } = [.. SampleCatalog.Create(), .. ScienceSamples.Create()];
 
     public static IReadOnlyList<ModifierInfo> CreateModifiers() =>
     [
@@ -134,7 +137,7 @@ internal sealed class CoreModule : IChartModule
             code += $".Fill({CodeText.Color(color)})";
         }
 
-        return code + Values(values) + ")";
+        return code + (values.GetFlag("density", false) ? ".Density()" : string.Empty) + Values(values) + ")";
     }
 
     private static string AreaCode(SeriesSpec series, string data, SeriesAxes axes)
@@ -203,6 +206,11 @@ internal sealed class CoreModule : IChartModule
             if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
             {
                 scatter.Fill(color);
+            }
+
+            if (values.GetFlag("density", false))
+            {
+                scatter.Density();
             }
 
             if (values.GetFlag("values", false))

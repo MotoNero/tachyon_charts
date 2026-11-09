@@ -157,8 +157,11 @@ internal sealed class SeriesRecipe
         return (info, outer, inner);
     }
 
-    // A constructor takes an object initializer; a factory method gets its properties set one by one.
-    private string Factory(string create, SeriesSpec series) => create.StartsWith("new ", StringComparison.Ordinal)
+    /// <summary>Writes a factory of the series from the axes: an initializer after a constructor, single assignments after a method.</summary>
+    /// <param name="create">The constructor or method call with the axes <c>x</c> and <c>y</c>.</param>
+    /// <param name="series">The description.</param>
+    /// <returns>A lambda expression.</returns>
+    public string Factory(string create, SeriesSpec series) => create.StartsWith("new ", StringComparison.Ordinal)
         ? $"(x, y) => {Expression(create, series)}"
         : $"(x, y) => {{ var s = {create}; {string.Concat(Assignments(series).Select(assignment => "s." + assignment + "; "))}return s; }}";
 
@@ -191,7 +194,7 @@ internal sealed class SeriesRecipe
         int number => number.ToString(CultureInfo.InvariantCulture),
         bool flag => CodeText.Flag(flag),
         NamedColormap colormap => "Colormaps." + colormap.Name,
-        Enum choice => $"{type.Name}.{choice}",
+        Enum choice => string.Join(" | ", choice.ToString().Split(", ").Select(part => $"{type.Name}.{part}")),
         var other => throw new NotSupportedException($"Values of type {other.GetType().Name} are not written yet."),
     };
 

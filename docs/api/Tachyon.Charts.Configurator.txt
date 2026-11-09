@@ -119,12 +119,18 @@ enum Tachyon.Charts.Configurator.DataShape : System.IComparable, System.IConvert
   Grid = 2
   Groups = 7
   Layers = 5
+  MaskedGrid = 16
   Pattern = 14
   Points = 0
   Points3D = 10
+  Polar = 17
+  Polygons = 20
   Rows = 1
   Slices = 9
+  Smith = 19
   Spectrogram = 12
+  Ternary = 18
+  UnevenGrid = 15
   Values = 8
   Volume = 13
 sealed class Tachyon.Charts.Configurator.DataSpec

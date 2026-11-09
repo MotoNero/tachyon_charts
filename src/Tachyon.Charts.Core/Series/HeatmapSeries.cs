@@ -271,7 +271,9 @@ public sealed class HeatmapSeries : RasterSeries
             return false;
         }
 
-        value = Data.Values[index];
+        // The values as drawn: cells outside a mask are NaN there and read as missing.
+        var values = _values.Length == _cellCount ? _values : Data.Values;
+        value = values[index];
         return !double.IsNaN(value);
     }
 

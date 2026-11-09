@@ -1,5 +1,6 @@
 using System.Numerics;
 using Tachyon.Charts.Core.Axes;
+using Tachyon.Charts.Core.Fluent;
 using Tachyon.Charts.Core.Input;
 using Tachyon.Charts.Core.Layout;
 using Tachyon.Charts.Core.Numerics;
@@ -188,6 +189,26 @@ public sealed class PolarSeries : ChartSeries, IDisposable
 
     /// <inheritdoc />
     protected internal override void ReleaseResources() => Dispose();
+
+    /// <inheritdoc />
+    protected internal override void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
+    {
+        ArgumentNullException.ThrowIfNull(labels);
+        for (var i = 0; i < _angles.Length && labels.Count < Overlays.ValueLabelMarks.Limit; i++)
+        {
+            if (double.IsFinite(_values[i]) && y.Contains(_values[i]))
+            {
+                labels.Add(new ValueLabel(_angles[i], _values[i], _values[i], ValueLabelPlace.Above));
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    protected internal override bool TryPlaceValueLabel(Layout.DipRect pane, in ValueLabel label, out Vector2 point)
+    {
+        point = PolarProjection.Fit(pane.X, pane.Y, pane.Width, pane.Height, YAxis.VisibleRange).ToPoint(label.X, label.Y);
+        return true;
+    }
 
     /// <inheritdoc />
     protected internal override bool TryGetDataRange(out DoubleRange x, out DoubleRange y)
@@ -443,5 +464,29 @@ public static class PolarChart
         var chart = new ChartSurface([angle], [new LayoutPane([radial])], textEngine);
         chart.AddOverlay(new PolarGridOverlay(radial, spokes ?? _degrees));
         return (chart, angle, radial);
+    }
+}
+
+/// <summary>Describes polar and radar charts.</summary>
+public static class PolarCharts
+{
+    /// <summary>
+    /// Describes a polar chart: hidden axes for the angle from 0 to 360 degrees and the radius from 0, the series, a grid
+    /// of rings and spokes, and zooming around the middle with the wheel.
+    /// </summary>
+    /// <param name="builder">The description.</param>
+    /// <param name="radius">The value at the outer ring.</param>
+    /// <param name="spokes">The names of the spokes, evenly around the circle, such as degrees or the criteria of a radar.</param>
+    /// <param name="series">Creates the series, a <see cref="PolarSeries"/>, from the axes.</param>
+    /// <returns>The description.</returns>
+    public static ChartBuilder Polar(this ChartBuilder builder, double radius, IReadOnlyList<string> spokes, Func<AxisBase, AxisBase, ChartSeries> series)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        return builder
+            .XAxis(a => a.Numeric("angle").Range(0, 360).Hidden())
+            .YAxis(a => a.Numeric("radial").Range(0, radius).Hidden())
+            .AddSeries(series)
+            .AddOverlay(chart => new PolarGridOverlay(chart.Series[0].YAxis, spokes))
+            .Modifiers(m => m.Custom(() => new RadialZoomModifier()));
     }
 }

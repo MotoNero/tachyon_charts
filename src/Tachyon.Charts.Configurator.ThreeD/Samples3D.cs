@@ -17,7 +17,6 @@ internal static class Samples3D
         Scattered("scattered", "Scattered measurements", 400, 0),
         Scattered("dust", "Cloud around a surface", 100_000, 0.15),
         Bubbles(),
-        Waves(),
         Blobs(),
         Dipole(),
     ];
@@ -157,53 +156,6 @@ internal static class Samples3D
                 }
 
             """);
-
-    // A spectrum of 64 rows: a peak that wanders, a fixed one and a little noise.
-    private static SampleInfo Waves() => new(
-        "waves",
-        "Spectrum with a wandering peak",
-        DataShape.Spectrogram,
-        128,
-        count =>
-        {
-            var data = new SpectrogramData(count, 64);
-            var row = new float[count];
-            for (var r = 0; r < 64; r++)
-            {
-                for (var c = 0; c < count; c++)
-                {
-                    var u = c / (count - 1.0);
-                    var peak = 0.3 + (0.2 * Math.Sin(r * 0.1));
-                    row[c] = (float)(Math.Exp(-((u - peak) * (u - peak)) / 0.002) + (0.3 * Math.Exp(-((u - 0.7) * (u - 0.7)) / 0.01)) + (0.05 * (1 + Math.Sin((c * 1.7) + r))));
-                }
-
-                data.AppendRow(row);
-            }
-
-            return data;
-        },
-        "SpectrogramData",
-        method => SampleCatalog.Header("a spectrum with a wandering peak", method, "SpectrogramData", "The number of values in a row.") + """
-                {
-                    var data = new SpectrogramData(count, 64);
-                    var row = new float[count];
-                    for (var r = 0; r < 64; r++)
-                    {
-                        for (var c = 0; c < count; c++)
-                        {
-                            var u = c / (count - 1.0);
-                            var peak = 0.3 + (0.2 * Math.Sin(r * 0.1));
-                            row[c] = (float)(Math.Exp(-((u - peak) * (u - peak)) / 0.002) + (0.3 * Math.Exp(-((u - 0.7) * (u - 0.7)) / 0.01)) + (0.05 * (1 + Math.Sin((c * 1.7) + r))));
-                        }
-
-                        data.AppendRow(row);
-                    }
-
-                    return data;
-                }
-
-            """)
-    { MinimumCount = 2 };
 
     // Two blobs of different size in a cube of voxels.
     private static SampleInfo Blobs() => new(
