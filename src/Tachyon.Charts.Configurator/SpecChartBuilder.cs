@@ -163,6 +163,8 @@ public static class SpecChartBuilder
     private static object Data(ChartCatalog catalog, SeriesSpec series)
     {
         var sample = catalog.FindSample(series.Data.Sample)!;
-        return sample.Create(Math.Max(sample.MinimumCount, series.Data.Count));
+        var data = sample.Create(Math.Max(sample.MinimumCount, series.Data.Count));
+        catalog.FindType(series.Type)!.Prepare?.Invoke(series, data);
+        return data;
     }
 }

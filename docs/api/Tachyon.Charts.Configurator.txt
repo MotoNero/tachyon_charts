@@ -53,12 +53,14 @@ static class Tachyon.Charts.Configurator.ChartSpecJson
 sealed class Tachyon.Charts.Configurator.ChartTypeInfo
   .ctor(System.String id, System.String name, Tachyon.Charts.Configurator.ChartCategory category, Tachyon.Charts.Configurator.DataShape shape, System.String defaultSample, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> parameters, System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, System.Object, Tachyon.Charts.Configurator.SeriesAxes> apply, Tachyon.Charts.Configurator.SeriesCodeWriter code)
   System.Action<System.Object, Tachyon.Charts.Configurator.SeriesSpec, System.Object> SceneApply { get; set; }
+  System.Action<Tachyon.Charts.Configurator.SeriesSpec, System.Object> Prepare { get; set; }
   System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, System.Object, Tachyon.Charts.Configurator.SeriesAxes> Apply { get; }
   System.Boolean OwnsAxes { get; set; }
   System.Boolean TakesInteractions { get; set; }
   System.Boolean UsesTime { get; set; }
   System.Collections.Generic.IReadOnlyList<System.String> Usings { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> Parameters { get; }
+  System.Func<Tachyon.Charts.Configurator.SeriesSpec, System.String, System.Collections.Generic.IEnumerable<System.String>> PrepareCode { get; set; }
   System.String DefaultSample { get; }
   System.String Id { get; }
   System.String Name { get; }
@@ -125,15 +127,19 @@ enum Tachyon.Charts.Configurator.DataShape : System.IComparable, System.IConvert
   Groups = 7
   Layers = 5
   MaskedGrid = 16
+  Network = 25
   Pattern = 14
   Points = 0
   Points3D = 10
   Polar = 17
   Polygons = 20
   Rows = 1
+  Scope = 23
   Slices = 9
   Smith = 19
   Spectrogram = 12
+  Spectrum = 24
+  Sweep = 26
   Ternary = 18
   UnevenGrid = 15
   Values = 8

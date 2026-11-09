@@ -75,7 +75,18 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             code.Append(", ").Append(data.Type).Append(' ').Append(data.Variable);
         }
 
-        code.AppendLine(")").AppendLine("    {").Append("        chart");
+        code.AppendLine(")").AppendLine("    {");
+        foreach (var statement in plan.Setup)
+        {
+            code.Append("        ").AppendLine(statement);
+        }
+
+        if (plan.Setup.Count > 0)
+        {
+            code.AppendLine();
+        }
+
+        code.Append("        chart");
         foreach (var call in plan.Calls)
         {
             code.AppendLine().Append("            ").Append(call);
@@ -416,6 +427,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
 
         var data = new List<DataPlan>();
         var inScene = new List<string>();
+        var setup = new List<string>();
         foreach (var series in spec.Series)
         {
             if (series.Data.Kind != DataKind.Sample)
@@ -428,6 +440,11 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             usings.AddRange(type.Usings);
             var variable = Unique(CodeText.Identifier(series.Name, upper: false, "series"), data.Select(item => item.Variable).Concat(_reserved));
             data.Add(new DataPlan(series.Name, variable, CodeText.Identifier(variable, upper: true, "Series"), sample, Count(sample, series.Data.Count)));
+            if (type.PrepareCode is { } prepare)
+            {
+                setup.AddRange(prepare(series, variable));
+            }
+
             (scene is null ? calls : inScene).Add(type.Code(series, variable, new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id)));
         }
 
@@ -463,7 +480,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             usings.Add("Tachyon.Charts.Rendering");
         }
 
-        return new CodePlan(usings, calls, data);
+        return new CodePlan(usings, calls, data, setup);
     }
 
     private static string AxisCode(AxisSpec axis, string opposite, List<string> usings)
@@ -517,7 +534,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         return unique;
     }
 
-    private sealed record CodePlan(List<string> Usings, List<string> Calls, List<DataPlan> Data);
+    private sealed record CodePlan(List<string> Usings, List<string> Calls, List<DataPlan> Data, List<string> Setup);
 
     private sealed record DataPlan(string SeriesName, string Variable, string Property, SampleInfo Sample, int Count)
     {

@@ -162,6 +162,18 @@ public enum DataShape
 
     /// <summary>Tasks over time in rows, with links between them.</summary>
     Gantt,
+
+    /// <summary>The display of an oscilloscope with its channels.</summary>
+    Scope,
+
+    /// <summary>The display of a spectrum analyzer with its trace.</summary>
+    Spectrum,
+
+    /// <summary>The display of a network analyzer with its traces.</summary>
+    Network,
+
+    /// <summary>Channels of a sweeping monitor.</summary>
+    Sweep,
 }
 
 /// <summary>A chart type the configurator offers, with its parameters and how it is built.</summary>
@@ -216,6 +228,15 @@ public sealed class ChartTypeInfo
     /// The axes of the description are then left out.
     /// </summary>
     public bool OwnsAxes { get; init; }
+
+    /// <summary>
+    /// Gets how the data are set up before the chart describes them, such as the controls of an instrument display, or
+    /// <see langword="null"/> for none. <see cref="PrepareCode"/> writes the same as C# statements.
+    /// </summary>
+    public Action<SeriesSpec, object>? Prepare { get; init; }
+
+    /// <summary>Gets the statements that do what <see cref="Prepare"/> does, from the series and the name of its data.</summary>
+    public Func<SeriesSpec, string, IEnumerable<string>>? PrepareCode { get; init; }
 
     /// <summary>Gets a value indicating whether the X axis of a new chart of this type is a time axis.</summary>
     public bool UsesTime { get; init; }
