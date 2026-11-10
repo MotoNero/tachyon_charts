@@ -33,6 +33,7 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
             Usings = _usings,
             OwnsAxes = true,
             Packages = _packages,
+            TakeOver = TakeOverDrawings,
             Prepare = (series, data) => PrepareImage(series.Parameters, (MedicalImageDisplay)data),
             PrepareCode = (series, data) => PrepareImageCode(series.Parameters, data),
             Helpers = Note + MedicalSetup.ExampleMeasurementsCode,
@@ -51,6 +52,7 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
             Usings = _volumeUsings,
             OwnsAxes = true,
             Packages = _packages,
+            TakeOver = TakeOverDrawings,
             Prepare = (series, data) => PrepareVolume(series, (MedicalMprDisplay)data, slice: true),
             PrepareCode = (series, data) => PrepareVolumeCode(series, data, slice: true),
             Helpers = Note + MedicalSetup.MoveToCode + MedicalSetup.PhantomSegmentationCode + MedicalSetup.ExampleMeasurementsCode,
@@ -63,6 +65,7 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
             Usings = _volumeUsings,
             OwnsAxes = true,
             Packages = _packages,
+            TakeOver = TakeOverDrawings,
             Prepare = (series, data) => PrepareVolume(series, (MedicalMprDisplay)data, slice: false),
             PrepareCode = (series, data) => PrepareVolumeCode(series, data, slice: false),
             Helpers = Note + MedicalSetup.PhantomSegmentationCode,
@@ -107,27 +110,65 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
     private static ParameterInfo[] Measuring() =>
     [
         new("measurements", "Example measurements", ParameterKind.Flag, false) { Description = "A distance, an angle and a round region, placed by the size of the image." },
-        Tool(),
+        .. Tools(),
     ];
 
-    private static ParameterInfo Tool() => new("tool", "Measuring tool", ParameterKind.Choice, "None")
-    {
-        Choices = ["None", .. Enum.GetNames<MedicalMeasurementKind>()],
-        Description = "What a drag in an image draws; None moves points and the window. In the chart the keys D, A, C, R and F choose another tool, Escape none.",
-    };
+    private static ParameterInfo[] Tools() =>
+    [
+        new("toolBar", "Tool bar in the image", ParameterKind.Flag, true) { Description = "Buttons in the lower left corner of each image: move, distance, angle, circle, rectangle, freehand, delete." },
+        new("tool", "Tool at the start", ParameterKind.Choice, "None")
+        {
+            Choices = ["None", .. Enum.GetNames<MedicalMeasurementKind>()],
+            Description = "What a drag in an image draws first; None moves points and the window. The tool bar and the keys D, A, C, R, F and Escape change it while measuring.",
+        },
+    ];
 
-    // The tool of every image of a display, so that a drag draws in whichever plane it starts.
-    private static void SetTool(SpecValues values, IEnumerable<MedicalMprSlice> slices)
+    // The tools of every image of a display, so that a drag draws in whichever image it starts.
+    private static void SetTools(SpecValues values, IEnumerable<MedicalMeasurementLayer> layers)
     {
         var tool = values.GetText("tool", "None") is var name && name != "None" ? Enum.Parse<MedicalMeasurementKind>(name) : (MedicalMeasurementKind?)null;
-        foreach (var slice in slices)
+        foreach (var layer in layers)
         {
-            slice.Measurements.Tool = tool;
+            layer.ShowsTools = values.GetFlag("toolBar", true);
+            layer.Tool = tool;
         }
     }
 
-    private static IEnumerable<string> ToolCode(SpecValues values, string data, IEnumerable<MedicalMprPlane> planes) =>
-        values.GetText("tool", "None") is var tool && tool != "None" ? planes.Select(plane => $"{data}.{plane}.Measurements.Tool = MedicalMeasurementKind.{tool};") : [];
+    private static IEnumerable<string> ToolsCode(SpecValues values, IEnumerable<string> layers)
+    {
+        foreach (var layer in layers)
+        {
+            if (values.GetFlag("toolBar", true))
+            {
+                yield return $"{layer}.ShowsTools = true;";
+            }
+
+            if (values.GetText("tool", "None") is var tool && tool != "None")
+            {
+                yield return $"{layer}.Tool = MedicalMeasurementKind.{tool};";
+            }
+        }
+    }
+
+    // The measurements of every image of a display: one for an image, three for the planes of a volume.
+    private static IEnumerable<MedicalMeasurementLayer> Layers(object data) => data switch
+    {
+        MedicalImageDisplay image => [image.Measurements],
+        MedicalMprDisplay display => [display.Axial.Measurements, display.Coronal.Measurements, display.Sagittal.Measurements],
+        _ => [],
+    };
+
+    // Measurements drawn in the preview stay through a change of the settings.
+    private static void TakeOverDrawings(SeriesSpec before, object beforeData, SeriesSpec after, object afterData)
+    {
+        var keepsTool = before.Parameters.GetText("tool", "None") == after.Parameters.GetText("tool", "None");
+        foreach (var (old, now) in Layers(beforeData).Zip(Layers(afterData)))
+        {
+            MedicalSetup.TakeOver(old, now, keepsTool);
+        }
+    }
+
+    private static IEnumerable<string> PlaneLayers(string data, params MedicalMprPlane[] planes) => planes.Select(plane => $"{data}.{plane}.Measurements");
 
     private static ParameterInfo[] Segmentation(bool threeD) => threeD
         ?
@@ -184,7 +225,7 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
             MedicalSetup.ExampleMeasurements(layer, width, height);
         }
 
-        layer.Tool = values.GetText("tool", "None") is var tool && tool != "None" ? Enum.Parse<MedicalMeasurementKind>(tool) : null;
+        SetTools(values, [layer]);
     }
 
     private static IEnumerable<string> MeasureCode(SpecValues values, string layer, string width, string height)
@@ -194,9 +235,9 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
             yield return $"ExampleMeasurements({layer}, {width}, {height});";
         }
 
-        if (values.GetText("tool", "None") is var tool && tool != "None")
+        foreach (var line in ToolsCode(values, [layer]))
         {
-            yield return $"{layer}.Tool = MedicalMeasurementKind.{tool};";
+            yield return line;
         }
     }
 

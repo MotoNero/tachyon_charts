@@ -29,6 +29,8 @@ public sealed class MedicalMeasurementLayer : ChartOverlay
     private AxisBase? _xAxis;
     private AxisBase? _yAxis;
     private MedicalMeasurementKind? _tool;
+    private bool _showsTools;
+    private MedicalToolButton? _hovered;
     private MedicalPoint[]? _draft;
 
     internal MedicalMeasurementLayer(IMedicalMeasurementSource source) => _source = source;
@@ -48,6 +50,34 @@ public sealed class MedicalMeasurementLayer : ChartOverlay
             _tool = value;
             _draft = null;
             OnChanged();
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether a bar of tools shows in the lower left corner of the image: move, distance,
+    /// angle, circle, rectangle, freehand and delete. A click chooses a tool; the keys D, A, C, R, F and Escape do the same.
+    /// </summary>
+    public bool ShowsTools
+    {
+        get => _showsTools;
+        set
+        {
+            _showsTools = value;
+            OnChanged();
+        }
+    }
+
+    /// <summary>Gets or sets the button of the tool bar under the pointer, whose name shows.</summary>
+    internal MedicalToolButton? Hovered
+    {
+        get => _hovered;
+        set
+        {
+            if (_hovered != value)
+            {
+                _hovered = value;
+                OnChanged();
+            }
         }
     }
 
@@ -296,6 +326,11 @@ public sealed class MedicalMeasurementLayer : ChartOverlay
         {
             var outline = tool is MedicalMeasurementKind.Circle or MedicalMeasurementKind.Rectangle && draft.Length >= 2 ? MedicalMeasurement.Outline(tool, draft) : draft;
             DrawShape(canvas, layout, tool, draft, outline, _selectedColor, isFinished: false);
+        }
+
+        if (_showsTools)
+        {
+            MedicalToolBar.Draw(canvas, _tool, _hovered, Selected is not null, _selectedColor);
         }
 
         canvas.Clip = null;

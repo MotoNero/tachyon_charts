@@ -71,6 +71,7 @@ static class Tachyon.Charts.Configurator.ChartSpecJson
 sealed class Tachyon.Charts.Configurator.ChartTypeInfo
   .ctor(System.String id, System.String name, Tachyon.Charts.Configurator.ChartCategory category, Tachyon.Charts.Configurator.DataShape shape, System.String defaultSample, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> parameters, System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, System.Object, Tachyon.Charts.Configurator.SeriesAxes> apply, Tachyon.Charts.Configurator.SeriesCodeWriter code)
   System.Action<System.Object, Tachyon.Charts.Configurator.SeriesSpec, System.Object> SceneApply { get; set; }
+  System.Action<Tachyon.Charts.Configurator.SeriesSpec, System.Object, Tachyon.Charts.Configurator.SeriesSpec, System.Object> TakeOver { get; set; }
   System.Action<Tachyon.Charts.Configurator.SeriesSpec, System.Object> Prepare { get; set; }
   System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, System.Object, Tachyon.Charts.Configurator.SeriesAxes> Apply { get; }
   System.Boolean OwnsAxes { get; set; }

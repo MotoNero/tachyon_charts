@@ -26,15 +26,54 @@ internal static class MedicalSetup
         });
     }
 
+    // The measurements the settings made, as against those drawn by hand in the preview.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<MedicalMeasurement, object> _made = [];
+
+    private static void Made(MedicalMeasurement measurement) => _made.AddOrUpdate(measurement, _made);
+
     /// <summary>Adds a distance, an angle and a round region, placed by the size of the image in millimetres.</summary>
     /// <param name="layer">The measurements.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     public static void ExampleMeasurements(MedicalMeasurementLayer layer, double width, double height)
     {
-        layer.Add(MedicalMeasurementKind.Distance, [new(0.17 * width, 0.73 * height), new(0.83 * width, 0.73 * height)], name: "Width");
-        layer.Add(MedicalMeasurementKind.Angle, [new(0.45 * width, 0.38 * height), new(0.5 * width, 0.64 * height), new(0.55 * width, 0.38 * height)]);
-        layer.Add(MedicalMeasurementKind.Circle, [new(0.33 * width, 0.43 * height), new(0.36 * width, 0.43 * height)], name: "Region");
+        Made(layer.Add(MedicalMeasurementKind.Distance, [new(0.17 * width, 0.73 * height), new(0.83 * width, 0.73 * height)], name: "Width"));
+        Made(layer.Add(MedicalMeasurementKind.Angle, [new(0.45 * width, 0.38 * height), new(0.5 * width, 0.64 * height), new(0.55 * width, 0.38 * height)]));
+        Made(layer.Add(MedicalMeasurementKind.Circle, [new(0.33 * width, 0.43 * height), new(0.36 * width, 0.43 * height)], name: "Region"));
+    }
+
+    /// <summary>
+    /// Takes the measurements of an image over into the same image made anew for a change: those drawn by hand, and the
+    /// new places of those the settings made; the tool stays when the settings did not change it.
+    /// </summary>
+    /// <param name="before">The measurements before.</param>
+    /// <param name="after">The measurements made anew.</param>
+    /// <param name="keepsTool">Whether the tool chosen in the image stays.</param>
+    public static void TakeOver(MedicalMeasurementLayer before, MedicalMeasurementLayer after, bool keepsTool)
+    {
+        foreach (var measurement in before.Measurements.ToList())
+        {
+            if (_made.TryGetValue(measurement, out _))
+            {
+                // Made by the settings: it is there anew unless the settings left it out; only a moved one goes over.
+                if (after.Measurements.FirstOrDefault(fresh => _made.TryGetValue(fresh, out _) && fresh.Name == measurement.Name && fresh.Kind == measurement.Kind) is not { } counterpart
+                    || counterpart.Points.SequenceEqual(measurement.Points))
+                {
+                    continue;
+                }
+
+                after.Remove(counterpart);
+                Made(after.Add(measurement.Kind, [.. measurement.Points], measurement.Slice, measurement.Name));
+                continue;
+            }
+
+            after.Add(measurement.Kind, [.. measurement.Points], measurement.Slice, measurement.Name);
+        }
+
+        if (keepsTool)
+        {
+            after.Tool = before.Tool;
+        }
     }
 
     // The labels of a phantom take a while to make; the preview keeps them per volume.
@@ -114,8 +153,8 @@ internal static class MedicalSetup
     public static void AnalysisMeasurements(MedicalMprSlice slice)
     {
         var (width, height) = (slice.Width * slice.Spacing.Column, slice.Height * slice.Spacing.Row);
-        slice.Measurements.Add(MedicalMeasurementKind.Distance, [new(width * 0.12, height * 0.5), new(width * 0.88, height * 0.5)], name: "Profile line");
-        slice.Measurements.Add(MedicalMeasurementKind.Circle, [new(width * 0.323, height * 0.43), new(width * 0.358, height * 0.43)], name: "Focus");
+        Made(slice.Measurements.Add(MedicalMeasurementKind.Distance, [new(width * 0.12, height * 0.5), new(width * 0.88, height * 0.5)], name: "Profile line"));
+        Made(slice.Measurements.Add(MedicalMeasurementKind.Circle, [new(width * 0.323, height * 0.43), new(width * 0.358, height * 0.43)], name: "Focus"));
     }
 
     /// <summary>Adds a line for the oblique plane from lower left to upper right and an arc along the front of the body; in shares of the plane.</summary>
@@ -123,7 +162,7 @@ internal static class MedicalSetup
     public static void ReformatMeasurements(MedicalMprSlice slice)
     {
         var (width, height) = (slice.Width * slice.Spacing.Column, slice.Height * slice.Spacing.Row);
-        slice.Measurements.Add(MedicalMeasurementKind.Distance, [new(width * 0.156, height * 0.73), new(width * 0.86, height * 0.35)], name: "Oblique plane");
+        Made(slice.Measurements.Add(MedicalMeasurementKind.Distance, [new(width * 0.156, height * 0.73), new(width * 0.86, height * 0.35)], name: "Oblique plane"));
         var arc = new MedicalPoint[13];
         for (var i = 0; i < arc.Length; i++)
         {
@@ -131,7 +170,7 @@ internal static class MedicalSetup
             arc[i] = new(width * (0.5 + (0.396 * Math.Cos(angle))), height * (0.5 + (0.285 * Math.Sin(angle))));
         }
 
-        slice.Measurements.Add(MedicalMeasurementKind.Freehand, arc, name: "Arc");
+        Made(slice.Measurements.Add(MedicalMeasurementKind.Freehand, arc, name: "Arc"));
     }
 
     /// <summary>Gets the oblique plane of a display; it follows the line on the axial plane.</summary>

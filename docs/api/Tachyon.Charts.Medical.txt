@@ -112,6 +112,7 @@ enum Tachyon.Charts.Medical.MedicalMeasurementKind : System.IComparable, System.
   Rectangle = 3
 sealed class Tachyon.Charts.Medical.MedicalMeasurementLayer : Tachyon.Charts.Core.Overlays.ChartOverlay
   System.Boolean Remove(Tachyon.Charts.Medical.MedicalMeasurement measurement)
+  System.Boolean ShowsTools { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Medical.MedicalMeasurement> Measurements { get; }
   System.Double Volume(System.String name)
   System.Nullable<Tachyon.Charts.Medical.MedicalMeasurementKind> Tool { get; set; }

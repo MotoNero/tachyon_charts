@@ -106,7 +106,7 @@ public sealed class ConfiguratorSession
         _generator = new CodeGenerator(catalog);
         _spec = catalog.CreateSpec(catalog.Types[0].Id);
         _updates = updates;
-        Take(Compute(_spec, Options));
+        Take(Compute(ChartSpecJson.Copy(_spec), Options));
     }
 
     /// <summary>Occurs when a change starts to be worked on away from the window; <see cref="Changed"/> follows when it is done.</summary>
@@ -731,6 +731,11 @@ public sealed class ConfiguratorSession
             Code = code;
         }
 
+        if (_prepared is { } before && update.Data is { } after)
+        {
+            TakeOver(before.Spec, before.Data, update.Spec, after);
+        }
+
         _prepared = update.Data is { } data ? (update.Spec, data) : null;
         if (update.Data is not null)
         {
@@ -743,12 +748,27 @@ public sealed class ConfiguratorSession
         Changed?.Invoke();
     }
 
+    // What was done in the preview before the change, such as measurements drawn by hand, stays in the new preview.
+    private void TakeOver(ChartSpec before, IReadOnlyList<object?> beforeData, ChartSpec after, IReadOnlyList<object?> afterData)
+    {
+        for (var i = 0; i < Math.Min(before.Series.Count, after.Series.Count) && i < Math.Min(beforeData.Count, afterData.Count); i++)
+        {
+            var (old, now) = (before.Series[i], after.Series[i]);
+            if (old.Type == now.Type && Catalog.FindType(now.Type)?.TakeOver is { } takeOver && beforeData[i] is { } oldData && afterData[i] is { } newData
+                && old.Data.Kind == now.Data.Kind && old.Data.Sample == now.Data.Sample && old.Data.Path == now.Data.Path)
+            {
+                takeOver(old, oldData, now, newData);
+            }
+        }
+    }
+
     // Brings code and preview up to date: at once, or away from the window on a copy of the description.
     private void Refresh()
     {
+        // The update works on a copy, so that what the preview shows stays apart from what is edited next.
         if (_updates is not { } updates)
         {
-            Take(Compute(_spec, Options));
+            Take(Compute(ChartSpecJson.Copy(_spec), Options));
             return;
         }
 

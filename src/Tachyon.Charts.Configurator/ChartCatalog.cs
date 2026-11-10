@@ -263,6 +263,13 @@ public sealed class ChartTypeInfo
     /// </summary>
     public Func<SeriesSpec, IReadOnlyList<ViewInfo>>? Views { get; init; }
 
+    /// <summary>
+    /// Gets how what was done in the preview, such as measurements drawn by hand, goes over from the data before a change
+    /// into the data made for it: the series and data before, then the series and data after. <see langword="null"/>
+    /// when nothing is to keep. It is called only when both read the same source.
+    /// </summary>
+    public Action<SeriesSpec, object, SeriesSpec, object>? TakeOver { get; init; }
+
     /// <summary>Gets the number of columns the views are arranged in, by the settings; one when not given.</summary>
     public Func<SeriesSpec, int>? Columns { get; init; }
 

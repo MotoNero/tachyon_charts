@@ -63,6 +63,20 @@ internal sealed class MedicalMeasurementModifier(MedicalMeasurementLayer layer) 
             return input.PointerId == _pointerId ? Continue(interaction, input, point) : ModifierResult.Ignored;
         }
 
+        // The bar of tools: a click chooses, the pointer over a button shows its name; nothing else gets the click.
+        if (_layer.ShowsTools && MedicalToolBar.TryHit(layout, input.Position, out var button))
+        {
+            _layer.Hovered = button;
+            if (input.Kind == PointerEventKind.Pressed && input.ChangedButton == PointerButton.Primary)
+            {
+                Choose(interaction, button);
+            }
+
+            return ModifierResult.Handled;
+        }
+
+        _layer.Hovered = null;
+
         if (WaitForAngle(interaction, input, point) is { } waited)
         {
             return waited;
@@ -90,6 +104,23 @@ internal sealed class MedicalMeasurementModifier(MedicalMeasurementLayer layer) 
         }
 
         return ModifierResult.Ignored;
+    }
+
+    // A tool of the bar, or the removal of the selected measurement, which Ctrl+Z brings back.
+    private void Choose(ChartInteraction interaction, MedicalToolButton button)
+    {
+        if (button != MedicalToolButton.Delete)
+        {
+            _layer.Tool = MedicalToolBar.ToolOf(button);
+            return;
+        }
+
+        if (_layer.Selected is { } selected)
+        {
+            var index = _layer.Measurements.ToList().IndexOf(selected);
+            _layer.Remove(selected);
+            interaction.History.Record(new ListEdit(_layer, selected, index, isAdded: false));
+        }
     }
 
     /// <inheritdoc />
