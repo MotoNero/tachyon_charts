@@ -447,9 +447,23 @@ public sealed class ConfiguratorSession
     /// <param name="kind">The identifier of the kind.</param>
     public void AddAnnotation(string kind)
     {
-        _spec.Annotations.Add(new AnnotationSpec { Type = kind });
+        var annotation = new AnnotationSpec { Type = kind };
+        if (Region() is { } region)
+        {
+            AnnotationCatalog.Place(annotation, region.X, region.Y);
+        }
+
+        _spec.Annotations.Add(annotation);
         Structure();
     }
+
+    // The part of the chart that shows, for types that tell it, so that a new annotation starts in sight.
+    private (Core.Numerics.DoubleRange X, Core.Numerics.DoubleRange Y)? Region() =>
+        _spec.Series.Count > 0 && _prepared is { } prepared && prepared.Data.Count > 0 && prepared.Data[0] is { } data
+        && prepared.Spec.Series.Count > 0 && prepared.Spec.Series[0].Type == _spec.Series[0].Type
+        && Catalog.FindType(_spec.Series[0].Type)?.Region is { } region
+            ? region(prepared.Spec.Series[0], data)
+            : null;
 
     /// <summary>Removes the last annotation.</summary>
     public void RemoveAnnotation()

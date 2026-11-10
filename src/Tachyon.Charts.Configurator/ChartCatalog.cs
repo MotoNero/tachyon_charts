@@ -270,6 +270,13 @@ public sealed class ChartTypeInfo
     /// </summary>
     public Action<SeriesSpec, object, SeriesSpec, object>? TakeOver { get; init; }
 
+    /// <summary>
+    /// Gets the part of the chart that shows, in the units of the axes the annotations use, from the series and its data;
+    /// a new annotation starts in it. For types whose axes are not those of the description, such as instruments with
+    /// levels in dBm and frequencies in hertz; <see langword="null"/> for the others.
+    /// </summary>
+    public Func<SeriesSpec, object, (Core.Numerics.DoubleRange X, Core.Numerics.DoubleRange Y)>? Region { get; init; }
+
     /// <summary>Gets the number of columns the views are arranged in, by the settings; one when not given.</summary>
     public Func<SeriesSpec, int>? Columns { get; init; }
 

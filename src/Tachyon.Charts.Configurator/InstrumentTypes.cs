@@ -61,6 +61,7 @@ internal static class InstrumentTypes
     {
         Usings = ["Tachyon.Charts.Core.Instruments"],
         OwnsAxes = true,
+        Region = (series, _) => (new ScopeDisplay { TimePerDivision = series.Parameters.GetNumber("timePerDivision", 5e-4), TimeOffset = series.Parameters.GetNumber("timeOffset", 0) }.GetTimeRange(), Level(Channels(series.Parameters)[0])),
         PrepareCode = (series, data) =>
         {
             var values = series.Parameters;
@@ -99,6 +100,13 @@ internal static class InstrumentTypes
         return channels;
     }
 
+    // The levels a channel shows: its divisions above and below the middle, moved by its position.
+    private static DoubleRange Level((int Signal, double Volts, double Position) channel)
+    {
+        var half = ScopeDisplay.VerticalDivisions / 2.0;
+        return new DoubleRange((-half - channel.Position) * channel.Volts, (half - channel.Position) * channel.Volts);
+    }
+
     private static double[] Numbers(string text) =>
         [.. text.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
             .Select(part => double.TryParse(part, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var number) ? number : double.NaN)
@@ -134,6 +142,7 @@ internal static class InstrumentTypes
     {
         Usings = ["Tachyon.Charts.Core.Instruments"],
         OwnsAxes = true,
+        Region = (_, data) => ((SpectrumDisplay)data) is var spectrum ? (new DoubleRange(spectrum.Start, spectrum.Stop), new DoubleRange(spectrum.ReferenceLevel - (ScopeDisplay.VerticalDivisions * spectrum.PerDivision), spectrum.ReferenceLevel)) : default,
         Prepare = (series, data) =>
         {
             var (spectrum, values) = ((SpectrumDisplay)data, series.Parameters);
@@ -183,6 +192,7 @@ internal static class InstrumentTypes
     {
         Usings = ["Tachyon.Charts.Core.Instruments", "System.Numerics"],
         OwnsAxes = true,
+        Region = (series, _) => (new DoubleRange(1e9, 2e9), new DoubleRange(series.Parameters.GetNumber("minimum", -70), series.Parameters.GetNumber("maximum", 5))),
         Prepare = (series, data) =>
         {
             var (network, values) = ((NetworkDisplay)data, series.Parameters);
@@ -232,6 +242,7 @@ internal static class InstrumentTypes
     {
         Usings = ["Tachyon.Charts.Core.Data", "Tachyon.Charts.Core.Numerics", "Tachyon.Charts.Core.Series"],
         OwnsAxes = true,
+        Region = (_, data) => (new DoubleRange(0, ((SweepData)data).Window), new DoubleRange(-1.5, 1.5)),
         Prepare = (series, data) =>
         {
             var monitor = (SweepData)data;

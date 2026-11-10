@@ -82,6 +82,7 @@ sealed class Tachyon.Charts.Configurator.ChartTypeInfo
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> Parameters { get; }
   System.Func<Tachyon.Charts.Configurator.SeriesSpec, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ViewInfo>> Views { get; set; }
   System.Func<Tachyon.Charts.Configurator.SeriesSpec, System.Int32> Columns { get; set; }
+  System.Func<Tachyon.Charts.Configurator.SeriesSpec, System.Object, System.ValueTuple<Tachyon.Charts.Core.Numerics.DoubleRange, Tachyon.Charts.Core.Numerics.DoubleRange>> Region { get; set; }
   System.Func<Tachyon.Charts.Configurator.SeriesSpec, System.String, System.Collections.Generic.IEnumerable<System.String>> PrepareCode { get; set; }
   System.String DefaultSample { get; }
   System.String Helpers { get; set; }

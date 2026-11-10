@@ -57,6 +57,56 @@ internal static class AnnotationCatalog
             v => $"Text(new TextAnnotation({XCode}, {YCode}) {{ Text = {CodeText.String(v.GetText("text", "Note"))}, FontSize = {CodeText.Number(v.GetNumber("size", 13))}f }}, {CodeText.Number(v.GetNumber("x", 1))}, {CodeText.Number(v.GetNumber("y", 0.8))})"),
     ];
 
+    /// <summary>
+    /// Places a new annotation in the part of the chart that shows, off its middle lines, where instruments draw their
+    /// zero line and trigger point.
+    /// </summary>
+    /// <param name="annotation">The annotation.</param>
+    /// <param name="x">The horizontal range that shows.</param>
+    /// <param name="y">The vertical range that shows.</param>
+    internal static void Place(AnnotationSpec annotation, Core.Numerics.DoubleRange x, Core.Numerics.DoubleRange y)
+    {
+        double X(double share) => Round(x.Min + ((x.Max - x.Min) * share), x);
+        double Y(double share) => Round(y.Min + ((y.Max - y.Min) * share), y);
+        var values = annotation.Parameters;
+        switch (annotation.Type)
+        {
+            case "hline":
+                values.Set("y", Y(0.7));
+                break;
+            case "vline":
+                values.Set("x", X(0.25));
+                break;
+            case "band":
+                values.Set("from", X(0.55));
+                values.Set("to", X(0.7));
+                break;
+            case "box":
+                values.Set("x1", X(0.35));
+                values.Set("x2", X(0.65));
+                values.Set("y1", Y(0.35));
+                values.Set("y2", Y(0.65));
+                break;
+            case "text":
+                values.Set("x", X(0.1));
+                values.Set("y", Y(0.85));
+                break;
+        }
+    }
+
+    // Round to three significant digits of the range, so that the field shows a plain number such as -40 or 1.5E9.
+    private static double Round(double value, Core.Numerics.DoubleRange range)
+    {
+        var span = Math.Abs(range.Max - range.Min);
+        if (span <= 0 || !double.IsFinite(span))
+        {
+            return value;
+        }
+
+        var step = Math.Pow(10, Math.Floor(Math.Log10(span)) - 2);
+        return Math.Round(value / step) * step;
+    }
+
     /// <summary>Writes the helper methods the code of band, box and text needs, which set what has no property.</summary>
     /// <returns>The methods, indented by four spaces.</returns>
     public static string Helpers() => """
