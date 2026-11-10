@@ -192,6 +192,12 @@ public enum DataKind
     /// and configurations are passed on.
     /// </summary>
     MedicalFile,
+
+    /// <summary>Datasets of an HDF5 file: one dimension for curves and values, two for grids, three for volumes.</summary>
+    Hdf5,
+
+    /// <summary>A file of points, a volume or a model in 3D.</summary>
+    File,
 }
 
 /// <summary>Where the data of a series come from and how many there are.</summary>

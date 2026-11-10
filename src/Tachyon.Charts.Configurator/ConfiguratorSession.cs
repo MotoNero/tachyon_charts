@@ -74,6 +74,8 @@ public sealed class FieldModel
 /// </summary>
 public sealed class ConfiguratorSession
 {
+    private readonly List<IDisposable> _running = [];
+
     private readonly CodeGenerator _generator;
     private ChartSpec _spec;
     private int _selected;
@@ -218,9 +220,8 @@ public sealed class ConfiguratorSession
             var fields = new List<FieldModel>
             {
                 Field(group, new("name", "Name", ParameterKind.Text, string.Empty), () => series.Name, value => series.Name = (string)value),
-                Field(group, new("sample", "Sample data", ParameterKind.Choice, type.DefaultSample) { Choices = samples }, () => series.Data.Sample, value => series.Data.Sample = (string)value),
-                Field(group, new("count", "Number of values", ParameterKind.Integer, 1000.0) { Minimum = Catalog.FindSample(series.Data.Sample)?.MinimumCount ?? 2, Maximum = 10_000_000 }, () => (double)series.Data.Count, value => series.Data.Count = (int)(double)value),
             };
+            fields.AddRange(DataFields(group, series, type, samples));
             if (_spec.YAxes.Count > 1)
             {
                 fields.Add(Field(group, new("yAxis", "Y axis", ParameterKind.Choice, _spec.YAxes[0].Id) { Choices = [.. _spec.YAxes.Select(axis => axis.Id)] }, () => series.YAxis ?? _spec.YAxes[0].Id, value => series.YAxis = (string)value));
@@ -317,7 +318,17 @@ public sealed class ConfiguratorSession
 
     /// <summary>Describes the chart of the preview.</summary>
     /// <param name="chart">The chart description.</param>
-    public void Apply(ChartBuilder chart) => SpecChartBuilder.Apply(_spec, Catalog, chart);
+    public void Apply(ChartBuilder chart)
+    {
+        // The live data of the preview before stop; this one starts its own.
+        foreach (var running in _running)
+        {
+            running.Dispose();
+        }
+
+        _running.Clear();
+        SpecChartBuilder.Apply(_spec, Catalog, chart, _running);
+    }
 
     private static void SetValue(SpecValues values, string name, object value)
     {
@@ -375,6 +386,68 @@ public sealed class ConfiguratorSession
             _spec.Annotations.RemoveAt(_spec.Annotations.Count - 1);
             Structure();
         }
+    }
+
+    // Where the data come from, then what that source needs: a generator and a count, a CSV file and its columns, or a
+    // curve with the rate of live data.
+    private List<FieldModel> DataFields(string group, SeriesSpec series, ChartTypeInfo type, string[] samples)
+    {
+        var data = series.Data;
+        var options = data.Options;
+        var kinds = DataSources.Kinds(type, Catalog);
+        var fields = new List<FieldModel>();
+        if (kinds.Count > 1)
+        {
+            fields.Add(Field(group, new("source", "Data from", ParameterKind.Choice, nameof(DataKind.Sample)) { Choices = [.. kinds.Select(kind => kind.ToString())] }, () => data.Kind.ToString(), value =>
+            {
+                data.Kind = Enum.Parse<DataKind>((string)value);
+                if (data.Kind == DataKind.Live && Catalog.FindSample(data.Sample)?.Curve is null)
+                {
+                    data.Sample = Catalog.Samples.First(sample => sample.Curve is not null).Id;
+                }
+            }, structural: true));
+        }
+
+        switch (data.Kind)
+        {
+            case DataKind.Csv:
+                fields.Add(Field(group, new("file", "CSV file", ParameterKind.File, string.Empty), () => data.Path ?? string.Empty, value => data.Path = (string)value));
+                fields.Add(Field(group, new("delimiter", "Delimiter", ParameterKind.Choice, "Comma") { Choices = ["Comma", "Semicolon", "Tab", "Space"] }, () => options.GetText("delimiter", "Comma"), value => SetValue(options, "delimiter", value)));
+                fields.Add(Field(group, new("header", "First line names the columns", ParameterKind.Flag, true), () => options.GetFlag("header", true), value => SetValue(options, "header", value)));
+                fields.Add(Field(group, new("decimalComma", "Decimal comma", ParameterKind.Flag, false) { Description = "Numbers like 3,14 instead of 3.14." }, () => options.GetFlag("decimalComma", false), value => SetValue(options, "decimalComma", value)));
+                fields.Add(Field(group, new("x", "X column", ParameterKind.Text, string.Empty) { Description = "Its name or number from 1; empty for the number of the row." }, () => options.GetText("x", string.Empty), value => SetValue(options, "x", value)));
+                fields.Add(Field(group, new("y", "Y columns", ParameterKind.Text, string.Empty) { Description = "Names or numbers from 1, separated by commas: " + DataSources.CsvColumns(type.Shape) + "." }, () => options.GetText("y", string.Empty), value => SetValue(options, "y", value)));
+                break;
+            case DataKind.Hdf5:
+                // The datasets of a readable file to choose from, with their dimensions; otherwise a path to type.
+                fields.Add(Field(group, new("file", "HDF5 file", ParameterKind.File, string.Empty), () => data.Path ?? string.Empty, value => data.Path = (string)value, structural: true));
+                var datasets = DataSources.Hdf5Datasets(data.Path);
+                fields.Add(Field(group, datasets.Count > 0
+                    ? new("dataset", "Dataset", ParameterKind.Choice, datasets[0]) { Choices = datasets }
+                    : new("dataset", "Dataset", ParameterKind.Text, string.Empty) { Description = "Its path in the file, such as /pressure: one dimension for curves and values, two for grids, three for volumes." }, () => options.GetText("dataset", string.Empty), value => SetValue(options, "dataset", value)));
+                if (type.Shape == DataShape.Points)
+                {
+                    fields.Add(Field(group, datasets.Count > 0
+                        ? new("xDataset", "X dataset", ParameterKind.Choice, string.Empty) { Choices = ["", .. datasets], Description = "Empty for the number of each value." }
+                        : new("xDataset", "X dataset", ParameterKind.Text, string.Empty) { Description = "Empty for the number of each value." }, () => options.GetText("xDataset", string.Empty), value => SetValue(options, "xDataset", value)));
+                }
+
+                break;
+            case DataKind.File:
+                fields.Add(Field(group, new("file", "File", ParameterKind.File, string.Empty) { Description = "Points: XYZ, PLY or LAS; volumes: NIfTI or raw; models: STL or OBJ." }, () => data.Path ?? string.Empty, value => data.Path = (string)value));
+                break;
+            case DataKind.Live:
+                fields.Add(Field(group, new("curve", "Curve", ParameterKind.Choice, data.Sample) { Choices = [.. Catalog.Samples.Where(sample => sample.Curve is not null).Select(sample => sample.Id)] }, () => data.Sample, value => data.Sample = (string)value));
+                fields.Add(Field(group, new("rate", "Points per second", ParameterKind.Number, 200.0) { Minimum = 1, Maximum = 1_000_000 }, () => options.GetNumber("rate", 200), value => SetValue(options, "rate", value)));
+                fields.Add(Field(group, new("count", "Points kept", ParameterKind.Integer, 1000.0) { Minimum = 2, Maximum = 10_000_000 }, () => (double)data.Count, value => data.Count = (int)(double)value));
+                break;
+            default:
+                fields.Add(Field(group, new("sample", "Sample data", ParameterKind.Choice, type.DefaultSample) { Choices = samples }, () => data.Sample, value => data.Sample = (string)value));
+                fields.Add(Field(group, new("count", "Number of values", ParameterKind.Integer, 1000.0) { Minimum = Catalog.FindSample(data.Sample)?.MinimumCount ?? 2, Maximum = 10_000_000 }, () => (double)data.Count, value => data.Count = (int)(double)value));
+                break;
+        }
+
+        return fields;
     }
 
     private IEnumerable<FieldModel> LegendFields(string name, LegendSpec? legend) => legend is null ? [] :

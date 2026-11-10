@@ -193,7 +193,7 @@ internal sealed class CoreModule : IChartModule
 
     private static string Values(SpecValues values) => values.GetFlag("values", false) ? ".Values()" : string.Empty;
 
-    private static DataSource<double, double> Source(object data) => (DataSource<double, double>)data;
+    private static IDataSource<double, double> Source(object data) => (IDataSource<double, double>)data;
 
     private static void ApplyLine(ChartBuilder chart, SeriesSpec series, object data, SeriesAxes axes)
     {

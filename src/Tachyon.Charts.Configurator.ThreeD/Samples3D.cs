@@ -1,4 +1,5 @@
 using Tachyon.Charts.Core.Data;
+using Tachyon.Charts.ThreeD.Files;
 using Tachyon.Charts.ThreeD.Scene;
 
 namespace Tachyon.Charts.Configurator.ThreeD;
@@ -19,7 +20,57 @@ internal static class Samples3D
         Bubbles(),
         Blobs(),
         Dipole(),
+        Torus(),
     ];
+
+    // A ring of triangles around the middle of the box: the count of segments around the ring, a quarter of them around the tube.
+    private static SampleInfo Torus() => new(
+        "torus",
+        "Torus",
+        DataShape.Model,
+        64,
+        count =>
+        {
+            var (around, tube) = (count, Math.Max(3, count / 4));
+            var positions = new Point3D[around * tube];
+            var triangles = new int[around * tube * 6];
+            for (var i = 0; i < around; i++)
+            {
+                for (var j = 0; j < tube; j++)
+                {
+                    var (u, v) = (i * 2 * Math.PI / around, j * 2 * Math.PI / tube);
+                    positions[(i * tube) + j] = new Point3D(5 + ((3 + Math.Cos(v)) * Math.Cos(u)), 5 + ((3 + Math.Cos(v)) * Math.Sin(u)), 5 + Math.Sin(v));
+                    var (a, b, c, d) = ((i * tube) + j, (((i + 1) % around) * tube) + j, (((i + 1) % around) * tube) + ((j + 1) % tube), (i * tube) + ((j + 1) % tube));
+                    int[] corners = [a, b, c, a, c, d];
+                    corners.CopyTo(triangles, ((i * tube) + j) * 6);
+                }
+            }
+
+            return new ModelFileData(positions, triangles, null);
+        },
+        "ModelFileData",
+        method => SampleCatalog.Header("a torus", method, "ModelFileData", "The number of segments around the ring.") + """
+                {
+                    var (around, tube) = (count, Math.Max(3, count / 4));
+                    var positions = new Point3D[around * tube];
+                    var triangles = new int[around * tube * 6];
+                    for (var i = 0; i < around; i++)
+                    {
+                        for (var j = 0; j < tube; j++)
+                        {
+                            var (u, v) = (i * 2 * Math.PI / around, j * 2 * Math.PI / tube);
+                            positions[(i * tube) + j] = new Point3D(5 + ((3 + Math.Cos(v)) * Math.Cos(u)), 5 + ((3 + Math.Cos(v)) * Math.Sin(u)), 5 + Math.Sin(v));
+                            var (a, b, c, d) = ((i * tube) + j, (((i + 1) % around) * tube) + j, (((i + 1) % around) * tube) + ((j + 1) % tube), (i * tube) + ((j + 1) % tube));
+                            int[] corners = [a, b, c, a, c, d];
+                            corners.CopyTo(triangles, ((i * tube) + j) * 6);
+                        }
+                    }
+
+                    return new ModelFileData(positions, triangles, null);
+                }
+
+            """)
+    { MinimumCount = 3 };
 
     private static SampleInfo Grid(string id, string name, int side, Func<double, double, double> height, string formula) => new(
         id,

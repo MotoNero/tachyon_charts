@@ -58,7 +58,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         code.Append("    public static void Configure(ChartBuilder chart) => Configure(chart");
         foreach (var data in plan.Data)
         {
-            code.Append(", ").Append(data.Method).Append('(').Append(data.Count).Append(')');
+            code.Append(", ").Append(data.Call);
         }
 
         code.AppendLine(");").AppendLine();
@@ -100,7 +100,29 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         foreach (var method in plan.Data.DistinctBy(data => data.Method))
         {
             code.AppendLine();
-            code.Append(method.Sample.Method(method.Method));
+            code.Append(method.Source.Code.TrimStart('\r', '\n'));
+        }
+
+        // Helpers of the types, each once.
+        foreach (var helpers in spec.Series.Select(series => _catalog.FindType(series.Type)!.Helpers).Where(helpers => helpers.Length > 0).Distinct())
+        {
+            code.Append(helpers);
+        }
+
+        // Shared parts of the data: the timers of live data, the numbers of HDF5 datasets and the points of columns.
+        if (spec.Series.Exists(series => series.Data.Kind == DataKind.Hdf5))
+        {
+            code.Append(DataSources.NumbersHelper());
+        }
+
+        if (spec.Series.Exists(series => series.Data.Kind == DataKind.Live))
+        {
+            code.Append(DataSources.LiveField());
+        }
+
+        if (plan.Data.Exists(data => data.Source.Code.Contains("Points(", StringComparison.Ordinal) && data.Source.Usings.Count > 0 && data.Source.Call.EndsWith("()", StringComparison.Ordinal)))
+        {
+            code.Append(DataSources.PointsHelper());
         }
 
         return code.AppendLine("}").ToString();
@@ -121,7 +143,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         foreach (var data in plan.Data)
         {
             code.Append("    /// <summary>Gets the data of ").Append(data.SeriesName).AppendLine(".</summary>");
-            code.Append("    public ").Append(data.Type).Append(' ').Append(data.Property).Append(" { get; } = ChartSetup.").Append(data.Method).Append('(').Append(data.Count).AppendLine(");").AppendLine();
+            code.Append("    public ").Append(data.Type).Append(' ').Append(data.Property).Append(" { get; } = ChartSetup.").Append(data.Call).AppendLine(";").AppendLine();
         }
 
         code.AppendLine("    /// <summary>Describes the chart with the data of this view model.</summary>");
@@ -354,7 +376,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             ["ChartViewModel.cs"] = ViewModel(spec, options),
             ["MainWindow.xaml.cs".Replace(".xaml", options.Framework == UiFramework.Wpf ? ".xaml" : ".axaml", StringComparison.Ordinal)] = WindowCode(spec, options),
             [options.Framework == UiFramework.Wpf ? "MainWindow.xaml" : "MainWindow.axaml"] = WindowMarkup(spec, options),
-            [options.ProjectName + ".csproj"] = ProjectFile(options, _catalog.SceneOf(spec)),
+            [options.ProjectName + ".csproj"] = ProjectFile(options, _catalog.SceneOf(spec), spec.Series.Exists(series => series.Data.Kind == DataKind.Hdf5), Packages(spec)),
         };
         foreach (var (path, content) in ApplicationFiles(options))
         {
@@ -405,7 +427,11 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         code.AppendLine();
     }
 
-    private static string ProjectFile(CodeOptions options, SceneInfo? scene)
+    // The packages the readers of the data need, each once.
+    private IReadOnlyList<string> Packages(ChartSpec spec) =>
+        [.. spec.Series.Select(series => DataSources.Loader(series, _catalog.FindType(series.Type)!, _catalog)).OfType<DataLoader>().SelectMany(loader => loader.Packages).Where(package => package.IsOwn).Select(package => package.Name).Distinct()];
+
+    private static string ProjectFile(CodeOptions options, SceneInfo? scene, bool readsHdf5, IReadOnlyList<string> packages)
     {
         var wpf = options.Framework == UiFramework.Wpf;
         var adapter = wpf ? "Tachyon.Charts.Wpf" : "Tachyon.Charts.Avalonia";
@@ -423,6 +449,20 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             references.Append(options.LocalSource is { } source
                 ? $"    <ProjectReference Include=\"{Path.Combine(source, package, package + ".csproj")}\" />\n"
                 : $"    <PackageReference Include=\"{package}\" Version=\"{version}\" />\n");
+        }
+
+        // Packages of Tachyon Charts the readers need, in the version of the scene (the 3D packages) or of the release.
+        foreach (var package in packages)
+        {
+            references.Append(options.LocalSource is { } local
+                ? $"    <ProjectReference Include=\"{Path.Combine(local, package, package + ".csproj")}\" />\n"
+                : $"    <PackageReference Include=\"{package}\" Version=\"{scene?.PackageVersion ?? options.PackageVersion}\" />\n");
+        }
+
+        if (readsHdf5)
+        {
+            // The reader of HDF5 files, a package without native parts.
+            references.Append("    <PackageReference Include=\"PureHDF\" Version=\"2.2.0\" />\n");
         }
 
         return $"""
@@ -581,16 +621,23 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         var setup = new List<string>();
         foreach (var series in spec.Series)
         {
-            if (series.Data.Kind != DataKind.Sample)
-            {
-                throw new InvalidOperationException($"The data of {series.Name} come from {series.Data.Kind}; the code for such sources is not written yet.");
-            }
-
             var type = _catalog.FindType(series.Type)!;
-            var sample = _catalog.FindSample(series.Data.Sample)!;
+            var sample = _catalog.FindSample(series.Data.Sample) ?? _catalog.FindSample(type.DefaultSample)!;
             usings.AddRange(type.Usings);
             var variable = Unique(CodeText.Identifier(series.Name, upper: false, "series"), data.Select(item => item.Variable).Concat(_reserved));
-            data.Add(new DataPlan(series.Name, variable, CodeText.Identifier(variable, upper: true, "Series"), sample, Count(sample, series.Data.Count)));
+            DataCode source;
+            if (series.Data.Kind == DataKind.Sample)
+            {
+                var method = CodeText.Identifier(sample.Id, upper: true, "Sample");
+                source = new DataCode(sample.ReturnType, method, $"{method}({Count(sample, series.Data.Count)})", sample.Method(method), []);
+            }
+            else
+            {
+                source = DataSources.Code(series, type, _catalog, Unique(CodeText.Identifier(variable, upper: true, "Series") + series.Data.Kind, data.Select(item => item.Source.Method)));
+            }
+
+            usings.AddRange(source.Usings);
+            data.Add(new DataPlan(series.Name, variable, CodeText.Identifier(variable, upper: true, "Series"), source));
             if (type.PrepareCode is { } prepare)
             {
                 setup.AddRange(prepare(series, variable));
@@ -728,10 +775,12 @@ public sealed class CodeGenerator(ChartCatalog catalog)
 
     private sealed record CodePlan(List<string> Usings, List<string> Calls, List<DataPlan> Data, List<string> Setup);
 
-    private sealed record DataPlan(string SeriesName, string Variable, string Property, SampleInfo Sample, int Count)
+    private sealed record DataPlan(string SeriesName, string Variable, string Property, DataCode Source)
     {
-        public string Method => CodeText.Identifier(Sample.Id, upper: true, "Sample");
+        public string Method => Source.Method;
 
-        public string Type => Sample.ReturnType;
+        public string Type => Source.Type;
+
+        public string Call => Source.Call;
     }
 }

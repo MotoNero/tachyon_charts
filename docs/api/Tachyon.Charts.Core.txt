@@ -274,6 +274,18 @@ sealed class Tachyon.Charts.Core.Data.CandleData
   System.Void Clear()
   System.Void UpdateLast(in Tachyon.Charts.Core.Data.Candle candle)
   Tachyon.Charts.Core.Data.Candle Item[System.Int32] { get; }
+sealed class Tachyon.Charts.Core.Data.CsvFormat : System.IEquatable<Tachyon.Charts.Core.Data.CsvFormat>
+  .ctor(System.Char Delimiter = ,, System.Boolean HasHeader = True, System.Boolean DecimalComma = False)
+  System.Boolean DecimalComma { get; set; }
+  System.Boolean HasHeader { get; set; }
+  System.Char Delimiter { get; set; }
+sealed class Tachyon.Charts.Core.Data.CsvTable
+  System.Collections.Generic.IReadOnlyList<System.String> Names { get; }
+  System.Double[] Column(System.Int32 index)
+  System.Double[] Column(System.String name)
+  System.Int32 RowCount { get; }
+  static Tachyon.Charts.Core.Data.CsvTable Read(System.IO.TextReader reader, Tachyon.Charts.Core.Data.CsvFormat format = null)
+  static Tachyon.Charts.Core.Data.CsvTable Read(System.String path, Tachyon.Charts.Core.Data.CsvFormat format = null)
 struct Tachyon.Charts.Core.Data.DataMetadata : System.IEquatable<Tachyon.Charts.Core.Data.DataMetadata>
   .ctor(System.Int32 Count, System.Boolean IsSortedX, System.Nullable<System.Double> UniformXStep, Tachyon.Charts.Core.Numerics.DoubleRange XRange, Tachyon.Charts.Core.Numerics.DoubleRange YRange)
   System.Boolean IsSortedX { get; set; }

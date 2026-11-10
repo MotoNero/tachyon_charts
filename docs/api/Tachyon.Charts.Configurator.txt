@@ -78,6 +78,7 @@ sealed class Tachyon.Charts.Configurator.ChartTypeInfo
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> Parameters { get; }
   System.Func<Tachyon.Charts.Configurator.SeriesSpec, System.String, System.Collections.Generic.IEnumerable<System.String>> PrepareCode { get; set; }
   System.String DefaultSample { get; }
+  System.String Helpers { get; set; }
   System.String Id { get; }
   System.String Name { get; }
   Tachyon.Charts.Configurator.ChartCategory Category { get; }
@@ -134,6 +135,8 @@ sealed class Tachyon.Charts.Configurator.ConfiguratorSession
   static System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> AnnotationKinds { get; }
 enum Tachyon.Charts.Configurator.DataKind : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Csv = 1
+  File = 5
+  Hdf5 = 4
   Live = 2
   MedicalFile = 3
   Sample = 0
@@ -148,19 +151,20 @@ enum Tachyon.Charts.Configurator.DataShape : System.IComparable, System.IConvert
   Groups = 7
   Layers = 5
   MaskedGrid = 16
-  Network = 25
+  Model = 23
+  Network = 26
   Pattern = 14
   Points = 0
   Points3D = 10
   Polar = 17
   Polygons = 20
   Rows = 1
-  Scope = 23
+  Scope = 24
   Slices = 9
   Smith = 19
   Spectrogram = 12
-  Spectrum = 24
-  Sweep = 26
+  Spectrum = 25
+  Sweep = 27
   Ternary = 18
   UnevenGrid = 15
   Values = 8
@@ -218,16 +222,19 @@ sealed class Tachyon.Charts.Configurator.ParameterInfo : System.IEquatable<Tachy
 enum Tachyon.Charts.Configurator.ParameterKind : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Choice = 3
   Color = 4
+  File = 5
   Flag = 2
   Integer = 1
   Number = 0
-  Text = 5
+  Text = 6
 sealed class Tachyon.Charts.Configurator.SampleInfo : System.IEquatable<Tachyon.Charts.Configurator.SampleInfo>
   .ctor(System.String Id, System.String Name, Tachyon.Charts.Configurator.DataShape Shape, System.Int32 DefaultCount, System.Func<System.Int32, System.Object> Create, System.String ReturnType, System.Func<System.String, System.String> Method)
+  System.Func<System.Double, System.Double> Curve { get; set; }
   System.Func<System.Int32, System.Object> Create { get; set; }
   System.Func<System.String, System.String> Method { get; set; }
   System.Int32 DefaultCount { get; set; }
   System.Int32 MinimumCount { get; set; }
+  System.String CurveCode { get; set; }
   System.String Id { get; set; }
   System.String Name { get; set; }
   System.String ReturnType { get; set; }
@@ -260,6 +267,7 @@ sealed class Tachyon.Charts.Configurator.SeriesSpec
   Tachyon.Charts.Configurator.SpecValues Parameters { get; set; }
 static class Tachyon.Charts.Configurator.SpecChartBuilder
   static System.Void Apply(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.ChartCatalog catalog, Tachyon.Charts.Core.Fluent.ChartBuilder chart)
+  static System.Void Apply(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.ChartCatalog catalog, Tachyon.Charts.Core.Fluent.ChartBuilder chart, System.Collections.Generic.ICollection<System.IDisposable> running)
   static Tachyon.Charts.Core.Themes.Theme Theme(System.String name)
 static class Tachyon.Charts.Configurator.SpecColor
   static System.Boolean TryParse(System.String text, out Tachyon.Charts.Rendering.Rgba8 color)

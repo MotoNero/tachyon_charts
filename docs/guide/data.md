@@ -29,3 +29,14 @@ Paths with a dot reach nested properties. New items at the end are cheap, any ot
 ## Missing values
 
 `NaN` interrupts a line. That is the way to show gaps in a measurement.
+
+## CSV files
+
+```csharp
+var table = CsvTable.Read("measurements.csv", new CsvFormat(';', HasHeader: true, DecimalComma: true));
+var data = new DataSource<double, double>(table.RowCount);
+data.Append(table.Column("time"), table.Column("pressure"));
+```
+
+`CsvTable` reads the columns of a CSV file as numbers: the delimiter, whether the first line names the columns, and whether numbers use a decimal comma. Values in quotes may hold the delimiter. A value that is no number, and one missing at the end of a short line, reads as NaN, which a chart shows as a gap. Columns are found by name or by number from 0.
+

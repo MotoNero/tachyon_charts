@@ -19,6 +19,12 @@ public sealed record SampleInfo(string Id, string Name, DataShape Shape, int Def
 {
     /// <summary>Gets the smallest count that makes sense for the shape.</summary>
     public int MinimumCount { get; init; } = 2;
+
+    /// <summary>Gets the value of a curve at an X, for live data, or <see langword="null"/> for data that are no curve.</summary>
+    public Func<double, double>? Curve { get; init; }
+
+    /// <summary>Gets the same as a C# expression of <c>x</c>.</summary>
+    public string? CurveCode { get; init; }
 }
 
 /// <summary>A color of a parameter: #RRGGBB or #RRGGBBAA.</summary>
@@ -107,7 +113,8 @@ internal static class SampleCatalog
                     return data;
                 }
 
-            """);
+            """)
+    { Curve = curve, CurveCode = formula };
 
     private static SampleInfo Bubbles()
     {

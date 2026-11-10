@@ -17,11 +17,23 @@ public static class SpecChartBuilder
     /// <param name="catalog">The types, samples and interactions.</param>
     /// <param name="chart">The chart description to fill.</param>
     /// <exception cref="InvalidOperationException">The description has problems; see <see cref="ChartCatalog.Check"/>.</exception>
-    public static void Apply(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart)
+    public static void Apply(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart) => Apply(spec, catalog, chart, null);
+
+    /// <summary>Writes a description into a chart builder and starts its live data.</summary>
+    /// <param name="spec">The description.</param>
+    /// <param name="catalog">The types, samples and interactions.</param>
+    /// <param name="chart">The builder.</param>
+    /// <param name="running">
+    /// Receives what keeps live data coming, to dispose when the chart is gone; <see langword="null"/> leaves live data
+    /// empty, as for a description that is only checked.
+    /// </param>
+    /// <exception cref="InvalidOperationException">The description has problems.</exception>
+    public static void Apply(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, ICollection<IDisposable>? running)
     {
         ArgumentNullException.ThrowIfNull(spec);
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(chart);
+
         if (catalog.Check(spec) is { Count: > 0 } problems)
         {
             throw new InvalidOperationException(string.Join(" ", problems));
@@ -63,7 +75,7 @@ public static class SpecChartBuilder
             {
                 foreach (var series in spec.Series)
                 {
-                    catalog.FindType(series.Type)!.SceneApply!(builder, series, Data(catalog, series));
+                    catalog.FindType(series.Type)!.SceneApply!(builder, series, Data(catalog, series, running));
                 }
             });
             if (spec.Theme is { } chosen)
@@ -75,7 +87,7 @@ public static class SpecChartBuilder
         {
             foreach (var series in spec.Series)
             {
-                catalog.FindType(series.Type)!.Apply(chart, series, Data(catalog, series), new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id));
+                catalog.FindType(series.Type)!.Apply(chart, series, Data(catalog, series, running), new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id));
             }
         }
 
@@ -204,8 +216,16 @@ public static class SpecChartBuilder
         }
     }
 
-    private static object Data(ChartCatalog catalog, SeriesSpec series)
+    private static object Data(ChartCatalog catalog, SeriesSpec series, ICollection<IDisposable>? running)
     {
+        var type = catalog.FindType(series.Type)!;
+        if (series.Data.Kind != DataKind.Sample)
+        {
+            var loaded = DataSources.Load(series, type, catalog, running);
+            type.Prepare?.Invoke(series, loaded);
+            return loaded;
+        }
+
         var sample = catalog.FindSample(series.Data.Sample)!;
         var data = sample.Create(Math.Max(sample.MinimumCount, series.Data.Count));
         catalog.FindType(series.Type)!.Prepare?.Invoke(series, data);

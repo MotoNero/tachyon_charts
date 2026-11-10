@@ -52,7 +52,7 @@ internal static class CoreTypes
         ("headSize", nameof(StemSeries.HeadSize)),
         ("thickness", nameof(StemSeries.Thickness)),
         ("color", nameof(StemSeries.Color)))
-        .Type("stems", "Stems", DataShape.Points, "decay", (_, data, x, y) => new StemSeries((DataSource<double, double>)data, x, y), (_, data) => $"new StemSeries({data}, x, y)");
+        .Type("stems", "Stems", DataShape.Points, "decay", (_, data, x, y) => new StemSeries((IDataSource<double, double>)data, x, y), (_, data) => $"new StemSeries({data}, x, y)");
 
     public static ChartTypeInfo Histogram { get; } = new SeriesRecipe(
         typeof(BarSeries),

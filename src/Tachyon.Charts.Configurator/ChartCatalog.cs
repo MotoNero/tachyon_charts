@@ -20,6 +20,9 @@ public enum ParameterKind
     /// <summary>A color as #RRGGBB or #RRGGBBAA, or empty for the color of the theme.</summary>
     Color,
 
+    /// <summary>The path of a file; the apps offer to choose it.</summary>
+    File,
+
     /// <summary>Free text.</summary>
     Text,
 }
@@ -70,7 +73,7 @@ public sealed record ParameterInfo(string Name, string Label, ParameterKind Kind
         (ParameterKind.Flag, bool) => null,
         (ParameterKind.Choice, string text) when !Choices.Contains(text) => $"{Label} must be one of {string.Join(", ", Choices)}.",
         (ParameterKind.Color, string text) when text.Length > 0 && !SpecColor.TryParse(text, out _) => $"{Label} must be a color like #3A86FF.",
-        (ParameterKind.Choice or ParameterKind.Color or ParameterKind.Text, string) => null,
+        (ParameterKind.Choice or ParameterKind.Color or ParameterKind.Text or ParameterKind.File, string) => null,
         _ => $"{Label} has a value of the wrong kind.",
     };
 }
@@ -163,6 +166,9 @@ public enum DataShape
     /// <summary>Tasks over time in rows, with links between them.</summary>
     Gantt,
 
+    /// <summary>A model of triangles.</summary>
+    Model,
+
     /// <summary>The display of an oscilloscope with its channels.</summary>
     Scope,
 
@@ -237,6 +243,9 @@ public sealed class ChartTypeInfo
 
     /// <summary>Gets the statements that do what <see cref="Prepare"/> does, from the series and the name of its data.</summary>
     public Func<SeriesSpec, string, IEnumerable<string>>? PrepareCode { get; init; }
+
+    /// <summary>Gets static methods the code of this type calls, indented by four spaces, or empty for none.</summary>
+    public string Helpers { get; init; } = string.Empty;
 
     /// <summary>Gets a value indicating whether the X axis of a new chart of this type is a time axis.</summary>
     public bool UsesTime { get; init; }
@@ -319,6 +328,7 @@ public sealed class ChartCatalog
     private readonly List<ChartTypeInfo> _types = [];
     private readonly List<SampleInfo> _samples = [];
     private readonly List<SceneInfo> _scenes = [];
+    private readonly List<DataLoader> _loaders = [];
 
     // The modules of the add-ons by type and assembly; loaded only when the assembly is there.
     private static readonly string[] _addOns = ["Tachyon.Charts.Configurator.ThreeD.ThreeDModule, Tachyon.Charts.Configurator.ThreeD"];
@@ -368,7 +378,14 @@ public sealed class ChartCatalog
         }
 
         _scenes.AddRange(module.Scenes.Where(scene => _scenes.TrueForAll(known => known.Category != scene.Category)));
+        if (module is IDataLoaders readers)
+        {
+            _loaders.AddRange(readers.Loaders);
+        }
     }
+
+    /// <summary>Gets the readers of data the modules bring.</summary>
+    internal IReadOnlyList<DataLoader> Loaders => _loaders;
 
     /// <summary>Creates the catalog with the core and every add-on module whose assembly is there; the others stay out.</summary>
     /// <returns>The catalog.</returns>
@@ -583,7 +600,31 @@ public sealed class ChartCatalog
             problems.Add($"The series {series.Name} uses the unknown axis {y}.");
         }
 
-        if (series.Data.Kind is DataKind.Sample or DataKind.Live && FindSample(series.Data.Sample) is { } sample && sample.Shape != type.Shape)
+        if (!DataSources.Kinds(type, this).Contains(series.Data.Kind))
+        {
+            problems.Add($"{type.Name} cannot take data from {series.Data.Kind}.");
+        }
+        else if (DataSources.Loader(series, type, this) is { } loader)
+        {
+            if (loader.Problem(series) is { } unread)
+            {
+                problems.Add(unread);
+            }
+        }
+        else if (series.Data.Kind == DataKind.Csv && DataSources.CsvProblem(series, type) is { } problem)
+        {
+            problems.Add(problem);
+        }
+        else if (series.Data.Kind == DataKind.Hdf5 && DataSources.Hdf5Problem(series) is { } missing)
+        {
+            problems.Add(missing);
+        }
+        else if (series.Data.Kind == DataKind.Live && FindSample(series.Data.Sample)?.Curve is null)
+        {
+            problems.Add($"Live data of {series.Name} need a curve as sample data.");
+        }
+
+        if (series.Data.Kind == DataKind.Sample && FindSample(series.Data.Sample) is { } sample && sample.Shape != type.Shape)
         {
             problems.Add($"The sample {sample.Name} does not fit {type.Name}.");
         }

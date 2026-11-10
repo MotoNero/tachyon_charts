@@ -227,6 +227,27 @@ internal sealed class ConfiguratorWindow : Window
                 choice.SelectionChanged += (_, _) => Report(choice.SelectedItem is string text ? field.Set(text) : null);
                 editor = choice;
                 break;
+            case ParameterKind.File:
+                var path = new TextBox { Text = field.Text };
+                path.TextChanged += (_, _) => Report(field.SetText(path.Text ?? string.Empty));
+                var browse = new Button { Content = "…", Margin = new Thickness(4, 0, 0, 0) };
+                browse.Click += async (_, _) =>
+                {
+                    if (TopLevel.GetTopLevel(browse) is { } top)
+                    {
+                        var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { AllowMultiple = false });
+                        if (files.Count > 0 && files[0].TryGetLocalPath() is { } chosen)
+                        {
+                            path.Text = chosen;
+                        }
+                    }
+                };
+                var file = new DockPanel();
+                DockPanel.SetDock(browse, Dock.Right);
+                file.Children.Add(browse);
+                file.Children.Add(path);
+                editor = file;
+                break;
             default:
                 var box = new TextBox { Text = field.Text, HorizontalAlignment = HorizontalAlignment.Stretch };
                 box.TextChanged += (_, _) => Report(field.SetText(box.Text ?? string.Empty));

@@ -233,6 +233,24 @@ internal sealed class ConfiguratorWindow : Window
                 choice.SelectionChanged += (_, _) => Report(choice.SelectedItem is string text ? field.Set(text) : null);
                 editor = choice;
                 break;
+            case ParameterKind.File:
+                var path = new TextBox { Text = field.Text, Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2) };
+                path.TextChanged += (_, _) => Report(field.SetText(path.Text));
+                var browse = new Button { Content = "…", Margin = new Thickness(4, 0, 0, 0), Padding = new Thickness(8, 0, 8, 0) };
+                browse.Click += (_, _) =>
+                {
+                    var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "Data files|*.csv;*.txt;*.tsv;*.h5;*.hdf5;*.xyz;*.ply;*.las;*.nii;*.nii.gz;*.raw;*.stl;*.obj|All files|*.*" };
+                    if (dialog.ShowDialog(this) == true)
+                    {
+                        path.Text = dialog.FileName;
+                    }
+                };
+                var file = new DockPanel();
+                DockPanel.SetDock(browse, Dock.Right);
+                file.Children.Add(browse);
+                file.Children.Add(path);
+                editor = file;
+                break;
             default:
                 var box = new TextBox { Text = field.Text, Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2) };
                 box.TextChanged += (_, _) => Report(field.SetText(box.Text));

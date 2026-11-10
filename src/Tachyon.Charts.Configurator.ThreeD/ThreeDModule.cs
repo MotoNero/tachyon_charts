@@ -1,9 +1,11 @@
 using System.Globalization;
+using PureHDF;
 using Tachyon.Charts.Core.Data;
 using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Core.Series;
 using Tachyon.Charts.Rendering;
 using Tachyon.Charts.ThreeD;
+using Tachyon.Charts.ThreeD.Files;
 using Tachyon.Charts.ThreeD.Scene;
 
 namespace Tachyon.Charts.Configurator.ThreeD;
@@ -12,7 +14,7 @@ namespace Tachyon.Charts.Configurator.ThreeD;
 /// The 3D types of the configurator. They go into one 3D scene per chart, written as <c>.Scene3D(s => s …)</c>;
 /// the apps load this module only when its assembly is there.
 /// </summary>
-public sealed class ThreeDModule : IChartModule
+public sealed class ThreeDModule : IChartModule, IDataLoaders
 {
     /// <summary>The version of the 3D package the generated projects refer to.</summary>
     public const string PackageVersion = "1.0.0-preview.3";
@@ -86,10 +88,86 @@ public sealed class ThreeDModule : IChartModule
             data => Antenna(data), data => $"new AntennaPattern3D({data}.Azimuths, {data}.Elevations, {data}.Gains)"),
         Pie3DType("pie3d", "Pie 3D", 0),
         Pie3DType("donut3d", "Donut 3D", 0.5),
+        Model(),
     ];
 
     /// <inheritdoc />
     public IReadOnlyList<SampleInfo> Samples { get; } = Samples3D.Create();
+
+    /// <inheritdoc />
+    IReadOnlyList<DataLoader> IDataLoaders.Loaders { get; } =
+    [
+        new(DataKind.File, DataShape.Points3D,
+            series => Points(PointFile.Read(series.Data.Path!)),
+            (series, method) => FileCode(series, method, "(double[] X, double[] Y, double[] Z)", "var points = PointFile.Read({0});\n        return (points.X, points.Y, points.Z);"),
+            FileProblem, _files),
+        new(DataKind.File, DataShape.Volume,
+            series => VolumeFile.Read(series.Data.Path!).Data,
+            (series, method) => FileCode(series, method, "VolumeData", "return VolumeFile.Read({0}).Data;"),
+            FileProblem, _files),
+        new(DataKind.File, DataShape.Model,
+            series => ModelFile.Read(series.Data.Path!),
+            (series, method) => FileCode(series, method, "ModelFileData", "return ModelFile.Read({0});"),
+            FileProblem, _files),
+        new(DataKind.Hdf5, DataShape.Volume, VolumeFromHdf5, VolumeFromHdf5Code, Hdf5Problem, []),
+    ];
+
+    private static readonly (string, bool)[] _files = [("Tachyon.Charts.ThreeD.Files", true)];
+
+    private static string? FileProblem(SeriesSpec series) => series.Data.Path is { Length: > 0 } ? null : $"Choose the file of {series.Name}.";
+
+    private static string? Hdf5Problem(SeriesSpec series) => DataSources.Hdf5Problem(series);
+
+    private static (double[], double[], double[]) Points(PointFileData points) => (points.X, points.Y, points.Z);
+
+    private static DataCode FileCode(SeriesSpec series, string method, string type, string body) => new(
+        type,
+        method,
+        method + "()",
+        $$"""
+
+                /// <summary>Reads the data of {{System.Security.SecurityElement.Escape(series.Name)}} from a file.</summary>
+                /// <returns>The data.</returns>
+                public static {{type}} {{method}}()
+                {
+                    {{string.Format(CultureInfo.InvariantCulture, body, CodeText.String(series.Data.Path ?? string.Empty))}}
+                }
+
+            """,
+        ["Tachyon.Charts.ThreeD.Files", "Tachyon.Charts.ThreeD.Scene"]);
+
+    // A dataset of three dimensions, slowest first: depth, height, width.
+    private static object VolumeFromHdf5(SeriesSpec series)
+    {
+        using var file = H5File.OpenRead(series.Data.Path!);
+        var dataset = file.Dataset(series.Data.Options.GetText("dataset", string.Empty));
+        var dimensions = dataset.Space.Dimensions;
+        if (dimensions.Length != 3)
+        {
+            throw new InvalidOperationException($"A volume needs a dataset of three dimensions; this one has {dimensions.Length}.");
+        }
+
+        return new VolumeData([.. DataSources.Numbers(dataset).Select(value => (float)value)], (int)dimensions[2], (int)dimensions[1], (int)dimensions[0]);
+    }
+
+    private static DataCode VolumeFromHdf5Code(SeriesSpec series, string method) => new(
+        "VolumeData",
+        method,
+        method + "()",
+        $$"""
+
+                /// <summary>Reads the volume of {{System.Security.SecurityElement.Escape(series.Name)}} from an HDF5 file.</summary>
+                /// <returns>The data.</returns>
+                public static VolumeData {{method}}()
+                {
+                    using var file = H5File.OpenRead({{CodeText.String(series.Data.Path ?? string.Empty)}});
+                    var dataset = file.Dataset({{CodeText.String(series.Data.Options.GetText("dataset", string.Empty))}});
+                    var dimensions = dataset.Space.Dimensions;
+                    return new VolumeData([.. Numbers(dataset).Select(value => (float)value)], (int)dimensions[2], (int)dimensions[1], (int)dimensions[0]);
+                }
+
+            """,
+        ["PureHDF", "Tachyon.Charts.ThreeD.Scene"]);
 
     /// <inheritdoc />
     public IReadOnlyList<SceneInfo> Scenes { get; } =
@@ -109,6 +187,65 @@ public sealed class ThreeDModule : IChartModule
     ];
 
     private static DoubleRange Box => new(0, 10);
+
+    // A model from triangles: a torus as sample, or a file of STL or OBJ; the axes follow its corners.
+    private static ChartTypeInfo Model() => new(
+        "model3d",
+        "Model 3D",
+        ChartCategory.ThreeD,
+        DataShape.Model,
+        "torus",
+        [Color(), Lit(), Opacity()],
+        (_, _, _, _) => throw new InvalidOperationException("Model 3D goes into a 3D scene."),
+        (series, data, _) => $".XAxis(Cube({data}, 0).From, Cube({data}, 0).To, \"x\").YAxis(Cube({data}, 1).From, Cube({data}, 1).To, \"y\").ZAxis(Cube({data}, 2).From, Cube({data}, 2).To, \"z\")"
+            + $".AddMesh({data}.ToMesh({ModelColorCode(series.Parameters)}, new Material3D {{ IsLit = {CodeText.Flag(series.Parameters.GetFlag("lit", true))}, Opacity = {CodeText.Number(series.Parameters.GetNumber("opacity", 1))} }}))")
+    {
+        Usings = ["Tachyon.Charts.ThreeD.Files", "Tachyon.Charts.ThreeD.Scene"],
+        OwnsAxes = true,
+        Helpers = CubeCode,
+        SceneApply = (builder, series, data) =>
+        {
+            var (scene, model, values) = ((Chart3DBuilder)builder, (ModelFileData)data, series.Parameters);
+            scene.XAxis(Cube(model, 0).From, Cube(model, 0).To, "x")
+                .YAxis(Cube(model, 1).From, Cube(model, 1).To, "y")
+                .ZAxis(Cube(model, 2).From, Cube(model, 2).To, "z")
+                .AddMesh(model.ToMesh(SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? color : null, new Material3D { IsLit = values.GetFlag("lit", true), Opacity = values.GetNumber("opacity", 1) }));
+        },
+    };
+
+    // A cube around the model, so that all axes share one scale and the model keeps its shape.
+    private static (double From, double To) Cube(ModelFileData model, int axis)
+    {
+        static double Of(Point3D point, int axis) => axis switch { 0 => point.X, 1 => point.Y, _ => point.Z };
+        var size = 0.0;
+        for (var a = 0; a < 3; a++)
+        {
+            size = Math.Max(size, model.Positions.Max(p => Of(p, a)) - model.Positions.Min(p => Of(p, a)));
+        }
+
+        var middle = (model.Positions.Max(p => Of(p, axis)) + model.Positions.Min(p => Of(p, axis))) / 2;
+        return (middle - (size / 2), middle + (size / 2));
+    }
+
+    private const string CubeCode = """
+
+            // A cube around the model, so that all axes share one scale and the model keeps its shape.
+            private static (double From, double To) Cube(ModelFileData model, int axis)
+            {
+                static double Of(Point3D point, int axis) => axis switch { 0 => point.X, 1 => point.Y, _ => point.Z };
+                var size = 0.0;
+                for (var a = 0; a < 3; a++)
+                {
+                    size = Math.Max(size, model.Positions.Max(p => Of(p, a)) - model.Positions.Min(p => Of(p, a)));
+                }
+
+                var middle = (model.Positions.Max(p => Of(p, axis)) + model.Positions.Min(p => Of(p, axis))) / 2;
+                return (middle - (size / 2), middle + (size / 2));
+            }
+
+        """;
+
+    private static string ModelColorCode(SpecValues values) => SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? CodeText.Color(color) : "null";
 
     private static Rgba8 LimitColor => new(255, 70, 70, 255);
 
@@ -185,14 +322,18 @@ public sealed class ThreeDModule : IChartModule
             sample,
             recipe.Parameters,
             (_, _, _, _) => throw new InvalidOperationException($"{name} goes into a 3D scene."),
-            (series, data, _) => Axes(series.Parameters, height) + $".{add}({WithExtra(recipe.Expression(constructor(data), series), extra?.InitCode(series.Parameters))})" + (extra?.AfterCode(series.Parameters) ?? string.Empty))
+            (series, data, _) => (series.Data.Kind != DataKind.Sample && shape == DataShape.Points3D ? $".XAxis({data}.X.Min(), {data}.X.Max(), \"x\").YAxis({data}.Y.Min(), {data}.Y.Max(), \"y\").ZAxis({data}.Z.Min(), {data}.Z.Max(), \"z\")" : Axes(series.Parameters, height)) + $".{add}({WithExtra(recipe.Expression(constructor(data), series), extra?.InitCode(series.Parameters))})" + (extra?.AfterCode(series.Parameters) ?? string.Empty))
         {
             Usings = recipe.Usings,
             OwnsAxes = true,
             SceneApply = (builder, series, data) =>
             {
                 var scene = (Chart3DBuilder)builder;
-                if (height is not null)
+                if (series.Data.Kind != DataKind.Sample && data is ValueTuple<double[], double[], double[]> points)
+                {
+                    scene.XAxis(points.Item1.Min(), points.Item1.Max(), "x").YAxis(points.Item2.Min(), points.Item2.Max(), "y").ZAxis(points.Item3.Min(), points.Item3.Max(), "z");
+                }
+                else if (height is not null)
                 {
                     var values = series.Parameters;
                     scene.XAxis(0, 10, "x").YAxis(0, 10, "y").ZAxis(values.GetNumber("zFrom", height.Value.From), values.GetNumber("zTo", height.Value.To), "z");
