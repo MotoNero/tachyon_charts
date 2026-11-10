@@ -323,6 +323,15 @@ public sealed class ConfiguratorSession
         Structure();
     }
 
+    /// <summary>Starts a new chart from a template.</summary>
+    /// <param name="templateId">The identifier of the template, see <see cref="ChartCatalog.Templates"/>.</param>
+    /// <exception cref="KeyNotFoundException">There is no such template.</exception>
+    public void UseTemplate(string templateId)
+    {
+        var template = Catalog.Templates.FirstOrDefault(known => known.Id == templateId) ?? throw new KeyNotFoundException($"The template {templateId} is unknown.");
+        Load(template.Create(Catalog));
+    }
+
     /// <summary>Replaces the description, for example by one read from a file.</summary>
     /// <param name="spec">The description.</param>
     public void Load(ChartSpec spec)

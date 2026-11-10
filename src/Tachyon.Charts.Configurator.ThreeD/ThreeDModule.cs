@@ -95,6 +95,19 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
     public IReadOnlyList<SampleInfo> Samples { get; } = Samples3D.Create();
 
     /// <inheritdoc />
+    public IReadOnlyList<TemplateInfo> Templates { get; } =
+    [
+        new("surfaceLimit", "Surface with height lines and a limit", catalog =>
+        {
+            var spec = catalog.CreateSpec("surface3d");
+            spec.Series[0].Parameters.Set("heightLines", 10.0);
+            spec.Series[0].Parameters.Set("limit", true);
+            spec.Series[0].Parameters.Set("limitValue", 0.4);
+            return spec;
+        }),
+    ];
+
+    /// <inheritdoc />
     IReadOnlyList<DataLoader> IDataLoaders.Loaders { get; } =
     [
         new(DataKind.File, DataShape.Points3D,

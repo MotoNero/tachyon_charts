@@ -140,6 +140,7 @@ sealed class Tachyon.Charts.Configurator.ConfiguratorSession
   System.Void NewChart(System.String typeId)
   System.Void RemoveAnnotation()
   System.Void RemoveSeries()
+  System.Void UseTemplate(System.String templateId)
   Tachyon.Charts.Configurator.ChartCatalog Catalog { get; }
   Tachyon.Charts.Configurator.ChartSpec Spec { get; }
   Tachyon.Charts.Configurator.CodeOptions Options { get; set; }

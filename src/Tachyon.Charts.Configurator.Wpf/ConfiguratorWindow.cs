@@ -139,7 +139,27 @@ internal sealed class ConfiguratorWindow : Window
     private UIElement CreateSettings()
     {
         var types = _types = new ComboBox { Margin = new Thickness(0, 0, 0, 8), ItemsSource = _session.Catalog.Types.Select(type => type.Name).ToList(), SelectedIndex = 0 };
-        types.SelectionChanged += (_, _) => _session.NewChart(_session.Catalog.Types[types.SelectedIndex].Id);
+        types.SelectionChanged += (_, _) =>
+        {
+            if (!_isFilling && types.SelectedIndex >= 0)
+            {
+                _session.NewChart(_session.Catalog.Types[types.SelectedIndex].Id);
+            }
+        };
+        // Start from a template, open a saved description or save this one.
+        var templates = new ComboBox { ItemsSource = new[] { "Start from a template …" }.Concat(_session.Catalog.Templates.Select(template => template.Name)).ToList(), SelectedIndex = 0, MinWidth = 170, Margin = new Thickness(0, 0, 6, 0) };
+        templates.SelectionChanged += (_, _) =>
+        {
+            if (templates.SelectedIndex > 0)
+            {
+                _session.UseTemplate(_session.Catalog.Templates[templates.SelectedIndex - 1].Id);
+                templates.SelectedIndex = 0;
+            }
+        };
+        var file = new WrapPanel { Margin = new Thickness(0, 0, 0, 4) };
+        file.Children.Add(templates);
+        file.Children.Add(Action("Open …", OpenDescription));
+        file.Children.Add(Action("Save …", SaveDescription));
         var add = new ComboBox { Margin = new Thickness(0, 0, 6, 0), ItemsSource = _session.Catalog.Types.Select(type => type.Name).ToList(), SelectedIndex = 0, MinWidth = 120 };
         var buttons = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
         buttons.Children.Add(add);
@@ -160,6 +180,7 @@ internal sealed class ConfiguratorWindow : Window
         };
         var top = new StackPanel { Margin = new Thickness(16, 16, 8, 0) };
         top.Children.Add(new TextBlock { Text = "Configurator", FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 12) });
+        top.Children.Add(file);
         top.Children.Add(Heading("Chart type"));
         top.Children.Add(types);
         top.Children.Add(buttons);
@@ -195,6 +216,35 @@ internal sealed class ConfiguratorWindow : Window
         return button;
     }
 
+    // A description saved before; medical files are never in it and are chosen again.
+    private void OpenDescription()
+    {
+        var dialog = new OpenFileDialog { Filter = "Chart description|*.json|All files|*.*" };
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            _session.Load(ChartSpecJson.Read(File.ReadAllText(dialog.FileName)));
+        }
+        catch (Exception exception) when (exception is FormatException or IOException or UnauthorizedAccessException)
+        {
+            (_status.Text, _status.Foreground) = (exception.Message, Brushes.OrangeRed);
+        }
+    }
+
+    private void SaveDescription()
+    {
+        var dialog = new SaveFileDialog { FileName = _session.Options.ProjectName + ".chart.json", Filter = "Chart description|*.json" };
+        if (dialog.ShowDialog(this) == true)
+        {
+            File.WriteAllText(dialog.FileName, ChartSpecJson.Write(_session.Spec));
+            _status.Text = "Saved: " + dialog.FileName + (_session.Spec.Series.Exists(series => series.Data.Kind == DataKind.MedicalFile) ? ". Medical files are not saved; choose them again after opening." : string.Empty);
+        }
+    }
+
     private void SaveProject()
     {
         var dialog = new SaveFileDialog { FileName = _session.Options.ProjectName + ".zip", Filter = "ZIP archive|*.zip" };
@@ -212,6 +262,12 @@ internal sealed class ConfiguratorWindow : Window
         _isFilling = true;
         _series.ItemsSource = _session.Spec.Series.Select((series, index) => $"{index + 1}. {series.Name}").ToList();
         _series.SelectedIndex = _session.SelectedSeries;
+        if (_types is not null)
+        {
+            // A loaded description or a template shows its type without starting a new chart.
+            _types.SelectedIndex = _session.Catalog.Types.ToList().FindIndex(type => type.Id == _session.Spec.Series[0].Type);
+        }
+
         _isFilling = false;
         _fields.Children.Clear();
         string? group = null;

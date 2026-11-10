@@ -93,6 +93,38 @@ internal sealed class CoreModule : IChartModule
 
     public IReadOnlyList<SampleInfo> Samples { get; } = [.. SampleCatalog.Create(), .. ScienceSamples.Create(), .. FinanceTypes.Samples(), .. InstrumentTypes.Samples()];
 
+    /// <inheritdoc />
+    public IReadOnlyList<TemplateInfo> Templates { get; } =
+    [
+        new("trendLimits", "Trend with limits", catalog =>
+        {
+            // A measured value over time with an upper and a lower limit and a legend.
+            var spec = catalog.CreateSpec("line");
+            spec.Title = "Trend with limits";
+            spec.Series[0].Name = "Pressure";
+            spec.Series[0].Data.Sample = "signal";
+            spec.Legend = new LegendSpec();
+            foreach (var (value, label, color) in new[] { (1.2, "Upper limit", "#E63946"), (-1.2, "Lower limit", "#3A86FF") })
+            {
+                var limit = new AnnotationSpec { Type = "hline" };
+                limit.Parameters.Set("y", value);
+                limit.Parameters.Set("label", label);
+                limit.Parameters.Set("color", color);
+                spec.Annotations.Add(limit);
+            }
+
+            return spec;
+        }),
+        new("spectrumMask", "Spectrum with limit mask and marker", catalog => catalog.CreateSpec("spectrum")),
+        new("scopeFour", "Oscilloscope with four channels", catalog =>
+        {
+            var spec = catalog.CreateSpec("oscilloscope");
+            spec.Series[0].Parameters.Set("channels", 4.0);
+            spec.Series[0].Parameters.Set("signals", "Sine, Square, Burst, Triangle");
+            return spec;
+        }),
+    ];
+
     public static IReadOnlyList<ModifierInfo> CreateModifiers() =>
     [
         new("zoompan", "Zoom and pan", [], (m, _) => m.ZoomPan(), _ => ".ZoomPan()"),
