@@ -374,4 +374,10 @@ public sealed class Line3D(Points3D points)
 
     /// <summary>Gets the width in device-independent units.</summary>
     public double Width { get; init; } = 1.5;
+
+    /// <summary>
+    /// Gets a value indicating whether the line shows over everything else in the scene instead of hiding behind what
+    /// lies in front of it, as marks and measurements do.
+    /// </summary>
+    public bool DrawsOnTop { get; init; }
 }

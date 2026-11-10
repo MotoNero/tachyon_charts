@@ -56,6 +56,7 @@ public sealed partial class MedicalModule
             new("sagittal", "Sagittal", ParameterKind.Flag, true),
             new("volume", "Volume in 3D", ParameterKind.Flag, true),
             Memory(),
+            new("measurements3d", "Measurements in 3D", ParameterKind.Flag, true) { Description = "Every measurement also as a line in the 3D chart, on the slice it was drawn on." },
             new("x", "Sagittal position in %", ParameterKind.Number, 50.0) { Minimum = 0, Maximum = 100 },
             new("y", "Coronal position in %", ParameterKind.Number, 50.0) { Minimum = 0, Maximum = 100 },
             new("z", "Axial position in %", ParameterKind.Number, 50.0) { Minimum = 0, Maximum = 100 },
@@ -112,6 +113,7 @@ public sealed partial class MedicalModule
         var axial = display.Axial;
         Measure(values, axial.Measurements, axial.Width * axial.Spacing.Column, axial.Height * axial.Spacing.Row);
         SetTools(values, [display.Axial.Measurements, display.Coronal.Measurements, display.Sagittal.Measurements]);
+        display.ShowsMeasurements3D = values.GetFlag("measurements3d", true);
         display.Cine.FramesPerSecond = values.GetNumber("speed", 10);
         if (values.GetText("cine", "Off") is var cine && cine != "Off")
         {
@@ -131,6 +133,10 @@ public sealed partial class MedicalModule
         lines.AddRange(SegmentationCode(series, data));
         lines.AddRange(MeasureCode(values, $"{data}.Axial.Measurements", $"{data}.Axial.Width * {data}.Axial.Spacing.Column", $"{data}.Axial.Height * {data}.Axial.Spacing.Row").Where(line => line.StartsWith("Example", StringComparison.Ordinal)));
         lines.AddRange(ToolsCode(values, PlaneLayers(data, MedicalMprPlane.Axial, MedicalMprPlane.Coronal, MedicalMprPlane.Sagittal)));
+        if (!values.GetFlag("measurements3d", true))
+        {
+            lines.Add($"{data}.ShowsMeasurements3D = false;");
+        }
         lines.Add($"{data}.Cine.FramesPerSecond = {CodeText.Number(values.GetNumber("speed", 10))};");
         if (values.GetText("cine", "Off") is var cine && cine != "Off")
         {
@@ -189,6 +195,7 @@ public sealed partial class MedicalModule
             Layout("2 × 2"),
             new("volume", "Volume in 3D", ParameterKind.Flag, true) { Description = "With the oblique plane in it; the key V on the oblique plane turns it to face the 3D view." },
             Memory(),
+            new("measurements3d", "Measurements in 3D", ParameterKind.Flag, true) { Description = "Every measurement also as a line in the 3D chart, on the slice it was drawn on." },
             .. Window(),
             .. Tools(),
         ],
@@ -209,8 +216,9 @@ public sealed partial class MedicalModule
             MedicalSetup.Oblique(display);
             MedicalSetup.ReformatMeasurements(display.Axial);
             SetTools(series.Parameters, [display.Axial.Measurements]);
+            display.ShowsMeasurements3D = series.Parameters.GetFlag("measurements3d", true);
         },
-        PrepareCode = (series, data) => [.. LookCode(series.Parameters, data, image: false), .. WindowCode(series.Parameters, data), $"Oblique({data});", $"ReformatMeasurements({data}.Axial);", .. ToolsCode(series.Parameters, PlaneLayers(data, MedicalMprPlane.Axial))],
+        PrepareCode = (series, data) => [.. LookCode(series.Parameters, data, image: false), .. WindowCode(series.Parameters, data), $"Oblique({data});", $"ReformatMeasurements({data}.Axial);", .. ToolsCode(series.Parameters, PlaneLayers(data, MedicalMprPlane.Axial)), .. series.Parameters.GetFlag("measurements3d", true) ? Array.Empty<string>() : [$"{data}.ShowsMeasurements3D = false;"]],
         Helpers = Note + MedicalSetup.ReformatCode,
     };
 

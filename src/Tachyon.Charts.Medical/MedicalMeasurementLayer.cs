@@ -102,10 +102,12 @@ public sealed class MedicalMeasurementLayer : ChartOverlay
         ArgumentOutOfRangeException.ThrowIfNegative(index, nameof(slice));
         ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _source.SliceCount, nameof(slice));
         var measurement = new MedicalMeasurement(kind, points, index, name ?? DefaultName(kind));
-        Insert(measurement, _measurements.Count);
 
-        // Only a measurement drawn or touched with the pointer counts as selected.
+        // Only a measurement drawn or touched with the pointer counts as selected; those who listen see it so at once.
+        measurement.Update(_source);
+        _measurements.Add(measurement);
         Selected = null;
+        Notify(measurement);
         return measurement;
     }
 
@@ -254,9 +256,17 @@ public sealed class MedicalMeasurementLayer : ChartOverlay
 
     internal void Select(MedicalMeasurement? measurement)
     {
+        var changed = Selected != measurement;
         Selected = measurement;
         OnChanged();
+        if (changed)
+        {
+            SelectionChanged?.Invoke();
+        }
     }
+
+    /// <summary>Occurs when another measurement becomes the selected one, without a measurement changing.</summary>
+    internal event Action? SelectionChanged;
 
     // The nearest point of a measurement on the slice shown, within reach of the pointer.
     internal bool TryFindPoint(ChartLayoutResult layout, Vector2 position, float reach, out MedicalMeasurement measurement, out int index)

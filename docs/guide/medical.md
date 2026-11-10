@@ -134,6 +134,8 @@ The grayscale bar beside every image sets the window too: the wheel on it widens
 
 ## Measurements
 
+The measurements of the three planes of a `MedicalMprDisplay` also show in its 3D charts, each as a line on the slice it was drawn on and in sight over the planes; `ShowsMeasurements3D = false` before `Configure3D` leaves them out. In the image, `ShowsTools = true` on a layer gives a bar of tools in its lower left corner: a click chooses a tool, a second click puts it away.
+
 Each image and each MPR plane has a `Measurements` layer: distances in millimetres, angles in degrees, and circles, rectangles and freehand outlines with their area and the mean, standard deviation, minimum and maximum of the pixels inside. Points are in millimetres from the upper-left image corner, so a pixel spacing that differs across and down is part of every result. A pixel counts for a region when its middle lies inside.
 
 ```csharp

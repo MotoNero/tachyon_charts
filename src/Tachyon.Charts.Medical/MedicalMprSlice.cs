@@ -149,6 +149,23 @@ public sealed class MedicalMprSlice
 
     internal Point3D ToVolumePosition(double x, double y) => _buffer.ToVolumePosition(x, y, _display.Position);
 
+    /// <summary>Converts a point of the picture to volume-local millimetres on a given slice.</summary>
+    /// <param name="x">The horizontal place in the picture, in millimetres.</param>
+    /// <param name="y">The vertical place in the picture, in millimetres from the top.</param>
+    /// <param name="slice">A point on the slice; only its coordinate along the normal counts.</param>
+    /// <returns>The point in the volume.</returns>
+    internal Point3D ToVolumePosition(double x, double y, Point3D slice) => _buffer.ToVolumePosition(x, y, slice);
+
+    /// <summary>Gets a point on a slice of this plane: the slice number times the distance of the slices along the normal.</summary>
+    /// <param name="slice">The number of the slice.</param>
+    /// <returns>The point.</returns>
+    internal Point3D SlicePosition(int slice) => Plane switch
+    {
+        MedicalMprPlane.Axial => new Point3D(0, 0, slice * _buffer.SliceDistance),
+        MedicalMprPlane.Coronal => new Point3D(0, slice * _buffer.SliceDistance, 0),
+        _ => new Point3D(slice * _buffer.SliceDistance, 0, 0),
+    };
+
     internal (double X, double Y) FromVolumePosition(Point3D position) => _buffer.FromVolumePosition(position);
 
     private sealed class MedicalMprModifier : ChartModifier

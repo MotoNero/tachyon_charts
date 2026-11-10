@@ -159,6 +159,7 @@ struct Tachyon.Charts.ThreeD.Scene.CutMarker : System.IEquatable<Tachyon.Charts.
   System.Int32 Number { get; set; }
 sealed class Tachyon.Charts.ThreeD.Scene.Line3D
   .ctor(Tachyon.Charts.ThreeD.Scene.Points3D points)
+  System.Boolean DrawsOnTop { get; set; }
   System.Boolean ShowsValues { get; set; }
   System.Double Width { get; set; }
   Tachyon.Charts.Rendering.Rgba8 Color { get; set; }

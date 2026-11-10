@@ -30,6 +30,10 @@ internal sealed unsafe partial class Renderer3D
     private readonly Dictionary<Line3D, TraceBuffer> _traces = [];
     private readonly Dictionary<Scatter3D, TraceBuffer> _spots = [];
     private Native.RenderPipeline* _tracePipeline;
+
+    // The same lines over everything: no depth test, no depth written; it shares the bind groups of the lines.
+    private Native.RenderPipeline* _traceOnTopPipeline;
+    private Native.PipelineLayout* _traceOnTopLayout;
     private Native.BindGroupLayout* _traceLayout;
     private Native.RenderPipeline* _spotPipeline;
     private Native.BindGroupLayout* _spotLayout;
@@ -41,7 +45,7 @@ internal sealed unsafe partial class Renderer3D
     {
         if (!_traces.TryGetValue(line, out var buffer))
         {
-            buffer = new TraceBuffer(this, line.Points, line.Width, _traceLayout);
+            buffer = new TraceBuffer(this, line.Points, line.Width, _traceLayout) { IsOnTop = line.DrawsOnTop };
             _traces[line] = buffer;
         }
 
@@ -122,9 +126,17 @@ internal sealed unsafe partial class Renderer3D
                 Fragment = &fragment,
             };
             _tracePipeline = Api.DeviceCreateRenderPipeline(_device.Device, &descriptor);
+            _traceLayout = Api.RenderPipelineGetBindGroupLayout(_tracePipeline, 0);
+
+            var groupLayout = _traceLayout;
+            var layoutDescriptor = new Native.PipelineLayoutDescriptor { BindGroupLayoutCount = 1, BindGroupLayouts = &groupLayout };
+            _traceOnTopLayout = Api.DeviceCreatePipelineLayout(_device.Device, &layoutDescriptor);
+            var onTop = CreateDepthState(writesDepth: false, Native.CompareFunction.Always);
+            descriptor.DepthStencil = &onTop;
+            descriptor.Layout = _traceOnTopLayout;
+            _traceOnTopPipeline = Api.DeviceCreateRenderPipeline(_device.Device, &descriptor);
         }
 
-        _traceLayout = Api.RenderPipelineGetBindGroupLayout(_tracePipeline, 0);
         Api.ShaderModuleRelease(shader);
     }
 
@@ -148,13 +160,35 @@ internal sealed unsafe partial class Renderer3D
             Api.RenderPassEncoderSetPipeline(pass, _tracePipeline);
             foreach (var trace in _traces.Values)
             {
-                trace.Draw(pass);
+                if (!trace.IsOnTop)
+                {
+                    trace.Draw(pass);
+                }
             }
         }
 
         foreach (var spots in _spots.Values)
         {
             spots.DrawSpots(pass);
+        }
+    }
+
+    // The lines over everything, after all that is opaque.
+    private void DrawTracesOnTop(Native.RenderPassEncoder* pass)
+    {
+        var isSet = false;
+        foreach (var trace in _traces.Values)
+        {
+            if (trace.IsOnTop)
+            {
+                if (!isSet)
+                {
+                    Api.RenderPassEncoderSetPipeline(pass, _traceOnTopPipeline);
+                    isSet = true;
+                }
+
+                trace.Draw(pass);
+            }
         }
     }
 
@@ -174,11 +208,16 @@ internal sealed unsafe partial class Renderer3D
         Api.RenderPipelineRelease(_spotPipeline);
         Api.BindGroupLayoutRelease(_traceLayout);
         Api.RenderPipelineRelease(_tracePipeline);
+        Api.RenderPipelineRelease(_traceOnTopPipeline);
+        Api.PipelineLayoutRelease(_traceOnTopLayout);
     }
 
     /// <summary>The points and uniforms of a line or cloud on the GPU.</summary>
     private sealed class TraceBuffer : ITraceTarget, IDisposable
     {
+        /// <summary>Gets a value indicating whether the line shows over everything, see <see cref="Line3D.DrawsOnTop"/>.</summary>
+        public bool IsOnTop { get; init; }
+
         private readonly Renderer3D _owner;
         private readonly Points3D _source;
         private readonly double _width;

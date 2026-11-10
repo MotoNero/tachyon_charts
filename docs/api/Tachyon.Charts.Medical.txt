@@ -138,6 +138,7 @@ struct Tachyon.Charts.Medical.MedicalMeasurementResult : System.IEquatable<Tachy
 sealed class Tachyon.Charts.Medical.MedicalMprDisplay
   .ctor(Tachyon.Charts.Medical.MedicalVolume volume)
   .ctor(Tachyon.Charts.Medical.MedicalVolume volume, Tachyon.Charts.Medical.MedicalMprOptions options)
+  System.Boolean ShowsMeasurements3D { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Medical.MedicalSegmentation> Segmentations { get; }
   System.String Unit { get; }
   System.Void AddSegmentation(Tachyon.Charts.Medical.MedicalSegmentation segmentation)

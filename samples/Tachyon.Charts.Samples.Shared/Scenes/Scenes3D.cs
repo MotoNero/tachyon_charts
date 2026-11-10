@@ -45,6 +45,7 @@ public static class Scenes3D
     [
         new MedicalMprScene(),
         new MedicalSegmentationVolumeScene(),
+        new MedicalMeasurements3DScene(),
         new MedicalSegmentationSurfaceScene(),
         new Scene3DPicture(Box3DPicture.Name, Box3DPicture.Configure),
         new Scene3DPicture(Box3DBehindPicture.Name, Box3DBehindPicture.Configure),

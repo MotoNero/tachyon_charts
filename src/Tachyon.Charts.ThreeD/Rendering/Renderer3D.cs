@@ -376,10 +376,12 @@ internal sealed unsafe partial class Renderer3D : IDisposable
         return reader.ReadToEnd();
     }
 
-    private static Native.DepthStencilState CreateDepthState(bool writesDepth)
+    private static Native.DepthStencilState CreateDepthState(bool writesDepth) => CreateDepthState(writesDepth, Native.CompareFunction.LessEqual);
+
+    private static Native.DepthStencilState CreateDepthState(bool writesDepth, Native.CompareFunction compare)
     {
         var keep = new Native.StencilFaceState { Compare = Native.CompareFunction.Always, FailOp = Native.StencilOperation.Keep, DepthFailOp = Native.StencilOperation.Keep, PassOp = Native.StencilOperation.Keep };
-        return new Native.DepthStencilState { Format = DepthFormat, DepthWriteEnabled = writesDepth, DepthCompare = Native.CompareFunction.LessEqual, StencilFront = keep, StencilBack = keep };
+        return new Native.DepthStencilState { Format = DepthFormat, DepthWriteEnabled = writesDepth, DepthCompare = compare, StencilFront = keep, StencilBack = keep };
     }
 
     private void EncodeOpaque(Native.CommandEncoder* encoder, Rgba8 background, int lineCount, bool keepsDepth, float eyeY)
@@ -446,6 +448,7 @@ internal sealed unsafe partial class Renderer3D : IDisposable
             surface.DrawProjection(pass);
         }
 
+        DrawTracesOnTop(pass);
         Api.RenderPassEncoderEnd(pass);
         Api.RenderPassEncoderRelease(pass);
     }

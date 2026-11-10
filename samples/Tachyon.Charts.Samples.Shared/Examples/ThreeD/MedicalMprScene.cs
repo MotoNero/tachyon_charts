@@ -16,6 +16,7 @@ public sealed class MedicalMprScene : IScene
     private const int ChartCount = 4;
     private readonly string _name;
     private readonly MedicalSegmentation3DMode? _segmentationMode;
+    private readonly bool _measured;
 
     /// <summary>The snapshot name.</summary>
     public const string Name = "MedicalMpr";
@@ -26,11 +27,12 @@ public sealed class MedicalMprScene : IScene
     {
     }
 
-    internal MedicalMprScene(string name, MedicalSegmentation3DMode? segmentationMode)
+    internal MedicalMprScene(string name, MedicalSegmentation3DMode? segmentationMode, bool measured = false)
     {
         _name = name;
         _segmentationMode = segmentationMode;
-        Size = segmentationMode == MedicalSegmentation3DMode.Volume ? new(900, 640) : new(1000, 800);
+        _measured = measured;
+        Size = segmentationMode == MedicalSegmentation3DMode.Volume || measured ? new(900, 640) : new(1000, 800);
     }
 
     string IScene.Name => _name;
@@ -47,6 +49,20 @@ public sealed class MedicalMprScene : IScene
         {
             foreach (var series in chart.Series) (series as IDisposable)?.Dispose();
         }
+    }
+
+    // A distance and a circle on the axial plane, an angle on the coronal one and a rectangle on the sagittal one, in
+    // shares of each plane; the 3D chart shows them as lines on their slices.
+    private static void Measure(MedicalMprDisplay display)
+    {
+        static (double Width, double Height) Size(MedicalMprSlice slice) => (slice.Width * slice.Spacing.Column, slice.Height * slice.Spacing.Row);
+        var (w, h) = Size(display.Axial);
+        display.Axial.Measurements.Add(MedicalMeasurementKind.Distance, [new(w * 0.2, h * 0.7), new(w * 0.8, h * 0.7)]);
+        display.Axial.Measurements.Add(MedicalMeasurementKind.Circle, [new(w * 0.34, h * 0.43), new(w * 0.4, h * 0.43)]);
+        (w, h) = Size(display.Coronal);
+        display.Coronal.Measurements.Add(MedicalMeasurementKind.Angle, [new(w * 0.3, h * 0.3), new(w * 0.5, h * 0.6), new(w * 0.7, h * 0.3)]);
+        (w, h) = Size(display.Sagittal);
+        display.Sagittal.Measurements.Add(MedicalMeasurementKind.Rectangle, [new(w * 0.35, h * 0.35), new(w * 0.65, h * 0.6)]);
     }
 
     // The volume reaches the GPU over several frames; the picture shows it whole.
@@ -74,9 +90,14 @@ public sealed class MedicalMprScene : IScene
             };
             display.AddSegmentation(segmentation);
         }
+        if (_measured)
+        {
+            Measure(display);
+        }
+
         var chartSize = new PixelSize(target.Size.Width / 2, target.Size.Height / 2);
         var charts = BuildCharts(display);
-        if (_segmentationMode == MedicalSegmentation3DMode.Volume)
+        if (_segmentationMode == MedicalSegmentation3DMode.Volume || _measured)
         {
             RenderVolumeOnly(device, target, charts, display);
             return;

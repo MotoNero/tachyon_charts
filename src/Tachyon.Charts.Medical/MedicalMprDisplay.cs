@@ -20,6 +20,7 @@ public sealed class MedicalMprDisplay
     private readonly List<MedicalSegmentation> _segmentationSources = [];
     private readonly List<Scene3D> _scenes = [];
     private MedicalMprOptions _options;
+    private MedicalMeasurements3D? _measurements3D;
 
     /// <summary>Initializes linked orthogonal views of a regularly spaced medical volume.</summary>
     /// <param name="volume">The volume.</param>
@@ -75,6 +76,15 @@ public sealed class MedicalMprDisplay
 
     /// <summary>Gets the source volume.</summary>
     public MedicalVolume Source { get; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the measurements of the planes show in the 3D charts described afterwards,
+    /// each as a line on the slice it was drawn on; drawing, moving, deleting and undoing follow at once.
+    /// </summary>
+    public bool ShowsMeasurements3D { get; set; } = true;
+
+    /// <summary>Gets the measurements as lines in 3D, made when first needed.</summary>
+    internal MedicalMeasurements3D Measurements3D => LazyInitializer.EnsureInitialized(ref _measurements3D, () => new MedicalMeasurements3D(this));
 
     /// <summary>
     /// Gets or sets how the display shows the volume. The planes follow at once; the 3D volume takes new options only
@@ -207,6 +217,12 @@ public sealed class MedicalMprDisplay
             .ZAxis(0, maximum.Z, "mm");
         chart.AddVolume(Volume);
         foreach (var layer in _segmentations) layer.AddTo(chart.Scene);
+        if (ShowsMeasurements3D)
+        {
+            var measurements = Measurements3D;
+            chart.AddLine(measurements.Lines).AddLine(measurements.Selected);
+        }
+
         _scenes.Add(chart.Scene);
         chart.Scene.MarkerAdded += OnMarkerAdded;
     }
