@@ -108,6 +108,7 @@ public sealed partial class MedicalModule
         AddSegmentation(series, display);
         var axial = display.Axial;
         Measure(values, axial.Measurements, axial.Width * axial.Spacing.Column, axial.Height * axial.Spacing.Row);
+        SetTool(values, [display.Axial, display.Coronal, display.Sagittal]);
         display.Cine.FramesPerSecond = values.GetNumber("speed", 10);
         if (values.GetText("cine", "Off") is var cine && cine != "Off")
         {
@@ -125,7 +126,8 @@ public sealed partial class MedicalModule
             $"MoveTo({data}, MedicalMprPlane.Axial, {CodeText.Number(values.GetNumber("z", 50) / 100)});",
         };
         lines.AddRange(SegmentationCode(series, data));
-        lines.AddRange(MeasureCode(values, $"{data}.Axial.Measurements", $"{data}.Axial.Width * {data}.Axial.Spacing.Column", $"{data}.Axial.Height * {data}.Axial.Spacing.Row"));
+        lines.AddRange(MeasureCode(values, $"{data}.Axial.Measurements", $"{data}.Axial.Width * {data}.Axial.Spacing.Column", $"{data}.Axial.Height * {data}.Axial.Spacing.Row").Where(line => !line.Contains(".Tool = ", StringComparison.Ordinal)));
+        lines.AddRange(ToolCode(values, data, [MedicalMprPlane.Axial, MedicalMprPlane.Coronal, MedicalMprPlane.Sagittal]));
         lines.Add($"{data}.Cine.FramesPerSecond = {CodeText.Number(values.GetNumber("speed", 10))};");
         if (values.GetText("cine", "Off") is var cine && cine != "Off")
         {
@@ -142,6 +144,7 @@ public sealed partial class MedicalModule
             .. Window(),
             .. Segmentation(threeD: false),
             new("bins", "Histogram bins", ParameterKind.Integer, 512.0) { Minimum = 8, Maximum = 4096 },
+            Tool(),
         ],
         (chart, series, data, _) => AnalysisViews(series)[0].Apply(chart, series, data),
         (_, _, _) => string.Empty)
@@ -157,8 +160,9 @@ public sealed partial class MedicalModule
             SetWindow(series.Parameters, display.ApplyPreset, display.SetWindow);
             AddSegmentation(series, display);
             MedicalSetup.AnalysisMeasurements(display.Axial);
+            SetTool(series.Parameters, [display.Axial]);
         },
-        PrepareCode = (series, data) => [.. WindowCode(series.Parameters, data), .. SegmentationCode(series, data), $"AnalysisMeasurements({data}.Axial);"],
+        PrepareCode = (series, data) => [.. WindowCode(series.Parameters, data), .. SegmentationCode(series, data), $"AnalysisMeasurements({data}.Axial);", .. ToolCode(series.Parameters, data, [MedicalMprPlane.Axial])],
         Helpers = Note + MedicalSetup.PhantomSegmentationCode + MedicalSetup.AnalysisMeasurementsCode,
     };
 
@@ -180,6 +184,7 @@ public sealed partial class MedicalModule
             Layout("2 × 2"),
             new("volume", "Volume in 3D", ParameterKind.Flag, true) { Description = "With the oblique plane in it; the key V on the oblique plane turns it to face the 3D view." },
             .. Window(),
+            Tool(),
         ],
         (chart, series, data, _) => ReformatViews(series)[0].Apply(chart, series, data),
         (_, _, _) => string.Empty)
@@ -195,8 +200,9 @@ public sealed partial class MedicalModule
             SetWindow(series.Parameters, display.ApplyPreset, display.SetWindow);
             MedicalSetup.Oblique(display);
             MedicalSetup.ReformatMeasurements(display.Axial);
+            SetTool(series.Parameters, [display.Axial]);
         },
-        PrepareCode = (series, data) => [.. WindowCode(series.Parameters, data), $"Oblique({data});", $"ReformatMeasurements({data}.Axial);"],
+        PrepareCode = (series, data) => [.. WindowCode(series.Parameters, data), $"Oblique({data});", $"ReformatMeasurements({data}.Axial);", .. ToolCode(series.Parameters, data, [MedicalMprPlane.Axial])],
         Helpers = Note + MedicalSetup.ReformatCode,
     };
 

@@ -107,8 +107,27 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
     private static ParameterInfo[] Measuring() =>
     [
         new("measurements", "Example measurements", ParameterKind.Flag, false) { Description = "A distance, an angle and a round region, placed by the size of the image." },
-        new("tool", "Measuring tool", ParameterKind.Choice, "None") { Choices = ["None", .. Enum.GetNames<MedicalMeasurementKind>()], Description = "What a drag draws; the keys D, A, C, R and F choose another." },
+        Tool(),
     ];
+
+    private static ParameterInfo Tool() => new("tool", "Measuring tool", ParameterKind.Choice, "None")
+    {
+        Choices = ["None", .. Enum.GetNames<MedicalMeasurementKind>()],
+        Description = "What a drag in an image draws; None moves points and the window. In the chart the keys D, A, C, R and F choose another tool, Escape none.",
+    };
+
+    // The tool of every image of a display, so that a drag draws in whichever plane it starts.
+    private static void SetTool(SpecValues values, IEnumerable<MedicalMprSlice> slices)
+    {
+        var tool = values.GetText("tool", "None") is var name && name != "None" ? Enum.Parse<MedicalMeasurementKind>(name) : (MedicalMeasurementKind?)null;
+        foreach (var slice in slices)
+        {
+            slice.Measurements.Tool = tool;
+        }
+    }
+
+    private static IEnumerable<string> ToolCode(SpecValues values, string data, IEnumerable<MedicalMprPlane> planes) =>
+        values.GetText("tool", "None") is var tool && tool != "None" ? planes.Select(plane => $"{data}.{plane}.Measurements.Tool = MedicalMeasurementKind.{tool};") : [];
 
     private static ParameterInfo[] Segmentation(bool threeD) => threeD
         ?
