@@ -85,7 +85,7 @@ public static class SpecChartBuilder
         }
         else
         {
-            foreach (var series in spec.Series)
+            foreach (var series in DataSources.Expanded(spec.Series, catalog))
             {
                 catalog.FindType(series.Type)!.Apply(chart, series, Data(catalog, series, running), new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id));
             }

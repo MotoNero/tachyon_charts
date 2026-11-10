@@ -227,6 +227,19 @@ internal sealed class ConfiguratorWindow : Window
                 choice.SelectionChanged += (_, _) => Report(choice.SelectedItem is string text ? field.Set(text) : null);
                 editor = choice;
                 break;
+            case ParameterKind.Choices:
+                // A box per choice; the value lists the checked ones in the order of the choices.
+                var chosen = ParameterInfo.Split((string)field.Value);
+                var boxes = new WrapPanel();
+                foreach (var item in field.Info.Choices)
+                {
+                    var option = new CheckBox { Content = new TextBlock { Text = item }, Tag = item, IsChecked = chosen.Contains(item), Margin = new Thickness(0, 0, 10, 2) };
+                    option.IsCheckedChanged += (_, _) => Report(field.Set(string.Join(",", boxes.Children.OfType<CheckBox>().Where(box => box.IsChecked == true).Select(box => (string)box.Tag!))));
+                    boxes.Children.Add(option);
+                }
+
+                editor = boxes;
+                break;
             case ParameterKind.File:
                 var path = new TextBox { Text = field.Text };
                 path.TextChanged += (_, _) => Report(field.SetText(path.Text ?? string.Empty));

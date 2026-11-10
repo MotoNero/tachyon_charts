@@ -72,6 +72,9 @@ internal sealed class ConfiguratorWindow : Window
     /// <summary>Gets the identifier of the type to start with, or <see langword="null"/> for the first.</summary>
     public string? StartType { get; init; }
 
+    /// <summary>Gets a saved description to start with, or <see langword="null"/>.</summary>
+    public string? StartSpec { get; init; }
+
     private ComboBox? _types;
 
     private void SelectStartType()
@@ -87,6 +90,11 @@ internal sealed class ConfiguratorWindow : Window
     {
         base.OnContentRendered(e);
         SelectStartType();
+        if (StartSpec is { } saved)
+        {
+            _session.Load(ChartSpecJson.Read(await File.ReadAllTextAsync(saved)));
+        }
+
         if (ScreenshotPath is { } path)
         {
             await Task.Delay(1500);
@@ -233,6 +241,19 @@ internal sealed class ConfiguratorWindow : Window
                 choice.SelectionChanged += (_, _) => Report(choice.SelectedItem is string text ? field.Set(text) : null);
                 editor = choice;
                 break;
+            case ParameterKind.Choices:
+                // A box per choice; the value lists the checked ones in the order of the choices.
+                var chosen = ParameterInfo.Split((string)field.Value);
+                var boxes = new WrapPanel();
+                foreach (var item in field.Info.Choices)
+                {
+                    var option = new CheckBox { Content = new TextBlock { Text = item }, Tag = item, IsChecked = chosen.Contains(item), Margin = new Thickness(0, 0, 10, 2), Foreground = (Brush)FindResource("Ink") };
+                    option.Click += (_, _) => Report(field.Set(string.Join(",", boxes.Children.OfType<CheckBox>().Where(box => box.IsChecked == true).Select(box => (string)box.Tag))));
+                    boxes.Children.Add(option);
+                }
+
+                editor = boxes;
+                break;
             case ParameterKind.File:
                 var path = new TextBox { Text = field.Text, Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2) };
                 path.TextChanged += (_, _) => Report(field.SetText(path.Text));
@@ -370,6 +391,7 @@ internal static class Program
         var screenshot = Array.IndexOf(args, "--screenshot");
         var path = screenshot >= 0 && screenshot + 1 < args.Length ? args[screenshot + 1] : null;
         var type = Array.IndexOf(args, "--type");
+        var spec = Array.IndexOf(args, "--spec");
         if (path is not null)
         {
             // Pictures draw on the CPU, so that the chart is part of the picture of the window.
@@ -378,6 +400,6 @@ internal static class Program
 
         var application = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
         SampleStyle.Apply(application);
-        application.Run(new ConfiguratorWindow { ScreenshotPath = path, StartType = type >= 0 && type + 1 < args.Length ? args[type + 1] : null });
+        application.Run(new ConfiguratorWindow { ScreenshotPath = path, StartType = type >= 0 && type + 1 < args.Length ? args[type + 1] : null, StartSpec = spec >= 0 && spec + 1 < args.Length ? args[spec + 1] : null });
     }
 }

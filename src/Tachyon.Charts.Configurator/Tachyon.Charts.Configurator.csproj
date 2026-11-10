@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="../Tachyon.Charts.Core/Tachyon.Charts.Core.csproj" />
     <PackageReference Include="PureHDF" />
+    <Content Include="Examples\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

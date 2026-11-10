@@ -411,12 +411,7 @@ public sealed class ConfiguratorSession
         switch (data.Kind)
         {
             case DataKind.Csv:
-                fields.Add(Field(group, new("file", "CSV file", ParameterKind.File, string.Empty), () => data.Path ?? string.Empty, value => data.Path = (string)value));
-                fields.Add(Field(group, new("delimiter", "Delimiter", ParameterKind.Choice, "Comma") { Choices = ["Comma", "Semicolon", "Tab", "Space"] }, () => options.GetText("delimiter", "Comma"), value => SetValue(options, "delimiter", value)));
-                fields.Add(Field(group, new("header", "First line names the columns", ParameterKind.Flag, true), () => options.GetFlag("header", true), value => SetValue(options, "header", value)));
-                fields.Add(Field(group, new("decimalComma", "Decimal comma", ParameterKind.Flag, false) { Description = "Numbers like 3,14 instead of 3.14." }, () => options.GetFlag("decimalComma", false), value => SetValue(options, "decimalComma", value)));
-                fields.Add(Field(group, new("x", "X column", ParameterKind.Text, string.Empty) { Description = "Its name or number from 1; empty for the number of the row." }, () => options.GetText("x", string.Empty), value => SetValue(options, "x", value)));
-                fields.Add(Field(group, new("y", "Y columns", ParameterKind.Text, string.Empty) { Description = "Names or numbers from 1, separated by commas: " + DataSources.CsvColumns(type.Shape) + "." }, () => options.GetText("y", string.Empty), value => SetValue(options, "y", value)));
+                CsvFields(group, type, data, fields);
                 break;
             case DataKind.Hdf5:
                 // The datasets of a readable file to choose from, with their dimensions; otherwise a path to type.
@@ -456,6 +451,106 @@ public sealed class ConfiguratorSession
         Field("Chart", new(name + "Placement", "   Place", ParameterKind.Choice, "TopRight") { Choices = Enum.GetNames<Core.Input.LegendPlacement>() }, () => legend.Placement, value => legend.Placement = (string)value),
         Field("Chart", new(name + "Series", "   Series", ParameterKind.Text, string.Empty) { Description = "The names of the series it lists, separated by commas; empty for all." }, () => legend.Series, value => legend.Series = (string)value),
     ];
+
+    private const string OwnFile = "(own file)";
+
+    private const string RowNumber = "(number of the row)";
+
+    // The fields of a CSV source: an example or an own file, its format, and its columns to choose from.
+    private void CsvFields(string group, ChartTypeInfo type, DataSpec data, List<FieldModel> fields)
+    {
+        var options = data.Options;
+        var examples = DataSources.CsvExamples;
+        if (examples.Count > 0)
+        {
+            fields.Add(Field(group, new("example", "Example file", ParameterKind.Choice, OwnFile) { Choices = [OwnFile, .. examples.Select(Path.GetFileName).OfType<string>()], Description = "Files that come with the configurator." }, () => examples.FirstOrDefault(example => data.Path is { Length: > 0 } path && string.Equals(example, Path.GetFullPath(path), StringComparison.OrdinalIgnoreCase)) is { } chosen ? Path.GetFileName(chosen) : OwnFile, value =>
+            {
+                if (examples.FirstOrDefault(example => Path.GetFileName(example) == (string)value) is { } chosen)
+                {
+                    UseCsv(type, data, chosen);
+                }
+            }, structural: true));
+        }
+
+        fields.Add(Field(group, new("file", "CSV file", ParameterKind.File, string.Empty), () => data.Path ?? string.Empty, value => UseCsv(type, data, (string)value), structural: true));
+        fields.Add(Field(group, new("delimiter", "Delimiter", ParameterKind.Choice, "Comma") { Choices = ["Comma", "Semicolon", "Tab", "Space"] }, () => options.GetText("delimiter", "Comma"), value => SetValue(options, "delimiter", value), structural: true));
+        fields.Add(Field(group, new("header", "First line names the columns", ParameterKind.Flag, true), () => options.GetFlag("header", true), value => SetValue(options, "header", value), structural: true));
+        fields.Add(Field(group, new("decimalComma", "Decimal comma", ParameterKind.Flag, false) { Description = "Numbers like 3,14 instead of 3.14." }, () => options.GetFlag("decimalComma", false), value => SetValue(options, "decimalComma", value)));
+
+        // Without a readable file the columns are typed: names or numbers from 1.
+        var names = DataSources.CsvNames(data.Path, options);
+        if (names.Count == 0)
+        {
+            fields.Add(Field(group, new("x", "X column", ParameterKind.Text, string.Empty) { Description = "Its name or number from 1; empty for the number of the row." }, () => options.GetText("x", string.Empty), value => SetValue(options, "x", value)));
+            fields.Add(Field(group, new("y", "Y columns", ParameterKind.Text, string.Empty) { Description = "Names or numbers from 1, separated by commas: " + DataSources.CsvColumns(type.Shape) + "." }, () => options.GetText("y", string.Empty), value => SetValue(options, "y", value)));
+            return;
+        }
+
+        // A name with a comma is chosen by its number, as the chosen columns are kept separated by commas.
+        var choices = names.Select((name, index) => name.Contains(',', StringComparison.Ordinal) ? (index + 1).ToString(CultureInfo.InvariantCulture) : name).ToArray();
+        if (type.Shape is not (DataShape.Values or DataShape.Rows or DataShape.Groups))
+        {
+            fields.Add(Field(group, new("x", "X column", ParameterKind.Choice, RowNumber) { Choices = [RowNumber, .. choices] }, () => options.GetText("x", string.Empty) is { Length: > 0 } x ? x : RowNumber, value => SetValue(options, "x", (string)value == RowNumber ? string.Empty : value)));
+        }
+
+        string[]? roles = type.Shape switch
+        {
+            DataShape.Band => ["Lower column", "Upper column"],
+            DataShape.Bubbles => ["Y column", "Size column"],
+            DataShape.Errors => ["Y column", "Lower error column", "Upper error column"],
+            DataShape.Points3D => ["Y column", "Z column"],
+            _ => null,
+        };
+        if (roles is null)
+        {
+            var description = type.Shape switch
+            {
+                DataShape.Points => "Each column chosen draws its own line, named after the column.",
+                DataShape.Values => "Each column chosen becomes its own series, named after the column.",
+                _ => "Chosen: " + DataSources.CsvColumns(type.Shape) + ".",
+            };
+            fields.Add(Field(group, new("y", "Y columns", ParameterKind.Choices, string.Empty) { Choices = choices, Description = description }, () => string.Join(",", DataSources.Columns(options)), value => SetValue(options, "y", value)));
+            return;
+        }
+
+        // Forms with a column per role choose each one apart.
+        for (var role = 0; role < roles.Length; role++)
+        {
+            var at = role;
+            fields.Add(Field(group, new("y" + role.ToString(CultureInfo.InvariantCulture), roles[role], ParameterKind.Choice, choices[0]) { Choices = choices }, () => DataSources.Columns(options) is var chosen && at < chosen.Length && choices.Contains(chosen[at]) ? chosen[at] : string.Empty, value =>
+            {
+                var chosen = DataSources.Columns(options).ToList();
+                while (chosen.Count < roles.Length)
+                {
+                    chosen.Add(choices[Math.Min(chosen.Count, choices.Length - 1)]);
+                }
+
+                chosen[at] = (string)value;
+                options.Set("y", string.Join(",", chosen));
+            }));
+        }
+    }
+
+    // Takes a CSV file: guesses its format and chooses the first column as X and the next ones as Y.
+    private static void UseCsv(ChartTypeInfo type, DataSpec data, string path)
+    {
+        data.Path = path;
+        if (path.Length == 0 || !File.Exists(path))
+        {
+            return;
+        }
+
+        var options = data.Options;
+        var format = DataSources.GuessCsv(path);
+        options.Set("delimiter", DataSources.DelimiterName(format.Delimiter));
+        options.Set("header", format.HasHeader);
+        options.Set("decimalComma", format.DecimalComma);
+        var names = DataSources.CsvNames(path, options).Select((name, index) => name.Contains(',', StringComparison.Ordinal) ? (index + 1).ToString(CultureInfo.InvariantCulture) : name).ToArray();
+        var hasX = names.Length > 1;
+        options.Set("x", hasX && type.Shape is not (DataShape.Values or DataShape.Rows or DataShape.Groups) ? names[0] : string.Empty);
+        var rest = hasX ? names[1..] : names;
+        options.Set("y", string.Join(",", type.Shape is DataShape.Rows or DataShape.Groups or DataShape.Layers ? rest : rest.Take(DataSources.Needed(type.Shape))));
+    }
 
     private FieldModel Field(string group, ParameterInfo info, Func<object> read, Action<object> write, bool structural = false) =>
         new(group, info, read, value =>

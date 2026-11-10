@@ -90,6 +90,143 @@ internal static class DataSources
     public static DataLoader? Loader(SeriesSpec series, ChartTypeInfo type, ChartCatalog catalog) =>
         catalog.Loaders.FirstOrDefault(loader => loader.Kind == series.Data.Kind && loader.Shape == type.Shape);
 
+    /// <summary>Gets the example files that come with the configurator, with their full paths.</summary>
+    public static IReadOnlyList<string> CsvExamples { get; } = FindExamples();
+
+    private static string[] FindExamples()
+    {
+        var folder = System.IO.Path.Combine(AppContext.BaseDirectory, "Examples");
+        return Directory.Exists(folder)
+            ? [.. Directory.GetFiles(folder).Where(file => file.EndsWith(".csv", StringComparison.OrdinalIgnoreCase) || file.EndsWith(".tsv", StringComparison.OrdinalIgnoreCase)).Order(StringComparer.Ordinal)]
+            : [];
+    }
+
+    /// <summary>Gets the names of the columns of a CSV file, as its header line gives them.</summary>
+    /// <param name="path">The file, or <see langword="null"/>.</param>
+    /// <param name="options">The settings of the source: delimiter and header line.</param>
+    /// <returns>The names, <c>Column 1</c> and so on without a header line; empty when the file cannot be read.</returns>
+    public static IReadOnlyList<string> CsvNames(string? path, SpecValues options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (path is not { Length: > 0 } || !File.Exists(path))
+        {
+            return [];
+        }
+
+        try
+        {
+            // The header and the first row tell the columns; the rest of a large file stays unread.
+            var first = string.Join('\n', File.ReadLines(path).Where(line => line.Length > 0).Take(2));
+            return CsvTable.Read(new StringReader(first), Format(options)).Names;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+    }
+
+    /// <summary>Guesses delimiter, header line and decimal comma of a CSV file from its first lines.</summary>
+    /// <param name="path">The file.</param>
+    /// <returns>The format; the usual one when the file cannot be read.</returns>
+    public static CsvFormat GuessCsv(string path)
+    {
+        string[] lines;
+        try
+        {
+            lines = [.. File.ReadLines(path).Where(line => line.Length > 0).Take(2)];
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            return new CsvFormat();
+        }
+
+        if (lines.Length == 0)
+        {
+            return new CsvFormat();
+        }
+
+        var first = lines[0];
+        var delimiter = first.Contains('\t', StringComparison.Ordinal) ? '\t' : first.Contains(';', StringComparison.Ordinal) ? ';' : first.Contains(',', StringComparison.Ordinal) ? ',' : ' ';
+
+        // A first line with a field that is no number names the columns.
+        var header = first.Split(delimiter).Any(field => field.Trim().Trim('"').Length > 0 && !double.TryParse(field.Trim().Trim('"').Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out _));
+        var row = header ? (lines.Length > 1 ? lines[1] : string.Empty) : first;
+        var decimalComma = delimiter != ',' && row.Split(delimiter).Any(field => field.Contains(',', StringComparison.Ordinal) && double.TryParse(field.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out _));
+        return new CsvFormat(delimiter, header, decimalComma);
+    }
+
+    /// <summary>Gets the name of a delimiter as the field of the configurator shows it.</summary>
+    /// <param name="delimiter">The delimiter.</param>
+    /// <returns>Comma, Semicolon, Tab or Space.</returns>
+    public static string DelimiterName(char delimiter) => delimiter switch
+    {
+        ';' => "Semicolon",
+        '\t' => "Tab",
+        ' ' => "Space",
+        _ => "Comma",
+    };
+
+    /// <summary>
+    /// Gets the series as the chart draws them: a series that reads several Y columns of a CSV file for a form that
+    /// takes one column becomes one series per column, named after it, so each column draws its own line.
+    /// </summary>
+    /// <param name="series">The series of the description.</param>
+    /// <param name="catalog">The catalog.</param>
+    /// <returns>The series to draw.</returns>
+    internal static IEnumerable<SeriesSpec> Expanded(IEnumerable<SeriesSpec> series, ChartCatalog catalog)
+    {
+        foreach (var item in series)
+        {
+            var columns = item.Data.Kind == DataKind.Csv && catalog.FindType(item.Type)?.Shape is DataShape.Points or DataShape.Values ? Columns(item.Data.Options) : [];
+            if (columns.Length < 2)
+            {
+                yield return item;
+                continue;
+            }
+
+            for (var index = 0; index < columns.Length; index++)
+            {
+                var column = columns[index];
+                var data = new DataSpec { Kind = item.Data.Kind, Sample = item.Data.Sample, Count = item.Data.Count, Path = item.Data.Path, Options = Copy(item.Data.Options) };
+                data.Options.Set("y", column);
+
+                // Series take the one color of the theme; the further columns get colors of their own to tell them apart.
+                var parameters = Copy(item.Parameters);
+                if (index > 0 && parameters.GetText("color", string.Empty).Length == 0)
+                {
+                    parameters.Set("color", _columnColors[(index - 1) % _columnColors.Length]);
+                }
+
+                var named = int.TryParse(column, NumberStyles.Integer, CultureInfo.InvariantCulture, out _) ? item.Name + " " + column : column;
+                yield return new SeriesSpec { Type = item.Type, Name = named, XAxis = item.XAxis, YAxis = item.YAxis, Parameters = parameters, Data = data };
+            }
+        }
+    }
+
+    private static readonly string[] _columnColors = ["#F5A623", "#7ED321", "#E94B6A", "#B37FEB", "#50E3C2", "#F8E71C"];
+
+    private static SpecValues Copy(SpecValues values)
+    {
+        var copy = new SpecValues();
+        foreach (var name in values.Names)
+        {
+            switch (values.Get(name))
+            {
+                case double number:
+                    copy.Set(name, number);
+                    break;
+                case bool flag:
+                    copy.Set(name, flag);
+                    break;
+                case string text:
+                    copy.Set(name, text);
+                    break;
+            }
+        }
+
+        return copy;
+    }
+
     /// <summary>Gets what the columns of a CSV file mean for a form of data.</summary>
     /// <param name="shape">The form.</param>
     /// <returns>The text, or <see langword="null"/> when CSV does not fit.</returns>
@@ -152,23 +289,26 @@ internal static class DataSources
         _ => ',',
     };
 
-    private static string[] Columns(SpecValues options) => options.GetText("y", string.Empty).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+    internal static string[] Columns(SpecValues options) => options.GetText("y", string.Empty).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
-    // A column by its name, or by its number counted from 1.
+    // A column by its name, or by its number counted from 1 when no column has that name.
     private static double[] Column(CsvTable table, string reference) =>
-        int.TryParse(reference, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) ? table.Column(number - 1) : table.Column(reference);
+        !table.Names.Contains(reference) && int.TryParse(reference, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) ? table.Column(number - 1) : table.Column(reference);
 
-    private static string ColumnCode(string reference) =>
-        int.TryParse(reference, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) ? $"table.Column({number - 1})" : $"table.Column({CodeText.String(reference)})";
+    private static string ColumnCode(string reference, IReadOnlyList<string> names) =>
+        !names.Contains(reference) && int.TryParse(reference, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) ? $"table.Column({number - 1})" : $"table.Column({CodeText.String(reference)})";
 
     // The X of a CSV source: a column, or the number of the row when none is given.
     private static double[] X(CsvTable table, SpecValues options) =>
         options.GetText("x", string.Empty) is { Length: > 0 } x ? Column(table, x) : [.. Enumerable.Range(0, table.RowCount).Select(row => (double)row)];
 
-    private static string XCode(SpecValues options) =>
-        options.GetText("x", string.Empty) is { Length: > 0 } x ? ColumnCode(x) : "[.. Enumerable.Range(0, table.RowCount).Select(row => (double)row)]";
+    private static string XCode(SpecValues options, IReadOnlyList<string> names) =>
+        options.GetText("x", string.Empty) is { Length: > 0 } x ? ColumnCode(x, names) : "[.. Enumerable.Range(0, table.RowCount).Select(row => (double)row)]";
 
-    private static int Needed(DataShape shape) => shape switch
+    /// <summary>Gets how many Y columns a form of data needs.</summary>
+    /// <param name="shape">The form.</param>
+    /// <returns>The number.</returns>
+    internal static int Needed(DataShape shape) => shape switch
     {
         DataShape.Band or DataShape.Bubbles or DataShape.Points3D => 2,
         DataShape.Errors => 3,
@@ -222,17 +362,19 @@ internal static class DataSources
             '\t' => "'\\t'",
             var c => $"'{c}'",
         };
-        var columns = Columns(options).Select(ColumnCode).ToArray();
+        var names = CsvNames(series.Data.Path, options);
+        var columns = Columns(options).Select(column => ColumnCode(column, names)).ToArray();
+        var xCode = XCode(options, names);
         var body = shape switch
         {
-            DataShape.Points => $"return Points({XCode(options)}, {columns[0]});",
+            DataShape.Points => $"return Points({xCode}, {columns[0]});",
             DataShape.Values => $"return {columns[0]};",
             DataShape.Rows or DataShape.Groups => $"return [{string.Join(", ", columns)}];",
-            DataShape.Layers => $"var x = {XCode(options)};\n        return [{string.Join(", ", columns.Select(column => $"Points(x, {column})"))}];",
-            DataShape.Band => $"var x = {XCode(options)};\n        return (Points(x, {columns[0]}), Points(x, {columns[1]}));",
-            DataShape.Bubbles => $"return (Points({XCode(options)}, {columns[0]}), [.. {columns[1]}.Select(size => (float)size)]);",
-            DataShape.Errors => $"return (Points({XCode(options)}, {columns[0]}), {columns[1]}, {columns[2]});",
-            DataShape.Points3D => $"return ({XCode(options)}, {columns[0]}, {columns[1]});",
+            DataShape.Layers => $"var x = {xCode};\n        return [{string.Join(", ", columns.Select(column => $"Points(x, {column})"))}];",
+            DataShape.Band => $"var x = {xCode};\n        return (Points(x, {columns[0]}), Points(x, {columns[1]}));",
+            DataShape.Bubbles => $"return (Points({xCode}, {columns[0]}), [.. {columns[1]}.Select(size => (float)size)]);",
+            DataShape.Errors => $"return (Points({xCode}, {columns[0]}), {columns[1]}, {columns[2]});",
+            DataShape.Points3D => $"return ({xCode}, {columns[0]}, {columns[1]});",
             _ => throw new InvalidOperationException($"A CSV file gives no data for {shape}."),
         };
         var returnType = catalog.FindSample(type.DefaultSample)!.ReturnType;

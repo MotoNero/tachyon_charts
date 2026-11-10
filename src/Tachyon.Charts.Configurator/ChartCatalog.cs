@@ -17,6 +17,9 @@ public enum ParameterKind
     /// <summary>One of <see cref="ParameterInfo.Choices"/>.</summary>
     Choice,
 
+    /// <summary>Any of <see cref="ParameterInfo.Choices"/>, kept as text separated by commas in the order of the choices.</summary>
+    Choices,
+
     /// <summary>A color as #RRGGBB or #RRGGBBAA, or empty for the color of the theme.</summary>
     Color,
 
@@ -72,10 +75,17 @@ public sealed record ParameterInfo(string Name, string Label, ParameterKind Kind
         (ParameterKind.Number or ParameterKind.Integer, double) => null,
         (ParameterKind.Flag, bool) => null,
         (ParameterKind.Choice, string text) when !Choices.Contains(text) => $"{Label} must be one of {string.Join(", ", Choices)}.",
+        (ParameterKind.Choices, string text) when ParameterInfo.Split(text).Any(item => !Choices.Contains(item)) => $"{Label} takes only {string.Join(", ", Choices)}.",
         (ParameterKind.Color, string text) when text.Length > 0 && !SpecColor.TryParse(text, out _) => $"{Label} must be a color like #3A86FF.",
-        (ParameterKind.Choice or ParameterKind.Color or ParameterKind.Text or ParameterKind.File, string) => null,
+        (ParameterKind.Choice or ParameterKind.Choices or ParameterKind.Color or ParameterKind.Text or ParameterKind.File, string) => null,
         _ => $"{Label} has a value of the wrong kind.",
     };
+
+    /// <summary>Splits the value of a <see cref="ParameterKind.Choices"/> into the chosen items.</summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The items.</returns>
+    public static IReadOnlyList<string> Split(string value) =>
+        (value ?? throw new ArgumentNullException(nameof(value))).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 }
 
 /// <summary>The groups of the configurator.</summary>

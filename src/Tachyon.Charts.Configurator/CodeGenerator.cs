@@ -619,7 +619,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         var data = new List<DataPlan>();
         var inScene = new List<string>();
         var setup = new List<string>();
-        foreach (var series in spec.Series)
+        foreach (var series in DataSources.Expanded(spec.Series, _catalog))
         {
             var type = _catalog.FindType(series.Type)!;
             var sample = _catalog.FindSample(series.Data.Sample) ?? _catalog.FindSample(type.DefaultSample)!;
