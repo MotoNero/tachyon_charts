@@ -115,6 +115,27 @@ public sealed class ConfiguratorSession
     /// <summary>Gets a value indicating whether a change is being worked on away from the window.</summary>
     public bool IsUpdating { get; private set; }
 
+    /// <summary>Gets the names of the linked charts the preview shows; one empty name for a single chart.</summary>
+    public IReadOnlyList<string> Views { get; private set; } = [string.Empty];
+
+    /// <summary>Gets the number of columns the linked charts are arranged in.</summary>
+    public int ViewColumns { get; private set; } = 1;
+
+    /// <summary>Describes one of the linked charts of the preview, see <see cref="Views"/>; the first is the one <see cref="Apply(ChartBuilder)"/> describes.</summary>
+    /// <param name="view">The number of the view.</param>
+    /// <param name="chart">The chart description.</param>
+    public void Apply(int view, ChartBuilder chart)
+    {
+        ArgumentNullException.ThrowIfNull(chart);
+        if (view == 0 || _prepared is not { } prepared || Catalog.ViewsOf(prepared.Spec) is null)
+        {
+            Apply(chart);
+            return;
+        }
+
+        SpecChartBuilder.ApplyView(prepared.Spec, Catalog, chart, view, prepared.Data);
+    }
+
     /// <summary>Occurs after every change, on the thread that made it.</summary>
     public event Action? Changed;
 
@@ -267,6 +288,13 @@ public sealed class ConfiguratorSession
         get
         {
             var fields = new List<FieldModel>();
+
+            // Linked charts bring the interactions of their views; the usual ones would not reach them.
+            if (Catalog.ViewsOf(_spec) is not null)
+            {
+                return fields;
+            }
+
             foreach (var info in Catalog.Modifiers)
             {
                 var spec = _spec.Modifiers.FirstOrDefault(modifier => modifier.Type == info.Id);
@@ -352,9 +380,13 @@ public sealed class ConfiguratorSession
         }
 
         _running.Clear();
-        if (_prepared is { } prepared)
+        if (_prepared is { } prepared && Catalog.ViewsOf(prepared.Spec) is not null)
         {
-            SpecChartBuilder.Apply(prepared.Spec, Catalog, chart, _running, prepared.Data);
+            SpecChartBuilder.ApplyView(prepared.Spec, Catalog, chart, 0, prepared.Data);
+        }
+        else if (_prepared is { } single)
+        {
+            SpecChartBuilder.Apply(single.Spec, Catalog, chart, _running, single.Data);
         }
         else
         {
@@ -657,9 +689,21 @@ public sealed class ConfiguratorSession
         try
         {
             data = SpecChartBuilder.Prepare(spec, Catalog);
-            var builder = new ChartBuilder();
-            SpecChartBuilder.Apply(spec, Catalog, builder, null, data);
-            builder.ToDefinition();
+            if (Catalog.ViewsOf(spec) is { } linked)
+            {
+                for (var view = 0; view < linked.Views.Count; view++)
+                {
+                    var builder = new ChartBuilder();
+                    SpecChartBuilder.ApplyView(spec, Catalog, builder, view, data);
+                    builder.ToDefinition();
+                }
+            }
+            else
+            {
+                var builder = new ChartBuilder();
+                SpecChartBuilder.Apply(spec, Catalog, builder, null, data);
+                builder.ToDefinition();
+            }
         }
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or KeyNotFoundException or InvalidCastException or IOException or FormatException or NotSupportedException or UnauthorizedAccessException)
         {
@@ -672,7 +716,7 @@ public sealed class ConfiguratorSession
             ["C#"] = _generator.Setup(spec, options),
             ["View model"] = _generator.ViewModel(spec, options),
             [window] = _generator.WindowMarkup(spec, options),
-            ["Code behind"] = CodeGenerator.WindowCode(spec, options),
+            ["Code behind"] = CodeGenerator.WindowCode(spec, options, _generator.ViewNames(spec)),
             ["Project"] = _generator.Project(spec, options)[options.ProjectName + ".csproj"],
         };
         return new Update(spec, [], code, data, clock.Elapsed);
@@ -688,6 +732,13 @@ public sealed class ConfiguratorSession
         }
 
         _prepared = update.Data is { } data ? (update.Spec, data) : null;
+        if (update.Data is not null)
+        {
+            var linked = Catalog.ViewsOf(update.Spec);
+            Views = linked is { } views ? [.. views.Views.Select(view => view.Name)] : [string.Empty];
+            ViewColumns = linked?.Columns ?? 1;
+        }
+
         LastUpdate = update.Elapsed;
         Changed?.Invoke();
     }

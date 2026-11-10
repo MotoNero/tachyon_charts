@@ -40,6 +40,23 @@ public static class SpecChartBuilder
     internal static IReadOnlyList<object?> Prepare(ChartSpec spec, ChartCatalog catalog) =>
         [.. Drawn(spec, catalog).Select(series => series.Data.Kind == DataKind.Live ? null : Data(catalog, series, null))];
 
+    /// <summary>Describes one of the linked charts of a description with data made before by <see cref="Prepare"/>.</summary>
+    /// <param name="spec">The description; its one series has a type with views.</param>
+    /// <param name="catalog">The types, samples and interactions.</param>
+    /// <param name="chart">The builder.</param>
+    /// <param name="view">The number of the view.</param>
+    /// <param name="prepared">The data, shared by all views.</param>
+    internal static void ApplyView(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, int view, IReadOnlyList<object?> prepared)
+    {
+        var (views, _) = catalog.ViewsOf(spec) ?? throw new InvalidOperationException("The description has no linked charts.");
+        if (spec.Theme is { } theme)
+        {
+            chart.Theme(Theme(theme));
+        }
+
+        views[view].Apply(chart, spec.Series[0], prepared[0]!);
+    }
+
     // The series in the order they are drawn: a scene takes them as they are, a chart splits CSV columns into lines.
     private static IEnumerable<SeriesSpec> Drawn(ChartSpec spec, ChartCatalog catalog) =>
         catalog.SceneOf(spec) is null ? DataSources.Expanded(spec.Series, catalog) : spec.Series;

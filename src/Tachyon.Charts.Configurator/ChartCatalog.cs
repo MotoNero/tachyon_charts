@@ -198,6 +198,18 @@ public enum DataShape
     Sweep,
 }
 
+/// <summary>One of several linked charts a type fills, such as a plane of a volume; all of them share the data.</summary>
+/// <param name="Name">The name, also the name of its chart and method in the generated code, such as <c>Axial</c>.</param>
+/// <param name="Apply">Describes the chart from the series and its data.</param>
+/// <param name="Code">Writes the same as C# statements on <c>chart</c>, from the series and the name of its data.</param>
+public sealed record ViewInfo(string Name, Action<ChartBuilder, SeriesSpec, object> Apply, Func<SeriesSpec, string, string> Code);
+
+/// <summary>A template: a description to start from, such as a medical display with its measuring tools.</summary>
+/// <param name="Id">The identifier.</param>
+/// <param name="Name">The name shown.</param>
+/// <param name="Create">Makes a new description.</param>
+public sealed record TemplateInfo(string Id, string Name, Func<ChartCatalog, ChartSpec> Create);
+
 /// <summary>A chart type the configurator offers, with its parameters and how it is built.</summary>
 public sealed class ChartTypeInfo
 {
@@ -244,6 +256,15 @@ public sealed class ChartTypeInfo
 
     /// <summary>Gets the namespaces the code of this type needs beyond the usual ones.</summary>
     public IReadOnlyList<string> Usings { get; init; } = [];
+
+    /// <summary>
+    /// Gets the linked charts the type fills by its settings, or <see langword="null"/> for one chart. A type with views
+    /// fills the description alone; <see cref="Apply"/> describes its first view.
+    /// </summary>
+    public Func<SeriesSpec, IReadOnlyList<ViewInfo>>? Views { get; init; }
+
+    /// <summary>Gets the number of columns the views are arranged in, by the settings; one when not given.</summary>
+    public Func<SeriesSpec, int>? Columns { get; init; }
 
     /// <summary>Gets the packages of Tachyon Charts the code of this type needs beyond the adapter, with their versions.</summary>
     public IReadOnlyList<(string Name, string Version)> Packages { get; init; } = [];
@@ -323,6 +344,9 @@ public interface IChartModule
 
     /// <summary>Gets the scenes that take the series of a category, such as the 3D scene.</summary>
     IReadOnlyList<SceneInfo> Scenes => [];
+
+    /// <summary>Gets the templates of the module.</summary>
+    IReadOnlyList<TemplateInfo> Templates => [];
 }
 
 /// <summary>
@@ -348,6 +372,7 @@ public sealed class ChartCatalog
     private readonly List<SampleInfo> _samples = [];
     private readonly List<SceneInfo> _scenes = [];
     private readonly List<DataLoader> _loaders = [];
+    private readonly List<TemplateInfo> _templates = [];
 
     // The modules of the add-ons by type and assembly; loaded only when the assembly is there.
     private static readonly string[] _addOns =
@@ -367,6 +392,24 @@ public sealed class ChartCatalog
 
     /// <summary>Gets the generators of sample data.</summary>
     public IReadOnlyList<SampleInfo> Samples => _samples;
+
+    /// <summary>Gets the templates of the modules.</summary>
+    public IReadOnlyList<TemplateInfo> Templates => _templates;
+
+    /// <summary>Gets the linked charts of a description and their columns, or <see langword="null"/> for one chart.</summary>
+    /// <param name="spec">The description.</param>
+    /// <returns>The views and the number of columns.</returns>
+    public (IReadOnlyList<ViewInfo> Views, int Columns)? ViewsOf(ChartSpec spec)
+    {
+        ArgumentNullException.ThrowIfNull(spec);
+        if (spec.Series.Count != 1 || FindType(spec.Series[0].Type) is not { Views: { } views } type)
+        {
+            return null;
+        }
+
+        var series = spec.Series[0];
+        return (views(series), Math.Max(1, type.Columns?.Invoke(series) ?? 1));
+    }
 
     /// <summary>Gets the interactions.</summary>
     public IReadOnlyList<ModifierInfo> Modifiers { get; } = CoreModule.CreateModifiers();
@@ -401,6 +444,7 @@ public sealed class ChartCatalog
         }
 
         _scenes.AddRange(module.Scenes.Where(scene => _scenes.TrueForAll(known => known.Category != scene.Category)));
+        _templates.AddRange(module.Templates);
         if (module is IDataLoaders readers)
         {
             _loaders.AddRange(readers.Loaders);
@@ -505,6 +549,11 @@ public sealed class ChartCatalog
         if (spec.Theme is { } theme && !Themes.Contains(theme))
         {
             problems.Add($"The theme {theme} is unknown.");
+        }
+
+        if (spec.ExportMenu && spec.Series.Exists(series => FindType(series.Type)?.Views is not null))
+        {
+            problems.Add("The export menu saves one chart; linked views leave it out.");
         }
 
         foreach (var series in spec.Series)

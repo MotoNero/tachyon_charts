@@ -7,7 +7,7 @@ namespace Tachyon.Charts.Configurator.Medical;
 /// phantoms; own DICOM and NIfTI data are read for the preview only, and their paths are never saved. The apps load this
 /// module only when its assembly is there.
 /// </summary>
-public sealed class MedicalModule : IChartModule, IDataLoaders
+public sealed partial class MedicalModule : IChartModule, IDataLoaders
 {
     /// <summary>The version of the medical package the generated projects refer to.</summary>
     public const string PackageVersion = "0.1.0-preview.1";
@@ -67,6 +67,9 @@ public sealed class MedicalModule : IChartModule, IDataLoaders
             PrepareCode = (series, data) => PrepareVolumeCode(series, data, slice: false),
             Helpers = Note + MedicalSetup.PhantomSegmentationCode,
         },
+        Mpr(),
+        Analysis(),
+        Reformat(),
     ];
 
     /// <inheritdoc />

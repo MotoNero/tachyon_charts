@@ -1,5 +1,6 @@
 using Tachyon.Charts.Medical;
 using Tachyon.Charts.Rendering;
+using Tachyon.Charts.ThreeD;
 using Tachyon.Charts.ThreeD.Scene;
 
 namespace Tachyon.Charts.Configurator.Medical;
@@ -98,6 +99,121 @@ internal static class MedicalSetup
     }
 
     private static double Square(double value) => value * value;
+
+    // The oblique plane of a display, one for all its charts, so that the 2D chart and the 3D outline show the same plane.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<MedicalMprDisplay, MedicalObliqueSlice> _obliques = [];
+
+    /// <summary>Gets a measurement of a plane by its name.</summary>
+    /// <param name="slice">The plane.</param>
+    /// <param name="name">The name.</param>
+    /// <returns>The measurement.</returns>
+    public static MedicalMeasurement Named(MedicalMprSlice slice, string name) => slice.Measurements.Measurements.First(measurement => measurement.Name == name);
+
+    /// <summary>Adds a line across the middle of a plane and a round region on its left, where the phantom has its focus; in shares of the plane.</summary>
+    /// <param name="slice">The plane.</param>
+    public static void AnalysisMeasurements(MedicalMprSlice slice)
+    {
+        var (width, height) = (slice.Width * slice.Spacing.Column, slice.Height * slice.Spacing.Row);
+        slice.Measurements.Add(MedicalMeasurementKind.Distance, [new(width * 0.12, height * 0.5), new(width * 0.88, height * 0.5)], name: "Profile line");
+        slice.Measurements.Add(MedicalMeasurementKind.Circle, [new(width * 0.323, height * 0.43), new(width * 0.358, height * 0.43)], name: "Focus");
+    }
+
+    /// <summary>Adds a line for the oblique plane from lower left to upper right and an arc along the front of the body; in shares of the plane.</summary>
+    /// <param name="slice">The plane.</param>
+    public static void ReformatMeasurements(MedicalMprSlice slice)
+    {
+        var (width, height) = (slice.Width * slice.Spacing.Column, slice.Height * slice.Spacing.Row);
+        slice.Measurements.Add(MedicalMeasurementKind.Distance, [new(width * 0.156, height * 0.73), new(width * 0.86, height * 0.35)], name: "Oblique plane");
+        var arc = new MedicalPoint[13];
+        for (var i = 0; i < arc.Length; i++)
+        {
+            var angle = Math.PI + 0.45 + ((Math.PI - 0.9) * i / (arc.Length - 1));
+            arc[i] = new(width * (0.5 + (0.396 * Math.Cos(angle))), height * (0.5 + (0.285 * Math.Sin(angle))));
+        }
+
+        slice.Measurements.Add(MedicalMeasurementKind.Freehand, arc, name: "Arc");
+    }
+
+    /// <summary>Gets the oblique plane of a display; it follows the line on the axial plane.</summary>
+    /// <param name="display">The display.</param>
+    /// <returns>The oblique plane, the same for every call with the display.</returns>
+    public static MedicalObliqueSlice Oblique(MedicalMprDisplay display) => _obliques.GetValue(display, shown =>
+    {
+        var oblique = new MedicalObliqueSlice(shown);
+        oblique.FollowLine(shown.Axial);
+        return oblique;
+    });
+
+    /// <summary>Describes the volume in 3D with the outline of the oblique plane, which then can face the view.</summary>
+    /// <param name="display">The display.</param>
+    /// <param name="chart">The 3D chart.</param>
+    public static void WithOblique(MedicalMprDisplay display, Chart3DBuilder chart)
+    {
+        display.Configure3D(chart);
+        var oblique = Oblique(display);
+        oblique.Configure3D(chart);
+        oblique.ViewCamera = chart.Scene.Camera;
+    }
+
+    private const string NamedCode = """
+
+            // Gets a measurement of a plane by its name.
+            private static MedicalMeasurement Named(MedicalMprSlice slice, string name) => slice.Measurements.Measurements.First(measurement => measurement.Name == name);
+
+        """;
+
+    /// <summary>Gets <see cref="Named"/> and <see cref="AnalysisMeasurements"/> as C#.</summary>
+    public const string AnalysisMeasurementsCode = NamedCode + """
+
+            // Adds a line across the middle of a plane and a round region on its left, where the phantom has its focus; in shares of the plane.
+            private static void AnalysisMeasurements(MedicalMprSlice slice)
+            {
+                var (width, height) = (slice.Width * slice.Spacing.Column, slice.Height * slice.Spacing.Row);
+                slice.Measurements.Add(MedicalMeasurementKind.Distance, [new(width * 0.12, height * 0.5), new(width * 0.88, height * 0.5)], name: "Profile line");
+                slice.Measurements.Add(MedicalMeasurementKind.Circle, [new(width * 0.323, height * 0.43), new(width * 0.358, height * 0.43)], name: "Focus");
+            }
+
+        """;
+
+    /// <summary>Gets <see cref="Named"/>, <see cref="ReformatMeasurements"/>, <see cref="Oblique"/> and <see cref="WithOblique"/> as C#.</summary>
+    public const string ReformatCode = NamedCode + """
+
+            // Adds a line for the oblique plane from lower left to upper right and an arc along the front of the body; in shares of the plane.
+            private static void ReformatMeasurements(MedicalMprSlice slice)
+            {
+                var (width, height) = (slice.Width * slice.Spacing.Column, slice.Height * slice.Spacing.Row);
+                slice.Measurements.Add(MedicalMeasurementKind.Distance, [new(width * 0.156, height * 0.73), new(width * 0.86, height * 0.35)], name: "Oblique plane");
+                var arc = new MedicalPoint[13];
+                for (var i = 0; i < arc.Length; i++)
+                {
+                    var angle = Math.PI + 0.45 + ((Math.PI - 0.9) * i / (arc.Length - 1));
+                    arc[i] = new(width * (0.5 + (0.396 * Math.Cos(angle))), height * (0.5 + (0.285 * Math.Sin(angle))));
+                }
+
+                slice.Measurements.Add(MedicalMeasurementKind.Freehand, arc, name: "Arc");
+            }
+
+            // The oblique plane of a display, one for all its charts, so that the 2D chart and the 3D outline show the same plane.
+            private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<MedicalMprDisplay, MedicalObliqueSlice> _obliques = [];
+
+            // Gets the oblique plane of a display; it follows the line on the axial plane.
+            private static MedicalObliqueSlice Oblique(MedicalMprDisplay display) => _obliques.GetValue(display, shown =>
+            {
+                var oblique = new MedicalObliqueSlice(shown);
+                oblique.FollowLine(shown.Axial);
+                return oblique;
+            });
+
+            // Describes the volume in 3D with the outline of the oblique plane, which then can face the view.
+            private static void WithOblique(MedicalMprDisplay display, Chart3DBuilder chart)
+            {
+                display.Configure3D(chart);
+                var oblique = Oblique(display);
+                oblique.Configure3D(chart);
+                oblique.ViewCamera = chart.Scene.Camera;
+            }
+
+        """;
 
     /// <summary>Gets the same methods as C#, for the generated code.</summary>
     public const string MoveToCode = """

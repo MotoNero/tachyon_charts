@@ -33,6 +33,8 @@ sealed class Tachyon.Charts.Configurator.ChartCatalog
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ChartTypeInfo> Types { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ModifierInfo> Modifiers { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.SampleInfo> Samples { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.TemplateInfo> Templates { get; }
+  System.Nullable<System.ValueTuple<System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ViewInfo>, System.Int32>> ViewsOf(Tachyon.Charts.Configurator.ChartSpec spec)
   System.Void Add(Tachyon.Charts.Configurator.IChartModule module)
   Tachyon.Charts.Configurator.ChartSpec CreateSpec(System.String typeId)
   Tachyon.Charts.Configurator.ChartTypeInfo FindType(System.String id)
@@ -77,6 +79,8 @@ sealed class Tachyon.Charts.Configurator.ChartTypeInfo
   System.Collections.Generic.IReadOnlyList<System.String> Usings { get; set; }
   System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> Packages { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> Parameters { get; }
+  System.Func<Tachyon.Charts.Configurator.SeriesSpec, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ViewInfo>> Views { get; set; }
+  System.Func<Tachyon.Charts.Configurator.SeriesSpec, System.Int32> Columns { get; set; }
   System.Func<Tachyon.Charts.Configurator.SeriesSpec, System.String, System.Collections.Generic.IEnumerable<System.String>> PrepareCode { get; set; }
   System.String DefaultSample { get; }
   System.String Helpers { get; set; }
@@ -89,12 +93,14 @@ sealed class Tachyon.Charts.Configurator.ChartTypeInfo
 sealed class Tachyon.Charts.Configurator.CodeGenerator
   .ctor(Tachyon.Charts.Configurator.ChartCatalog catalog)
   System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Project(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options)
+  System.Collections.Generic.IReadOnlyList<System.String> ViewNames(Tachyon.Charts.Configurator.ChartSpec spec)
   System.String Setup(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options)
   System.String ViewModel(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options)
   System.String WindowMarkup(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options)
   System.Void WriteFolder(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options, System.String folder)
   System.Void WriteZip(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options, System.IO.Stream target)
   static System.String WindowCode(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options)
+  static System.String WindowCode(Tachyon.Charts.Configurator.ChartSpec spec, Tachyon.Charts.Configurator.CodeOptions options, System.Collections.Generic.IReadOnlyList<System.String> views)
   static System.String WindowCode(Tachyon.Charts.Configurator.CodeOptions options)
 sealed class Tachyon.Charts.Configurator.CodeOptions : System.IEquatable<Tachyon.Charts.Configurator.CodeOptions>
   .ctor(System.String Namespace = MyCharts, Tachyon.Charts.Configurator.UiFramework Framework = Wpf, System.String PackageVersion = 0.15.0)
@@ -115,16 +121,19 @@ sealed class Tachyon.Charts.Configurator.ConfiguratorSession
   System.Boolean IsUpdating { get; }
   System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Code { get; }
   System.Collections.Generic.IReadOnlyList<System.String> Problems { get; }
+  System.Collections.Generic.IReadOnlyList<System.String> Views { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.FieldModel> AnnotationFields { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.FieldModel> AxisFields { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.FieldModel> ChartFields { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.FieldModel> ModifierFields { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.FieldModel> SeriesFields { get; }
   System.Int32 SelectedSeries { get; set; }
+  System.Int32 ViewColumns { get; }
   System.TimeSpan LastUpdate { get; }
   System.Void AddAnnotation(System.String kind)
   System.Void AddSeries(System.String typeId)
   System.Void AddYAxis()
+  System.Void Apply(System.Int32 view, Tachyon.Charts.Core.Fluent.ChartBuilder chart)
   System.Void Apply(Tachyon.Charts.Core.Fluent.ChartBuilder chart)
   System.Void Load(Tachyon.Charts.Configurator.ChartSpec spec)
   System.Void NewChart(System.String typeId)
@@ -193,6 +202,7 @@ sealed class Tachyon.Charts.Configurator.FieldModel
   Tachyon.Charts.Configurator.ParameterInfo Info { get; }
 interface Tachyon.Charts.Configurator.IChartModule
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.SceneInfo> Scenes { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.TemplateInfo> Templates { get; }
   abstract System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ChartTypeInfo> Types { get; }
   abstract System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.SampleInfo> Samples { get; }
 sealed class Tachyon.Charts.Configurator.LegendSpec
@@ -295,6 +305,16 @@ sealed class Tachyon.Charts.Configurator.SpecValues
   System.Void Set(System.String name, System.Double value)
   System.Void Set(System.String name, System.String value)
   virtual System.String ToString()
+sealed class Tachyon.Charts.Configurator.TemplateInfo : System.IEquatable<Tachyon.Charts.Configurator.TemplateInfo>
+  .ctor(System.String Id, System.String Name, System.Func<Tachyon.Charts.Configurator.ChartCatalog, Tachyon.Charts.Configurator.ChartSpec> Create)
+  System.Func<Tachyon.Charts.Configurator.ChartCatalog, Tachyon.Charts.Configurator.ChartSpec> Create { get; set; }
+  System.String Id { get; set; }
+  System.String Name { get; set; }
 enum Tachyon.Charts.Configurator.UiFramework : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Avalonia = 1
   Wpf = 0
+sealed class Tachyon.Charts.Configurator.ViewInfo : System.IEquatable<Tachyon.Charts.Configurator.ViewInfo>
+  .ctor(System.String Name, System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, System.Object> Apply, System.Func<Tachyon.Charts.Configurator.SeriesSpec, System.String, System.String> Code)
+  System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, System.Object> Apply { get; set; }
+  System.Func<Tachyon.Charts.Configurator.SeriesSpec, System.String, System.String> Code { get; set; }
+  System.String Name { get; set; }

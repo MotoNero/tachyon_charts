@@ -48,6 +48,11 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     public string Setup(ChartSpec spec, CodeOptions options)
     {
         var plan = Plan(spec, options);
+        if (_catalog.ViewsOf(spec) is { } linked)
+        {
+            return ViewsSetup(spec, options, plan, linked.Views);
+        }
+
         var code = new StringBuilder();
         WriteUsings(code, plan.Usings);
         code.Append("namespace ").Append(options.Namespace).AppendLine(";").AppendLine();
@@ -135,6 +140,11 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     public string ViewModel(ChartSpec spec, CodeOptions options)
     {
         var plan = Plan(spec, options);
+        if (_catalog.ViewsOf(spec) is { } linked)
+        {
+            return ViewsModel(options, plan, linked.Views);
+        }
+
         var code = new StringBuilder();
         WriteUsings(code, plan.Usings);
         code.Append("namespace ").Append(options.Namespace).AppendLine(";").AppendLine();
@@ -157,6 +167,83 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         return code.AppendLine(");").AppendLine("}").ToString();
     }
 
+    /// <summary>Gets the names of the linked charts of a description, or empty for one chart.</summary>
+    /// <param name="spec">The description.</param>
+    /// <returns>The names.</returns>
+    public IReadOnlyList<string> ViewNames(ChartSpec spec) => _catalog.ViewsOf(spec) is { } linked ? [.. linked.Views.Select(view => view.Name)] : [];
+
+    // The chart setup of linked charts: the data are set up once, then each chart is described from the same data.
+    private string ViewsSetup(ChartSpec spec, CodeOptions options, CodePlan plan, IReadOnlyList<ViewInfo> views)
+    {
+        var (series, data) = (spec.Series[0], plan.Data[0]);
+        var code = new StringBuilder();
+        WriteUsings(code, spec.Theme is null ? plan.Usings : [.. plan.Usings, "Tachyon.Charts.Core.Themes"]);
+        code.Append("namespace ").Append(options.Namespace).AppendLine(";").AppendLine();
+        code.AppendLine("/// <summary>").Append("/// ").Append(Describe(spec)).AppendLine(", linked charts made with the Tachyon Charts configurator.").AppendLine("/// </summary>");
+        code.AppendLine("public static class ChartSetup").AppendLine("{");
+        code.AppendLine("    /// <summary>Sets the data up once for all charts.</summary>");
+        code.Append("    /// <param name=\"").Append(data.Variable).AppendLine("\">The data.</param>");
+        code.Append("    public static void Prepare(").Append(data.Type).Append(' ').Append(data.Variable).AppendLine(")").AppendLine("    {");
+        foreach (var statement in plan.Setup)
+        {
+            code.Append("        ").AppendLine(statement);
+        }
+
+        code.AppendLine("    }");
+        foreach (var view in views)
+        {
+            code.AppendLine();
+            code.Append("    /// <summary>Describes the chart ").Append(view.Name).AppendLine(".</summary>");
+            code.AppendLine("    /// <param name=\"chart\">The chart description.</param>");
+            code.Append("    /// <param name=\"").Append(data.Variable).AppendLine("\">The data, the same for all charts.</param>");
+            code.Append("    public static void Configure").Append(view.Name).Append("(ChartBuilder chart, ").Append(data.Type).Append(' ').Append(data.Variable).AppendLine(")").AppendLine("    {");
+            if (spec.Theme is { } theme)
+            {
+                code.Append("        chart.Theme(BuiltInThemes.").Append(theme).AppendLine(");");
+            }
+
+            foreach (var line in view.Code(series, data.Variable).Split('\n'))
+            {
+                code.Append("        ").AppendLine(line.TrimEnd('\r'));
+            }
+
+            code.AppendLine("    }");
+        }
+
+        code.AppendLine();
+        code.Append(data.Source.Code.TrimStart('\r', '\n'));
+        if (_catalog.FindType(series.Type)!.Helpers is { Length: > 0 } helpers)
+        {
+            code.Append(helpers);
+        }
+
+        return code.AppendLine("}").ToString();
+    }
+
+    // The view model of linked charts: the shared data, set up once, and a method per chart.
+    private static string ViewsModel(CodeOptions options, CodePlan plan, IReadOnlyList<ViewInfo> views)
+    {
+        var data = plan.Data[0];
+        var code = new StringBuilder();
+        WriteUsings(code, plan.Usings);
+        code.Append("namespace ").Append(options.Namespace).AppendLine(";").AppendLine();
+        code.AppendLine("/// <summary>The data the linked charts share; a change in one chart shows in the others.</summary>");
+        code.AppendLine("public sealed class ChartViewModel").AppendLine("{");
+        code.AppendLine("    /// <summary>Initializes the view model and sets the data up.</summary>");
+        code.Append("    public ChartViewModel() => ChartSetup.Prepare(").Append(data.Property).AppendLine(");").AppendLine();
+        code.Append("    /// <summary>Gets the data of ").Append(data.SeriesName).AppendLine(".</summary>");
+        code.Append("    public ").Append(data.Type).Append(' ').Append(data.Property).Append(" { get; } = ChartSetup.").Append(data.Call).AppendLine(";");
+        foreach (var view in views)
+        {
+            code.AppendLine();
+            code.Append("    /// <summary>Describes the chart ").Append(view.Name).AppendLine(".</summary>");
+            code.AppendLine("    /// <param name=\"chart\">The chart description.</param>");
+            code.Append("    public void Configure").Append(view.Name).Append("(ChartBuilder chart) => ChartSetup.Configure").Append(view.Name).Append("(chart, ").Append(data.Property).AppendLine(");");
+        }
+
+        return code.AppendLine("}").ToString();
+    }
+
     /// <summary>Writes the window that holds the chart: <c>MainWindow.xaml</c> for WPF, <c>MainWindow.axaml</c> for Avalonia.</summary>
     /// <param name="spec">The description.</param>
     /// <param name="options">The options.</param>
@@ -166,6 +253,13 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         ArgumentNullException.ThrowIfNull(spec);
         ArgumentNullException.ThrowIfNull(options);
         var title = System.Security.SecurityElement.Escape(spec.Title.Length > 0 ? spec.Title : options.ProjectName);
+        var charts = "<t:Chart x:Name=\"Chart\" />";
+        if (_catalog.ViewsOf(spec) is { } linked)
+        {
+            // The linked charts side by side, named after their views.
+            charts = $"<UniformGrid Columns=\"{linked.Columns}\">\n" + string.Concat(linked.Views.Select(view => $"        <t:Chart x:Name=\"{view.Name}Chart\" />\n")) + "    </UniformGrid>";
+        }
+
         return options.Framework == UiFramework.Wpf
             ? $"""
                <Window x:Class="{options.Namespace}.MainWindow"
@@ -173,7 +267,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
                        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                        xmlns:t="urn:tachyon-charts"
                        Title="{title}" Width="1000" Height="650">
-                   <t:Chart x:Name="Chart" />
+                   {charts}
                </Window>
 
                """
@@ -183,7 +277,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
                        xmlns:t="using:Tachyon.Charts.Avalonia"
                        x:Class="{options.Namespace}.MainWindow"
                        Title="{title}" Width="1000" Height="650">
-                   <t:Chart x:Name="Chart" />
+                   {charts}
                </Window>
 
                """;
@@ -201,11 +295,41 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     /// <param name="spec">The description.</param>
     /// <param name="options">The options.</param>
     /// <returns>The C# file.</returns>
-    public static string WindowCode(ChartSpec spec, CodeOptions options)
+    public static string WindowCode(ChartSpec spec, CodeOptions options) => WindowCode(spec, options, []);
+
+    /// <summary>Writes the code behind the window of linked charts: each chart is described by its method of the view model.</summary>
+    /// <param name="spec">The description.</param>
+    /// <param name="options">The options.</param>
+    /// <param name="views">The names of the linked charts, or empty for one chart.</param>
+    /// <returns>The C# file.</returns>
+    public static string WindowCode(ChartSpec spec, CodeOptions options, IReadOnlyList<string> views)
     {
         ArgumentNullException.ThrowIfNull(spec);
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(views);
         var wpf = options.Framework == UiFramework.Wpf;
+        if (views.Count > 0)
+        {
+            return $$"""
+                     {{(wpf ? "using System.Windows;" : "using Avalonia.Controls;")}}
+
+                     namespace {{options.Namespace}};
+
+                     /// <summary>The window with the linked charts.</summary>
+                     public partial class MainWindow : Window
+                     {
+                         /// <summary>Initializes the window and its charts.</summary>
+                         public MainWindow()
+                         {
+                             InitializeComponent();
+                             var model = new ChartViewModel();
+                             DataContext = model;
+                     {{string.Concat(views.Select(view => $"        {view}Chart.Configure(model.Configure{view});\n"))}}    }
+                     }
+
+                     """;
+        }
+
         if (!spec.ExportMenu)
         {
             return $$"""
@@ -374,7 +498,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         {
             ["ChartSetup.cs"] = Setup(spec, options),
             ["ChartViewModel.cs"] = ViewModel(spec, options),
-            ["MainWindow.xaml.cs".Replace(".xaml", options.Framework == UiFramework.Wpf ? ".xaml" : ".axaml", StringComparison.Ordinal)] = WindowCode(spec, options),
+            ["MainWindow.xaml.cs".Replace(".xaml", options.Framework == UiFramework.Wpf ? ".xaml" : ".axaml", StringComparison.Ordinal)] = WindowCode(spec, options, ViewNames(spec)),
             [options.Framework == UiFramework.Wpf ? "MainWindow.xaml" : "MainWindow.axaml"] = WindowMarkup(spec, options),
             [options.ProjectName + ".csproj"] = ProjectFile(options, _catalog.SceneOf(spec), spec.Series.Exists(series => series.Data.Kind == DataKind.Hdf5), Packages(spec), [.. spec.Series.SelectMany(series => _catalog.FindType(series.Type)!.Packages).Distinct()]),
         };

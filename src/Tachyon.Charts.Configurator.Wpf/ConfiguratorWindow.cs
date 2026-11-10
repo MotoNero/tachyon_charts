@@ -22,6 +22,9 @@ internal sealed class ConfiguratorWindow : Window
     // Data, checks and code are made away from the window, which only shows the result.
     private readonly ConfiguratorSession _session = new(ChartCatalog.CreateWithAddOns(), new System.Windows.Threading.DispatcherSynchronizationContext(System.Windows.Threading.Dispatcher.CurrentDispatcher));
     private readonly Chart _preview = new();
+
+    // The charts of the preview: one, or one per linked view.
+    private readonly System.Windows.Controls.Primitives.UniformGrid _previews = new() { Columns = 1 };
     private readonly StackPanel _fields = new() { Margin = new Thickness(0, 0, 8, 0) };
     private readonly ComboBox _series = new() { Margin = new Thickness(0, 0, 0, 8) };
     private readonly TabControl _code = new();
@@ -53,7 +56,8 @@ internal sealed class ConfiguratorWindow : Window
         var middle = new DockPanel();
         DockPanel.SetDock(_status, Dock.Bottom);
         middle.Children.Add(_status);
-        middle.Children.Add(new Border { Child = _preview, Margin = new Thickness(8), CornerRadius = new CornerRadius(8), ClipToBounds = true });
+        _previews.Children.Add(_preview);
+        middle.Children.Add(new Border { Child = _previews, Margin = new Thickness(8), CornerRadius = new CornerRadius(8), ClipToBounds = true });
         Grid.SetColumn(middle, 2);
         root.Children.Add(middle);
         var code = CreateCode();
@@ -335,6 +339,28 @@ internal sealed class ConfiguratorWindow : Window
         menu.Items.Add(item);
     }
 
+    // One chart per linked view, in the columns of the description; the first is the one the export menu saves.
+    private void ShowViews()
+    {
+        var views = _session.Views;
+        while (_previews.Children.Count > views.Count)
+        {
+            _previews.Children.RemoveAt(_previews.Children.Count - 1);
+        }
+
+        while (_previews.Children.Count < views.Count)
+        {
+            _previews.Children.Add(new Chart { Margin = new Thickness(2) });
+        }
+
+        _previews.Columns = _session.ViewColumns;
+        for (var i = 0; i < views.Count; i++)
+        {
+            var view = i;
+            ((Chart)_previews.Children[i]).Configure(chart => _session.Apply(view, chart));
+        }
+    }
+
     // Code at once, the preview right after; the status says how long both took.
     private void ShowState()
     {
@@ -348,7 +374,7 @@ internal sealed class ConfiguratorWindow : Window
 
         try
         {
-            _preview.Configure(_session.Apply);
+            ShowViews();
             _preview.ContextMenu = _session.Spec.ExportMenu ? ExportMenu() : null;
         }
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)
