@@ -17,7 +17,7 @@ internal static class InstrumentTypes
 
     public static IReadOnlyList<ChartTypeInfo> Create() => [Oscilloscope(), Spectrum(), Network(), Monitor()];
 
-    public static IReadOnlyList<SampleInfo> Samples() => [ScopeSample(), SpectrumSample(), NetworkSample(), MonitorSample()];
+    public static IReadOnlyList<SampleInfo> Samples() => [ScopeSample(), SpectrumSample(), DriftSample(), NetworkSample(), MonitorSample()];
 
     private static readonly string[] _signals = ["Sine", "Square", "Burst", "Triangle"];
 
@@ -119,12 +119,7 @@ internal static class InstrumentTypes
         DataShape.Spectrum,
         "spectrum",
         [
-            new("reference", "Reference level in dBm", ParameterKind.Number, 0.0),
-            new("perDivision", "dB per division", ParameterKind.Number, 10.0) { Minimum = 0.01 },
-            new("maxHold", "Max hold", ParameterKind.Flag, false),
-            new("density", "Density", ParameterKind.Flag, true),
-            new("mask", "Limit mask", ParameterKind.Flag, true),
-            new("marker", "Marker in Hz", ParameterKind.Number, 2e6) { Description = "A negative value for none." },
+            .. SpectrumSettings(),
             new("history", "History below", ParameterKind.Flag, false) { Description = "The spectra over time as a waterfall below the trace." },
         ],
         (chart, series, data, _) =>
@@ -142,33 +137,59 @@ internal static class InstrumentTypes
     {
         Usings = ["Tachyon.Charts.Core.Instruments"],
         OwnsAxes = true,
-        Region = (_, data) => ((SpectrumDisplay)data) is var spectrum ? (new DoubleRange(spectrum.Start, spectrum.Stop), new DoubleRange(spectrum.ReferenceLevel - (ScopeDisplay.VerticalDivisions * spectrum.PerDivision), spectrum.ReferenceLevel)) : default,
-        Prepare = (series, data) =>
-        {
-            var (spectrum, values) = ((SpectrumDisplay)data, series.Parameters);
-            spectrum.SetView(spectrum.Start, spectrum.Stop, values.GetNumber("reference", 0), values.GetNumber("perDivision", 10));
-            spectrum.ShowsMaxHold = values.GetFlag("maxHold", false);
-            spectrum.ShowsDensity = values.GetFlag("density", true);
-            spectrum.Mask = values.GetFlag("mask", true) ? new FrequencyMask(_maskFrequencies, _maskLevels) : null;
-            spectrum.MarkerFrequency = values.GetNumber("marker", 2e6) >= 0 ? values.GetNumber("marker", 2e6) : null;
-        },
-        PrepareCode = (series, data) =>
-        {
-            var values = series.Parameters;
-            var lines = new List<string>
-            {
-                $"{data}.SetView({data}.Start, {data}.Stop, {CodeText.Number(values.GetNumber("reference", 0))}, {CodeText.Number(values.GetNumber("perDivision", 10))});",
-                $"{data}.ShowsMaxHold = {CodeText.Flag(values.GetFlag("maxHold", false))};",
-                $"{data}.ShowsDensity = {CodeText.Flag(values.GetFlag("density", true))};",
-                values.GetFlag("mask", true)
-                    ? $"{data}.Mask = new FrequencyMask([{string.Join(", ", _maskFrequencies.Select(CodeText.Number))}], [{string.Join(", ", _maskLevels.Select(CodeText.Number))}]);"
-                    : $"{data}.Mask = null;",
-            };
-            lines.Add(values.GetNumber("marker", 2e6) >= 0 ? $"{data}.MarkerFrequency = {CodeText.Number(values.GetNumber("marker", 2e6))};" : $"{data}.MarkerFrequency = null;");
-
-            return lines;
-        },
+        Region = (_, data) => SpectrumRegion((SpectrumDisplay)data),
+        Prepare = (series, data) => PrepareSpectrum(series.Parameters, (SpectrumDisplay)data),
+        PrepareCode = (series, data) => PrepareSpectrumCode(series.Parameters, data),
     };
+
+    /// <summary>Gets the settings of a spectrum analyzer that other types with a spectrum share.</summary>
+    /// <returns>The parameters.</returns>
+    internal static ParameterInfo[] SpectrumSettings() =>
+    [
+        new("reference", "Reference level in dBm", ParameterKind.Number, 0.0),
+        new("perDivision", "dB per division", ParameterKind.Number, 10.0) { Minimum = 0.01 },
+        new("maxHold", "Max hold", ParameterKind.Flag, false),
+        new("density", "Density", ParameterKind.Flag, true),
+        new("mask", "Limit mask", ParameterKind.Flag, true),
+        new("marker", "Marker in Hz", ParameterKind.Number, 2e6) { Description = "A negative value for none." },
+    ];
+
+    /// <summary>Gets the frequencies and levels a spectrum shows.</summary>
+    /// <param name="spectrum">The spectrum.</param>
+    /// <returns>The frequencies across and the levels from the bottom to the reference level.</returns>
+    internal static (DoubleRange X, DoubleRange Y) SpectrumRegion(SpectrumDisplay spectrum) =>
+        (new DoubleRange(spectrum.Start, spectrum.Stop), new DoubleRange(spectrum.ReferenceLevel - (ScopeDisplay.VerticalDivisions * spectrum.PerDivision), spectrum.ReferenceLevel));
+
+    /// <summary>Sets a spectrum up from the settings of <see cref="SpectrumSettings"/>.</summary>
+    /// <param name="values">The settings.</param>
+    /// <param name="spectrum">The spectrum.</param>
+    internal static void PrepareSpectrum(SpecValues values, SpectrumDisplay spectrum)
+    {
+        spectrum.SetView(spectrum.Start, spectrum.Stop, values.GetNumber("reference", 0), values.GetNumber("perDivision", 10));
+        spectrum.ShowsMaxHold = values.GetFlag("maxHold", false);
+        spectrum.ShowsDensity = values.GetFlag("density", true);
+        spectrum.Mask = values.GetFlag("mask", true) ? new FrequencyMask(_maskFrequencies, _maskLevels) : null;
+        spectrum.MarkerFrequency = values.GetNumber("marker", 2e6) >= 0 ? values.GetNumber("marker", 2e6) : null;
+    }
+
+    /// <summary>Writes <see cref="PrepareSpectrum"/> as C# statements.</summary>
+    /// <param name="values">The settings.</param>
+    /// <param name="data">The name of the spectrum.</param>
+    /// <returns>The statements.</returns>
+    internal static IEnumerable<string> PrepareSpectrumCode(SpecValues values, string data)
+    {
+        var lines = new List<string>
+        {
+            $"{data}.SetView({data}.Start, {data}.Stop, {CodeText.Number(values.GetNumber("reference", 0))}, {CodeText.Number(values.GetNumber("perDivision", 10))});",
+            $"{data}.ShowsMaxHold = {CodeText.Flag(values.GetFlag("maxHold", false))};",
+            $"{data}.ShowsDensity = {CodeText.Flag(values.GetFlag("density", true))};",
+            values.GetFlag("mask", true)
+                ? $"{data}.Mask = new FrequencyMask([{string.Join(", ", _maskFrequencies.Select(CodeText.Number))}], [{string.Join(", ", _maskLevels.Select(CodeText.Number))}]);"
+                : $"{data}.Mask = null;",
+        };
+        lines.Add(values.GetNumber("marker", 2e6) >= 0 ? $"{data}.MarkerFrequency = {CodeText.Number(values.GetNumber("marker", 2e6))};" : $"{data}.MarkerFrequency = null;");
+        return lines;
+    }
 
     private static ChartTypeInfo Network() => new(
         "network",
@@ -311,6 +332,41 @@ internal static class InstrumentTypes
     }
 
     // Noise around -67 dBm and three carriers from 0 to 10 MHz.
+    // A carrier that drifts up in frequency beside a steady one; 300 spectra so far, so that a waterfall shows its way.
+    private static SampleInfo DriftSample() => new(
+        "drift",
+        "Drifting carrier with history",
+        DataShape.Spectrum,
+        1024,
+        count =>
+        {
+            var display = new SpectrumDisplay();
+            display.SetView(0, 1e7, 0);
+            var (frequencies, levels) = (new double[count], new float[count]);
+            for (var step = 0; step < 300; step++)
+            {
+                SpectrumFeed.Drift(display, step, frequencies, levels);
+            }
+
+            return display;
+        },
+        "SpectrumDisplay",
+        method => SampleCatalog.Header("a carrier drifting beside a steady one, with 300 spectra so far", method, "SpectrumDisplay", "The number of frequencies.") + """
+                {
+                    var display = new SpectrumDisplay();
+                    display.SetView(0, 1e7, 0);
+                    var (frequencies, levels) = (new double[count], new float[count]);
+                    for (var step = 0; step < 300; step++)
+                    {
+                        Drift(display, step, frequencies, levels);
+                    }
+
+                    return display;
+                }
+
+            """ + SpectrumFeed.DriftCode)
+    { MinimumCount = 16 };
+
     private static SampleInfo SpectrumSample() => new(
         "spectrum",
         "Three carriers",

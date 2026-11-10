@@ -277,6 +277,12 @@ public sealed class ChartTypeInfo
     /// </summary>
     public Func<SeriesSpec, object, (Core.Numerics.DoubleRange X, Core.Numerics.DoubleRange Y)>? Region { get; init; }
 
+    /// <summary>
+    /// Gets what keeps the data of the preview coming, such as new spectra of a live measurement, from the series and its
+    /// data; disposing it stops them. <see langword="null"/> for data that stay as they are.
+    /// </summary>
+    public Func<SeriesSpec, object, IDisposable?>? Start { get; init; }
+
     /// <summary>Gets the number of columns the views are arranged in, by the settings; one when not given.</summary>
     public Func<SeriesSpec, int>? Columns { get; init; }
 
@@ -568,6 +574,11 @@ public sealed class ChartCatalog
         if (spec.ExportMenu && spec.Series.Exists(series => FindType(series.Type)?.Views is not null))
         {
             problems.Add("The export menu saves one chart; linked views leave it out.");
+        }
+
+        if (spec.Annotations.Count > 0 && spec.Series.Exists(series => FindType(series.Type)?.Views is not null))
+        {
+            problems.Add("Annotations go into a single chart; linked charts leave them out.");
         }
 
         foreach (var series in spec.Series)

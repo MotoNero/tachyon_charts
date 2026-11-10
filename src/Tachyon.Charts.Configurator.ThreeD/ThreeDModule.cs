@@ -1,6 +1,8 @@
 using System.Globalization;
 using PureHDF;
+using Tachyon.Charts.Core.Colors;
 using Tachyon.Charts.Core.Data;
+using Tachyon.Charts.Core.Instruments;
 using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Core.Series;
 using Tachyon.Charts.Rendering;
@@ -89,14 +91,103 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         Pie3DType("pie3d", "Pie 3D", 0),
         Pie3DType("donut3d", "Donut 3D", 0.5),
         Model(),
+        SpectrumWaterfall(),
     ];
 
     /// <inheritdoc />
     public IReadOnlyList<SampleInfo> Samples { get; } = Samples3D.Create();
 
+    // A spectrum analyzer and the same measurement as a waterfall in 3D, side by side or one above the other; both show
+    // the same display, so the reference level, the mask and new spectra show in both.
+    private static ChartTypeInfo SpectrumWaterfall() => new("spectrumWaterfall", "Spectrum with 3D waterfall", ChartCategory.Instrument, DataShape.Spectrum, "drift",
+        [
+            new("layout", "Arrangement", ParameterKind.Choice, "Side by side") { Choices = ["Side by side", "One above the other"] },
+            .. InstrumentTypes.SpectrumSettings(),
+            Colormap("Inferno"),
+            new("style", "Style", ParameterKind.Choice, nameof(WaterfallStyle.Surface)) { Choices = Enum.GetNames<WaterfallStyle>() },
+            new("live", "Live spectra", ParameterKind.Flag, false) { Description = "New spectra keep coming, as from a measurement, and run back in the waterfall." },
+            new("rate", "Spectra per second", ParameterKind.Number, 20.0) { Minimum = 1, Maximum = 200 },
+        ],
+        (chart, series, data, _) => chart.Spectrum((SpectrumDisplay)data),
+        (_, _, _) => string.Empty)
+    {
+        Usings = ["Tachyon.Charts.Core.Instruments", "Tachyon.Charts.Core.Numerics", "Tachyon.Charts.Core.Colors", "Tachyon.Charts.ThreeD", "Tachyon.Charts.ThreeD.Scene"],
+        OwnsAxes = true,
+        Packages = [("Tachyon.Charts.ThreeD", PackageVersion)],
+        Region = (_, data) => InstrumentTypes.SpectrumRegion((SpectrumDisplay)data),
+        Views = series =>
+        [
+            new ViewInfo("Spectrum", (chart, _, data) => chart.Spectrum((SpectrumDisplay)data), (_, data) => $"chart.Spectrum({data});"),
+            new ViewInfo("Waterfall", (chart, s, data) => chart.Scene3D(scene => Waterfall(scene, (SpectrumDisplay)data, s.Parameters)), (s, data) => $"chart.Scene3D(scene => Waterfall(scene, {data}, Colormaps.{s.Parameters.GetText("colormap", "Inferno")}, WaterfallStyle.{s.Parameters.GetText("style", nameof(WaterfallStyle.Surface))}));"),
+        ],
+        Columns = series => series.Parameters.GetText("layout", "Side by side") == "Side by side" ? 2 : 1,
+        Prepare = (series, data) => InstrumentTypes.PrepareSpectrum(series.Parameters, (SpectrumDisplay)data),
+        PrepareCode = (series, data) =>
+        [
+            .. InstrumentTypes.PrepareSpectrumCode(series.Parameters, data),
+            .. series.Parameters.GetFlag("live", false) ? [$"StartFeed({data}, {CodeText.Number(series.Parameters.GetNumber("rate", 20))});"] : Array.Empty<string>(),
+        ],
+        Start = (series, data) => series.Parameters.GetFlag("live", false) ? SpectrumFeed.Start((SpectrumDisplay)data, series.Parameters.GetNumber("rate", 20)) : null,
+        Helpers = WaterfallCode + SpectrumFeed.StartCode,
+    };
+
+    // The waterfall of a spectrum: frequencies across, the spectra so far into the depth, the levels of the spectrum up.
+    private static void Waterfall(Chart3DBuilder scene, SpectrumDisplay display, SpecValues values)
+    {
+        var (frequencies, levels) = InstrumentTypes.SpectrumRegion(display);
+        scene.Title("Waterfall")
+            .XAxis(frequencies.Min, frequencies.Max, "Hz")
+            .YAxis(0, 400, "Spectra ago")
+            .ZAxis(levels.Min, levels.Max, "dBm")
+            .AddWaterfall(new Waterfall3D(display.History, new DoubleRange(display.HistoryStart, display.HistoryStop), new DoubleRange(0, 400))
+            {
+                Display = display,
+                Colormap = ColormapOf(values.GetText("colormap", "Inferno")),
+                Style = Enum.Parse<WaterfallStyle>(values.GetText("style", nameof(WaterfallStyle.Surface))),
+                ColorRange = levels,
+            });
+    }
+
+    private static Colormap ColormapOf(string name) => name switch
+    {
+        "Viridis" => Colormaps.Viridis,
+        "Magma" => Colormaps.Magma,
+        "Plasma" => Colormaps.Plasma,
+        "Turbo" => Colormaps.Turbo,
+        "Grayscale" => Colormaps.Grayscale,
+        _ => Colormaps.Inferno,
+    };
+
+    private const string WaterfallCode = """
+
+            // The waterfall of a spectrum: frequencies across, the spectra so far into the depth, the levels of the spectrum up.
+            private static void Waterfall(Chart3DBuilder scene, SpectrumDisplay display, Colormap colormap, WaterfallStyle style)
+            {
+                var levels = new DoubleRange(display.ReferenceLevel - (ScopeDisplay.VerticalDivisions * display.PerDivision), display.ReferenceLevel);
+                scene.Title("Waterfall")
+                    .XAxis(display.Start, display.Stop, "Hz")
+                    .YAxis(0, 400, "Spectra ago")
+                    .ZAxis(levels.Min, levels.Max, "dBm")
+                    .AddWaterfall(new Waterfall3D(display.History, new DoubleRange(display.HistoryStart, display.HistoryStop), new DoubleRange(0, 400))
+                    {
+                        Display = display,
+                        Colormap = colormap,
+                        Style = style,
+                        ColorRange = levels,
+                    });
+            }
+
+        """;
+
     /// <inheritdoc />
     public IReadOnlyList<TemplateInfo> Templates { get; } =
     [
+        new("spectrumWaterfall", "Spectrum with 3D waterfall", catalog =>
+        {
+            var spec = catalog.CreateSpec("spectrumWaterfall");
+            spec.Series[0].Parameters.Set("live", true);
+            return spec;
+        }),
         new("surfaceLimit", "Surface with height lines and a limit", catalog =>
         {
             var spec = catalog.CreateSpec("surface3d");

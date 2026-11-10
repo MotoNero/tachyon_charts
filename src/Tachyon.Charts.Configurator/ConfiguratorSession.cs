@@ -392,6 +392,12 @@ public sealed class ConfiguratorSession
         if (_prepared is { } prepared && Catalog.ViewsOf(prepared.Spec) is not null)
         {
             SpecChartBuilder.ApplyView(prepared.Spec, Catalog, chart, 0, prepared.Data);
+
+            // Linked charts share their data; what keeps them coming starts once, with the first chart.
+            if (Catalog.FindType(prepared.Spec.Series[0].Type)?.Start is { } start && prepared.Data[0] is { } data && start(prepared.Spec.Series[0], data) is { } running)
+            {
+                _running.Add(running);
+            }
         }
         else if (_prepared is { } single)
         {
