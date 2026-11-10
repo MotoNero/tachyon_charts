@@ -2,7 +2,7 @@
 
 Tachyon Charts draws large amounts of data in real time, in WPF and Avalonia, on the GPU and on the CPU when needed.
 
-**Start here:** [Getting started](getting-started.md). Coming from OxyPlot? See [Moving from OxyPlot](migration-oxyplot.md).
+**Start here:** [Getting started](getting-started.md), or put a chart together in the [Configurator](configurator.md) and take its code. Coming from OxyPlot? See [Moving from OxyPlot](migration-oxyplot.md).
 
 | Topic | Page |
 |---|---|
@@ -28,6 +28,7 @@ Tachyon Charts draws large amounts of data in real time, in WPF and Avalonia, on
 | Groups and several charts | [groups.md](groups.md) |
 | Themes and effects | [themes.md](themes.md) |
 | Export, clipboard, printing | [export.md](export.md) |
+| Configurator: put a chart together, take its code | [configurator.md](configurator.md) |
 | GPU, fallback, diagnostics | [renderer.md](renderer.md) |
 | Accessibility | [accessibility.md](accessibility.md) |
 | 3D charts: types, operation, themes | [3d.md](3d.md) |
