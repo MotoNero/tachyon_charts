@@ -1304,6 +1304,7 @@ static class Tachyon.Charts.Core.Instruments.SpectrumChart
 sealed class Tachyon.Charts.Core.Instruments.SpectrumDisplay
   .ctor()
   System.Boolean RemoveMarker(System.Double frequency, System.Double tolerance)
+  System.Boolean ShowsAxes { get; set; }
   System.Boolean ShowsDensity { get; set; }
   System.Boolean ShowsMaxHold { get; set; }
   System.Collections.Generic.IReadOnlyList<System.Double> ExtraMarkers { get; }

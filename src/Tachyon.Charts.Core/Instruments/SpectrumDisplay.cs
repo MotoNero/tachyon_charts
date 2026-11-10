@@ -135,6 +135,9 @@ public sealed class SpectrumDisplay
     {
         Trace = _scope.AddChannel();
         Hold = _scope.AddChannel();
+
+        // The reference level may be any number of divisions away from 0 dBm.
+        Trace.IsUnbounded = Hold.IsUnbounded = true;
         Apply();
     }
 
@@ -171,6 +174,21 @@ public sealed class SpectrumDisplay
     {
         get => _scope.Persistence == ScopePersistence.ColorGrade;
         set => _scope.Persistence = value ? ScopePersistence.ColorGrade : ScopePersistence.Off;
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the axes show their numbers: the frequency below with its unit (Hz, kHz,
+    /// MHz, GHz) and the level in dBm on the left. Without them, as on many instruments, the readings in the corners
+    /// name reference level, division, start and stop.
+    /// </summary>
+    public bool ShowsAxes
+    {
+        get => field;
+        set
+        {
+            field = value;
+            _scope.Touch();
+        }
     }
 
     /// <summary>Gets or sets the frequency of the marker, or <see langword="null"/> for the peak.</summary>
@@ -525,7 +543,36 @@ internal sealed class SpectrumSync(ChartSurface chart, SpectrumDisplay display) 
         {
             lines[1].IsVisible = display.ShowsMaxHold;
         }
+
+        ShowAxes();
     }
+
+    // The frequency below and the level of the trace on the left, when the display wants them; the other channels'
+    // axes stay hidden. The vertical axes come in the order of the channels.
+    private void ShowAxes()
+    {
+        var shows = display.ShowsAxes;
+        if (chart.HorizontalAxes[0] is Axes.NumericAxis frequency && frequency.IsHidden == shows)
+        {
+            frequency.IsHidden = !shows;
+            frequency.Title = shows ? "Frequency" : null;
+            frequency.LabelFormat = shows ? _hertz : new Axes.NumericLabelFormat();
+        }
+
+        var channels = display.Scope.Channels;
+        var axes = chart.Panes[0].Axes;
+        for (var i = 0; i < channels.Count && i < axes.Count; i++)
+        {
+            var visible = shows && channels[i] == display.Trace;
+            if (axes[i].IsHidden == visible)
+            {
+                axes[i].IsHidden = !visible;
+                axes[i].Title = visible ? "Level in dBm" : null;
+            }
+        }
+    }
+
+    private static readonly Axes.NumericLabelFormat _hertz = new() { UseSiPrefixes = true, Unit = "Hz" };
 }
 
 /// <summary>Keeps a spectrogram exactly below its spectrum: same frequencies, no color bar.</summary>

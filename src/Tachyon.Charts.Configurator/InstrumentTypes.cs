@@ -152,6 +152,7 @@ internal static class InstrumentTypes
         new("density", "Density", ParameterKind.Flag, true),
         new("mask", "Limit mask", ParameterKind.Flag, true),
         new("marker", "Marker in Hz", ParameterKind.Number, 2e6) { Description = "A negative value for none." },
+        new("axes", "Axes with numbers", ParameterKind.Flag, false) { Description = "The frequency below with its unit and the level in dBm on the left; without, the readings in the corners name them." },
     ];
 
     /// <summary>Gets the frequencies and levels a spectrum shows.</summary>
@@ -170,6 +171,7 @@ internal static class InstrumentTypes
         spectrum.ShowsDensity = values.GetFlag("density", true);
         spectrum.Mask = values.GetFlag("mask", true) ? new FrequencyMask(_maskFrequencies, _maskLevels) : null;
         spectrum.MarkerFrequency = values.GetNumber("marker", 2e6) >= 0 ? values.GetNumber("marker", 2e6) : null;
+        spectrum.ShowsAxes = values.GetFlag("axes", false);
     }
 
     /// <summary>Writes <see cref="PrepareSpectrum"/> as C# statements.</summary>
@@ -188,6 +190,11 @@ internal static class InstrumentTypes
                 : $"{data}.Mask = null;",
         };
         lines.Add(values.GetNumber("marker", 2e6) >= 0 ? $"{data}.MarkerFrequency = {CodeText.Number(values.GetNumber("marker", 2e6))};" : $"{data}.MarkerFrequency = null;");
+        if (values.GetFlag("axes", false))
+        {
+            lines.Add($"{data}.ShowsAxes = true;");
+        }
+
         return lines;
     }
 

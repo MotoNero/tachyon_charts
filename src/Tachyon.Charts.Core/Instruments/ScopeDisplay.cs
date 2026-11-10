@@ -199,10 +199,16 @@ public sealed class ScopeChannel
         get => _position;
         set
         {
-            _position = Math.Clamp(value, -ScopeDisplay.VerticalDivisions / 2.0, ScopeDisplay.VerticalDivisions / 2.0);
+            _position = IsUnbounded ? value : Math.Clamp(value, -ScopeDisplay.VerticalDivisions / 2.0, ScopeDisplay.VerticalDivisions / 2.0);
             _display.TouchScale();
         }
     }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the position may lie beyond the screen, as for the level scale of a
+    /// spectrum, whose reference level can be any number of divisions away from zero.
+    /// </summary>
+    internal bool IsUnbounded { get; set; }
 
     /// <summary>Gets the measurements of the last waveform.</summary>
     public ScopeMeasurements Measurements

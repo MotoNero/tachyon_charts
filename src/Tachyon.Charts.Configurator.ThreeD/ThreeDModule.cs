@@ -1,5 +1,6 @@
 using System.Globalization;
 using PureHDF;
+using Tachyon.Charts.Core.Axes;
 using Tachyon.Charts.Core.Colors;
 using Tachyon.Charts.Core.Data;
 using Tachyon.Charts.Core.Instruments;
@@ -111,7 +112,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         (chart, series, data, _) => chart.Spectrum((SpectrumDisplay)data),
         (_, _, _) => string.Empty)
     {
-        Usings = ["Tachyon.Charts.Core.Instruments", "Tachyon.Charts.Core.Numerics", "Tachyon.Charts.Core.Colors", "Tachyon.Charts.ThreeD", "Tachyon.Charts.ThreeD.Scene"],
+        Usings = ["Tachyon.Charts.Core.Axes", "Tachyon.Charts.Core.Instruments", "Tachyon.Charts.Core.Numerics", "Tachyon.Charts.Core.Colors", "Tachyon.Charts.ThreeD", "Tachyon.Charts.ThreeD.Scene"],
         OwnsAxes = true,
         Packages = [("Tachyon.Charts.ThreeD", PackageVersion)],
         Region = (_, data) => InstrumentTypes.SpectrumRegion((SpectrumDisplay)data),
@@ -136,7 +137,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
     {
         var (frequencies, levels) = InstrumentTypes.SpectrumRegion(display);
         scene.Title("Waterfall")
-            .XAxis(frequencies.Min, frequencies.Max, "Hz")
+            .XAxis(new NumericAxis("x3d", AxisPosition.Bottom) { VisibleRange = frequencies, Title = "Frequency", LabelFormat = new NumericLabelFormat { UseSiPrefixes = true, Unit = "Hz" } })
             .YAxis(0, 400, "Spectra ago")
             .ZAxis(levels.Min, levels.Max, "dBm")
             .AddWaterfall(new Waterfall3D(display.History, new DoubleRange(display.HistoryStart, display.HistoryStop), new DoubleRange(0, 400))
@@ -165,7 +166,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             {
                 var levels = new DoubleRange(display.ReferenceLevel - (ScopeDisplay.VerticalDivisions * display.PerDivision), display.ReferenceLevel);
                 scene.Title("Waterfall")
-                    .XAxis(display.Start, display.Stop, "Hz")
+                    .XAxis(new NumericAxis("x3d", AxisPosition.Bottom) { VisibleRange = new DoubleRange(display.Start, display.Stop), Title = "Frequency", LabelFormat = new NumericLabelFormat { UseSiPrefixes = true, Unit = "Hz" } })
                     .YAxis(0, 400, "Spectra ago")
                     .ZAxis(levels.Min, levels.Max, "dBm")
                     .AddWaterfall(new Waterfall3D(display.History, new DoubleRange(display.HistoryStart, display.HistoryStop), new DoubleRange(0, 400))

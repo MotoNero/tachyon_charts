@@ -41,6 +41,8 @@ chart.Configure(c => c.Spectrum(display).Theme(BuiltInThemes.Instrument));
 display.SetTrace(frequencies, levels);
 ```
 
+`ShowsAxes = true` numbers the axes: the frequency below with its unit (Hz, kHz, MHz, GHz) and the level in dBm on the left, following reference level, division and zoom. Without it the readings in the corners name them, as on many instruments. The reference level may lie any number of divisions from 0 dBm.
+
 | Gesture | Effect |
 |---|---|
 | Wheel | Zoom the frequency around the pointer |
