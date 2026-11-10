@@ -106,12 +106,15 @@ internal sealed class MedicalMeasurementModifier(MedicalMeasurementLayer layer) 
         return ModifierResult.Ignored;
     }
 
+    // Chooses a tool, or puts away the one chosen; the measurements stay either way.
+    private void Toggle(MedicalMeasurementKind tool) => (_isDrawing, _layer.Tool) = (false, _layer.Tool == tool ? null : tool);
+
     // A tool of the bar, or the removal of the selected measurement, which Ctrl+Z brings back.
     private void Choose(ChartInteraction interaction, MedicalToolButton button)
     {
-        if (button != MedicalToolButton.Delete)
+        if (MedicalToolBar.ToolOf(button) is { } tool)
         {
-            _layer.Tool = MedicalToolBar.ToolOf(button);
+            Toggle(tool);
             return;
         }
 
@@ -134,7 +137,7 @@ internal sealed class MedicalMeasurementModifier(MedicalMeasurementLayer layer) 
         // Letters choose a tool, so that a host without a tool bar can measure.
         if (input.Modifiers == InputModifiers.None && ToolOf(input.Key) is { } tool)
         {
-            _layer.Tool = tool;
+            Toggle(tool);
             return ModifierResult.Handled;
         }
 

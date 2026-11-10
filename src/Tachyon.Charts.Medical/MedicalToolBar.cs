@@ -8,9 +8,6 @@ namespace Tachyon.Charts.Medical;
 /// <summary>A button of the bar of measuring tools.</summary>
 internal enum MedicalToolButton
 {
-    /// <summary>No tool: a drag moves points and the window.</summary>
-    Move,
-
     /// <summary>The distance tool.</summary>
     Distance,
 
@@ -40,7 +37,8 @@ internal static class MedicalToolBar
     private const double Gap = 3;
     private const double Margin = 8;
 
-    private static readonly string[] _names = ["Move points and window (Esc)", "Distance (D)", "Angle (A)", "Circle (C)", "Rectangle (R)", "Freehand (F)", "Delete the selected measurement (Del)"];
+    // A click on the lit tool, or its key once more, puts it away: a drag then moves points and the window again.
+    private static readonly string[] _names = ["Distance (D), click again to stop", "Angle (A), click again to stop", "Circle (C), click again to stop", "Rectangle (R), click again to stop", "Freehand (F), click again to stop", "Delete the selected measurement (Del)"];
 
     /// <summary>Gets the number of buttons.</summary>
     public static int Count => _names.Length;
@@ -80,20 +78,20 @@ internal static class MedicalToolBar
 
     /// <summary>Gets the button of a tool.</summary>
     /// <param name="tool">The tool, or <see langword="null"/> for none.</param>
-    /// <returns>The button.</returns>
-    public static MedicalToolButton Of(MedicalMeasurementKind? tool) => tool switch
+    /// <returns>The button, or <see langword="null"/> without a tool.</returns>
+    public static MedicalToolButton? Of(MedicalMeasurementKind? tool) => tool switch
     {
         MedicalMeasurementKind.Distance => MedicalToolButton.Distance,
         MedicalMeasurementKind.Angle => MedicalToolButton.Angle,
         MedicalMeasurementKind.Circle => MedicalToolButton.Circle,
         MedicalMeasurementKind.Rectangle => MedicalToolButton.Rectangle,
         MedicalMeasurementKind.Freehand => MedicalToolButton.Freehand,
-        _ => MedicalToolButton.Move,
+        _ => null,
     };
 
     /// <summary>Gets the tool of a button.</summary>
-    /// <param name="button">The button; not <see cref="MedicalToolButton.Delete"/>.</param>
-    /// <returns>The tool, or <see langword="null"/> for moving.</returns>
+    /// <param name="button">The button.</param>
+    /// <returns>The tool, or <see langword="null"/> for <see cref="MedicalToolButton.Delete"/>.</returns>
     public static MedicalMeasurementKind? ToolOf(MedicalToolButton button) => button switch
     {
         MedicalToolButton.Distance => MedicalMeasurementKind.Distance,
@@ -140,12 +138,6 @@ internal static class MedicalToolBar
         }
     }
 
-    private static void Head(OverlayCanvas canvas, Vector2 tip, Vector2 one, Vector2 other, Rgba8 color)
-    {
-        canvas.DrawLine(tip, tip + one, 1.5f, color);
-        canvas.DrawLine(tip, tip + other, 1.5f, color);
-    }
-
     // A symbol of 12 × 12 in the middle of a button, made of lines.
     private static void Symbol(OverlayCanvas canvas, MedicalToolButton button, DipRect bounds, Rgba8 color)
     {
@@ -155,15 +147,6 @@ internal static class MedicalToolBar
         const float Line = 1.5f;
         switch (button)
         {
-            case MedicalToolButton.Move:
-                // Four arrows from the middle.
-                canvas.DrawLine(new(left, middle.Y), new(right, middle.Y), Line, color);
-                canvas.DrawLine(new(middle.X, top), new(middle.X, bottom), Line, color);
-                Head(canvas, new(left, middle.Y), new(3, -3), new(3, 3), color);
-                Head(canvas, new(right, middle.Y), new(-3, -3), new(-3, 3), color);
-                Head(canvas, new(middle.X, top), new(-3, 3), new(3, 3), color);
-                Head(canvas, new(middle.X, bottom), new(-3, -3), new(3, -3), color);
-                break;
             case MedicalToolButton.Distance:
                 canvas.DrawLine(new(left, bottom), new(right, top), Line, color);
                 canvas.DrawLine(new(left - 2, bottom - 2), new(left + 2, bottom + 2), Line, color);

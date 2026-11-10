@@ -55,7 +55,8 @@ public sealed class MedicalMeasurementLayer : ChartOverlay
 
     /// <summary>
     /// Gets or sets a value indicating whether a bar of tools shows in the lower left corner of the image: move, distance,
-    /// angle, circle, rectangle, freehand and delete. A click chooses a tool; the keys D, A, C, R, F and Escape do the same.
+    /// angle, circle, rectangle, freehand and delete. A click chooses a tool and a second click puts it away, so that a drag
+    /// moves points and the window again; the keys D, A, C, R, F do the same, Escape puts any tool away.
     /// </summary>
     public bool ShowsTools
     {

@@ -115,7 +115,7 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
 
     private static ParameterInfo[] Tools() =>
     [
-        new("toolBar", "Tool bar in the image", ParameterKind.Flag, true) { Description = "Buttons in the lower left corner of each image: move, distance, angle, circle, rectangle, freehand, delete." },
+        new("toolBar", "Tool bar in the image", ParameterKind.Flag, true) { Description = "Buttons in the lower left corner of each image: distance, angle, circle, rectangle, freehand, delete. A click on the lit tool puts it away; the drawings stay." },
         new("tool", "Tool at the start", ParameterKind.Choice, "None")
         {
             Choices = ["None", .. Enum.GetNames<MedicalMeasurementKind>()],
