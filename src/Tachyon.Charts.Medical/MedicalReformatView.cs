@@ -120,7 +120,8 @@ internal sealed class MedicalReformatView
 
         protected override void OnAttached(ChartInteraction interaction)
         {
-            _axis = interaction.Chart.Panes.SelectMany(pane => pane.Axes).OfType<ColorAxis>().Single();
+            // A chart described anew attaches its modifiers once before its new axes are there and once more after.
+            _axis = interaction.Chart.Panes.SelectMany(pane => pane.Axes).OfType<ColorAxis>().FirstOrDefault();
             _view.Display.WindowChanged += OnWindowChanged;
             _view.Changed += OnChanged;
         }

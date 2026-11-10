@@ -227,6 +227,13 @@ public sealed class DataSpec
         set => _path = value;
     }
 
+    /// <summary>
+    /// Gets or sets a second medical file for the preview, such as a segmentation of the volume. It is never saved, for
+    /// the same reason as the path of medical data.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? Segmentation { get; set; }
+
     /// <summary>Gets or sets the file as saved: the path of a CSV file, never one of medical data; reading drops such a path.</summary>
     [System.Text.Json.Serialization.JsonPropertyName("path")]
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

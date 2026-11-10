@@ -83,6 +83,12 @@ var orientation = volume.Orientation;
 
 Compressed transfer syntaxes, color images, multi-frame data and irregular slice stacks return a `DicomReadException` with a description that contains neither source values nor file paths. An application can use another decoder and construct its own chart data when it needs encodings outside this deliberately small reader.
 
+In a chain of the chart builder, `MedicalCharts` does the same: `.MedicalImage(display)` for an image, `.MedicalSlice(mpr.Axial)` for one plane of a volume and `.MedicalVolume3D(mpr)` for the volume in 3D. The configurator writes its code this way.
+
+```csharp
+chart.Configure(c => c.Title("Axial").MedicalSlice(mpr.Axial));
+```
+
 ## Linking orthogonal slices and 3D
 
 `MedicalMprDisplay` is shared state rather than a platform control. It supplies axial, coronal and sagittal descriptions for normal 2D charts plus a 3D volume description. The application remains free to arrange those four charts, replace one of them or add its own overlays and controls.

@@ -191,7 +191,8 @@ public sealed class MedicalMprSlice
 
         protected override void OnAttached(ChartInteraction interaction)
         {
-            _axis = interaction.Chart.Panes.SelectMany(pane => pane.Axes).OfType<ColorAxis>().Single();
+            // A chart described anew attaches its modifiers once before its new axes are there and once more after.
+            _axis = interaction.Chart.Panes.SelectMany(pane => pane.Axes).OfType<ColorAxis>().FirstOrDefault();
             _slice._display.WindowChanged += OnWindowChanged;
             _slice._display.PositionChanged += OnPositionChanged;
             _slice._display.Cine.StateChanged += OnCineChanged;

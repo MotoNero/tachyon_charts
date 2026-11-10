@@ -179,6 +179,12 @@ public enum DataShape
     /// <summary>A model of triangles.</summary>
     Model,
 
+    /// <summary>A medical image, a display of one picture with its spacing and orientation.</summary>
+    MedicalImage,
+
+    /// <summary>A medical volume in a display of its planes.</summary>
+    MedicalVolume,
+
     /// <summary>The display of an oscilloscope with its channels.</summary>
     Scope,
 
@@ -238,6 +244,9 @@ public sealed class ChartTypeInfo
 
     /// <summary>Gets the namespaces the code of this type needs beyond the usual ones.</summary>
     public IReadOnlyList<string> Usings { get; init; } = [];
+
+    /// <summary>Gets the packages of Tachyon Charts the code of this type needs beyond the adapter, with their versions.</summary>
+    public IReadOnlyList<(string Name, string Version)> Packages { get; init; } = [];
 
     /// <summary>
     /// Gets a value indicating whether the type brings its own hidden axes and fills the chart alone, as a pie does.
@@ -341,7 +350,11 @@ public sealed class ChartCatalog
     private readonly List<DataLoader> _loaders = [];
 
     // The modules of the add-ons by type and assembly; loaded only when the assembly is there.
-    private static readonly string[] _addOns = ["Tachyon.Charts.Configurator.ThreeD.ThreeDModule, Tachyon.Charts.Configurator.ThreeD"];
+    private static readonly string[] _addOns =
+    [
+        "Tachyon.Charts.Configurator.ThreeD.ThreeDModule, Tachyon.Charts.Configurator.ThreeD",
+        "Tachyon.Charts.Configurator.Medical.MedicalModule, Tachyon.Charts.Configurator.Medical",
+    ];
 
     /// <summary>Initializes a catalog with the 2D types of the core.</summary>
     public ChartCatalog()

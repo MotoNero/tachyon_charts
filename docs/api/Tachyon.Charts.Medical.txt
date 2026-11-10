@@ -22,6 +22,10 @@ struct Tachyon.Charts.Medical.ImageSpacing : System.IEquatable<Tachyon.Charts.Me
   .ctor(System.Double Row, System.Double Column)
   System.Double Column { get; set; }
   System.Double Row { get; set; }
+static class Tachyon.Charts.Medical.MedicalCharts
+  static Tachyon.Charts.Core.Fluent.ChartBuilder MedicalImage(Tachyon.Charts.Core.Fluent.ChartBuilder chart, Tachyon.Charts.Medical.MedicalImageDisplay display)
+  static Tachyon.Charts.Core.Fluent.ChartBuilder MedicalSlice(Tachyon.Charts.Core.Fluent.ChartBuilder chart, Tachyon.Charts.Medical.MedicalMprSlice slice)
+  static Tachyon.Charts.Core.Fluent.ChartBuilder MedicalVolume3D(Tachyon.Charts.Core.Fluent.ChartBuilder chart, Tachyon.Charts.Medical.MedicalMprDisplay display)
 sealed class Tachyon.Charts.Medical.MedicalCinePlayer
   System.Boolean IsPlaying { get; }
   System.Double FramesPerSecond { get; set; }

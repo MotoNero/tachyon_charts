@@ -75,6 +75,7 @@ sealed class Tachyon.Charts.Configurator.ChartTypeInfo
   System.Boolean TakesInteractions { get; set; }
   System.Boolean UsesTime { get; set; }
   System.Collections.Generic.IReadOnlyList<System.String> Usings { get; set; }
+  System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.String, System.String>> Packages { get; set; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> Parameters { get; }
   System.Func<Tachyon.Charts.Configurator.SeriesSpec, System.String, System.Collections.Generic.IEnumerable<System.String>> PrepareCode { get; set; }
   System.String DefaultSample { get; }
@@ -151,20 +152,22 @@ enum Tachyon.Charts.Configurator.DataShape : System.IComparable, System.IConvert
   Groups = 7
   Layers = 5
   MaskedGrid = 16
+  MedicalImage = 24
+  MedicalVolume = 25
   Model = 23
-  Network = 26
+  Network = 28
   Pattern = 14
   Points = 0
   Points3D = 10
   Polar = 17
   Polygons = 20
   Rows = 1
-  Scope = 24
+  Scope = 26
   Slices = 9
   Smith = 19
   Spectrogram = 12
-  Spectrum = 25
-  Sweep = 27
+  Spectrum = 27
+  Sweep = 29
   Ternary = 18
   UnevenGrid = 15
   Values = 8
@@ -175,6 +178,7 @@ sealed class Tachyon.Charts.Configurator.DataSpec
   System.String Path { get; set; }
   System.String Sample { get; set; }
   System.String SavedPath { get; set; }
+  System.String Segmentation { get; set; }
   Tachyon.Charts.Configurator.DataKind Kind { get; set; }
   Tachyon.Charts.Configurator.SpecValues Options { get; set; }
 sealed class Tachyon.Charts.Configurator.FieldModel
@@ -231,6 +235,7 @@ enum Tachyon.Charts.Configurator.ParameterKind : System.IComparable, System.ICon
   Text = 7
 sealed class Tachyon.Charts.Configurator.SampleInfo : System.IEquatable<Tachyon.Charts.Configurator.SampleInfo>
   .ctor(System.String Id, System.String Name, Tachyon.Charts.Configurator.DataShape Shape, System.Int32 DefaultCount, System.Func<System.Int32, System.Object> Create, System.String ReturnType, System.Func<System.String, System.String> Method)
+  System.Boolean HasCount { get; set; }
   System.Func<System.Double, System.Double> Curve { get; set; }
   System.Func<System.Int32, System.Object> Create { get; set; }
   System.Func<System.String, System.String> Method { get; set; }

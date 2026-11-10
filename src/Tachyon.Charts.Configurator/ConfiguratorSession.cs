@@ -428,6 +428,15 @@ public sealed class ConfiguratorSession
                 }
 
                 break;
+            case DataKind.MedicalFile:
+                // Medical files stay in memory for the preview; neither path is saved.
+                fields.Add(Field(group, new("file", "Medical file", ParameterKind.File, string.Empty) { Description = type.Shape == DataShape.MedicalImage ? "A DICOM image." : "A NIfTI volume, or any DICOM file of a series for the whole series in its folder. Not saved with the configuration." }, () => data.Path ?? string.Empty, value => data.Path = (string)value));
+                if (type.Shape == DataShape.MedicalVolume)
+                {
+                    fields.Add(Field(group, new("segmentationFile", "Segmentation file", ParameterKind.File, string.Empty) { Description = "NIfTI labels or DICOM SEG on the same volume; empty for none. Not saved." }, () => data.Segmentation ?? string.Empty, value => data.Segmentation = ((string)value).Length > 0 ? (string)value : null));
+                }
+
+                break;
             case DataKind.File:
                 fields.Add(Field(group, new("file", "File", ParameterKind.File, string.Empty) { Description = "Points: XYZ, PLY or LAS; volumes: NIfTI or raw; models: STL or OBJ." }, () => data.Path ?? string.Empty, value => data.Path = (string)value));
                 break;
@@ -438,6 +447,11 @@ public sealed class ConfiguratorSession
                 break;
             default:
                 fields.Add(Field(group, new("sample", "Sample data", ParameterKind.Choice, type.DefaultSample) { Choices = samples }, () => data.Sample, value => data.Sample = (string)value));
+                if (Catalog.FindSample(data.Sample)?.HasCount == false)
+                {
+                    break;
+                }
+
                 fields.Add(Field(group, new("count", "Number of values", ParameterKind.Integer, 1000.0) { Minimum = Catalog.FindSample(data.Sample)?.MinimumCount ?? 2, Maximum = 10_000_000 }, () => (double)data.Count, value => data.Count = (int)(double)value));
                 break;
         }

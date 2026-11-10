@@ -20,6 +20,9 @@ public sealed record SampleInfo(string Id, string Name, DataShape Shape, int Def
     /// <summary>Gets the smallest count that makes sense for the shape.</summary>
     public int MinimumCount { get; init; } = 2;
 
+    /// <summary>Gets a value indicating whether the count changes the data; a phantom of fixed size has none to choose.</summary>
+    public bool HasCount { get; init; } = true;
+
     /// <summary>Gets the value of a curve at an X, for live data, or <see langword="null"/> for data that are no curve.</summary>
     public Func<double, double>? Curve { get; init; }
 

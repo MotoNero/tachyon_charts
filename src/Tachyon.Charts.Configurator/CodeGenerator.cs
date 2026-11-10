@@ -376,7 +376,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             ["ChartViewModel.cs"] = ViewModel(spec, options),
             ["MainWindow.xaml.cs".Replace(".xaml", options.Framework == UiFramework.Wpf ? ".xaml" : ".axaml", StringComparison.Ordinal)] = WindowCode(spec, options),
             [options.Framework == UiFramework.Wpf ? "MainWindow.xaml" : "MainWindow.axaml"] = WindowMarkup(spec, options),
-            [options.ProjectName + ".csproj"] = ProjectFile(options, _catalog.SceneOf(spec), spec.Series.Exists(series => series.Data.Kind == DataKind.Hdf5), Packages(spec)),
+            [options.ProjectName + ".csproj"] = ProjectFile(options, _catalog.SceneOf(spec), spec.Series.Exists(series => series.Data.Kind == DataKind.Hdf5), Packages(spec), [.. spec.Series.SelectMany(series => _catalog.FindType(series.Type)!.Packages).Distinct()]),
         };
         foreach (var (path, content) in ApplicationFiles(options))
         {
@@ -431,7 +431,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     private IReadOnlyList<string> Packages(ChartSpec spec) =>
         [.. spec.Series.Select(series => DataSources.Loader(series, _catalog.FindType(series.Type)!, _catalog)).OfType<DataLoader>().SelectMany(loader => loader.Packages).Where(package => package.IsOwn).Select(package => package.Name).Distinct()];
 
-    private static string ProjectFile(CodeOptions options, SceneInfo? scene, bool readsHdf5, IReadOnlyList<string> packages)
+    private static string ProjectFile(CodeOptions options, SceneInfo? scene, bool readsHdf5, IReadOnlyList<string> packages, IReadOnlyList<(string Name, string Version)> typePackages)
     {
         var wpf = options.Framework == UiFramework.Wpf;
         var adapter = wpf ? "Tachyon.Charts.Wpf" : "Tachyon.Charts.Avalonia";
@@ -457,6 +457,14 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             references.Append(options.LocalSource is { } local
                 ? $"    <ProjectReference Include=\"{Path.Combine(local, package, package + ".csproj")}\" />\n"
                 : $"    <PackageReference Include=\"{package}\" Version=\"{scene?.PackageVersion ?? options.PackageVersion}\" />\n");
+        }
+
+        // Packages of the types themselves, such as the medical add-on, in their own versions.
+        foreach (var (package, version) in typePackages)
+        {
+            references.Append(options.LocalSource is { } own
+                ? $"    <ProjectReference Include=\"{Path.Combine(own, package, package + ".csproj")}\" />\n"
+                : $"    <PackageReference Include=\"{package}\" Version=\"{version}\" />\n");
         }
 
         if (readsHdf5)
