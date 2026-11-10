@@ -62,7 +62,7 @@ public sealed class MedicalMprSlice
             .XAxis(axis => axis.Numeric("medical-mpr-x").Title("mm").Range(0, Width * Spacing.Column).Limits(0, Width * Spacing.Column))
             .YAxis(axis => axis.Numeric("medical-mpr-y").Title("mm").Range(0, Height * Spacing.Row).Limits(0, Height * Spacing.Row).Inverted())
             .AddHeatmap(_scaleData, series => series
-                .ColorAxis(axis => axis.Colormap(Colormaps.Grayscale).Range(window.Minimum, window.Maximum).Title(_display.Unit)))
+                .ColorAxis(axis => axis.Colormap(_display.Options.Colormap).Range(window.Minimum, window.Maximum).Title(_display.Unit)))
             .AddSeries((x, y) => new MedicalMprSeries(_display, _buffer, x, y))
             .AddSeries((x, y) => new MedicalSegmentationSeries(_display, this, x, y))
             .AddOverlay(surface => new MedicalMprOverlay(this, surface.HorizontalAxes[0], surface.Panes[0].Axes[0]))

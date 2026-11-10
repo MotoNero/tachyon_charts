@@ -152,6 +152,20 @@ public sealed class MedicalImageDisplay
     /// <summary>Gets the letters shown at the four image edges.</summary>
     public MedicalOrientationMarks OrientationMarks { get; }
 
+    /// <summary>Gets or sets the colors from the lower to the upper end of the window; charts described afterwards use them.</summary>
+    /// <exception cref="ArgumentNullException">The value is <see langword="null"/>.</exception>
+    public Colormap Colormap
+    {
+        get;
+        set => field = value ?? throw new ArgumentNullException(nameof(value));
+    } = Colormaps.Grayscale;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the image blends between neighbouring pixels instead of showing each as a
+    /// square; charts described afterwards use it.
+    /// </summary>
+    public bool IsInterpolated { get; set; } = true;
+
     /// <summary>Gets the unit shown for image values.</summary>
     public string Unit { get; }
 
@@ -203,8 +217,8 @@ public sealed class MedicalImageDisplay
             .AddHeatmap(_data, series => series
                 .Name(Unit)
                 .Cells(0, Spacing.Column, 0, Spacing.Row)
-                .Interpolated()
-                .ColorAxis(axis => axis.Colormap(Colormaps.Grayscale).Range(window.Minimum, window.Maximum).Title(Unit)))
+                .Interpolated(IsInterpolated)
+                .ColorAxis(axis => axis.Colormap(Colormap).Range(window.Minimum, window.Maximum).Title(Unit)))
             .AddOverlay(Measurements.Attach)
             .Modifiers(modifiers => modifiers
                 .Custom(() => new MedicalMeasurementModifier(Measurements))

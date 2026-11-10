@@ -11,7 +11,7 @@ namespace Tachyon.Charts.Configurator.Medical;
 public sealed partial class MedicalModule
 {
     private static readonly string[] _layouts = ["2 × 2", "Row", "Column"];
-    private static readonly string[] _viewUsings = ["Tachyon.Charts.Medical", "Tachyon.Charts.Rendering", "Tachyon.Charts.ThreeD", "Tachyon.Charts.ThreeD.Scene"];
+    private static readonly string[] _viewUsings = ["Tachyon.Charts.Core.Colors", "Tachyon.Charts.Medical", "Tachyon.Charts.Rendering", "Tachyon.Charts.ThreeD", "Tachyon.Charts.ThreeD.Scene"];
 
     /// <inheritdoc />
     public IReadOnlyList<TemplateInfo> Templates { get; } =
@@ -55,6 +55,7 @@ public sealed partial class MedicalModule
             new("coronal", "Coronal", ParameterKind.Flag, true),
             new("sagittal", "Sagittal", ParameterKind.Flag, true),
             new("volume", "Volume in 3D", ParameterKind.Flag, true),
+            Memory(),
             new("x", "Sagittal position in %", ParameterKind.Number, 50.0) { Minimum = 0, Maximum = 100 },
             new("y", "Coronal position in %", ParameterKind.Number, 50.0) { Minimum = 0, Maximum = 100 },
             new("z", "Axial position in %", ParameterKind.Number, 50.0) { Minimum = 0, Maximum = 100 },
@@ -102,6 +103,7 @@ public sealed partial class MedicalModule
     private static void PrepareMpr(SeriesSpec series, MedicalMprDisplay display)
     {
         var values = series.Parameters;
+        Look(values, display);
         SetWindow(values, display.ApplyPreset, display.SetWindow);
         MedicalSetup.MoveTo(display, MedicalMprPlane.Sagittal, values.GetNumber("x", 50) / 100);
         MedicalSetup.MoveTo(display, MedicalMprPlane.Coronal, values.GetNumber("y", 50) / 100);
@@ -120,7 +122,7 @@ public sealed partial class MedicalModule
     private static IEnumerable<string> PrepareMprCode(SeriesSpec series, string data)
     {
         var values = series.Parameters;
-        var lines = new List<string>(WindowCode(values, data))
+        var lines = new List<string>(LookCode(values, data, image: false).Concat(WindowCode(values, data)))
         {
             $"MoveTo({data}, MedicalMprPlane.Sagittal, {CodeText.Number(values.GetNumber("x", 50) / 100)});",
             $"MoveTo({data}, MedicalMprPlane.Coronal, {CodeText.Number(values.GetNumber("y", 50) / 100)});",
@@ -159,12 +161,13 @@ public sealed partial class MedicalModule
         Prepare = (series, data) =>
         {
             var display = (MedicalMprDisplay)data;
+            Look(series.Parameters, display);
             SetWindow(series.Parameters, display.ApplyPreset, display.SetWindow);
             AddSegmentation(series, display);
             MedicalSetup.AnalysisMeasurements(display.Axial);
             SetTools(series.Parameters, [display.Axial.Measurements]);
         },
-        PrepareCode = (series, data) => [.. WindowCode(series.Parameters, data), .. SegmentationCode(series, data), $"AnalysisMeasurements({data}.Axial);", .. ToolsCode(series.Parameters, PlaneLayers(data, MedicalMprPlane.Axial))],
+        PrepareCode = (series, data) => [.. LookCode(series.Parameters, data, image: false), .. WindowCode(series.Parameters, data), .. SegmentationCode(series, data), $"AnalysisMeasurements({data}.Axial);", .. ToolsCode(series.Parameters, PlaneLayers(data, MedicalMprPlane.Axial))],
         Helpers = Note + MedicalSetup.PhantomSegmentationCode + MedicalSetup.AnalysisMeasurementsCode,
     };
 
@@ -185,6 +188,7 @@ public sealed partial class MedicalModule
         [
             Layout("2 × 2"),
             new("volume", "Volume in 3D", ParameterKind.Flag, true) { Description = "With the oblique plane in it; the key V on the oblique plane turns it to face the 3D view." },
+            Memory(),
             .. Window(),
             .. Tools(),
         ],
@@ -200,12 +204,13 @@ public sealed partial class MedicalModule
         Prepare = (series, data) =>
         {
             var display = (MedicalMprDisplay)data;
+            Look(series.Parameters, display);
             SetWindow(series.Parameters, display.ApplyPreset, display.SetWindow);
             MedicalSetup.Oblique(display);
             MedicalSetup.ReformatMeasurements(display.Axial);
             SetTools(series.Parameters, [display.Axial.Measurements]);
         },
-        PrepareCode = (series, data) => [.. WindowCode(series.Parameters, data), $"Oblique({data});", $"ReformatMeasurements({data}.Axial);", .. ToolsCode(series.Parameters, PlaneLayers(data, MedicalMprPlane.Axial))],
+        PrepareCode = (series, data) => [.. LookCode(series.Parameters, data, image: false), .. WindowCode(series.Parameters, data), $"Oblique({data});", $"ReformatMeasurements({data}.Axial);", .. ToolsCode(series.Parameters, PlaneLayers(data, MedicalMprPlane.Axial))],
         Helpers = Note + MedicalSetup.ReformatCode,
     };
 

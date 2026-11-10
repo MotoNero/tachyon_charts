@@ -68,7 +68,7 @@ internal sealed class MedicalReformatView
             .XAxis(axis => axis.Numeric("medical-reformat-x").Title("mm").Range(across.Min, across.Max).Limits(0, width))
             .YAxis(axis => axis.Numeric("medical-reformat-y").Title("mm").Range(down.Min, down.Max).Limits(0, height).Inverted())
             .AddHeatmap(_scaleData, series => series
-                .ColorAxis(axis => axis.Colormap(Colormaps.Grayscale).Range(window.Minimum, window.Maximum).Title(Display.Unit)))
+                .ColorAxis(axis => axis.Colormap(Display.Options.Colormap).Range(window.Minimum, window.Maximum).Title(Display.Unit)))
             .AddSeries((x, y) => new MedicalMprSeries(Display, Buffer, x, y))
             .Modifiers(modifiers => modifiers
                 .Custom(() => new Modifier(this))

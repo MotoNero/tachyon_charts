@@ -1,3 +1,4 @@
+using Tachyon.Charts.Core.Colors;
 using Tachyon.Charts.Medical;
 
 namespace Tachyon.Charts.Configurator.Medical;
@@ -19,8 +20,8 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
         """;
 
     private static readonly string[] _windows = ["Automatic", "Brain", "Bone", "Lung", "Custom"];
-    private static readonly string[] _usings = ["Tachyon.Charts.Medical"];
-    private static readonly string[] _volumeUsings = ["Tachyon.Charts.Medical", "Tachyon.Charts.Rendering", "Tachyon.Charts.ThreeD.Scene"];
+    private static readonly string[] _usings = ["Tachyon.Charts.Core.Colors", "Tachyon.Charts.Medical"];
+    private static readonly string[] _volumeUsings = ["Tachyon.Charts.Core.Colors", "Tachyon.Charts.Medical", "Tachyon.Charts.Rendering", "Tachyon.Charts.ThreeD.Scene"];
     private static readonly (string, string)[] _packages = [("Tachyon.Charts.Medical", PackageVersion)];
 
     /// <inheritdoc />
@@ -58,7 +59,7 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
             Helpers = Note + MedicalSetup.MoveToCode + MedicalSetup.PhantomSegmentationCode + MedicalSetup.ExampleMeasurementsCode,
         },
         new("medicalVolume3d", "Medical volume 3D", ChartCategory.Medical, DataShape.MedicalVolume, "headPhantom",
-            [.. Window(), .. Segmentation(threeD: true)],
+            [.. Window(), Memory(), .. Segmentation(threeD: true)],
             (chart, _, data, _) => chart.MedicalVolume3D((MedicalMprDisplay)data),
             (_, data, _) => $".MedicalVolume3D({data})")
         {
@@ -100,12 +101,83 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
         [nameof(MedicalPhantoms.Thorax)] = new(MedicalPhantoms.Thorax),
     };
 
+    private static readonly string[] _colormaps = ["Grayscale", "Viridis", "Inferno", "Magma", "Plasma", "Turbo"];
+
     private static ParameterInfo[] Window() =>
     [
+        new("colormap", "Colors", ParameterKind.Choice, "Grayscale") { Choices = _colormaps, Description = "From the lower to the upper end of the window." },
+        new("interpolated", "Blend pixels", ParameterKind.Flag, true) { Description = "Blends between neighbouring values; off shows each value as a square." },
         new("window", "Window", ParameterKind.Choice, "Automatic") { Choices = _windows, Description = "The range of values from black to white; Automatic takes the one the data bring." },
         new("center", "Window center", ParameterKind.Number, 40.0) { Description = "For a custom window." },
         new("width", "Window width", ParameterKind.Number, 400.0) { Minimum = 1, Description = "For a custom window." },
     ];
+
+    private static ParameterInfo Memory() => new("gpuMemory", "Graphics memory of the volume in MB", ParameterKind.Integer, 0.0)
+    {
+        Minimum = 0,
+        Maximum = 1_048_576,
+        Description = "0 for the usual share of the graphics card; a volume above the limit shows with less precision or fewer values.",
+    };
+
+    private static Colormap ColormapOf(SpecValues values) => values.GetText("colormap", "Grayscale") switch
+    {
+        "Viridis" => Colormaps.Viridis,
+        "Inferno" => Colormaps.Inferno,
+        "Magma" => Colormaps.Magma,
+        "Plasma" => Colormaps.Plasma,
+        "Turbo" => Colormaps.Turbo,
+        _ => Colormaps.Grayscale,
+    };
+
+    // The colors, the blending and, for a volume, the graphics memory; nothing is set while all keep their defaults.
+    private static void Look(SpecValues values, object display)
+    {
+        var (colormap, blends, memory) = (ColormapOf(values), values.GetFlag("interpolated", true), (long)values.GetNumber("gpuMemory", 0));
+        switch (display)
+        {
+            case MedicalImageDisplay image:
+                (image.Colormap, image.IsInterpolated) = (colormap, blends);
+                break;
+            case MedicalMprDisplay volume when colormap != Colormaps.Grayscale || !blends || memory > 0:
+                volume.Options = new MedicalMprOptions { Colormap = colormap, IsInterpolated = blends, GpuMemoryLimit = memory > 0 ? memory * 1024 * 1024 : null };
+                break;
+        }
+    }
+
+    private static IEnumerable<string> LookCode(SpecValues values, string data, bool image)
+    {
+        var (colormap, blends, memory) = (values.GetText("colormap", "Grayscale"), values.GetFlag("interpolated", true), (long)values.GetNumber("gpuMemory", 0));
+        if (image)
+        {
+            if (colormap != "Grayscale")
+            {
+                yield return $"{data}.Colormap = Colormaps.{colormap};";
+            }
+
+            if (!blends)
+            {
+                yield return $"{data}.IsInterpolated = false;";
+            }
+
+            yield break;
+        }
+
+        if (colormap != "Grayscale" || !blends || memory > 0)
+        {
+            var parts = new List<string> { $"Colormap = Colormaps.{colormap}" };
+            if (!blends)
+            {
+                parts.Add("IsInterpolated = false");
+            }
+
+            if (memory > 0)
+            {
+                parts.Add($"GpuMemoryLimit = {memory}L * 1024 * 1024");
+            }
+
+            yield return $"{data}.Options = new MedicalMprOptions {{ {string.Join(", ", parts)} }};";
+        }
+    }
 
     private static ParameterInfo[] Measuring() =>
     [
@@ -243,16 +315,18 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
 
     private static void PrepareImage(SpecValues values, MedicalImageDisplay display)
     {
+        Look(values, display);
         SetWindow(values, display.ApplyPreset, display.SetWindow);
         Measure(values, display.Measurements, display.Width * display.Spacing.Column, display.Height * display.Spacing.Row);
     }
 
     private static IEnumerable<string> PrepareImageCode(SpecValues values, string data) =>
-        WindowCode(values, data).Concat(MeasureCode(values, $"{data}.Measurements", $"{data}.Width * {data}.Spacing.Column", $"{data}.Height * {data}.Spacing.Row"));
+        LookCode(values, data, image: true).Concat(WindowCode(values, data)).Concat(MeasureCode(values, $"{data}.Measurements", $"{data}.Width * {data}.Spacing.Column", $"{data}.Height * {data}.Spacing.Row"));
 
     private static void PrepareVolume(SeriesSpec series, MedicalMprDisplay display, bool slice)
     {
         var values = series.Parameters;
+        Look(values, display);
         SetWindow(values, display.ApplyPreset, display.SetWindow);
         if (slice)
         {
@@ -282,7 +356,7 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
     private static IEnumerable<string> PrepareVolumeCode(SeriesSpec series, string data, bool slice)
     {
         var values = series.Parameters;
-        var lines = new List<string>(WindowCode(values, data));
+        var lines = new List<string>(LookCode(values, data, image: false).Concat(WindowCode(values, data)));
         if (slice)
         {
             lines.Add($"MoveTo({data}, MedicalMprPlane.{PlaneName(values)}, {CodeText.Number(values.GetNumber("position", 50) / 100)});");

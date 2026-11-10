@@ -39,7 +39,7 @@ internal sealed class MedicalMprSeries : ChartSeries, IDisposable
         Name = display.Unit;
     }
 
-    public override Rgba8 AccentColor => Colormaps.Grayscale.Sample(0.75);
+    public override Rgba8 AccentColor => _display.Options.Colormap.Sample(0.75);
 
     protected override long Version => _buffer.Version;
 
@@ -62,7 +62,7 @@ internal sealed class MedicalMprSeries : ChartSeries, IDisposable
 
     protected override void Prepare(IRenderDevice device, in SeriesFrame frame)
     {
-        _colors = _table.Update(device, Colormaps.Grayscale);
+        _colors = _table.Update(device, _display.Options.Colormap);
         if (_texture is null)
         {
             _texture = device.CreateTexture(new TextureDesc(new PixelSize(_buffer.Width, _buffer.Height), TextureFormat.R32Float));
@@ -92,7 +92,7 @@ internal sealed class MedicalMprSeries : ChartSeries, IDisposable
         {
             SectionOrigin = _sectionOrigin,
             SectionSize = _sectionSize,
-            IsInterpolated = true,
+            IsInterpolated = _display.Options.IsInterpolated,
         };
         commands.DrawRaster(_texture, _colors, _bounds, style);
     }
@@ -187,7 +187,7 @@ internal sealed class MedicalMprSeries : ChartSeries, IDisposable
 
     private static ColorAxis CreateColorAxis(MedicalMprDisplay display) => new("medical-mpr-values")
     {
-        Colormap = Colormaps.Grayscale,
+        Colormap = display.Options.Colormap,
         VisibleRange = new DoubleRange(display.Window.Minimum, display.Window.Maximum),
         Title = display.Unit,
     };

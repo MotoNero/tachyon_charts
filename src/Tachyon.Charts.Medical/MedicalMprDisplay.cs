@@ -1,4 +1,3 @@
-using Tachyon.Charts.Core.Colors;
 using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.ThreeD;
 using Tachyon.Charts.ThreeD.Scene;
@@ -20,11 +19,21 @@ public sealed class MedicalMprDisplay
     private readonly List<MedicalSegmentationLayer> _segmentations = [];
     private readonly List<MedicalSegmentation> _segmentationSources = [];
     private readonly List<Scene3D> _scenes = [];
+    private MedicalMprOptions _options;
 
     /// <summary>Initializes linked orthogonal views of a regularly spaced medical volume.</summary>
     /// <param name="volume">The volume.</param>
     public MedicalMprDisplay(MedicalVolume volume)
+        : this(volume, new MedicalMprOptions())
     {
+    }
+
+    /// <summary>Initializes linked orthogonal views of a regularly spaced medical volume with colors, blending and a memory limit.</summary>
+    /// <param name="volume">The volume.</param>
+    /// <param name="options">How the display shows the volume.</param>
+    public MedicalMprDisplay(MedicalVolume volume, MedicalMprOptions options)
+    {
+        _options = options ?? throw new ArgumentNullException(nameof(options));
         Source = volume ?? throw new ArgumentNullException(nameof(volume));
         Unit = string.Equals(volume.Modality, "CT", StringComparison.OrdinalIgnoreCase) ? "HU" : "value";
         _window = MedicalImageDisplay.InitialWindow(volume.WindowCenter, volume.WindowWidth, volume.Data.ValueRange);
@@ -40,12 +49,20 @@ public sealed class MedicalMprDisplay
         Coronal.Update(_position);
         Sagittal.Update(_position);
 
-        Volume = new Volume3D(volume.Data, new DoubleRange(0, maximum.X), new DoubleRange(0, maximum.Y), new DoubleRange(0, maximum.Z))
-        {
-            Colormap = Colormaps.Grayscale,
-            ColorRange = new DoubleRange(_window.Minimum, _window.Maximum),
-        };
+        Volume = CreateVolume();
         MovePlanes(_position);
+    }
+
+    // The volume of the 3D charts, with the colors and the memory limit of the options.
+    private Volume3D CreateVolume()
+    {
+        var maximum = MaximumPosition;
+        return new Volume3D(Source.Data, new DoubleRange(0, maximum.X), new DoubleRange(0, maximum.Y), new DoubleRange(0, maximum.Z))
+        {
+            Colormap = _options.Colormap,
+            ColorRange = new DoubleRange(_window.Minimum, _window.Maximum),
+            GpuMemoryLimit = _options.GpuMemoryLimit,
+        };
     }
 
     /// <summary>Occurs after the shared position changes.</summary>
@@ -58,6 +75,29 @@ public sealed class MedicalMprDisplay
 
     /// <summary>Gets the source volume.</summary>
     public MedicalVolume Source { get; }
+
+    /// <summary>
+    /// Gets or sets how the display shows the volume. The planes follow at once; the 3D volume takes new options only
+    /// while the display is in no 3D chart yet.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">The value is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The display is in a 3D chart already.</exception>
+    public MedicalMprOptions Options
+    {
+        get => _options;
+        set
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            if (_scenes.Count > 0)
+            {
+                throw new InvalidOperationException("Set the options before the display goes into a 3D chart.");
+            }
+
+            _options = value;
+            Volume = CreateVolume();
+            MovePlanes(_position);
+        }
+    }
 
     /// <summary>Gets the axial slice.</summary>
     public MedicalMprSlice Axial { get; }
@@ -72,7 +112,7 @@ public sealed class MedicalMprDisplay
     public MedicalCinePlayer Cine { get; }
 
     /// <summary>Gets the 3D volume whose planes follow <see cref="Position"/>.</summary>
-    public Volume3D Volume { get; }
+    public Volume3D Volume { get; private set; }
 
     /// <summary>Gets the unit shown for values.</summary>
     public string Unit { get; }
