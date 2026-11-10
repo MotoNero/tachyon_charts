@@ -28,7 +28,29 @@ public static class SpecChartBuilder
     /// empty, as for a description that is only checked.
     /// </param>
     /// <exception cref="InvalidOperationException">The description has problems.</exception>
-    public static void Apply(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, ICollection<IDisposable>? running)
+    public static void Apply(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, ICollection<IDisposable>? running) => Apply(spec, catalog, chart, running, null);
+
+    /// <summary>
+    /// Makes the data of every series and sets them up, the slow part of a description, so that it can run away from the
+    /// window; live data are left out, they start with the chart.
+    /// </summary>
+    /// <param name="spec">The description.</param>
+    /// <param name="catalog">The types, samples and interactions.</param>
+    /// <returns>The data in the order <see cref="Apply(ChartSpec, ChartCatalog, ChartBuilder, ICollection{IDisposable}?, IReadOnlyList{object?}?)"/> takes them; <see langword="null"/> for live data.</returns>
+    internal static IReadOnlyList<object?> Prepare(ChartSpec spec, ChartCatalog catalog) =>
+        [.. Drawn(spec, catalog).Select(series => series.Data.Kind == DataKind.Live ? null : Data(catalog, series, null))];
+
+    // The series in the order they are drawn: a scene takes them as they are, a chart splits CSV columns into lines.
+    private static IEnumerable<SeriesSpec> Drawn(ChartSpec spec, ChartCatalog catalog) =>
+        catalog.SceneOf(spec) is null ? DataSources.Expanded(spec.Series, catalog) : spec.Series;
+
+    /// <summary>Writes a description into a chart builder with data made before by <see cref="Prepare"/>.</summary>
+    /// <param name="spec">The description.</param>
+    /// <param name="catalog">The types, samples and interactions.</param>
+    /// <param name="chart">The builder.</param>
+    /// <param name="running">Receives what keeps live data coming, or <see langword="null"/>.</param>
+    /// <param name="prepared">The data of the series, or <see langword="null"/> to make them now.</param>
+    internal static void Apply(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, ICollection<IDisposable>? running, IReadOnlyList<object?>? prepared)
     {
         ArgumentNullException.ThrowIfNull(spec);
         ArgumentNullException.ThrowIfNull(catalog);
@@ -73,9 +95,11 @@ public static class SpecChartBuilder
         {
             scene.Apply(chart, spec, builder =>
             {
+                var index = 0;
                 foreach (var series in spec.Series)
                 {
-                    catalog.FindType(series.Type)!.SceneApply!(builder, series, Data(catalog, series, running));
+                    catalog.FindType(series.Type)!.SceneApply!(builder, series, prepared?[index] ?? Data(catalog, series, running));
+                    index++;
                 }
             });
             if (spec.Theme is { } chosen)
@@ -85,9 +109,11 @@ public static class SpecChartBuilder
         }
         else
         {
+            var index = 0;
             foreach (var series in DataSources.Expanded(spec.Series, catalog))
             {
-                catalog.FindType(series.Type)!.Apply(chart, series, Data(catalog, series, running), new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id));
+                catalog.FindType(series.Type)!.Apply(chart, series, prepared?[index] ?? Data(catalog, series, running), new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id));
+                index++;
             }
         }
 

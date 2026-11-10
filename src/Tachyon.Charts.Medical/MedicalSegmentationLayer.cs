@@ -19,7 +19,7 @@ internal sealed class MedicalSegmentationLayer
         Source = source;
         Aligned = new AlignedSegmentation(target, source);
         _segments = source.Segments.ToDictionary(segment => segment.Label);
-        var present = Aligned.Labels.ToArray().Where(label => label != 0).Distinct().Order().ToArray();
+        var present = Present(Aligned.Labels);
         if (source.ThreeDMode == MedicalSegmentation3DMode.Volume && present.Length <= byte.MaxValue)
         {
             _transfer = new TransferFunction3D(new TransferPoint3D(0, default, 0), new TransferPoint3D(1, default, 0)) { ShowsEditor = false };
@@ -35,16 +35,32 @@ internal sealed class MedicalSegmentationLayer
         Refresh3D();
     }
 
+    // The labels other than 0 that occur, in order; a table of all 65 536 labels instead of sorting millions of voxels.
+    private static ushort[] Present(ReadOnlySpan<ushort> labels)
+    {
+        var seen = new bool[ushort.MaxValue + 1];
+        foreach (var label in labels) seen[label] = true;
+        var present = new List<ushort>();
+        for (var label = 1; label < seen.Length; label++)
+        {
+            if (seen[label]) present.Add((ushort)label);
+        }
+
+        return [.. present];
+    }
+
     // One byte per voxel: the labels present spread evenly over 1 to 255, so a transfer function can color each.
     private byte[] Compact(ushort[] present)
     {
-        for (var i = 0; i < present.Length; i++) _compact[present[i]] = (byte)Math.Round(255.0 * (i + 1) / present.Length);
-        var values = new byte[Aligned.Labels.Length];
-        for (var i = 0; i < values.Length; i++)
+        var table = new byte[ushort.MaxValue + 1];
+        for (var i = 0; i < present.Length; i++)
         {
-            if (_compact.TryGetValue(Aligned.Labels[i], out var compact)) values[i] = compact;
+            _compact[present[i]] = table[present[i]] = (byte)Math.Round(255.0 * (i + 1) / present.Length);
         }
 
+        var labels = Aligned.Labels;
+        var values = new byte[labels.Length];
+        for (var i = 0; i < values.Length; i++) values[i] = table[labels[i]];
         return values;
     }
 

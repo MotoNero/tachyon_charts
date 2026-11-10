@@ -27,7 +27,8 @@ internal sealed class ConfiguratorWindow : Window
     private static readonly IBrush _shell = new SolidColorBrush(Color.Parse("#0D1016"));
     private static readonly IBrush _problem = new SolidColorBrush(Color.Parse("#FF7043"));
 
-    private readonly ConfiguratorSession _session = new(ChartCatalog.CreateWithAddOns());
+    // Data, checks and code are made away from the window, which only shows the result.
+    private readonly ConfiguratorSession _session = new(ChartCatalog.CreateWithAddOns(), SynchronizationContext.Current);
     private readonly Chart _preview = new();
     private readonly StackPanel _fields = new() { Margin = new Thickness(0, 0, 8, 0) };
     private readonly ComboBox _series = new() { Margin = new Thickness(0, 0, 0, 8), HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -67,6 +68,7 @@ internal sealed class ConfiguratorWindow : Window
         root.Children.Add(code);
         Content = root;
         _session.Changed += ShowState;
+        _session.UpdateStarted += () => (_status.Text, _status.Foreground) = ("Updating …", _muted);
         _session.FieldsChanged += Fill;
         Fill();
         ShowState();
@@ -392,7 +394,7 @@ internal sealed class ConfiguratorWindow : Window
 
         _code.SelectedIndex = Math.Max(0, selected);
         _status.Foreground = _muted;
-        _status.Text = string.Create(CultureInfo.InvariantCulture, $"Code in {_session.LastUpdate.TotalMilliseconds:F1} ms, preview described in {clock.Elapsed.TotalMilliseconds:F1} ms.");
+        _status.Text = string.Create(CultureInfo.InvariantCulture, $"Data and code in {_session.LastUpdate.TotalMilliseconds:F0} ms, preview in {clock.Elapsed.TotalMilliseconds:F0} ms.");
     }
 }
 

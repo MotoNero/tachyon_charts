@@ -76,19 +76,44 @@ public sealed class ConfiguratorSession
 {
     private readonly List<IDisposable> _running = [];
 
+    private readonly SynchronizationContext? _updates;
+    private int _version;
+
+    // The description the last update worked on, with the data it made, which the preview takes instead of making them again.
+    private (ChartSpec Spec, IReadOnlyList<object?> Data)? _prepared;
+
     private readonly CodeGenerator _generator;
     private ChartSpec _spec;
     private int _selected;
 
-    /// <summary>Initializes a session with a line chart.</summary>
+    /// <summary>Initializes a session with a line chart that updates code and preview at once, on the thread of the change.</summary>
     /// <param name="catalog">The types, samples and interactions.</param>
     public ConfiguratorSession(ChartCatalog catalog)
+        : this(catalog, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a session with a line chart. With a context, such as the one of a window, every change is checked,
+    /// its data made and its code written away from that thread; <see cref="Changed"/> then follows on the context, and
+    /// a change made in between replaces the one still running. The window stays responsive while large data load.
+    /// </summary>
+    /// <param name="catalog">The types, samples and interactions.</param>
+    /// <param name="updates">The context of the window, or <see langword="null"/> to update at once on the thread of the change.</param>
+    public ConfiguratorSession(ChartCatalog catalog, SynchronizationContext? updates)
     {
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _generator = new CodeGenerator(catalog);
         _spec = catalog.CreateSpec(catalog.Types[0].Id);
-        Refresh();
+        _updates = updates;
+        Take(Compute(_spec, Options));
     }
+
+    /// <summary>Occurs when a change starts to be worked on away from the window; <see cref="Changed"/> follows when it is done.</summary>
+    public event Action? UpdateStarted;
+
+    /// <summary>Gets a value indicating whether a change is being worked on away from the window.</summary>
+    public bool IsUpdating { get; private set; }
 
     /// <summary>Occurs after every change, on the thread that made it.</summary>
     public event Action? Changed;
@@ -327,7 +352,14 @@ public sealed class ConfiguratorSession
         }
 
         _running.Clear();
-        SpecChartBuilder.Apply(_spec, Catalog, chart, _running);
+        if (_prepared is { } prepared)
+        {
+            SpecChartBuilder.Apply(prepared.Spec, Catalog, chart, _running, prepared.Data);
+        }
+        else
+        {
+            SpecChartBuilder.Apply(_spec, Catalog, chart, _running);
+        }
     }
 
     private static void SetValue(SpecValues values, string name, object value)
@@ -606,48 +638,87 @@ public sealed class ConfiguratorSession
         FieldsChanged?.Invoke();
     }
 
-    // Describes the chart once without drawing it, so that what only the description finds, such as an axis name that
-    // occurs twice, shows as a problem instead of failing in the preview.
-    private string? Describe()
-    {
-        try
-        {
-            var builder = new ChartBuilder();
-            SpecChartBuilder.Apply(_spec, Catalog, builder);
-            builder.ToDefinition();
-            return null;
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or KeyNotFoundException or InvalidCastException)
-        {
-            return exception.Message;
-        }
-    }
+    // What an update found: the problems, or the code and the data of the preview.
+    private sealed record Update(ChartSpec Spec, IReadOnlyList<string> Problems, IReadOnlyDictionary<string, string>? Code, IReadOnlyList<object?>? Data, TimeSpan Elapsed);
 
-    // Writes the code; the preview follows in the apps through Changed. Problems keep the last good code.
-    private void Refresh()
+    // Checks the description, makes its data and describes the chart once without drawing it, so that what only the
+    // description finds, such as an axis name that occurs twice, shows as a problem instead of failing in the preview;
+    // then writes the code. It reads only the description it is given, so it may run away from the window.
+    private Update Compute(ChartSpec spec, CodeOptions options)
     {
         var clock = Stopwatch.StartNew();
-        Problems = Catalog.Check(_spec);
-        if (Problems.Count == 0 && Describe() is { } failure)
+        var problems = Catalog.Check(spec);
+        if (problems.Count > 0)
         {
-            Problems = [failure];
+            return new Update(spec, problems, null, null, clock.Elapsed);
         }
 
-        if (Problems.Count == 0)
+        IReadOnlyList<object?> data;
+        try
         {
-            var options = Options;
-            var window = options.Framework == UiFramework.Wpf ? "MainWindow.xaml" : "MainWindow.axaml";
-            Code = new Dictionary<string, string>
-            {
-                ["C#"] = _generator.Setup(_spec, options),
-                ["View model"] = _generator.ViewModel(_spec, options),
-                [window] = _generator.WindowMarkup(_spec, options),
-                ["Code behind"] = CodeGenerator.WindowCode(_spec, options),
-                ["Project"] = _generator.Project(_spec, options)[options.ProjectName + ".csproj"],
-            };
+            data = SpecChartBuilder.Prepare(spec, Catalog);
+            var builder = new ChartBuilder();
+            SpecChartBuilder.Apply(spec, Catalog, builder, null, data);
+            builder.ToDefinition();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or KeyNotFoundException or InvalidCastException or IOException or FormatException or NotSupportedException or UnauthorizedAccessException)
+        {
+            return new Update(spec, [exception.Message], null, null, clock.Elapsed);
         }
 
-        LastUpdate = clock.Elapsed;
+        var window = options.Framework == UiFramework.Wpf ? "MainWindow.xaml" : "MainWindow.axaml";
+        var code = new Dictionary<string, string>
+        {
+            ["C#"] = _generator.Setup(spec, options),
+            ["View model"] = _generator.ViewModel(spec, options),
+            [window] = _generator.WindowMarkup(spec, options),
+            ["Code behind"] = CodeGenerator.WindowCode(spec, options),
+            ["Project"] = _generator.Project(spec, options)[options.ProjectName + ".csproj"],
+        };
+        return new Update(spec, [], code, data, clock.Elapsed);
+    }
+
+    // Takes an update; problems keep the last good code. The preview follows in the apps through Changed.
+    private void Take(Update update)
+    {
+        Problems = update.Problems;
+        if (update.Code is { } code)
+        {
+            Code = code;
+        }
+
+        _prepared = update.Data is { } data ? (update.Spec, data) : null;
+        LastUpdate = update.Elapsed;
         Changed?.Invoke();
+    }
+
+    // Brings code and preview up to date: at once, or away from the window on a copy of the description.
+    private void Refresh()
+    {
+        if (_updates is not { } updates)
+        {
+            Take(Compute(_spec, Options));
+            return;
+        }
+
+        var version = ++_version;
+        var (spec, options) = (ChartSpecJson.Copy(_spec), Options);
+        IsUpdating = true;
+        UpdateStarted?.Invoke();
+        _ = Task.Run(() =>
+        {
+            var update = Compute(spec, options);
+            updates.Post(
+                _ =>
+                {
+                    // A later change is on its way; this one is out of date.
+                    if (version == _version)
+                    {
+                        IsUpdating = false;
+                        Take(update);
+                    }
+                },
+                null);
+        });
     }
 }

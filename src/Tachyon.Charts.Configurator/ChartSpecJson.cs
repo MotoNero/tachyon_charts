@@ -35,6 +35,23 @@ public static class ChartSpecJson
         return JsonSerializer.Serialize(spec, _options);
     }
 
+    /// <summary>
+    /// Copies a description, for work away from the window while the window goes on changing the original. Unlike a
+    /// saved file the copy keeps the files of medical data; it never leaves memory.
+    /// </summary>
+    /// <param name="spec">The description.</param>
+    /// <returns>The copy.</returns>
+    internal static ChartSpec Copy(ChartSpec spec)
+    {
+        var copy = JsonSerializer.Deserialize<ChartSpec>(JsonSerializer.Serialize(spec, _options), _options)!;
+        for (var i = 0; i < spec.Series.Count; i++)
+        {
+            (copy.Series[i].Data.Path, copy.Series[i].Data.Segmentation) = (spec.Series[i].Data.Path, spec.Series[i].Data.Segmentation);
+        }
+
+        return copy;
+    }
+
     /// <summary>Reads a description, bringing an older version up to date.</summary>
     /// <param name="json">The JSON text.</param>
     /// <returns>The description.</returns>

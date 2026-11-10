@@ -19,7 +19,8 @@ namespace Tachyon.Charts.Configurator.Wpf;
 /// </summary>
 internal sealed class ConfiguratorWindow : Window
 {
-    private readonly ConfiguratorSession _session = new(ChartCatalog.CreateWithAddOns());
+    // Data, checks and code are made away from the window, which only shows the result.
+    private readonly ConfiguratorSession _session = new(ChartCatalog.CreateWithAddOns(), new System.Windows.Threading.DispatcherSynchronizationContext(System.Windows.Threading.Dispatcher.CurrentDispatcher));
     private readonly Chart _preview = new();
     private readonly StackPanel _fields = new() { Margin = new Thickness(0, 0, 8, 0) };
     private readonly ComboBox _series = new() { Margin = new Thickness(0, 0, 0, 8) };
@@ -61,6 +62,7 @@ internal sealed class ConfiguratorWindow : Window
         Content = root;
         SourceInitialized += (_, _) => SampleStyle.DarkenTitleBar(this);
         _session.Changed += ShowState;
+        _session.UpdateStarted += () => (_status.Text, _status.Foreground) = ("Updating …", (Brush)FindResource("Muted"));
         _session.FieldsChanged += Fill;
         Fill();
         ShowState();
@@ -378,7 +380,7 @@ internal sealed class ConfiguratorWindow : Window
 
         _code.SelectedIndex = Math.Max(0, selected);
         _status.Foreground = (Brush)FindResource("Muted");
-        _status.Text = string.Create(CultureInfo.InvariantCulture, $"Code in {_session.LastUpdate.TotalMilliseconds:F1} ms, preview described in {clock.Elapsed.TotalMilliseconds:F1} ms.");
+        _status.Text = string.Create(CultureInfo.InvariantCulture, $"Data and code in {_session.LastUpdate.TotalMilliseconds:F0} ms, preview in {clock.Elapsed.TotalMilliseconds:F0} ms.");
     }
 }
 
