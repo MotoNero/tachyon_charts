@@ -103,7 +103,14 @@ internal sealed class ConfiguratorWindow : Window
 
         if (ScreenshotPath is { } path)
         {
-            await Task.Delay(1500);
+            // The picture waits for the work away from the window, then gives the charts time to draw: on the CPU a
+            // chart in 3D holds the render thread long enough that the charts beside it draw a while later.
+            for (var waited = 0; waited < 200 && _session.IsUpdating; waited++)
+            {
+                await Task.Delay(50);
+            }
+
+            await Task.Delay(3000);
             var content = (FrameworkElement)Content;
             var bitmap = new RenderTargetBitmap((int)content.ActualWidth, (int)content.ActualHeight, 96, 96, PixelFormats.Pbgra32);
             bitmap.Render(content);
