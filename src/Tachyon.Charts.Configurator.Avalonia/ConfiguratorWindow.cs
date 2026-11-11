@@ -30,6 +30,8 @@ internal sealed class ConfiguratorWindow : Window
     // Data, checks and code are made away from the window, which only shows the result.
     private readonly ConfiguratorSession _session = new(ChartCatalog.CreateWithAddOns(), SynchronizationContext.Current);
     private readonly Chart _preview = new();
+    private readonly Chart _overview = new() { Height = 110, Margin = new Thickness(2) };
+    private readonly DockPanel _charts = new();
 
     // The charts of the preview: one, or one per linked view.
     private readonly global::Avalonia.Controls.Primitives.UniformGrid _previews = new() { Columns = 1 };
@@ -64,7 +66,11 @@ internal sealed class ConfiguratorWindow : Window
         DockPanel.SetDock(_status, Dock.Bottom);
         middle.Children.Add(_status);
         _previews.Children.Add(_preview);
-        middle.Children.Add(new Border { Child = _previews, Margin = new Thickness(8), CornerRadius = new CornerRadius(8), ClipToBounds = true });
+
+        // The overview docks below the chart when the description asks for one.
+        DockPanel.SetDock(_overview, Dock.Bottom);
+        _charts.Children.Add(_previews);
+        middle.Children.Add(new Border { Child = _charts, Margin = new Thickness(8), CornerRadius = new CornerRadius(8), ClipToBounds = true });
         Grid.SetColumn(middle, 2);
         root.Children.Add(middle);
         var code = CreateCode();
@@ -86,12 +92,20 @@ internal sealed class ConfiguratorWindow : Window
 
     private ComboBox? _types;
 
+    /// <summary>Gets the identifier of a page of the showroom to open, or <see langword="null"/>.</summary>
+    public string? StartPage { get; init; }
+
     /// <summary>Gets the identifier of an interaction to switch on at the start, or <see langword="null"/>.</summary>
     public string? StartModifier { get; init; }
 
-    // The type to start with, then the interaction, as the showroom asks for a page.
+    // The page of the showroom, or else the type to start with, then the interaction.
     private void SelectStartType()
     {
+        if (StartPage is { } page && _session.OpenPage(page))
+        {
+            return;
+        }
+
         var index = _session.Catalog.Types.ToList().FindIndex(type => type.Id == StartType);
         if (index >= 0 && _types is not null)
         {
@@ -428,10 +442,28 @@ internal sealed class ConfiguratorWindow : Window
         }
 
         _previews.Columns = _session.ViewColumns;
+        // The overview is in the window only while there is one, so that it never starts without a description.
+        if (_session.HasOverview != _charts.Children.Contains(_overview))
+        {
+            if (_session.HasOverview)
+            {
+                _charts.Children.Insert(0, _overview);
+            }
+            else
+            {
+                _charts.Children.Remove(_overview);
+            }
+        }
         for (var i = 0; i < views.Count; i++)
         {
             var view = i;
             ((Chart)_previews.Children[i]).Configure(chart => _session.Apply(view, chart));
+        }
+
+        // After the chart, whose data the overview shares.
+        if (_session.HasOverview)
+        {
+            _overview.Configure(_session.ApplyOverview);
         }
     }
 
@@ -512,6 +544,8 @@ internal sealed class ConfiguratorApplication : Application
 
     public static string? StartModifier { get; set; }
 
+    public static string? StartPage { get; set; }
+
     public override void Initialize()
     {
         RequestedThemeVariant = ThemeVariant.Dark;
@@ -522,7 +556,7 @@ internal sealed class ConfiguratorApplication : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new ConfiguratorWindow { ScreenshotPath = ScreenshotPath, StartType = StartType, StartModifier = StartModifier };
+            desktop.MainWindow = new ConfiguratorWindow { ScreenshotPath = ScreenshotPath, StartType = StartType, StartModifier = StartModifier, StartPage = StartPage };
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -539,6 +573,12 @@ internal static class Program
         if (type >= 0 && type + 1 < args.Length)
         {
             ConfiguratorApplication.StartType = args[type + 1];
+        }
+
+        var page = Array.IndexOf(args, "--page");
+        if (page >= 0 && page + 1 < args.Length)
+        {
+            ConfiguratorApplication.StartPage = args[page + 1];
         }
 
         var modifier = Array.IndexOf(args, "--modifier");

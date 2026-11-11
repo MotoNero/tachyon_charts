@@ -83,6 +83,29 @@ public sealed class OverviewModifier : ChartModifier
         RightEdge,
     }
 
+    /// <summary>
+    /// Makes an overview of the first chart of a group: the chart itself names the group with
+    /// <see cref="Fluent.ChartBuilder.Group"/>, the overview does not join it, so that its range stays whole.
+    /// </summary>
+    /// <param name="group">The name of the group.</param>
+    /// <returns>The modifier.</returns>
+    public static OverviewModifier Of(string group)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(group);
+        ChartInteraction? found = null;
+        return new OverviewModifier(() =>
+        {
+            // The chart is looked up once and again only when it has left the group, for example after a new description.
+            var target = Pipeline.ChartGroup.Get(group);
+            if (found is null || found.Chart.Group != target)
+            {
+                found = target.FirstChart?.Interaction;
+            }
+
+            return found;
+        });
+    }
+
     /// <summary>Gets or sets how near an edge must be for dragging it, in device-independent units.</summary>
     public double EdgeDistance { get; set; } = 6;
 

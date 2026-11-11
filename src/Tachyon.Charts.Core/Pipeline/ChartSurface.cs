@@ -315,6 +315,9 @@ public sealed class ChartSurface
     /// </summary>
     public ChartGroup? Group { get; internal set; }
 
+    /// <summary>Gets the connection of the interactions of the chart, once a pipeline has one; an overview reaches it.</summary>
+    internal Input.ChartInteraction? Interaction { get; set; }
+
     /// <summary>Lays the chart out again, for example when an overlay outside the plot needs other room.</summary>
     internal void InvalidateLayout() => _structureVersion++;
 

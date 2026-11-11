@@ -191,12 +191,13 @@ internal sealed class SampleWindow : Window
             ShowSource();
             return Task.CompletedTask;
         }));
-        bar.Children.Add(CreateAction("Open in configurator", () =>
+        _configure = CreateAction("Open in configurator", () =>
         {
             // The configurator starts with the type of this page and its own sample data.
             _hint.Text = ConfiguratorLink.Open("Tachyon.Charts.Configurator.Avalonia", SelectedId);
             return Task.CompletedTask;
-        }));
+        });
+        bar.Children.Add(_configure);
         AddExportButtons(bar);
 
         Background = new LinearGradientBrush
@@ -244,6 +245,23 @@ internal sealed class SampleWindow : Window
 
         _producer = new Thread(Produce) { IsBackground = true, Name = "Sample data" };
         _producer.Start();
+    }
+
+    private Button? _configure;
+
+    // Pages that are checks rather than examples cannot open in the configurator; the tooltip says why.
+    private void ShowConfiguratorChoice()
+    {
+        if (_configure is null)
+        {
+            return;
+        }
+
+        var reason = ConfiguratorLink.WhyNot(SelectedId);
+        _configure.IsEnabled = reason is null;
+        var text = reason is null ? SampleText.T("Opens this example in the configurator, complete, to change it there") : SampleText.T("Not available: ") + reason;
+        ToolTip.SetTip(_configure, text);
+        ToolTip.SetShowOnDisabled(_configure, true);
     }
 
     private static string Hint(string name) => InstrumentPages.TryGet(name, out var page) ? page.Hint : Pages3D.Find(name)?.Hint ?? string.Empty;
@@ -944,6 +962,7 @@ internal sealed class SampleWindow : Window
         _select.IsVisible = isLive;
         _sceneView.IsVisible = !isLive && !isRaster && !isScope && !isSpectrum && extra is null;
         _scopeControls.IsVisible = isScope;
+        ShowConfiguratorChoice();
         _pageTitle.Text = _selected?.ToString() ?? string.Empty;
         _hint.Text = SampleText.T(true switch
         {

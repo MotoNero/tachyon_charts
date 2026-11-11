@@ -210,6 +210,11 @@ public sealed record ViewInfo(string Name, Action<ChartBuilder, SeriesSpec, obje
 /// <param name="Create">Makes a new description.</param>
 public sealed record TemplateInfo(string Id, string Name, Func<ChartCatalog, ChartSpec> Create);
 
+/// <summary>A page of the showroom as a description: the same charts, series, axes, interactions and data.</summary>
+/// <param name="Page">The identifier of the page in the showroom.</param>
+/// <param name="Create">Makes the description.</param>
+public sealed record PageInfo(string Page, Func<ChartCatalog, ChartSpec> Create);
+
 /// <summary>A chart type the configurator offers, with its parameters and how it is built.</summary>
 public sealed class ChartTypeInfo
 {
@@ -367,6 +372,9 @@ public interface IChartModule
 
     /// <summary>Gets the templates of the module.</summary>
     IReadOnlyList<TemplateInfo> Templates => [];
+
+    /// <summary>Gets the pages of the showroom this module describes completely.</summary>
+    IReadOnlyList<PageInfo> Pages => [];
 }
 
 /// <summary>
@@ -393,6 +401,7 @@ public sealed class ChartCatalog
     private readonly List<SceneInfo> _scenes = [];
     private readonly List<DataLoader> _loaders = [];
     private readonly List<TemplateInfo> _templates = [];
+    private readonly List<PageInfo> _pages = [];
 
     // The modules of the add-ons by type and assembly; loaded only when the assembly is there.
     private static readonly string[] _addOns =
@@ -415,6 +424,14 @@ public sealed class ChartCatalog
 
     /// <summary>Gets the templates of the modules.</summary>
     public IReadOnlyList<TemplateInfo> Templates => _templates;
+
+    /// <summary>Gets the pages of the showroom the modules describe.</summary>
+    public IReadOnlyList<PageInfo> Pages => _pages;
+
+    /// <summary>Gets the description of a page of the showroom.</summary>
+    /// <param name="page">The identifier of the page.</param>
+    /// <returns>The description, or <see langword="null"/> when no module describes the page.</returns>
+    public ChartSpec? CreatePage(string page) => _pages.Find(known => known.Page == page)?.Create(this);
 
     /// <summary>Gets the linked charts of a description and their columns, or <see langword="null"/> for one chart.</summary>
     /// <param name="spec">The description.</param>
@@ -465,6 +482,7 @@ public sealed class ChartCatalog
 
         _scenes.AddRange(module.Scenes.Where(scene => _scenes.TrueForAll(known => known.Category != scene.Category)));
         _templates.AddRange(module.Templates);
+        _pages.AddRange(module.Pages);
         if (module is IDataLoaders readers)
         {
             _loaders.AddRange(readers.Loaders);

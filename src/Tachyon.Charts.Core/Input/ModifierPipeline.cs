@@ -19,6 +19,11 @@ public sealed class ModifierPipeline
         set
         {
             _interaction = value;
+            if (value is not null)
+            {
+                value.Chart.Interaction = value;
+            }
+
             foreach (var modifier in _modifiers)
             {
                 modifier.Interaction = value;

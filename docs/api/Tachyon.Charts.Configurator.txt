@@ -32,10 +32,12 @@ sealed class Tachyon.Charts.Configurator.ChartCatalog
   System.Collections.Generic.IReadOnlyList<System.String> Check(Tachyon.Charts.Configurator.ChartSpec spec)
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ChartTypeInfo> Types { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ModifierInfo> Modifiers { get; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.PageInfo> Pages { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.SampleInfo> Samples { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.TemplateInfo> Templates { get; }
   System.Nullable<System.ValueTuple<System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ViewInfo>, System.Int32>> ViewsOf(Tachyon.Charts.Configurator.ChartSpec spec)
   System.Void Add(Tachyon.Charts.Configurator.IChartModule module)
+  Tachyon.Charts.Configurator.ChartSpec CreatePage(System.String page)
   Tachyon.Charts.Configurator.ChartSpec CreateSpec(System.String typeId)
   Tachyon.Charts.Configurator.ChartTypeInfo FindType(System.String id)
   Tachyon.Charts.Configurator.ModifierInfo FindModifier(System.String id)
@@ -51,6 +53,7 @@ enum Tachyon.Charts.Configurator.ChartCategory : System.IComparable, System.ICon
 sealed class Tachyon.Charts.Configurator.ChartSpec
   .ctor()
   System.Boolean ExportMenu { get; set; }
+  System.Boolean Overview { get; set; }
   System.Boolean XDown { get; set; }
   System.Collections.Generic.List<Tachyon.Charts.Configurator.AnnotationSpec> Annotations { get; set; }
   System.Collections.Generic.List<Tachyon.Charts.Configurator.AxisSpec> XAxes { get; set; }
@@ -121,8 +124,10 @@ static class Tachyon.Charts.Configurator.CodeText
 sealed class Tachyon.Charts.Configurator.ConfiguratorSession
   .ctor(Tachyon.Charts.Configurator.ChartCatalog catalog)
   .ctor(Tachyon.Charts.Configurator.ChartCatalog catalog, System.Threading.SynchronizationContext updates)
+  System.Boolean HasOverview { get; }
   System.Boolean IsUpdating { get; }
   System.Boolean KeepsPreview { get; }
+  System.Boolean OpenPage(System.String page)
   System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Code { get; }
   System.Collections.Generic.IReadOnlyList<System.String> Problems { get; }
   System.Collections.Generic.IReadOnlyList<System.String> Views { get; }
@@ -139,6 +144,7 @@ sealed class Tachyon.Charts.Configurator.ConfiguratorSession
   System.Void AddYAxis()
   System.Void Apply(System.Int32 view, Tachyon.Charts.Core.Fluent.ChartBuilder chart)
   System.Void Apply(Tachyon.Charts.Core.Fluent.ChartBuilder chart)
+  System.Void ApplyOverview(Tachyon.Charts.Core.Fluent.ChartBuilder chart)
   System.Void Load(Tachyon.Charts.Configurator.ChartSpec spec)
   System.Void NewChart(System.String typeId)
   System.Void RemoveAnnotation()
@@ -206,6 +212,7 @@ sealed class Tachyon.Charts.Configurator.FieldModel
   System.String Text { get; }
   Tachyon.Charts.Configurator.ParameterInfo Info { get; }
 interface Tachyon.Charts.Configurator.IChartModule
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.PageInfo> Pages { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.SceneInfo> Scenes { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.TemplateInfo> Templates { get; }
   abstract System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ChartTypeInfo> Types { get; }
@@ -227,6 +234,10 @@ sealed class Tachyon.Charts.Configurator.ModifierSpec
   .ctor()
   System.String Type { get; set; }
   Tachyon.Charts.Configurator.SpecValues Parameters { get; set; }
+sealed class Tachyon.Charts.Configurator.PageInfo : System.IEquatable<Tachyon.Charts.Configurator.PageInfo>
+  .ctor(System.String Page, System.Func<Tachyon.Charts.Configurator.ChartCatalog, Tachyon.Charts.Configurator.ChartSpec> Create)
+  System.Func<Tachyon.Charts.Configurator.ChartCatalog, Tachyon.Charts.Configurator.ChartSpec> Create { get; set; }
+  System.String Page { get; set; }
 sealed class Tachyon.Charts.Configurator.ParameterInfo : System.IEquatable<Tachyon.Charts.Configurator.ParameterInfo>
   .ctor(System.String Name, System.String Label, Tachyon.Charts.Configurator.ParameterKind Kind, System.Object Default)
   System.Boolean Flag(Tachyon.Charts.Configurator.SpecValues values)

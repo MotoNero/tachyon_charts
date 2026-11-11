@@ -47,6 +47,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     /// <exception cref="InvalidOperationException">The description has problems, or a data source the generator does not write yet.</exception>
     public string Setup(ChartSpec spec, CodeOptions options)
     {
+        spec = WithOverviewGroup(spec);
         var plan = Plan(spec, options);
         if (_catalog.ViewsOf(spec) is { } linked)
         {
@@ -98,6 +99,11 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         }
 
         code.AppendLine(";").AppendLine("    }");
+        if (HasOverview(spec))
+        {
+            WriteOverview(code, spec, options, plan);
+        }
+
         if (spec.Annotations.Exists(annotation => annotation.Type is "band" or "box" or "text" or "line"))
         {
             code.Append(AnnotationCatalog.Helpers());
@@ -139,6 +145,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     /// <returns>The C# file.</returns>
     public string ViewModel(ChartSpec spec, CodeOptions options)
     {
+        spec = WithOverviewGroup(spec);
         var plan = Plan(spec, options);
         if (_catalog.ViewsOf(spec) is { } linked)
         {
@@ -164,7 +171,64 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             code.Append(", ").Append(data.Property);
         }
 
-        return code.AppendLine(");").AppendLine("}").ToString();
+        code.AppendLine(");");
+        if (HasOverview(spec))
+        {
+            code.AppendLine().AppendLine("    /// <summary>Describes the overview below the chart with the same data.</summary>");
+            code.AppendLine("    /// <param name=\"chart\">The chart description.</param>");
+            code.Append("    public void ConfigureOverview(ChartBuilder chart) => ChartSetup.ConfigureOverview(chart");
+            foreach (var data in plan.Data)
+            {
+                code.Append(", ").Append(data.Property);
+            }
+
+            code.AppendLine(");");
+        }
+
+        return code.AppendLine("}").ToString();
+    }
+
+    /// <summary>The group the chart joins so that its overview finds it, when the description names none.</summary>
+    internal const string OverviewGroup = "Main";
+
+    private bool HasOverview(ChartSpec spec) => spec.Overview && _catalog.ViewsOf(spec) is null;
+
+    private ChartSpec WithOverviewGroup(ChartSpec spec)
+    {
+        if (!HasOverview(spec) || spec.Group is { Length: > 0 })
+        {
+            return spec;
+        }
+
+        var copy = ChartSpecJson.Copy(spec);
+        copy.Group = OverviewGroup;
+        return copy;
+    }
+
+    // The overview: the chart once more on axes that show all data, with the same data; its window moves the chart.
+    private void WriteOverview(StringBuilder code, ChartSpec spec, CodeOptions options, CodePlan plan)
+    {
+        var overview = Plan(SpecChartBuilder.OverviewOf(spec), options);
+        code.AppendLine().AppendLine("    /// <summary>Describes the overview below the chart: all data at a glance; dragging its window moves the chart.</summary>");
+        code.AppendLine("    /// <param name=\"chart\">The chart description.</param>");
+        foreach (var data in plan.Data)
+        {
+            code.Append("    /// <param name=\"").Append(data.Variable).Append("\">The data of ").Append(data.SeriesName).AppendLine(".</param>");
+        }
+
+        code.Append("    public static void ConfigureOverview(ChartBuilder chart");
+        foreach (var data in plan.Data)
+        {
+            code.Append(", ").Append(data.Type).Append(' ').Append(data.Variable);
+        }
+
+        code.AppendLine(")").AppendLine("    {").Append("        chart");
+        foreach (var call in overview.Calls)
+        {
+            code.AppendLine().Append("            ").Append(call);
+        }
+
+        code.AppendLine().Append("            .Modifiers(m => m.Overview(").Append(CodeText.String(spec.Group ?? OverviewGroup)).AppendLine("));").AppendLine("    }");
     }
 
     /// <summary>Gets the names of the linked charts of a description, or empty for one chart.</summary>
@@ -254,6 +318,12 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         ArgumentNullException.ThrowIfNull(options);
         var title = System.Security.SecurityElement.Escape(spec.Title.Length > 0 ? spec.Title : options.ProjectName);
         var charts = "<t:Chart x:Name=\"Chart\" />";
+        if (HasOverview(spec))
+        {
+            // The overview docks below the chart.
+            charts = "<DockPanel>\n        <t:Chart x:Name=\"Overview\" DockPanel.Dock=\"Bottom\" Height=\"110\" />\n        <t:Chart x:Name=\"Chart\" />\n    </DockPanel>";
+        }
+
         if (_catalog.ViewsOf(spec) is { } linked)
         {
             // The linked charts side by side, named after their views.
@@ -303,6 +373,15 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     /// <param name="views">The names of the linked charts, or empty for one chart.</param>
     /// <returns>The C# file.</returns>
     public static string WindowCode(ChartSpec spec, CodeOptions options, IReadOnlyList<string> views)
+    {
+        ArgumentNullException.ThrowIfNull(spec);
+        var code = WindowCodeOf(spec, options, views);
+        return spec.Overview && views.Count == 0
+            ? code.Replace("Chart.Configure(model.Configure);", "Chart.Configure(model.Configure);\n        Overview.Configure(model.ConfigureOverview);", StringComparison.Ordinal)
+            : code;
+    }
+
+    private static string WindowCodeOf(ChartSpec spec, CodeOptions options, IReadOnlyList<string> views)
     {
         ArgumentNullException.ThrowIfNull(spec);
         ArgumentNullException.ThrowIfNull(options);

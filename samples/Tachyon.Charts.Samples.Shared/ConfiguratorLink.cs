@@ -283,6 +283,12 @@ public static class ConfiguratorLink
         return null;
     }
 
+    /// <summary>Gets why a page cannot open in the configurator, for the tooltip of the greyed out button.</summary>
+    /// <param name="page">The identifier of the page.</param>
+    /// <returns>The reason, or <see langword="null"/> when it can.</returns>
+    public static string? WhyNot(string? page) =>
+        TypeOf(page) is not null ? null : page is not null && Excluded.TryGetValue(page, out var reason) ? reason : "This page has nothing to configure.";
+
     /// <summary>Starts the configurator with the type of a page.</summary>
     /// <param name="app">The name of the application without extension.</param>
     /// <param name="page">The identifier of the page.</param>
@@ -299,7 +305,8 @@ public static class ConfiguratorLink
             return "The configurator was not found beside the showroom, in the repository or as a tool on the path.";
         }
 
-        var start = new ProcessStartInfo(program) { ArgumentList = { "--type", type }, UseShellExecute = false };
+        // The page opens completely where the configurator describes it; the type is the fallback of older versions.
+        var start = new ProcessStartInfo(program) { ArgumentList = { "--page", page!, "--type", type }, UseShellExecute = false };
         if (InteractionOf(page) is { } interaction)
         {
             start.ArgumentList.Add("--modifier");

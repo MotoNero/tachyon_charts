@@ -1,6 +1,7 @@
 using Tachyon.Charts.Core.Colors;
 using Tachyon.Charts.Core.Data;
 using Tachyon.Charts.Core.Fluent;
+using Tachyon.Charts.Core.Input;
 using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Core.Series;
 using Tachyon.Charts.Rendering;
@@ -94,6 +95,9 @@ internal sealed class CoreModule : IChartModule
     public IReadOnlyList<SampleInfo> Samples { get; } = [.. SampleCatalog.Create(), .. ScienceSamples.Create(), .. FinanceTypes.Samples(), .. InstrumentTypes.Samples()];
 
     /// <inheritdoc />
+    public IReadOnlyList<PageInfo> Pages => ShowroomPages.Core;
+
+    /// <inheritdoc />
     public IReadOnlyList<TemplateInfo> Templates { get; } =
     [
         new("trendLimits", "Trend with limits", catalog =>
@@ -141,7 +145,9 @@ internal sealed class CoreModule : IChartModule
         new("keyboard", "Keyboard", [], (m, _) => m.Keyboard(), _ => ".Keyboard()"),
         new("legend", "Legend", [], (m, _) => m.Legend(), _ => ".Legend()"),
         new("diagnostics", "Diagnostics", [], (m, _) => m.Diagnostics(), _ => ".Diagnostics()"),
-        new("selection", "Select points", [], (m, _) => m.Selection(), _ => ".Selection()"),
+        new("selection", "Select points", [new("lasso", "Lasso", ParameterKind.Flag, false) { Description = "Shift and a free line around the points instead of a rectangle." }],
+            (m, values) => m.Selection(values.GetFlag("lasso", false) ? SelectionMode.Lasso : SelectionMode.Rectangle),
+            values => values.GetFlag("lasso", false) ? ".Selection(Tachyon.Charts.Core.Input.SelectionMode.Lasso)" : ".Selection()"),
         new("annotationedit", "Edit annotations by mouse", [], (m, _) => m.AnnotationEdit(), _ => ".AnnotationEdit()"),
     ];
 

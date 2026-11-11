@@ -20,6 +20,7 @@ Interactions are building blocks:
 | `Legend` | Legend, a click hides a series |
 | `AnnotationEdit` | Edit annotations by mouse: move them, drag edges, corners and ends; Ctrl+Z takes a drag back, see [annotations](annotations.md) |
 | `Diagnostics` | F12 shows frame times |
+| `Overview(group)` | Makes this chart the overview of the chart that joined `group` with `.Group(group)`: dragging its window moves that chart, dragging an edge scales it |
 | `Custom` | Your own `ChartModifier` |
 
 ## Selecting points

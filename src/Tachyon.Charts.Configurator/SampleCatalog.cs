@@ -62,6 +62,8 @@ internal static class SampleCatalog
         Curve("sine", "Two sines", 1000, x => Math.Sin(x) + (0.3 * Math.Sin(3.7 * x)), "Math.Sin(x) + (0.3 * Math.Sin(3.7 * x))"),
         Curve("damped", "Damped oscillation", 1000, x => Math.Exp(-x / 4) * Math.Cos(3 * x), "Math.Exp(-x / 4) * Math.Cos(3 * x)"),
         Curve("signal", "Wandering signal", 2000, x => (2 * Math.Sin(x * 0.9) * Math.Cos(x * 0.31)) + (0.3 * Math.Sin(x * 17.3)) + (0.15 * Math.Sin(x * 41.9)), "(2 * Math.Sin(x * 0.9) * Math.Cos(x * 0.31)) + (0.3 * Math.Sin(x * 17.3)) + (0.15 * Math.Sin(x * 41.9))"),
+        Curve("liveFixed", "Two sines, fast", 2000, x => Math.Sin(x * 2) + (0.3 * Math.Sin(x * 14)), "Math.Sin(x * 2) + (0.3 * Math.Sin(x * 14))"),
+        Curve("liveNoisy", "Slow wave with noise", 2000, x => (Math.Sin(x * 2) * Math.Cos(x * 0.3)) + ((Random.Shared.NextDouble() - 0.5) * 0.2), "(Math.Sin(x * 2) * Math.Cos(x * 0.3)) + ((Random.Shared.NextDouble() - 0.5) * 0.2)"),
         Curve("decay", "Decaying pulses", 41, x => 2.5 * Math.Exp(-0.25 * x) * Math.Abs(Math.Cos(x * 1.5)), "2.5 * Math.Exp(-0.25 * x) * Math.Abs(Math.Cos(x * 1.5))"),
         Bubbles(),
         Band(),

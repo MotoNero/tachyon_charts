@@ -1193,6 +1193,20 @@ public sealed class ModifierBuilder
         return this;
     }
 
+    /// <summary>
+    /// Makes this chart the overview of another one: it shows the window of the other chart, dragging the window moves
+    /// it, dragging an edge scales it. The other chart names the group with <see cref="ChartBuilder.Group"/>; this one
+    /// stays out of the group.
+    /// </summary>
+    /// <param name="group">The group of the other chart.</param>
+    /// <returns>This builder.</returns>
+    public ModifierBuilder Overview(string group)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(group);
+        Definitions.Add(new CustomModifierDefinition(() => OverviewModifier.Of(group)));
+        return this;
+    }
+
     /// <summary>Adds selection of points while holding Shift.</summary>
     /// <param name="mode">How points are selected.</param>
     /// <returns>This builder.</returns>

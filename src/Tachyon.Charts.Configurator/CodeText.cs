@@ -66,8 +66,22 @@ public static class CodeText
         }
 
         code[0] = upper ? char.ToUpperInvariant(code[0]) : char.ToLowerInvariant(code[0]);
-        return code.ToString();
+
+        // A word of the language, such as "fixed" from a series called Fixed, gets the fallback behind it.
+        var identifier = code.ToString();
+        return _keywords.Contains(identifier) ? identifier + char.ToUpperInvariant(fallback[0]) + fallback[1..] : identifier;
     }
+
+    private static readonly HashSet<string> _keywords = new(StringComparer.Ordinal)
+    {
+        "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked", "class", "const", "continue",
+        "decimal", "default", "delegate", "do", "double", "else", "enum", "event", "explicit", "extern", "false", "finally",
+        "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal", "is", "lock",
+        "long", "namespace", "new", "null", "object", "operator", "out", "override", "params", "private", "protected",
+        "public", "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof", "stackalloc", "static", "string",
+        "struct", "switch", "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort",
+        "using", "virtual", "void", "volatile", "while",
+    };
 
     private static string[] Split(this string text, Func<char, bool> separator)
     {

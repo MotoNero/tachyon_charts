@@ -199,6 +199,7 @@ public sealed class ConfiguratorSession
         .. LegendFields("Second legend", _spec.SecondLegend),
         Field("Chart", new("export", "Export menu", ParameterKind.Flag, false) { Description = "In the generated window a right click on the chart saves it as PNG, SVG or PDF, its data as CSV, or records a video." }, () => _spec.ExportMenu, value => _spec.ExportMenu = (bool)value),
         Field("Chart", new("group", "Group", ParameterKind.Text, string.Empty) { Description = "Charts of one group share range and cursor." }, () => _spec.Group ?? string.Empty, value => _spec.Group = ((string)value).Length > 0 ? (string)value : null),
+        Field("Chart", new("overview", "Overview below", ParameterKind.Flag, false) { Description = "A small chart below shows all data and the window of the chart; dragging the window moves the chart." }, () => _spec.Overview, value => _spec.Overview = (bool)value),
     ];
 
     /// <summary>Gets the fields of the axes.</summary>
@@ -401,12 +402,54 @@ public sealed class ConfiguratorSession
         }
         else if (_prepared is { } single)
         {
-            SpecChartBuilder.Apply(single.Spec, Catalog, chart, _running, single.Data, Dragged);
+            // Data made only when shown, such as live data, are made here, so that the overview shows the same.
+            _shown = SpecChartBuilder.Complete(single.Spec, Catalog, single.Data, _running);
+            SpecChartBuilder.Apply(single.Spec.Overview && single.Spec.Group is null ? WithGroup(single.Spec, _overviewGroup) : single.Spec, Catalog, chart, _running, _shown, Dragged);
         }
         else
         {
             SpecChartBuilder.Apply(_spec, Catalog, chart, _running, null, Dragged);
         }
+    }
+
+    /// <summary>Gets a value indicating whether the preview has an overview below the chart; see <see cref="ApplyOverview"/>.</summary>
+    public bool HasOverview => _prepared is { } prepared && prepared.Spec.Overview && Catalog.ViewsOf(prepared.Spec) is null;
+
+    /// <summary>Describes the overview below the chart of the preview, after the chart itself.</summary>
+    /// <param name="chart">The chart description.</param>
+    public void ApplyOverview(ChartBuilder chart)
+    {
+        if (_prepared is { } prepared && _shown is { } data)
+        {
+            SpecChartBuilder.ApplyOverview(prepared.Spec, Catalog, chart, data, prepared.Spec.Group ?? _overviewGroup);
+        }
+    }
+
+    /// <summary>Opens the description of a page of the showroom.</summary>
+    /// <param name="page">The identifier of the page.</param>
+    /// <returns>Whether a module describes the page.</returns>
+    public bool OpenPage(string page)
+    {
+        if (Catalog.CreatePage(page) is not { } spec)
+        {
+            return false;
+        }
+
+        Load(spec);
+        return true;
+    }
+
+    // The group of the chart of the preview and its overview; one per session, so that two windows stay apart.
+    private readonly string _overviewGroup = "configurator-" + Guid.NewGuid().ToString("N");
+
+    // The data the chart of the preview shows, shared with its overview.
+    private IReadOnlyList<object?>? _shown;
+
+    private static ChartSpec WithGroup(ChartSpec spec, string group)
+    {
+        var copy = ChartSpecJson.Copy(spec);
+        copy.Group = group;
+        return copy;
     }
 
     /// <summary>

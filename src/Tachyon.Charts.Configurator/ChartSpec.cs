@@ -42,6 +42,12 @@ public sealed class ChartSpec
     /// <summary>Gets or sets a value indicating whether the generated window gives the chart a context menu that saves it.</summary>
     public bool ExportMenu { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether a small chart below shows all data and the window of the chart; dragging
+    /// the window moves the chart.
+    /// </summary>
+    public bool Overview { get; set; }
+
     /// <summary>Gets the annotations: lines, bands, boxes and text on the first axes.</summary>
     public List<AnnotationSpec> Annotations { get; init; } = [];
 

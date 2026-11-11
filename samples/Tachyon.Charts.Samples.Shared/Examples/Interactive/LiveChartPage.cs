@@ -27,4 +27,14 @@ public static class LiveChartPage
         .AddLine(signal.Fixed, s => s.Name(SampleText.T("Fixed")).Stroke(new Rgba8(80, 170, 240, 255)).Thickness(2))
         .AddLine(signal.Live, s => s.Name("Live").Stroke(new Rgba8(240, 130, 90, 255)).Thickness(1))
         .Modifiers(m => m.ZoomPan().RubberBand().AxisDrag().Crosshair().Tooltip().Legend().Keyboard().Custom(() => selection).MeasureCursors().Diagnostics());
+
+    /// <summary>Builds the overview below the chart: both curves at a glance; its window moves the chart above.</summary>
+    /// <param name="c">The chart.</param>
+    /// <param name="signal">The data.</param>
+    public static void ConfigureOverview(ChartBuilder c, LiveSignal signal) => c
+        .Theme(BuiltInThemes.TachyonDark)
+        .XAxis(a => a.Numeric("x").AutoRange())
+        .YAxis(a => a.Numeric("y").AutoRange())
+        .AddLine(signal.Fixed, s => s.Stroke(new Rgba8(80, 170, 240, 255)).Thickness(1))
+        .AddLine(signal.Live, s => s.Stroke(new Rgba8(240, 130, 90, 255)).Thickness(1));
 }

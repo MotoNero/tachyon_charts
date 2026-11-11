@@ -666,6 +666,7 @@ sealed class Tachyon.Charts.Core.Fluent.ModifierBuilder
   Tachyon.Charts.Core.Fluent.ModifierBuilder Keyboard()
   Tachyon.Charts.Core.Fluent.ModifierBuilder Legend()
   Tachyon.Charts.Core.Fluent.ModifierBuilder MeasureCursors()
+  Tachyon.Charts.Core.Fluent.ModifierBuilder Overview(System.String group)
   Tachyon.Charts.Core.Fluent.ModifierBuilder Rollover()
   Tachyon.Charts.Core.Fluent.ModifierBuilder RubberBand(Tachyon.Charts.Core.Input.InputModifiers modifierKey = Control, Tachyon.Charts.Core.Input.ChartDirection direction = Both)
   Tachyon.Charts.Core.Fluent.ModifierBuilder Selection(Tachyon.Charts.Core.Input.SelectionMode mode = Rectangle)
@@ -1029,6 +1030,7 @@ sealed class Tachyon.Charts.Core.Input.OverviewModifier : Tachyon.Charts.Core.In
   protected virtual System.Void OnDetached(Tachyon.Charts.Core.Input.ChartInteraction interaction)
   protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
   static System.Int32 DefaultPriority
+  static Tachyon.Charts.Core.Input.OverviewModifier Of(System.String group)
 sealed class Tachyon.Charts.Core.Input.OverviewOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
   .ctor(System.Func<Tachyon.Charts.Core.Axes.AxisBase> targetAxis)
   System.Nullable<System.ValueTuple<System.Double, System.Double>> Window { get; }

@@ -308,7 +308,7 @@ dotnet run --project src/Tachyon.Charts.Configurator.Wpf -c Release
 dotnet run --project src/Tachyon.Charts.Configurator.Avalonia -c Release
 ```
 
-The release also brings it unpacked (WPF for Windows, Avalonia for Windows, Linux and macOS) and beside the showroom, whose **Open in configurator** starts it with the chart of the current page.
+The release also brings it unpacked (WPF for Windows, Avalonia for Windows, Linux and macOS) and beside the showroom, whose **Open in configurator** opens the example of the current page in it, completely, to change it there.
 
 ![The configurator with a box plot: settings on the left, the chart in the middle, the generated C# on the right](docs/images/configurator.png)
 
@@ -323,6 +323,8 @@ The release also brings it unpacked (WPF for Windows, Avalonia for Windows, Linu
 ![The configurator with a spectrum analyzer whose axes show the frequency in megahertz and the level in dBm](docs/images/configurator-spectrum-axes.png)
 
 ![The configurator with a band, a box and a free line on a spectrum analyzer, each editable by mouse](docs/images/configurator-annotation-edit.png)
+
+![The live chart of the showroom opened in the configurator: a fixed and a live curve, legend, and the overview below](docs/images/configurator-live-overview.png)
 
 ![The crosshair on a four channel oscilloscope: the value of each channel at the left edge in its color, the time below](docs/images/crosshair-instrument.png)
 

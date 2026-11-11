@@ -189,6 +189,8 @@ public static class SampleText
         ["The file is saved:"] = "Die Datei ist gespeichert:",
         ["Source code (F11)"] = "Quellcode (F11)",
         ["Open in configurator"] = "Im Configurator öffnen",
+        ["Opens this example in the configurator, complete, to change it there"] = "Öffnet dieses Beispiel vollständig im Configurator, um es dort anzupassen",
+        ["Not available: "] = "Nicht verfügbar: ",
         ["Source code"] = "Quellcode",
         ["Copy"] = "Kopieren",
         ["Save file"] = "Datei speichern",

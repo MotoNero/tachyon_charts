@@ -216,12 +216,13 @@ internal sealed class SampleWindow : Window
             ShowSource();
             return Task.CompletedTask;
         }));
-        bar.Children.Add(CreateAction("Open in configurator", () =>
+        _configure = CreateAction("Open in configurator", () =>
         {
             // The configurator starts with the type of this page and its own sample data.
             _hint.Text = ConfiguratorLink.Open("Tachyon.Charts.Configurator.Wpf", SelectedId);
             return Task.CompletedTask;
-        }));
+        });
+        bar.Children.Add(_configure);
         AddExportButtons(bar);
 
         var content = new Grid();
@@ -272,6 +273,23 @@ internal sealed class SampleWindow : Window
                 _theme.SelectedIndex = chosen + 1;
             }
         };
+    }
+
+    private Button? _configure;
+
+    // Pages that are checks rather than examples cannot open in the configurator; the tooltip says why.
+    private void ShowConfiguratorChoice()
+    {
+        if (_configure is null)
+        {
+            return;
+        }
+
+        var reason = ConfiguratorLink.WhyNot(SelectedId);
+        _configure.IsEnabled = reason is null;
+        var text = reason is null ? SampleText.T("Opens this example in the configurator, complete, to change it there") : SampleText.T("Not available: ") + reason;
+        _configure.ToolTip = text;
+        ToolTipService.SetShowOnDisabled(_configure, true);
     }
 
     private static string Hint(string name) => InstrumentPages.TryGet(name, out var page) ? page.Hint : Pages3D.Find(name)?.Hint ?? string.Empty;
@@ -826,12 +844,7 @@ internal sealed class SampleWindow : Window
 
     private void ConfigureOverview()
     {
-        _overview.Configure(c => c
-            .Theme(BuiltInThemes.TachyonDark)
-            .XAxis(a => a.Numeric("x").AutoRange())
-            .YAxis(a => a.Numeric("y").AutoRange())
-            .AddLine(_model.Signal.Fixed, s => s.Stroke(new Rgba8(80, 170, 240, 255)).Thickness(1))
-            .AddLine(_model.Signal.Live, s => s.Stroke(new Rgba8(240, 130, 90, 255)).Thickness(1)));
+        _overview.Configure(c => LiveChartPage.ConfigureOverview(c, _model.Signal));
         _overview.Modifiers.Add(new OverviewModifier { Target = _chart });
     }
 
@@ -1010,6 +1023,7 @@ internal sealed class SampleWindow : Window
         _sceneView.Visibility = Show(isScene);
         _hint.Text = SampleText.T(extra is not null ? Hint(SelectedId!) : FixedHint(isSpectrum, isScope, isLive, isRaster, isGroup));
         ShowDataChoice();
+        ShowConfiguratorChoice();
         _pageTitle.Text = _list.SelectedItem?.ToString() ?? string.Empty;
         _liveControls.Visibility = Show(isLive);
         _scopeControls.Visibility = Show(isScope);

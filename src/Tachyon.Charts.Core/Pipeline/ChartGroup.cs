@@ -100,6 +100,9 @@ public sealed class ChartGroup
         chart.Group = this;
     }
 
+    /// <summary>Gets the first chart of the group, or <see langword="null"/>.</summary>
+    internal ChartSurface? FirstChart => _members.Count > 0 ? _members[0].Chart : null;
+
     /// <summary>Shows a cursor at a place on all crosshairs of the group, for charts without a crosshair of their own.</summary>
     /// <param name="value">The place on the shared axis, or <see langword="null"/> to hide the cursor.</param>
     public void ShowCursor(double? value) => OnCursorMoved(null, value);

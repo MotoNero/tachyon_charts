@@ -284,6 +284,71 @@ public static class SpecChartBuilder
         }
     }
 
+    /// <summary>Makes the data of the series that are made only when shown, such as live data, so that two charts can share them.</summary>
+    /// <param name="spec">The description.</param>
+    /// <param name="catalog">The types, samples and interactions.</param>
+    /// <param name="prepared">The data made by <see cref="Prepare"/>.</param>
+    /// <param name="running">Receives what keeps live data coming.</param>
+    /// <returns>The data of all series.</returns>
+    internal static IReadOnlyList<object?> Complete(ChartSpec spec, ChartCatalog catalog, IReadOnlyList<object?> prepared, ICollection<IDisposable> running)
+    {
+        var series = Drawn(spec, catalog).ToList();
+        var data = new object?[prepared.Count];
+        for (var i = 0; i < data.Length; i++)
+        {
+            data[i] = prepared[i] ?? (i < series.Count ? Data(catalog, series[i], running) : null);
+        }
+
+        return data;
+    }
+
+    /// <summary>
+    /// Describes the overview below a chart: the same series on axes that show all data, without title, legend,
+    /// annotations or interactions; its window moves the chart of the group.
+    /// </summary>
+    /// <param name="spec">The description of the chart.</param>
+    /// <param name="catalog">The types, samples and interactions.</param>
+    /// <param name="chart">The builder of the overview.</param>
+    /// <param name="data">The data of the chart, shared.</param>
+    /// <param name="group">The group of the chart.</param>
+    internal static void ApplyOverview(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, IReadOnlyList<object?> data, string group)
+    {
+        // Without names, as an overview lists nothing; the code keeps them for its variables.
+        var overview = OverviewOf(spec);
+        foreach (var series in overview.Series)
+        {
+            series.Name = string.Empty;
+        }
+
+        Apply(overview, catalog, chart, null, data);
+        chart.Modifiers(modifiers => modifiers.Overview(group));
+    }
+
+    /// <summary>Gets the description of the overview of a chart.</summary>
+    /// <param name="spec">The description of the chart.</param>
+    /// <returns>The description of the overview.</returns>
+    internal static ChartSpec OverviewOf(ChartSpec spec)
+    {
+        var overview = ChartSpecJson.Copy(spec);
+        (overview.Title, overview.Legend, overview.SecondLegend, overview.Group, overview.Overview, overview.ExportMenu) = (string.Empty, null, null, null, false, false);
+        overview.Modifiers.Clear();
+        overview.Annotations.Clear();
+        foreach (var axis in overview.XAxes.Concat(overview.YAxes))
+        {
+            (axis.Title, axis.Minimum, axis.Maximum) = (string.Empty, null, null);
+        }
+
+        foreach (var series in overview.Series)
+        {
+            if (series.Type == "line" || series.Parameters.Get("thickness") is not null)
+            {
+                series.Parameters.Set("thickness", 1.0);
+            }
+        }
+
+        return overview;
+    }
+
     private static object Data(ChartCatalog catalog, SeriesSpec series, ICollection<IDisposable>? running)
     {
         var type = catalog.FindType(series.Type)!;
