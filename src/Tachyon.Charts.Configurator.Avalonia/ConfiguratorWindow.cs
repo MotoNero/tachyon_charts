@@ -86,12 +86,21 @@ internal sealed class ConfiguratorWindow : Window
 
     private ComboBox? _types;
 
+    /// <summary>Gets the identifier of an interaction to switch on at the start, or <see langword="null"/>.</summary>
+    public string? StartModifier { get; init; }
+
+    // The type to start with, then the interaction, as the showroom asks for a page.
     private void SelectStartType()
     {
         var index = _session.Catalog.Types.ToList().FindIndex(type => type.Id == StartType);
         if (index >= 0 && _types is not null)
         {
             _types.SelectedIndex = index;
+        }
+
+        if (StartModifier is { } modifier && _session.ModifierFields.FirstOrDefault(field => field.Info.Name == modifier) is { } field)
+        {
+            field.Set(true);
         }
     }
 
@@ -501,6 +510,8 @@ internal sealed class ConfiguratorApplication : Application
 
     public static string? StartType { get; set; }
 
+    public static string? StartModifier { get; set; }
+
     public override void Initialize()
     {
         RequestedThemeVariant = ThemeVariant.Dark;
@@ -511,7 +522,7 @@ internal sealed class ConfiguratorApplication : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            desktop.MainWindow = new ConfiguratorWindow { ScreenshotPath = ScreenshotPath, StartType = StartType };
+            desktop.MainWindow = new ConfiguratorWindow { ScreenshotPath = ScreenshotPath, StartType = StartType, StartModifier = StartModifier };
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -528,6 +539,12 @@ internal static class Program
         if (type >= 0 && type + 1 < args.Length)
         {
             ConfiguratorApplication.StartType = args[type + 1];
+        }
+
+        var modifier = Array.IndexOf(args, "--modifier");
+        if (modifier >= 0 && modifier + 1 < args.Length)
+        {
+            ConfiguratorApplication.StartModifier = args[modifier + 1];
         }
 
         var screenshot = Array.IndexOf(args, "--screenshot");

@@ -188,6 +188,7 @@ public static class SampleText
         ["OK"] = "OK",
         ["The file is saved:"] = "Die Datei ist gespeichert:",
         ["Source code (F11)"] = "Quellcode (F11)",
+        ["Open in configurator"] = "Im Configurator öffnen",
         ["Source code"] = "Quellcode",
         ["Copy"] = "Kopieren",
         ["Save file"] = "Datei speichern",

@@ -83,12 +83,21 @@ internal sealed class ConfiguratorWindow : Window
 
     private ComboBox? _types;
 
+    /// <summary>Gets the identifier of an interaction to switch on at the start, or <see langword="null"/>.</summary>
+    public string? StartModifier { get; init; }
+
+    // The type to start with, then the interaction, as the showroom asks for a page.
     private void SelectStartType()
     {
         var index = _session.Catalog.Types.ToList().FindIndex(type => type.Id == StartType);
         if (index >= 0 && _types is not null)
         {
             _types.SelectedIndex = index;
+        }
+
+        if (StartModifier is { } modifier && _session.ModifierFields.FirstOrDefault(field => field.Info.Name == modifier) is { } field)
+        {
+            field.Set(true);
         }
     }
 
@@ -487,6 +496,7 @@ internal static class Program
         var path = screenshot >= 0 && screenshot + 1 < args.Length ? args[screenshot + 1] : null;
         var type = Array.IndexOf(args, "--type");
         var spec = Array.IndexOf(args, "--spec");
+        var modifier = Array.IndexOf(args, "--modifier");
         if (path is not null)
         {
             // Pictures draw on the CPU, so that the chart is part of the picture of the window.
@@ -495,6 +505,6 @@ internal static class Program
 
         var application = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
         SampleStyle.Apply(application);
-        application.Run(new ConfiguratorWindow { ScreenshotPath = path, StartType = type >= 0 && type + 1 < args.Length ? args[type + 1] : null, StartSpec = spec >= 0 && spec + 1 < args.Length ? args[spec + 1] : null });
+        application.Run(new ConfiguratorWindow { ScreenshotPath = path, StartType = type >= 0 && type + 1 < args.Length ? args[type + 1] : null, StartSpec = spec >= 0 && spec + 1 < args.Length ? args[spec + 1] : null, StartModifier = modifier >= 0 && modifier + 1 < args.Length ? args[modifier + 1] : null });
     }
 }

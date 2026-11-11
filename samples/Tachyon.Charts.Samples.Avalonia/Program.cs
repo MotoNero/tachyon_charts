@@ -191,6 +191,12 @@ internal sealed class SampleWindow : Window
             ShowSource();
             return Task.CompletedTask;
         }));
+        bar.Children.Add(CreateAction("Open in configurator", () =>
+        {
+            // The configurator starts with the type of this page and its own sample data.
+            _hint.Text = ConfiguratorLink.Open("Tachyon.Charts.Configurator.Avalonia", SelectedId);
+            return Task.CompletedTask;
+        }));
         AddExportButtons(bar);
 
         Background = new LinearGradientBrush

@@ -3,7 +3,12 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <OutputType>WinExe</OutputType>
-    <IsPackable>false</IsPackable>
+    <!-- Installable with "dotnet tool install -g Tachyon.Charts.Configurator.Tool"; runs on Windows, Linux and macOS. -->
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>tachyon-configurator</ToolCommandName>
+    <PackageId>Tachyon.Charts.Configurator.Tool</PackageId>
+    <Description>The Tachyon Charts configurator: put a chart together, see it, and copy its C#, view model, window and project.</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
@@ -19,5 +24,12 @@
     <ProjectReference Include="../Tachyon.Charts.Configurator.Medical/Tachyon.Charts.Configurator.Medical.csproj" />
     <ProjectReference Include="../Tachyon.Charts.Avalonia/Tachyon.Charts.Avalonia.csproj" />
   </ItemGroup>
+
+  <!-- The tool leaves out the debug symbols of the native libraries, about 90 MB that a user does not need. -->
+  <Target Name="LeaveOutNativeSymbols" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Extension)' == '.pdb' And $([System.String]::Copy('%(RelativePath)').StartsWith('runtimes'))" />
+    </ItemGroup>
+  </Target>
 
 </Project>

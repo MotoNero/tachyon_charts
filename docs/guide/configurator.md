@@ -8,7 +8,16 @@ dotnet run --project src/Tachyon.Charts.Configurator.Avalonia -c Release
 dotnet run --project src/Tachyon.Charts.Configurator.Wpf -c Release -- --type medicalMpr
 ```
 
-`--type` starts with a type, by its identifier (`line`, `spectrum`, `surface3d`, `medicalMpr` and so on).
+`--type` starts with a type, by its identifier (`line`, `spectrum`, `surface3d`, `medicalMpr` and so on); `--modifier` switches an interaction on (`crosshair`, `rollover`, `measure`, …).
+
+Download the configurator from the release (WPF for Windows, Avalonia for Windows, Linux and macOS), install it as a tool, or run it from the repository:
+
+```bash
+dotnet tool install -g Tachyon.Charts.Configurator.Tool
+tachyon-configurator --type spectrum --modifier crosshair
+```
+
+In the showroom, **Open in configurator** starts it with the chart of the page: its type and sample data, and the interaction the page shows. Medical pages start with the phantoms of the configurator, never with files loaded in the showroom. The showroom downloads carry the configurator beside them.
 
 ![The configurator with a box plot: settings on the left, the chart in the middle, the generated C# on the right](../images/configurator.png)
 
