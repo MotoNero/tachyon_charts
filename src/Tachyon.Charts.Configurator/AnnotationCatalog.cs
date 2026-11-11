@@ -10,10 +10,13 @@ namespace Tachyon.Charts.Configurator;
 /// <param name="Name">The name shown.</param>
 /// <param name="Parameters">Its parameters.</param>
 /// <param name="Create">Makes the annotation on the axes of a chart.</param>
-/// <param name="Code">Writes the same as C#: the expression of the annotation from a chart called <c>c</c>.</param>
-internal sealed record AnnotationInfo(string Id, string Name, IReadOnlyList<ParameterInfo> Parameters, Func<ChartSurface, SpecValues, ChartOverlay> Create, Func<SpecValues, string> Code);
+/// <param name="Code">
+/// Writes the same as C#: the expression of the annotation from a chart called <c>c</c>; the second argument is a
+/// further member of its initializer, or empty.
+/// </param>
+internal sealed record AnnotationInfo(string Id, string Name, IReadOnlyList<ParameterInfo> Parameters, Func<ChartSurface, SpecValues, ChartOverlay> Create, Func<SpecValues, string, string> Code);
 
-/// <summary>The annotations: lines, a band, a box and text, on the first axes of the chart.</summary>
+/// <summary>The annotations: lines, a band, a box, text and a free line, on the first axes of the chart.</summary>
 internal static class AnnotationCatalog
 {
     // The axes of the annotations: the first X axis and the first value axis, also with the X axis downwards.
@@ -27,10 +30,10 @@ internal static class AnnotationCatalog
     [
         new("hline", "Horizontal line", [new("y", "Value", ParameterKind.Number, 0.5), _label, _color],
             (c, v) => Colored(new HorizontalLineAnnotation(Y(c)) { Y = v.GetNumber("y", 0.5), Label = Label(v) }, v),
-            v => $"new HorizontalLineAnnotation({YCode}) {{ Y = {CodeText.Number(v.GetNumber("y", 0.5))}{LabelCode(v)}{ColorCode(v)} }}"),
+            (v, more) => $"new HorizontalLineAnnotation({YCode}){Init($"Y = {CodeText.Number(v.GetNumber("y", 0.5))}", LabelCode(v), ColorCode(v), more)}"),
         new("vline", "Vertical line", [new("x", "Place", ParameterKind.Number, 5.0), _label, _color],
             (c, v) => Colored(new VerticalLineAnnotation(c.FirstXAxis) { X = v.GetNumber("x", 5), Label = Label(v) }, v),
-            v => $"new VerticalLineAnnotation({XCode}) {{ X = {CodeText.Number(v.GetNumber("x", 5))}{LabelCode(v)}{ColorCode(v)} }}"),
+            (v, more) => $"new VerticalLineAnnotation({XCode}){Init($"X = {CodeText.Number(v.GetNumber("x", 5))}", LabelCode(v), ColorCode(v), more)}"),
         new("band", "Band", [new("from", "From", ParameterKind.Number, 2.0), new("to", "To", ParameterKind.Number, 4.0), new("color", "Color", ParameterKind.Color, "#F0BE5A30") { Description = "A band covers what lies behind it; a color with little opacity keeps that visible." }],
             (c, v) =>
             {
@@ -38,7 +41,7 @@ internal static class AnnotationCatalog
                 band.SetRange(v.GetNumber("from", 2), v.GetNumber("to", 4));
                 return Colored(band, v, "#F0BE5A30");
             },
-            v => $"Band(new BandAnnotation({XCode}), {CodeText.Number(v.GetNumber("from", 2))}, {CodeText.Number(v.GetNumber("to", 4))})"),
+            (v, more) => $"Band(new BandAnnotation({XCode}){Init(more)}, {CodeText.Number(v.GetNumber("from", 2))}, {CodeText.Number(v.GetNumber("to", 4))})"),
         new("box", "Box", [new("x1", "Left", ParameterKind.Number, 6.0), new("y1", "Bottom", ParameterKind.Number, -0.5), new("x2", "Right", ParameterKind.Number, 8.0), new("y2", "Top", ParameterKind.Number, 0.5), _color],
             (c, v) =>
             {
@@ -46,7 +49,7 @@ internal static class AnnotationCatalog
                 box.SetCorners(v.GetNumber("x1", 6), v.GetNumber("y1", -0.5), v.GetNumber("x2", 8), v.GetNumber("y2", 0.5));
                 return Colored(box, v);
             },
-            v => $"Box(new BoxAnnotation({XCode}, {YCode}), {CodeText.Number(v.GetNumber("x1", 6))}, {CodeText.Number(v.GetNumber("y1", -0.5))}, {CodeText.Number(v.GetNumber("x2", 8))}, {CodeText.Number(v.GetNumber("y2", 0.5))})"),
+            (v, more) => $"Box(new BoxAnnotation({XCode}, {YCode}){Init(more)}, {CodeText.Number(v.GetNumber("x1", 6))}, {CodeText.Number(v.GetNumber("y1", -0.5))}, {CodeText.Number(v.GetNumber("x2", 8))}, {CodeText.Number(v.GetNumber("y2", 0.5))})"),
         new("text", "Text", [new("x", "Place", ParameterKind.Number, 1.0), new("y", "Value", ParameterKind.Number, 0.8), new("text", "Text", ParameterKind.Text, "Note"), new("size", "Font size", ParameterKind.Number, 13.0) { Minimum = 6, Maximum = 72 }, _color],
             (c, v) =>
             {
@@ -54,8 +57,54 @@ internal static class AnnotationCatalog
                 text.MoveTo(v.GetNumber("x", 1), v.GetNumber("y", 0.8));
                 return Colored(text, v);
             },
-            v => $"Text(new TextAnnotation({XCode}, {YCode}) {{ Text = {CodeText.String(v.GetText("text", "Note"))}, FontSize = {CodeText.Number(v.GetNumber("size", 13))}f }}, {CodeText.Number(v.GetNumber("x", 1))}, {CodeText.Number(v.GetNumber("y", 0.8))})"),
+            (v, more) => $"Text(new TextAnnotation({XCode}, {YCode}){Init($"Text = {CodeText.String(v.GetText("text", "Note"))}", $"FontSize = {CodeText.Number(v.GetNumber("size", 13))}f", more)}, {CodeText.Number(v.GetNumber("x", 1))}, {CodeText.Number(v.GetNumber("y", 0.8))})"),
+        new("line", "Line", [new("x1", "Start place", ParameterKind.Number, 2.0), new("y1", "Start value", ParameterKind.Number, -0.5), new("x2", "End place", ParameterKind.Number, 8.0), new("y2", "End value", ParameterKind.Number, 0.5), _label, _color],
+            (c, v) =>
+            {
+                var line = new LineAnnotation(c.FirstXAxis, Y(c)) { Label = Label(v) };
+                line.SetEnds(v.GetNumber("x1", 2), v.GetNumber("y1", -0.5), v.GetNumber("x2", 8), v.GetNumber("y2", 0.5));
+                return Colored(line, v);
+            },
+            (v, more) => $"Line(new LineAnnotation({XCode}, {YCode}){Init(LabelCode(v), ColorCode(v), more)}, {CodeText.Number(v.GetNumber("x1", 2))}, {CodeText.Number(v.GetNumber("y1", -0.5))}, {CodeText.Number(v.GetNumber("x2", 8))}, {CodeText.Number(v.GetNumber("y2", 0.5))})"),
     ];
+
+    /// <summary>
+    /// Reads back what a drag changed: the values of an annotation the catalog made, rounded to four significant digits
+    /// of the range its axis shows, so that the fields show plain numbers and the code draws the same within a pixel.
+    /// Call it on the thread of the chart.
+    /// </summary>
+    /// <param name="annotation">The annotation.</param>
+    /// <returns>The kind and the values by parameter, or <see langword="null"/> for an annotation not from the catalog.</returns>
+    internal static (string Kind, (string Name, double Value)[] Values)? Read(Annotation annotation) => annotation switch
+    {
+        HorizontalLineAnnotation line => ("hline", [("y", Fine(line.Y, line.YAxis))]),
+        VerticalLineAnnotation line => ("vline", [("x", Fine(line.X, line.XAxis))]),
+        BandAnnotation band => ("band", [("from", Fine(band.Start, band.XAxis ?? band.YAxis)), ("to", Fine(band.End, band.XAxis ?? band.YAxis))]),
+        BoxAnnotation box => ("box", [("x1", Fine(box.First.X, box.XAxis)), ("y1", Fine(box.First.Y, box.YAxis)), ("x2", Fine(box.Second.X, box.XAxis)), ("y2", Fine(box.Second.Y, box.YAxis))]),
+        TextAnnotation text => ("text", [("x", Fine(text.Position.X, text.XAxis)), ("y", Fine(text.Position.Y, text.YAxis))]),
+        LineAnnotation line => ("line", [("x1", Fine(line.Start.X, line.XAxis)), ("y1", Fine(line.Start.Y, line.YAxis)), ("x2", Fine(line.End.X, line.XAxis)), ("y2", Fine(line.End.Y, line.YAxis))]),
+        _ => null,
+    };
+
+    private static double Fine(double value, AxisBase? axis)
+    {
+        var range = axis?.VisibleRange ?? default;
+        var span = Math.Abs(range.Max - range.Min);
+        if (span <= 0 || !double.IsFinite(span) || !double.IsFinite(value))
+        {
+            return value;
+        }
+
+        var step = Math.Pow(10, Math.Floor(Math.Log10(span)) - 3);
+        return Math.Round(Math.Round(value / step) * step, 12);
+    }
+
+    // An object initializer of the members that are not empty, or nothing.
+    private static string Init(params string[] members)
+    {
+        var used = members.Where(member => member.Length > 0).ToArray();
+        return used.Length == 0 ? string.Empty : " { " + string.Join(", ", used) + " }";
+    }
 
     /// <summary>
     /// Places a new annotation in the part of the chart that shows, off its middle lines, where instruments draw their
@@ -91,6 +140,12 @@ internal static class AnnotationCatalog
                 values.Set("x", X(0.1));
                 values.Set("y", Y(0.85));
                 break;
+            case "line":
+                values.Set("x1", X(0.2));
+                values.Set("y1", Y(0.3));
+                values.Set("x2", X(0.6));
+                values.Set("y2", Y(0.75));
+                break;
         }
     }
 
@@ -107,7 +162,7 @@ internal static class AnnotationCatalog
         return Math.Round(value / step) * step;
     }
 
-    /// <summary>Writes the helper methods the code of band, box and text needs, which set what has no property.</summary>
+    /// <summary>Writes the helper methods the code of band, box, text and line needs, which set what has no property.</summary>
     /// <returns>The methods, indented by four spaces.</returns>
     public static string Helpers() => """
 
@@ -129,6 +184,12 @@ internal static class AnnotationCatalog
                 return text;
             }
 
+            private static LineAnnotation Line(LineAnnotation line, double x1, double y1, double x2, double y2)
+            {
+                line.SetEnds(x1, y1, x2, y2);
+                return line;
+            }
+
             private static T Colored<T>(T annotation, Rgba8 color)
                 where T : Annotation
             {
@@ -142,9 +203,9 @@ internal static class AnnotationCatalog
 
     private static string? Label(SpecValues values) => values.GetText("label", string.Empty) is { Length: > 0 } label ? label : null;
 
-    private static string LabelCode(SpecValues values) => Label(values) is { } label ? $", Label = {CodeText.String(label)}" : string.Empty;
+    private static string LabelCode(SpecValues values) => Label(values) is { } label ? $"Label = {CodeText.String(label)}" : string.Empty;
 
-    private static string ColorCode(SpecValues values) => SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? $", Color = {CodeText.Color(color)}" : string.Empty;
+    private static string ColorCode(SpecValues values) => SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? $"Color = {CodeText.Color(color)}" : string.Empty;
 
     private static Annotation Colored(Annotation annotation, SpecValues values, string standard = "")
     {
@@ -159,10 +220,11 @@ internal static class AnnotationCatalog
     /// <summary>Writes an annotation with its color: the color wraps helpers that cannot take it in an initializer.</summary>
     /// <param name="info">The kind.</param>
     /// <param name="values">Its values.</param>
+    /// <param name="isEditable">Whether the annotation can be edited with the mouse.</param>
     /// <returns>The expression.</returns>
-    public static string Expression(AnnotationInfo info, SpecValues values)
+    public static string Expression(AnnotationInfo info, SpecValues values, bool isEditable)
     {
-        var code = info.Code(values);
+        var code = info.Code(values, isEditable ? "IsEditable = true" : string.Empty);
         var standard = (string)info.Parameters.First(parameter => parameter.Name == "color").Default;
         return info.Id is "band" or "box" or "text" && SpecColor.TryParse(values.GetText("color", standard), out var color)
             ? $"Colored({code}, {CodeText.Color(color)})"

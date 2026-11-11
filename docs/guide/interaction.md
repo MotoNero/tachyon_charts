@@ -18,7 +18,7 @@ Interactions are building blocks:
 | `MeasureCursors` | Alt + drag measures distances |
 | `Keyboard` | Arrows pan, plus and minus zoom, Home shows everything, Ctrl+Z and Ctrl+Y walk through the history |
 | `Legend` | Legend, a click hides a series |
-| `AnnotationEdit` | Move annotations |
+| `AnnotationEdit` | Edit annotations by mouse: move them, drag edges, corners and ends; Ctrl+Z takes a drag back, see [annotations](annotations.md) |
 | `Diagnostics` | F12 shows frame times |
 | `Custom` | Your own `ChartModifier` |
 

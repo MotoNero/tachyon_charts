@@ -98,7 +98,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         }
 
         code.AppendLine(";").AppendLine("    }");
-        if (spec.Annotations.Exists(annotation => annotation.Type is "band" or "box" or "text"))
+        if (spec.Annotations.Exists(annotation => annotation.Type is "band" or "box" or "text" or "line"))
         {
             code.Append(AnnotationCatalog.Helpers());
         }
@@ -795,10 +795,11 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             calls.Add(".Modifiers(m => m" + string.Concat(spec.Modifiers.Select(modifier => _catalog.FindModifier(modifier.Type)!.Code(modifier.Parameters))) + ")");
         }
 
+        var isEditable = spec.Modifiers.Exists(modifier => modifier.Type == "annotationedit");
         foreach (var annotation in spec.Annotations)
         {
             usings.Add("Tachyon.Charts.Core.Annotations");
-            calls.Add($".AddOverlay(c => {AnnotationCatalog.Expression(ChartCatalog.FindAnnotation(annotation.Type)!, annotation.Parameters)})");
+            calls.Add($".AddOverlay(c => {AnnotationCatalog.Expression(ChartCatalog.FindAnnotation(annotation.Type)!, annotation.Parameters, isEditable)})");
         }
 
         foreach (var legend in new[] { spec.Legend, spec.SecondLegend })
@@ -824,7 +825,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             calls.Add($".Group({CodeText.String(group)})");
         }
 
-        if (calls.Any(call => call.Contains("new Rgba8(", StringComparison.Ordinal)) || spec.Annotations.Exists(annotation => annotation.Type is "band" or "box" or "text"))
+        if (calls.Any(call => call.Contains("new Rgba8(", StringComparison.Ordinal)) || spec.Annotations.Exists(annotation => annotation.Type is "band" or "box" or "text" or "line"))
         {
             usings.Add("Tachyon.Charts.Rendering");
         }

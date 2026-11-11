@@ -5,6 +5,7 @@ using Tachyon.Charts.Core.Axes;
 using Tachyon.Charts.Rendering;
 using CoreBox = Tachyon.Charts.Core.Annotations.BoxAnnotation;
 using CoreHorizontal = Tachyon.Charts.Core.Annotations.HorizontalLineAnnotation;
+using CoreLine = Tachyon.Charts.Core.Annotations.LineAnnotation;
 using CoreText = Tachyon.Charts.Core.Annotations.TextAnnotation;
 using CoreVertical = Tachyon.Charts.Core.Annotations.VerticalLineAnnotation;
 
@@ -293,6 +294,73 @@ public sealed class BoxAnnotation : ChartAnnotationElement
 
     private static DependencyProperty Register(string name) => DependencyProperty.Register(
         name, typeof(double), typeof(BoxAnnotation), new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnPositionChanged));
+}
+
+/// <summary>A straight line between two points at any angle; a drag moves it, a drag at an end moves that end.</summary>
+public sealed class LineAnnotation : ChartAnnotationElement
+{
+    /// <summary>Identifies the <see cref="X1"/> property.</summary>
+    public static readonly DependencyProperty X1Property = Register(nameof(X1));
+
+    /// <summary>Identifies the <see cref="Y1"/> property.</summary>
+    public static readonly DependencyProperty Y1Property = Register(nameof(Y1));
+
+    /// <summary>Identifies the <see cref="X2"/> property.</summary>
+    public static readonly DependencyProperty X2Property = Register(nameof(X2));
+
+    /// <summary>Identifies the <see cref="Y2"/> property.</summary>
+    public static readonly DependencyProperty Y2Property = Register(nameof(Y2));
+
+    /// <summary>Gets or sets the X value of the first end.</summary>
+    public double X1
+    {
+        get => (double)GetValue(X1Property);
+        set => SetValue(X1Property, value);
+    }
+
+    /// <summary>Gets or sets the Y value of the first end.</summary>
+    public double Y1
+    {
+        get => (double)GetValue(Y1Property);
+        set => SetValue(Y1Property, value);
+    }
+
+    /// <summary>Gets or sets the X value of the second end.</summary>
+    public double X2
+    {
+        get => (double)GetValue(X2Property);
+        set => SetValue(X2Property, value);
+    }
+
+    /// <summary>Gets or sets the Y value of the second end.</summary>
+    public double Y2
+    {
+        get => (double)GetValue(Y2Property);
+        set => SetValue(Y2Property, value);
+    }
+
+    private protected override Annotation Create(AxisBase x, AxisBase y) => new CoreLine(x, y);
+
+    private protected override double[] ReadState() => [X1, Y1, X2, Y2];
+
+    private protected override void WriteState(double[] state)
+    {
+        SetCurrentValue(X1Property, state[0]);
+        SetCurrentValue(Y1Property, state[1]);
+        SetCurrentValue(X2Property, state[2]);
+        SetCurrentValue(Y2Property, state[3]);
+    }
+
+    private protected override double[] ReadCore(Annotation core)
+    {
+        var line = (CoreLine)core;
+        return [line.Start.X, line.Start.Y, line.End.X, line.End.Y];
+    }
+
+    private protected override void ApplyTo(Annotation core, double[] state) => ((CoreLine)core).SetEnds(state[0], state[1], state[2], state[3]);
+
+    private static DependencyProperty Register(string name) => DependencyProperty.Register(
+        name, typeof(double), typeof(LineAnnotation), new FrameworkPropertyMetadata(0.0, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, OnPositionChanged));
 }
 
 /// <summary>Text at a place.</summary>

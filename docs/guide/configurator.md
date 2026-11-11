@@ -22,7 +22,7 @@ dotnet run --project src/Tachyon.Charts.Configurator.Wpf -c Release -- --type me
 
 - **+ Series** adds a series of the type chosen beside it; the list under *Series* chooses whose settings show. Types that fill a chart on their own, such as instruments, pies, 3D scenes and medical displays, stay alone.
 - **+ Y axis** adds a value axis on the far side; each series picks its axis. Axes can show numbers, logarithms, time or categories, run through the origin, leave ranges out, hide, and stack in panes.
-- **+ Annotation** adds a horizontal or vertical line, a band, a box or text. A new annotation starts where the chart shows, also on instruments in their units (dBm and hertz on a spectrum).
+- **+ Annotation** adds a horizontal or vertical line, a band, a box, text or a free line. A new annotation starts where the chart shows, also on instruments in their units (dBm and hertz on a spectrum). In the preview every annotation moves with the mouse: drag it whole, drag an edge of a band or a box, or an end of a line. The new values go into the fields and the code at once, and Ctrl+Z in the preview takes a drag back. *Edit annotations by mouse* under *Interaction* gives the generated chart the same editing.
 - *Chart* holds title, theme, X axis downwards, legends, the export menu of the generated window and a group for charts that share range and cursor. *Interaction* switches zoom and pan, crosshair, tooltips and the other interactions.
 
 ## Data

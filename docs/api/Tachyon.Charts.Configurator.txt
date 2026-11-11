@@ -122,6 +122,7 @@ sealed class Tachyon.Charts.Configurator.ConfiguratorSession
   .ctor(Tachyon.Charts.Configurator.ChartCatalog catalog)
   .ctor(Tachyon.Charts.Configurator.ChartCatalog catalog, System.Threading.SynchronizationContext updates)
   System.Boolean IsUpdating { get; }
+  System.Boolean KeepsPreview { get; }
   System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Code { get; }
   System.Collections.Generic.IReadOnlyList<System.String> Problems { get; }
   System.Collections.Generic.IReadOnlyList<System.String> Views { get; }

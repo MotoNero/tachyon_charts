@@ -437,7 +437,11 @@ internal sealed class ConfiguratorWindow : Window
 
         try
         {
-            ShowViews();
+            if (!_session.KeepsPreview)
+            {
+                ShowViews();
+            }
+
             _preview.ContextMenu = _session.Spec.ExportMenu ? ExportMenu() : null;
         }
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException)

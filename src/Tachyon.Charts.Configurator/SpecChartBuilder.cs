@@ -1,3 +1,4 @@
+using Tachyon.Charts.Core.Annotations;
 using Tachyon.Charts.Core.Axes;
 using Tachyon.Charts.Core.Fluent;
 using Tachyon.Charts.Core.Input;
@@ -36,7 +37,7 @@ public static class SpecChartBuilder
     /// </summary>
     /// <param name="spec">The description.</param>
     /// <param name="catalog">The types, samples and interactions.</param>
-    /// <returns>The data in the order <see cref="Apply(ChartSpec, ChartCatalog, ChartBuilder, ICollection{IDisposable}?, IReadOnlyList{object?}?)"/> takes them; <see langword="null"/> for live data.</returns>
+    /// <returns>The data in the order <see cref="Apply(ChartSpec, ChartCatalog, ChartBuilder, ICollection{IDisposable}?, IReadOnlyList{object?}?, Action{int, Annotation}?)"/> takes them; <see langword="null"/> for live data.</returns>
     internal static IReadOnlyList<object?> Prepare(ChartSpec spec, ChartCatalog catalog) =>
         [.. Drawn(spec, catalog).Select(series => series.Data.Kind == DataKind.Live ? null : Data(catalog, series, null))];
 
@@ -67,7 +68,11 @@ public static class SpecChartBuilder
     /// <param name="chart">The builder.</param>
     /// <param name="running">Receives what keeps live data coming, or <see langword="null"/>.</param>
     /// <param name="prepared">The data of the series, or <see langword="null"/> to make them now.</param>
-    internal static void Apply(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, ICollection<IDisposable>? running, IReadOnlyList<object?>? prepared)
+    /// <param name="edited">
+    /// For an editor: makes every annotation editable with the mouse and tells, on the thread of the chart, its index
+    /// when a drag ended; <see langword="null"/> to follow the description.
+    /// </param>
+    internal static void Apply(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, ICollection<IDisposable>? running, IReadOnlyList<object?>? prepared, Action<int, Annotation>? edited = null)
     {
         ArgumentNullException.ThrowIfNull(spec);
         ArgumentNullException.ThrowIfNull(catalog);
@@ -145,10 +150,30 @@ public static class SpecChartBuilder
             });
         }
 
-        foreach (var annotation in spec.Annotations)
+        var isEditable = spec.Modifiers.Exists(modifier => modifier.Type == "annotationedit");
+        if (edited is not null && !isEditable && spec.Annotations.Count > 0)
         {
-            var info = ChartCatalog.FindAnnotation(annotation.Type)!;
-            chart.AddOverlay(surface => info.Create(surface, annotation.Parameters));
+            chart.Modifiers(modifiers => modifiers.AnnotationEdit());
+        }
+
+        for (var i = 0; i < spec.Annotations.Count; i++)
+        {
+            var (index, values) = (i, spec.Annotations[i].Parameters);
+            var info = ChartCatalog.FindAnnotation(spec.Annotations[i].Type)!;
+            chart.AddOverlay(surface =>
+            {
+                var overlay = info.Create(surface, values);
+                if (overlay is Annotation annotation && (isEditable || edited is not null))
+                {
+                    annotation.IsEditable = true;
+                    if (edited is not null)
+                    {
+                        annotation.EditFinished += finished => edited(index, finished);
+                    }
+                }
+
+                return overlay;
+            });
         }
 
         foreach (var legend in (ReadOnlySpan<LegendSpec?>)[spec.Legend, spec.SecondLegend])

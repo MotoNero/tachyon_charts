@@ -186,6 +186,16 @@ sealed class Tachyon.Charts.Wpf.KeyboardNavigationModifier : Tachyon.Charts.Wpf.
   System.Collections.Generic.Dictionary<Tachyon.Charts.Core.Input.ChartKeyAction, Tachyon.Charts.Core.Input.KeyBinding> Bindings { get; }
 sealed class Tachyon.Charts.Wpf.LegendModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
   .ctor()
+sealed class Tachyon.Charts.Wpf.LineAnnotation : Tachyon.Charts.Wpf.ChartAnnotationElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Double X1 { get; set; }
+  System.Double X2 { get; set; }
+  System.Double Y1 { get; set; }
+  System.Double Y2 { get; set; }
+  static System.Windows.DependencyProperty X1Property
+  static System.Windows.DependencyProperty X2Property
+  static System.Windows.DependencyProperty Y1Property
+  static System.Windows.DependencyProperty Y2Property
 sealed class Tachyon.Charts.Wpf.LineSeries : Tachyon.Charts.Wpf.ChartSeriesElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
   .ctor()
   System.Boolean IsSpline { get; set; }

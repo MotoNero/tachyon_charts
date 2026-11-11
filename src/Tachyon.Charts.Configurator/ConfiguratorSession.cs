@@ -401,11 +401,60 @@ public sealed class ConfiguratorSession
         }
         else if (_prepared is { } single)
         {
-            SpecChartBuilder.Apply(single.Spec, Catalog, chart, _running, single.Data);
+            SpecChartBuilder.Apply(single.Spec, Catalog, chart, _running, single.Data, Dragged);
         }
         else
         {
-            SpecChartBuilder.Apply(_spec, Catalog, chart, _running);
+            SpecChartBuilder.Apply(_spec, Catalog, chart, _running, null, Dragged);
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the last update only took values from the preview, such as an annotation moved
+    /// with the mouse, so that the preview stays as it is: rebuilt, it would lose what Ctrl+Z takes back.
+    /// </summary>
+    public bool KeepsPreview { get; private set; }
+
+    // A drag in the preview ended, on the thread of the chart: its values go into the fields and the code.
+    private void Dragged(int index, Core.Annotations.Annotation annotation)
+    {
+        if (AnnotationCatalog.Read(annotation) is not { } read)
+        {
+            return;
+        }
+
+        if (_updates is { } updates)
+        {
+            updates.Post(_ => TakeDrag(index, read.Kind, read.Values), null);
+        }
+        else
+        {
+            TakeDrag(index, read.Kind, read.Values);
+        }
+    }
+
+    private void TakeDrag(int index, string kind, (string Name, double Value)[] values)
+    {
+        if (index >= _spec.Annotations.Count || _spec.Annotations[index].Type != kind)
+        {
+            return;
+        }
+
+        var parameters = _spec.Annotations[index].Parameters;
+        var isChanged = false;
+        foreach (var (name, value) in values)
+        {
+            if (parameters.Get(name) is not double old || old != value)
+            {
+                parameters.Set(name, value);
+                isChanged = true;
+            }
+        }
+
+        if (isChanged)
+        {
+            FieldsChanged?.Invoke();
+            Refresh(keepPreview: true);
         }
     }
 
@@ -699,6 +748,9 @@ public sealed class ConfiguratorSession
         FieldsChanged?.Invoke();
     }
 
+    // Whether the preview must be built anew at the next update: anything but a drag in the preview asks for it.
+    private bool _rebuild = true;
+
     // What an update found: the problems, or the code and the data of the preview.
     private sealed record Update(ChartSpec Spec, IReadOnlyList<string> Problems, IReadOnlyDictionary<string, string>? Code, IReadOnlyList<object?>? Data, TimeSpan Elapsed);
 
@@ -760,12 +812,21 @@ public sealed class ConfiguratorSession
             Code = code;
         }
 
-        if (_prepared is { } before && update.Data is { } after)
+        // A drag changed only values the preview already shows: it keeps its data, and with them what was drawn.
+        KeepsPreview = !_rebuild && update.Data is not null && _prepared is not null;
+        if (KeepsPreview)
         {
-            TakeOver(before.Spec, before.Data, update.Spec, after);
+            _prepared = (update.Spec, _prepared!.Value.Data);
         }
+        else
+        {
+            if (_prepared is { } before && update.Data is { } after)
+            {
+                TakeOver(before.Spec, before.Data, update.Spec, after);
+            }
 
-        _prepared = update.Data is { } data ? (update.Spec, data) : null;
+            _prepared = update.Data is { } data ? (update.Spec, data) : null;
+        }
         if (update.Data is not null)
         {
             var linked = Catalog.ViewsOf(update.Spec);
@@ -775,6 +836,10 @@ public sealed class ConfiguratorSession
 
         LastUpdate = update.Elapsed;
         Changed?.Invoke();
+        if (update.Data is not null)
+        {
+            _rebuild = false;
+        }
     }
 
     // What was done in the preview before the change, such as measurements drawn by hand, stays in the new preview.
@@ -792,8 +857,9 @@ public sealed class ConfiguratorSession
     }
 
     // Brings code and preview up to date: at once, or away from the window on a copy of the description.
-    private void Refresh()
+    private void Refresh(bool keepPreview = false)
     {
+        _rebuild |= !keepPreview;
         // The update works on a copy, so that what the preview shows stays apart from what is edited next.
         if (_updates is not { } updates)
         {

@@ -142,7 +142,7 @@ internal sealed class CoreModule : IChartModule
         new("legend", "Legend", [], (m, _) => m.Legend(), _ => ".Legend()"),
         new("diagnostics", "Diagnostics", [], (m, _) => m.Diagnostics(), _ => ".Diagnostics()"),
         new("selection", "Select points", [], (m, _) => m.Selection(), _ => ".Selection()"),
-        new("annotationedit", "Move annotations", [], (m, _) => m.AnnotationEdit(), _ => ".AnnotationEdit()"),
+        new("annotationedit", "Edit annotations by mouse", [], (m, _) => m.AnnotationEdit(), _ => ".AnnotationEdit()"),
     ];
 
     /// <summary>Gets a colormap by name.</summary>
