@@ -20,6 +20,26 @@ public sealed class NumericAxis(string id, AxisPosition position) : AxisBase(id,
     /// </summary>
     public NumericLabelFormat LabelFormat { get; set; } = new();
 
+    /// <summary>
+    /// Writes a value under the cursor: with the unit and SI prefix of <see cref="LabelFormat"/> where it has one, to a
+    /// thousandth of the range that shows; otherwise with six significant digits.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The text.</returns>
+    public override string FormatCursorValue(double value)
+    {
+        var format = LabelFormat;
+        var span = Math.Abs(VisibleRange.Max - VisibleRange.Min);
+        if ((!format.UseSiPrefixes && format.Unit.Length == 0) || !double.IsFinite(value) || !(span > 0) || !double.IsFinite(span))
+        {
+            return base.FormatCursorValue(value);
+        }
+
+        var text = new string[1];
+        format.FormatTicks([value], span / 1000, text);
+        return text[0];
+    }
+
     private BreakScaling? _breaks;
 
     /// <summary>

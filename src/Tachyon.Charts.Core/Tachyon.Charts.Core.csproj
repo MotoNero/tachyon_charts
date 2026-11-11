@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Tachyon.Charts.Core.Tests" />
+    <InternalsVisibleTo Include="Tachyon.Charts.Configurator.Tests" />
     <InternalsVisibleTo Include="Tachyon.Charts.Benchmarks" />
   </ItemGroup>
 

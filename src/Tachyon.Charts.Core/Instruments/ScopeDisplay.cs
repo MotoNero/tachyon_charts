@@ -732,6 +732,27 @@ internal sealed class ScopeSync(ChartSurface chart, ScopeDisplay display) : Char
         {
             axes[i].VisibleRange = display.Channels[i].GetRange();
         }
+
+        // The hidden axes show no scale, but the crosshair reads its values from them: in seconds and volts.
+        WithUnit(chart.HorizontalAxes[0], _seconds);
+        for (var i = 0; i < display.Channels.Count && i < axes.Count; i++)
+        {
+            WithUnit(axes[i], _volts);
+        }
+    }
+
+    private static readonly Axes.NumericLabelFormat _seconds = new() { UseSiPrefixes = true, Unit = "s" };
+    private static readonly Axes.NumericLabelFormat _volts = new() { UseSiPrefixes = true, Unit = "V" };
+
+    /// <summary>Gives a hidden axis the unit of its values, for the crosshair; a shown axis keeps its own format.</summary>
+    /// <param name="axis">The axis.</param>
+    /// <param name="format">The format with the unit.</param>
+    internal static void WithUnit(Axes.AxisBase axis, Axes.NumericLabelFormat format)
+    {
+        if (axis is Axes.NumericAxis { IsHidden: true } numeric && numeric.LabelFormat != format)
+        {
+            numeric.LabelFormat = format;
+        }
     }
 
     private void ApplyPalette()

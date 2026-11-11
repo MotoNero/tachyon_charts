@@ -23,6 +23,7 @@ public sealed class CrosshairOverlay : ChartOverlay
     private AxisBase? _xAxis;
     private HitResult? _snapped;
     private readonly List<(AxisBase Axis, double Value, long Stamp, string Text)> _axisTexts = [];
+    private readonly List<(DipRect Bounds, AxisPosition Side, string Text)> _axisLabels = [];
     private HitResult[] _values = [];
     private string[] _texts = [];
     private string? _header;
@@ -61,6 +62,12 @@ public sealed class CrosshairOverlay : ChartOverlay
 
     /// <summary>Gets the points of the series shown in the box.</summary>
     public IReadOnlyList<HitResult> Values => _values;
+
+    /// <summary>Gets or sets the chart, whose series give the values at stacked axes their colors.</summary>
+    internal ChartSurface? Chart { get; set; }
+
+    /// <summary>Gets where the values at the axes were drawn last.</summary>
+    internal IEnumerable<DipRect> AxisLabels => _axisLabels.Select(label => label.Bounds);
 
     /// <summary>Shows only the vertical line at a value of an axis, for example from another chart.</summary>
     /// <param name="axis">The horizontal axis.</param>
@@ -137,8 +144,16 @@ public sealed class CrosshairOverlay : ChartOverlay
     // The format of a value can follow the zoom and the language.
     private static long Stamp(AxisBase axis) => axis.Version + ChartText.Version;
 
+    /// <summary>
+    /// Draws the value of each axis at the cross. Axes on top of each other, such as the channels of an instrument,
+    /// would put their values on the same spot: a value that another axis on that side already shows is left out, a
+    /// different one moves beside the others, and with several on a side each takes the color of its curve. A hidden
+    /// axis whose curves are all switched off, such as a max hold not shown, has nothing to read and shows nothing.
+    /// </summary>
     private void DrawAxisLabels(OverlayCanvas canvas, Vector2 center)
     {
+        _axisLabels.Clear();
+
         // Index loops: an enumerator of a list interface would allocate every frame.
         var placements = canvas.Layout.Axes;
         for (var p = 0; p < placements.Count; p++)
@@ -150,17 +165,105 @@ public sealed class CrosshairOverlay : ChartOverlay
             var isInside = axis.IsHorizontal
                 ? along >= bounds.X && along <= bounds.Right
                 : along >= bounds.Y && along <= bounds.Bottom;
-            if (!isInside || !canvas.TryGetValue(axis, along, out var value))
+            var curve = CurveOf(axis);
+            if (!isInside || (axis.IsHidden && Chart is not null && curve is null) || !canvas.TryGetValue(axis, along, out var value))
             {
                 continue;
             }
 
             var text = TextOf(axis, value);
+            if (IsShown(axis.Position, text))
+            {
+                continue;
+            }
+
             var width = canvas.MeasureWidth(text, canvas.LabelSize) + 8;
             var height = canvas.GetLineHeight(canvas.LabelSize) + 2;
             var (x, y) = Place(axis, bounds, along, width, height, canvas.GetLineHeight(canvas.LabelSize) + 4);
-            canvas.DrawLabel(text, x, y, canvas.AccentColor, canvas.BackgroundColor);
+            var label = Free(new DipRect(x, y, width, height), axis.IsHorizontal, bounds);
+            _axisLabels.Add((label, axis.Position, text));
+            var color = curve is { } series && SharesSide(placements, placement) ? series.AccentColor : canvas.AccentColor;
+            canvas.DrawLabel(text, label.X, label.Y, color, canvas.BackgroundColor);
         }
+    }
+
+    // The first visible curve on an axis, or none.
+    private ChartSeries? CurveOf(AxisBase axis)
+    {
+        if (Chart is not { } chart)
+        {
+            return null;
+        }
+
+        var series = chart.Series;
+        for (var i = 0; i < series.Count; i++)
+        {
+            if (series[i].IsVisible && (series[i].YAxis == axis || series[i].XAxis == axis))
+            {
+                return series[i];
+            }
+        }
+
+        return null;
+    }
+
+    private static bool SharesSide(IReadOnlyList<AxisPlacement> placements, AxisPlacement placement)
+    {
+        for (var i = 0; i < placements.Count; i++)
+        {
+            if (placements[i].Axis != placement.Axis && placements[i].Axis.Position == placement.Axis.Position)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsShown(AxisPosition side, string text)
+    {
+        for (var i = 0; i < _axisLabels.Count; i++)
+        {
+            if (_axisLabels[i].Side == side && string.Equals(_axisLabels[i].Text, text, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Moves a label off the ones drawn before: a value beside a standing axis goes below the others, or above where
+    // the axis ends; one below a lying axis goes further down.
+    private DipRect Free(DipRect label, bool isHorizontal, DipRect bounds)
+    {
+        var step = label.Height + 2;
+        var direction = 1.0;
+        var start = label;
+        for (var tries = 0; tries < 16 && Overlaps(label); tries++)
+        {
+            label = label with { Y = label.Y + (direction * step) };
+            if (!isHorizontal && direction > 0 && label.Bottom > bounds.Bottom)
+            {
+                (direction, label) = (-1, start);
+            }
+        }
+
+        return label;
+    }
+
+    private bool Overlaps(DipRect label)
+    {
+        for (var i = 0; i < _axisLabels.Count; i++)
+        {
+            var other = _axisLabels[i].Bounds;
+            if (label.X < other.Right && other.X < label.Right && label.Y < other.Bottom && other.Y < label.Bottom)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

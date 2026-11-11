@@ -40,7 +40,11 @@ public sealed class CrosshairModifier : ChartModifier
 
     /// <inheritdoc />
     protected internal override void OnAttached(ChartInteraction interaction) =>
-        interaction.Dispatch(() => interaction.Chart.AddOverlay(_overlay));
+        interaction.Dispatch(() =>
+        {
+            _overlay.Chart = interaction.Chart;
+            interaction.Chart.AddOverlay(_overlay);
+        });
 
     /// <inheritdoc />
     protected internal override void OnDetached(ChartInteraction interaction) =>

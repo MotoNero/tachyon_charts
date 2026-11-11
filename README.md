@@ -321,6 +321,8 @@ dotnet run --project src/Tachyon.Charts.Configurator.Avalonia -c Release
 
 ![The configurator with a band, a box and a free line on a spectrum analyzer, each editable by mouse](docs/images/configurator-annotation-edit.png)
 
+![The crosshair on a four channel oscilloscope: the value of each channel at the left edge in its color, the time below](docs/images/crosshair-instrument.png)
+
 ![The configurator with a 3D surface and the scene settings: camera, cut plane](docs/images/configurator-3d.png)
 
 ## Performance
