@@ -344,6 +344,15 @@ public static class SpecChartBuilder
             {
                 series.Parameters.Set("thickness", 1.0);
             }
+
+            // Labels need room the small chart does not have: the last value at the axis and the values at the points.
+            foreach (var label in (ReadOnlySpan<string>)["lastValue", "values"])
+            {
+                if (series.Parameters.Get(label) is true)
+                {
+                    series.Parameters.Set(label, false);
+                }
+            }
         }
 
         return overview;
