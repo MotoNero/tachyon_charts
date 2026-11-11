@@ -258,14 +258,20 @@ public static class ConfiguratorLink
         }
 
         // In the repository the showroom runs from samples/<app>/bin/<configuration>/<framework>/; the configurator
-        // builds into src/<app>/bin with the same configuration.
+        // builds into src/<app>/bin/<configuration>/<framework>/. Only that build counts, the one of the same
+        // configuration first: published copies below it, such as bin/Release/<framework>/win-x64, may be old.
+        var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Parent?.Name;
         for (var folder = new DirectoryInfo(AppContext.BaseDirectory); folder is not null; folder = folder.Parent)
         {
             var project = Path.Combine(folder.FullName, "src", app, "bin");
             if (Directory.Exists(project))
             {
-                return Directory.EnumerateFiles(project, app + extension, SearchOption.AllDirectories)
-                    .OrderByDescending(File.GetLastWriteTimeUtc)
+                return Directory.EnumerateDirectories(project)
+                    .SelectMany(Directory.EnumerateDirectories)
+                    .Select(build => Path.Combine(build, app + extension))
+                    .Where(File.Exists)
+                    .OrderByDescending(path => string.Equals(new DirectoryInfo(path).Parent?.Parent?.Name, configuration, StringComparison.OrdinalIgnoreCase))
+                    .ThenByDescending(File.GetLastWriteTimeUtc)
                     .FirstOrDefault();
             }
         }
@@ -314,6 +320,40 @@ public static class ConfiguratorLink
         }
 
         using var process = Process.Start(start);
-        return "The configurator opens with " + type + ".";
+
+        // A configurator built before its last change may not know the page yet; "dotnet run" of the showroom does not build it.
+        return IsOlderThanItsSources(program)
+            ? $"The configurator at {program} is older than its sources and may not open the page completely. Build it: dotnet build src/{app} -c Release"
+            : "The configurator opens " + page + ".";
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether a configurator built in the repository is older than its sources, so that it may
+    /// not know the newest pages: one of its sources changed after its libraries were built.
+    /// </summary>
+    /// <param name="program">The program.</param>
+    /// <returns>Whether it is older; a program outside the repository, as in the downloads, never.</returns>
+    public static bool IsOlderThanItsSources(string program)
+    {
+        var folder = Path.GetDirectoryName(Path.GetFullPath(program))!;
+        var src = new DirectoryInfo(folder);
+        while (src is not null && src.Name != "src")
+        {
+            src = src.Parent;
+        }
+
+        if (src is null)
+        {
+            return false;
+        }
+
+        var built = Directory.EnumerateFiles(folder, "Tachyon.Charts.Configurator*.dll").Select(File.GetLastWriteTimeUtc).DefaultIfEmpty(DateTime.MinValue).Max();
+        var changed = Directory.EnumerateDirectories(src.FullName, "Tachyon.Charts.Configurator*")
+            .SelectMany(project => Directory.EnumerateFiles(project, "*.cs", SearchOption.AllDirectories))
+            .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) && !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Select(File.GetLastWriteTimeUtc)
+            .DefaultIfEmpty(DateTime.MinValue)
+            .Max();
+        return changed > built;
     }
 }
