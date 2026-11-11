@@ -47,7 +47,7 @@ Some types fill several charts from one display; a click, a window or a measurem
 - **Medical MPR (linked):** axial, coronal and sagittal planes and the volume in 3D, as 2 × 2, a row or a column, with cine.
 - **Medical analysis:** a plane with a line and a region, the profile along the line and the histogram of the region.
 - **Medical oblique and curved:** a plane, the oblique plane that follows its line, the curved section along its arc, and 3D with the oblique plane in it.
-- **Spectrum with 3D waterfall:** a spectrum analyzer and its waterfall in 3D; reference level, divisions, mask and marker hold for both, and live spectra run into both.
+- **Spectrum with 3D waterfall:** a spectrum analyzer and its waterfall in 3D; reference level, divisions, mask and marker hold for both, and live spectra run into both. *Axes with numbers* labels frequency and level on the spectrum analyzer, alone or linked.
 
 The generated window arranges the charts in the same way, and the view model sets the shared data up once.
 
