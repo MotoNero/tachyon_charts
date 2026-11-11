@@ -326,6 +326,8 @@ The release also brings it unpacked (WPF for Windows, Avalonia for Windows, Linu
 
 ![The live chart of the showroom opened in the configurator: a fixed and a live curve, legend, and the overview below](docs/images/configurator-live-overview.png)
 
+![The color picker of the configurator: palette, sliders for red, green, blue and opacity](docs/images/configurator-color-picker.png)
+
 ![The crosshair on a four channel oscilloscope: the value of each channel at the left edge in its color, the time below](docs/images/crosshair-instrument.png)
 
 ![The configurator with a 3D surface and the scene settings: camera, cut plane](docs/images/configurator-3d.png)

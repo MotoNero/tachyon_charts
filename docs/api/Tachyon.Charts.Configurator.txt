@@ -307,6 +307,8 @@ static class Tachyon.Charts.Configurator.SpecChartBuilder
   static Tachyon.Charts.Core.Themes.Theme Theme(System.String name)
 static class Tachyon.Charts.Configurator.SpecColor
   static System.Boolean TryParse(System.String text, out Tachyon.Charts.Rendering.Rgba8 color)
+  static System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Rendering.Rgba8> Palette { get; }
+  static System.String Format(Tachyon.Charts.Rendering.Rgba8 color)
 sealed class Tachyon.Charts.Configurator.SpecValues
   .ctor()
   System.Boolean GetFlag(System.String name, System.Boolean fallback)

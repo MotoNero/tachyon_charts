@@ -49,6 +49,27 @@ public static class SpecColor
         color = new Rgba8((byte)(rgba >> 24), (byte)(rgba >> 16), (byte)(rgba >> 8), (byte)rgba);
         return true;
     }
+
+    /// <summary>Writes a color as the fields take it: #RRGGBB when opaque, else #RRGGBBAA.</summary>
+    /// <param name="color">The color.</param>
+    /// <returns>The text.</returns>
+    public static string Format(Rgba8 color) =>
+        color.A == 255
+            ? string.Create(CultureInfo.InvariantCulture, $"#{color.R:X2}{color.G:X2}{color.B:X2}")
+            : string.Create(CultureInfo.InvariantCulture, $"#{color.R:X2}{color.G:X2}{color.B:X2}{color.A:X2}");
+
+    /// <summary>
+    /// Gets the colors the color picker offers at a click: the strong colors of the themes and the showroom, then
+    /// grays from white to black.
+    /// </summary>
+    public static IReadOnlyList<Rgba8> Palette { get; } =
+    [
+        new(58, 134, 255, 255), new(80, 170, 240, 255), new(76, 201, 240, 255), new(6, 214, 160, 255),
+        new(124, 252, 154, 255), new(255, 190, 11, 255), new(240, 190, 90, 255), new(240, 130, 90, 255),
+        new(251, 86, 7, 255), new(230, 57, 70, 255), new(255, 0, 110, 255), new(247, 37, 133, 255),
+        new(131, 56, 236, 255), new(114, 9, 183, 255), new(255, 255, 255, 255), new(200, 200, 200, 255),
+        new(150, 160, 175, 255), new(100, 110, 125, 255), new(50, 55, 65, 255), new(0, 0, 0, 255),
+    ];
 }
 
 /// <summary>The generators of the core. Each keeps its formula once and uses it for the data and for the code.</summary>

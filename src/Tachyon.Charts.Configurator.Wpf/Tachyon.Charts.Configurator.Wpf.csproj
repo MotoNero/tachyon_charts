@@ -9,6 +9,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Tachyon.Charts.Wpf.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="../Tachyon.Charts.Configurator/Tachyon.Charts.Configurator.csproj" />
     <ProjectReference Include="../Tachyon.Charts.Configurator.ThreeD/Tachyon.Charts.Configurator.ThreeD.csproj" />
     <ProjectReference Include="../Tachyon.Charts.Configurator.Medical/Tachyon.Charts.Configurator.Medical.csproj" />

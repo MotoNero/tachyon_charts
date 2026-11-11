@@ -356,6 +356,17 @@ internal sealed class ConfiguratorWindow : Window
                 file.Children.Add(path);
                 editor = file;
                 break;
+            case ParameterKind.Color:
+                // The hex field stays for typing; the swatch beside it opens the picker.
+                var hex = new TextBox { Text = field.Text, HorizontalAlignment = HorizontalAlignment.Stretch };
+                hex.TextChanged += (_, _) => Report(field.SetText(hex.Text ?? string.Empty));
+                var picker = new ColorPickerButton(hex);
+                var color = new DockPanel();
+                DockPanel.SetDock(picker, Dock.Left);
+                color.Children.Add(picker);
+                color.Children.Add(hex);
+                editor = color;
+                break;
             default:
                 var box = new TextBox { Text = field.Text, HorizontalAlignment = HorizontalAlignment.Stretch };
                 box.TextChanged += (_, _) => Report(field.SetText(box.Text ?? string.Empty));

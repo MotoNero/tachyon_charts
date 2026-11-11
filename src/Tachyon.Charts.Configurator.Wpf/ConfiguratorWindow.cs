@@ -138,13 +138,56 @@ internal sealed class ConfiguratorWindow : Window
             var bitmap = new RenderTargetBitmap((int)content.ActualWidth, (int)content.ActualHeight, 96, 96, PixelFormats.Pbgra32);
             bitmap.Render(content);
             var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(bitmap));
+            encoder.Frames.Add(BitmapFrame.Create(OpenColorPicker is { } number ? WithColorPicker(content, bitmap, number) : bitmap));
             await using (var file = File.Create(path))
             {
                 encoder.Save(file);
             }
 
             Close();
+        }
+    }
+
+    /// <summary>Gets the number of the color picker the picture shows open, for the pictures of the guide, or <see langword="null"/>.</summary>
+    public int? OpenColorPicker { get; init; }
+
+    // The picture with a color picker open: a popup is a window of its own, so it is drawn into the picture at its place.
+    private BitmapSource WithColorPicker(FrameworkElement content, BitmapSource window, int number)
+    {
+        var picker = Descendants(_fields).OfType<ColorPickerButton>().ElementAtOrDefault(number);
+        if (picker?.Popup.Child is not FrameworkElement child)
+        {
+            return window;
+        }
+
+        picker.BringIntoView();
+        picker.Popup.IsOpen = true;
+        child.UpdateLayout();
+        var popup = new RenderTargetBitmap((int)child.ActualWidth, (int)child.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+        popup.Render(child);
+        var at = picker.TranslatePoint(new Point(0, picker.ActualHeight + 2), content);
+        var visual = new DrawingVisual();
+        using (var drawing = visual.RenderOpen())
+        {
+            drawing.DrawImage(window, new Rect(0, 0, window.PixelWidth, window.PixelHeight));
+            drawing.DrawImage(popup, new Rect(at.X, at.Y, popup.PixelWidth, popup.PixelHeight));
+        }
+
+        var picture = new RenderTargetBitmap(window.PixelWidth, window.PixelHeight, 96, 96, PixelFormats.Pbgra32);
+        picture.Render(visual);
+        return picture;
+    }
+
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject parent)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            yield return child;
+            foreach (var below in Descendants(child))
+            {
+                yield return below;
+            }
         }
     }
 
@@ -364,6 +407,17 @@ internal sealed class ConfiguratorWindow : Window
                 file.Children.Add(path);
                 editor = file;
                 break;
+            case ParameterKind.Color:
+                // The hex field stays for typing; the swatch beside it opens the picker.
+                var hex = new TextBox { Text = field.Text, Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2) };
+                hex.TextChanged += (_, _) => Report(field.SetText(hex.Text));
+                var picker = new ColorPickerButton(hex);
+                var color = new DockPanel();
+                DockPanel.SetDock(picker, Dock.Left);
+                color.Children.Add(picker);
+                color.Children.Add(hex);
+                editor = color;
+                break;
             default:
                 var box = new TextBox { Text = field.Text, Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2) };
                 box.TextChanged += (_, _) => Report(field.SetText(box.Text));
@@ -530,6 +584,7 @@ internal static class Program
         var spec = Array.IndexOf(args, "--spec");
         var modifier = Array.IndexOf(args, "--modifier");
         var page = Array.IndexOf(args, "--page");
+        var color = Array.IndexOf(args, "--open-color");
         if (path is not null)
         {
             // Pictures draw on the CPU, so that the chart is part of the picture of the window.
@@ -538,6 +593,6 @@ internal static class Program
 
         var application = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
         SampleStyle.Apply(application);
-        application.Run(new ConfiguratorWindow { ScreenshotPath = path, StartType = type >= 0 && type + 1 < args.Length ? args[type + 1] : null, StartSpec = spec >= 0 && spec + 1 < args.Length ? args[spec + 1] : null, StartModifier = modifier >= 0 && modifier + 1 < args.Length ? args[modifier + 1] : null, StartPage = page >= 0 && page + 1 < args.Length ? args[page + 1] : null });
+        application.Run(new ConfiguratorWindow { ScreenshotPath = path, StartType = type >= 0 && type + 1 < args.Length ? args[type + 1] : null, StartSpec = spec >= 0 && spec + 1 < args.Length ? args[spec + 1] : null, StartModifier = modifier >= 0 && modifier + 1 < args.Length ? args[modifier + 1] : null, StartPage = page >= 0 && page + 1 < args.Length ? args[page + 1] : null, OpenColorPicker = color >= 0 && color + 1 < args.Length && int.TryParse(args[color + 1], out var number) ? number : null });
     }
 }
