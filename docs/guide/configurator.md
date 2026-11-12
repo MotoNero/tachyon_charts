@@ -55,6 +55,10 @@ Every color field has a swatch beside its hex value. A click opens the color pic
 
 Changes are worked on away from the window: the settings stay responsive while large data load, and the status line says how long data, code and preview took.
 
+## 3D scenes
+
+The scene of a 3D chart has the camera, a cut plane and the **range and title of each axis** of the box (`-25..25`); a range wins over the one the data set, and without a title of its own the axis keeps the title of the data. The types bring further options: the **extent** of surfaces and columns, **height lines on the walls**, the **gloss** of columns, the **piece pulled out** of a pie, and bubbles sized in the units of the axes or in **screen points**. Sample data such as three clouds colored by height, the path of a particle, wells of three fields or a spiral of a million bubbles carry a color per point; the code takes them as they are.
+
 ## Several charts
 
 A description can hold several charts. **+ Chart** adds one with the type chosen beside it, **− Chart** removes the chosen one, and the list under **Charts** picks the chart whose fields show. Each chart has its own series, axes, annotations, legend and interactions; charts with the same **Group** share range and cursor. **Columns** arranges them: the charts fill the rows from left to right.

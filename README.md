@@ -328,7 +328,7 @@ The release also brings it unpacked (WPF for Windows, Avalonia for Windows, Linu
 
 ![The color picker of the configurator: palette, sliders for red, green, blue and opacity](docs/images/configurator-color-picker.png)
 
-A description can hold several charts, each with its own series, axes and interactions, arranged in columns and linked by a group where they share range and cursor. The generated code gets one setup and one view model per chart and a window with all of them.
+3D scenes take the range and title of each axis, and 3D types options such as the extent of surfaces, height lines on the walls or bubbles sized in screen points, so that the 3D examples of the showroom open in the configurator as they are. A description can hold several charts, each with its own series, axes and interactions, arranged in columns and linked by a group where they share range and cursor. The generated code gets one setup and one view model per chart and a window with all of them.
 
 ![Four charts in one description: heatmap, live spectrogram, filled contour and five million points as a density](docs/images/configurator-several-charts.png)
 
