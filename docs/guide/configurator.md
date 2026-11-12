@@ -55,6 +55,19 @@ Every color field has a swatch beside its hex value. A click opens the color pic
 
 Changes are worked on away from the window: the settings stay responsive while large data load, and the status line says how long data, code and preview took.
 
+## Several charts
+
+A description can hold several charts. **+ Chart** adds one with the type chosen beside it, **− Chart** removes the chosen one, and the list under **Charts** picks the chart whose fields show. Each chart has its own series, axes, annotations, legend and interactions; charts with the same **Group** share range and cursor. **Columns** arranges them: the charts fill the rows from left to right.
+
+The code gets one pair of files per chart, `ChartSetup.cs` and `ChartViewModel.cs` for the first, `Chart2Setup.cs` and `Chart2ViewModel.cs` for the second and so on, and a window with the charts in a grid:
+
+```csharp
+Chart.Configure(model.Configure);
+Chart2.Configure(new Chart2ViewModel().Configure);
+```
+
+Linked views (medical planes, a waterfall beside its spectrum) and the overview below a chart belong to a single chart and stay without further charts.
+
 ## Instruments
 
 The instrument types reproduce what the instrument pages of the showroom show:

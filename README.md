@@ -328,6 +328,10 @@ The release also brings it unpacked (WPF for Windows, Avalonia for Windows, Linu
 
 ![The color picker of the configurator: palette, sliders for red, green, blue and opacity](docs/images/configurator-color-picker.png)
 
+A description can hold several charts, each with its own series, axes and interactions, arranged in columns and linked by a group where they share range and cursor. The generated code gets one setup and one view model per chart and a window with all of them.
+
+![Four charts in one description: heatmap, live spectrogram, filled contour and five million points as a density](docs/images/configurator-several-charts.png)
+
 ![The crosshair on a four channel oscilloscope: the value of each channel at the left edge in its color, the time below](docs/images/crosshair-instrument.png)
 
 ![The configurator with a 3D surface and the scene settings: camera, cut plane](docs/images/configurator-3d.png)

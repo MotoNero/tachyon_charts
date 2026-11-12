@@ -17,7 +17,29 @@ public static class ChartSpecJson
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
+        TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver { Modifiers = { LeaveOutSingleChart } },
     };
+
+    // A description of one chart is written as before: without further charts and their columns.
+    private static void LeaveOutSingleChart(System.Text.Json.Serialization.Metadata.JsonTypeInfo info)
+    {
+        if (info.Type != typeof(ChartSpec))
+        {
+            return;
+        }
+
+        foreach (var property in info.Properties)
+        {
+            if (property.Name == "charts")
+            {
+                property.ShouldSerialize = (_, value) => value is List<ChartSpec> { Count: > 0 };
+            }
+            else if (property.Name == "columns")
+            {
+                property.ShouldSerialize = (_, value) => value is int and not 0;
+            }
+        }
+    }
 
     /// <summary>
     /// Gets the steps from one version to the next: the step at index n turns a file of version n + 1 into one of
@@ -44,12 +66,21 @@ public static class ChartSpecJson
     internal static ChartSpec Copy(ChartSpec spec)
     {
         var copy = JsonSerializer.Deserialize<ChartSpec>(JsonSerializer.Serialize(spec, _options), _options)!;
+        KeepFiles(spec, copy);
+        return copy;
+    }
+
+    private static void KeepFiles(ChartSpec spec, ChartSpec copy)
+    {
         for (var i = 0; i < spec.Series.Count; i++)
         {
             (copy.Series[i].Data.Path, copy.Series[i].Data.Segmentation) = (spec.Series[i].Data.Path, spec.Series[i].Data.Segmentation);
         }
 
-        return copy;
+        for (var i = 0; i < spec.Charts.Count; i++)
+        {
+            KeepFiles(spec.Charts[i], copy.Charts[i]);
+        }
     }
 
     /// <summary>Reads a description, bringing an older version up to date.</summary>

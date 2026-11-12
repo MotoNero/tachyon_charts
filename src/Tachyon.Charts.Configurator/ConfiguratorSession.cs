@@ -83,8 +83,15 @@ public sealed class ConfiguratorSession
     private (ChartSpec Spec, IReadOnlyList<object?> Data)? _prepared;
 
     private readonly CodeGenerator _generator;
+
+    // The whole description, and the chart of it being edited: the first chart or one of its further charts.
+    private ChartSpec _root;
     private ChartSpec _spec;
+    private int _chart;
     private int _selected;
+
+    // The data of the further charts the last update made, in their order.
+    private IReadOnlyList<IReadOnlyList<object?>> _more = [];
 
     /// <summary>Initializes a session with a line chart that updates code and preview at once, on the thread of the change.</summary>
     /// <param name="catalog">The types, samples and interactions.</param>
@@ -104,9 +111,9 @@ public sealed class ConfiguratorSession
     {
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _generator = new CodeGenerator(catalog);
-        _spec = catalog.CreateSpec(catalog.Types[0].Id);
+        _root = _spec = catalog.CreateSpec(catalog.Types[0].Id);
         _updates = updates;
-        Take(Compute(ChartSpecJson.Copy(_spec), Options));
+        Take(Compute(ChartSpecJson.Copy(_root), Options));
     }
 
     /// <summary>Occurs when a change starts to be worked on away from the window; <see cref="Changed"/> follows when it is done.</summary>
@@ -127,6 +134,16 @@ public sealed class ConfiguratorSession
     public void Apply(int view, ChartBuilder chart)
     {
         ArgumentNullException.ThrowIfNull(chart);
+
+        // A further chart of the description, after the first one, which stopped the live data before.
+        if (view > 0 && _prepared is { } several && several.Spec.Charts.Count >= view && _more.Count >= view)
+        {
+            var further = several.Spec.Charts[view - 1];
+            var data = SpecChartBuilder.Complete(further, Catalog, _more[view - 1], _running);
+            SpecChartBuilder.Apply(further, Catalog, chart, _running, data, _chart == view ? Dragged : null);
+            return;
+        }
+
         if (view == 0 || _prepared is not { } prepared || Catalog.ViewsOf(prepared.Spec) is null)
         {
             Apply(chart);
@@ -145,8 +162,64 @@ public sealed class ConfiguratorSession
     /// <summary>Gets the types, samples and interactions.</summary>
     public ChartCatalog Catalog { get; }
 
-    /// <summary>Gets the description being edited.</summary>
-    public ChartSpec Spec => _spec;
+    /// <summary>Gets the description being edited, with all its charts; the one whose fields show is <see cref="EditedChart"/>.</summary>
+    public ChartSpec Spec => _root;
+
+    /// <summary>Gets the chart whose fields show: the first chart of the description or one of its further charts.</summary>
+    public ChartSpec EditedChart => _spec;
+
+    /// <summary>Gets the number of charts of the description.</summary>
+    public int ChartCount => _root.Charts.Count + 1;
+
+    /// <summary>Gets or sets the index of the chart whose fields show, 0 for the first.</summary>
+    public int SelectedChart
+    {
+        get => _chart;
+        set
+        {
+            _chart = Math.Clamp(value, 0, _root.Charts.Count);
+            _spec = _chart == 0 ? _root : _root.Charts[_chart - 1];
+            _selected = 0;
+            FieldsChanged?.Invoke();
+        }
+    }
+
+    /// <summary>Adds a chart with one series of a type after the others and selects it; it takes the theme of the first chart.</summary>
+    /// <param name="typeId">The type.</param>
+    public void AddChart(string typeId)
+    {
+        var added = Catalog.CreateSpec(typeId);
+        added.Theme = _root.Theme;
+        _root.Charts.Add(added);
+        (_chart, _spec, _selected) = (_root.Charts.Count, added, 0);
+        Structure();
+    }
+
+    /// <summary>Removes the selected chart; the last one stays. Without the first chart the next one becomes the first.</summary>
+    public void RemoveChart()
+    {
+        if (_root.Charts.Count == 0)
+        {
+            return;
+        }
+
+        if (_chart == 0)
+        {
+            var next = _root.Charts[0];
+            next.Charts.AddRange(_root.Charts.Skip(1));
+            next.Columns = _root.Columns;
+            _root = next;
+        }
+        else
+        {
+            _root.Charts.RemoveAt(_chart - 1);
+        }
+
+        _chart = Math.Min(_chart, _root.Charts.Count);
+        _spec = _chart == 0 ? _root : _root.Charts[_chart - 1];
+        _selected = 0;
+        Structure();
+    }
 
     /// <summary>Gets or sets the options of the code.</summary>
     public CodeOptions Options
@@ -190,6 +263,9 @@ public sealed class ConfiguratorSession
 
     private IReadOnlyList<FieldModel> ChartOptionFields =>
     [
+        .. _root.Charts.Count > 0
+            ? [Field("Charts", new("columns", "Columns", ParameterKind.Integer, 1.0) { Minimum = 1, Maximum = 6, Description = "The charts of the description fill the rows from left to right." }, () => (double)Math.Max(1, _root.Columns), value => _root.Columns = (int)(double)value, structural: true)]
+            : Array.Empty<FieldModel>(),
         Field("Chart", new("title", "Title", ParameterKind.Text, string.Empty), () => _spec.Title, value => _spec.Title = (string)value),
         Field("Chart", new("theme", "Theme", ParameterKind.Choice, "Application") { Choices = ["Application", .. ChartCatalog.Themes] }, () => _spec.Theme ?? "Application", value => _spec.Theme = (string)value == "Application" ? null : (string)value),
         Field("Chart", new("xDown", "X axis downwards", ParameterKind.Flag, false), () => _spec.XDown, value => _spec.XDown = (bool)value),
@@ -330,7 +406,21 @@ public sealed class ConfiguratorSession
     /// <param name="typeId">The type.</param>
     public void NewChart(string typeId)
     {
-        _spec = Catalog.CreateSpec(typeId);
+        // With several charts only the edited one starts anew; the others stay.
+        var created = Catalog.CreateSpec(typeId);
+        if (_chart == 0)
+        {
+            created.Charts.AddRange(_root.Charts);
+            created.Columns = _root.Columns;
+            _root = created;
+        }
+        else
+        {
+            created.Theme = _root.Theme;
+            _root.Charts[_chart - 1] = created;
+        }
+
+        _spec = created;
         _selected = 0;
         Structure();
     }
@@ -348,8 +438,8 @@ public sealed class ConfiguratorSession
     /// <param name="spec">The description.</param>
     public void Load(ChartSpec spec)
     {
-        _spec = spec ?? throw new ArgumentNullException(nameof(spec));
-        _selected = 0;
+        _root = _spec = spec ?? throw new ArgumentNullException(nameof(spec));
+        (_chart, _selected) = (0, 0);
         Structure();
     }
 
@@ -415,16 +505,16 @@ public sealed class ConfiguratorSession
         {
             // Data made only when shown, such as live data, are made here, so that the overview shows the same.
             _shown = SpecChartBuilder.Complete(single.Spec, Catalog, single.Data, _running);
-            SpecChartBuilder.Apply(single.Spec.Overview && single.Spec.Group is null ? WithGroup(single.Spec, _overviewGroup) : single.Spec, Catalog, chart, _running, _shown, Dragged);
+            SpecChartBuilder.Apply(single.Spec.Overview && single.Spec.Group is null ? WithGroup(single.Spec, _overviewGroup) : single.Spec, Catalog, chart, _running, _shown, _chart == 0 ? Dragged : null);
         }
         else
         {
-            SpecChartBuilder.Apply(_spec, Catalog, chart, _running, null, Dragged);
+            SpecChartBuilder.Apply(_root, Catalog, chart, _running, null, _chart == 0 ? Dragged : null);
         }
     }
 
     /// <summary>Gets a value indicating whether the preview has an overview below the chart; see <see cref="ApplyOverview"/>.</summary>
-    public bool HasOverview => _prepared is { } prepared && prepared.Spec.Overview && Catalog.ViewsOf(prepared.Spec) is null;
+    public bool HasOverview => _prepared is { } prepared && prepared.Spec.Overview && prepared.Spec.Charts.Count == 0 && Catalog.ViewsOf(prepared.Spec) is null;
 
     /// <summary>Describes the overview below the chart of the preview, after the chart itself.</summary>
     /// <param name="chart">The chart description.</param>
@@ -568,7 +658,7 @@ public sealed class ConfiguratorSession
 
     // The part of the chart that shows, for types that tell it, so that a new annotation starts in sight.
     private (Core.Numerics.DoubleRange X, Core.Numerics.DoubleRange Y)? Region() =>
-        _spec.Series.Count > 0 && _prepared is { } prepared && prepared.Data.Count > 0 && prepared.Data[0] is { } data
+        _chart == 0 && _spec.Series.Count > 0 && _prepared is { } prepared && prepared.Data.Count > 0 && prepared.Data[0] is { } data
         && prepared.Spec.Series.Count > 0 && prepared.Spec.Series[0].Type == _spec.Series[0].Type
         && Catalog.FindType(_spec.Series[0].Type)?.Region is { } region
             ? region(prepared.Spec.Series[0], data)
@@ -806,7 +896,11 @@ public sealed class ConfiguratorSession
     private bool _rebuild = true;
 
     // What an update found: the problems, or the code and the data of the preview.
-    private sealed record Update(ChartSpec Spec, IReadOnlyList<string> Problems, IReadOnlyDictionary<string, string>? Code, IReadOnlyList<object?>? Data, TimeSpan Elapsed);
+    private sealed record Update(ChartSpec Spec, IReadOnlyList<string> Problems, IReadOnlyDictionary<string, string>? Code, IReadOnlyList<object?>? Data, TimeSpan Elapsed)
+    {
+        // The data of the further charts.
+        public IReadOnlyList<IReadOnlyList<object?>> More { get; init; } = [];
+    }
 
     // Checks the description, makes its data and describes the chart once without drawing it, so that what only the
     // description finds, such as an axis name that occurs twice, shows as a problem instead of failing in the preview;
@@ -821,6 +915,7 @@ public sealed class ConfiguratorSession
         }
 
         IReadOnlyList<object?> data;
+        IReadOnlyList<IReadOnlyList<object?>> more;
         try
         {
             data = SpecChartBuilder.Prepare(spec, Catalog);
@@ -839,6 +934,18 @@ public sealed class ConfiguratorSession
                 SpecChartBuilder.Apply(spec, Catalog, builder, null, data);
                 builder.ToDefinition();
             }
+
+            var further = new List<IReadOnlyList<object?>>();
+            foreach (var chart in spec.Charts)
+            {
+                var made = SpecChartBuilder.Prepare(chart, Catalog);
+                var builder = new ChartBuilder();
+                SpecChartBuilder.Apply(chart, Catalog, builder, null, made);
+                builder.ToDefinition();
+                further.Add(made);
+            }
+
+            more = further;
         }
         catch (Exception exception) when (exception is InvalidOperationException or ArgumentException or KeyNotFoundException or InvalidCastException or IOException or FormatException or NotSupportedException or UnauthorizedAccessException)
         {
@@ -854,7 +961,7 @@ public sealed class ConfiguratorSession
             ["Code behind"] = CodeGenerator.WindowCode(spec, options, _generator.ViewNames(spec)),
             ["Project"] = _generator.Project(spec, options)[options.ProjectName + ".csproj"],
         };
-        return new Update(spec, [], code, data, clock.Elapsed);
+        return new Update(spec, [], code, data, clock.Elapsed) { More = more };
     }
 
     // Takes an update; problems keep the last good code. The preview follows in the apps through Changed.
@@ -883,9 +990,15 @@ public sealed class ConfiguratorSession
         }
         if (update.Data is not null)
         {
+            if (!KeepsPreview)
+            {
+                _more = update.More;
+            }
+
             var linked = Catalog.ViewsOf(update.Spec);
-            Views = linked is { } views ? [.. views.Views.Select(view => view.Name)] : [string.Empty];
-            ViewColumns = linked?.Columns ?? 1;
+            Views = update.Spec.Charts.Count > 0 ? [.. Enumerable.Range(1, update.Spec.Charts.Count + 1).Select(number => number.ToString(CultureInfo.InvariantCulture))]
+                : linked is { } views ? [.. views.Views.Select(view => view.Name)] : [string.Empty];
+            ViewColumns = update.Spec.Charts.Count > 0 ? Math.Max(1, update.Spec.Columns) : linked?.Columns ?? 1;
         }
 
         LastUpdate = update.Elapsed;
@@ -917,12 +1030,12 @@ public sealed class ConfiguratorSession
         // The update works on a copy, so that what the preview shows stays apart from what is edited next.
         if (_updates is not { } updates)
         {
-            Take(Compute(ChartSpecJson.Copy(_spec), Options));
+            Take(Compute(ChartSpecJson.Copy(_root), Options));
             return;
         }
 
         var version = ++_version;
-        var (spec, options) = (ChartSpecJson.Copy(_spec), Options);
+        var (spec, options) = (ChartSpecJson.Copy(_root), Options);
         IsUpdating = true;
         UpdateStarted?.Invoke();
         _ = Task.Run(() =>

@@ -12,6 +12,13 @@ internal static class ShowroomSamples
     public static IReadOnlyList<SampleInfo> Create() =>
     [
         Curve("pureSine", "Sine", 300, 10, Math.Sin, "Math.Sin(x)"),
+        // The charts of a group: one curve at three very different heights, and three curves stacked.
+        Curve("groupSmall", "Sine of 2x, height 1", 2000, 19.99, x => Math.Sin(x * 2), "Math.Sin(x * 2)"),
+        Curve("groupMedium", "Sine of 2x, height 25", 2000, 19.99, x => 25 * Math.Sin(x * 2), "25 * Math.Sin(x * 2)"),
+        Curve("groupLarge", "Sine of 2x, height 100 000", 2000, 19.99, x => 100_000 * Math.Sin(x * 2), "100_000 * Math.Sin(x * 2)"),
+        Curve("stackedFirst", "Sine, height 1", 400, 9.975, Math.Sin, "Math.Sin(x)"),
+        Curve("stackedSecond", "Sine of 2x + 1, height 100 000", 400, 9.975, x => 100_000 * Math.Sin((x * 2) + 1), "100_000 * Math.Sin((x * 2) + 1)"),
+        Curve("stackedThird", "Sine of 3x + 2, height 25", 400, 9.975, x => 25 * Math.Sin((x * 3) + 2), "25 * Math.Sin((x * 3) + 2)"),
         Curve("steps", "Sine in steps", 60, 10, x => Math.Round(Math.Sin(x) * 3) / 3, "Math.Round(Math.Sin(x) * 3) / 3"),
         Curve("raisedSine", "Raised sine", 300, 10, x => 1.2 + Math.Sin(x), "1.2 + Math.Sin(x)"),
         Curve("fallingPower", "Falling over decades", 300, 10, x => 5000 * Math.Exp(-x * 1.2), "5000 * Math.Exp(-x * 1.2)"),

@@ -599,6 +599,27 @@ public sealed class ChartCatalog
             problems.Add($"The theme {theme} is unknown.");
         }
 
+        // Further charts: each is checked on its own; linked views and the overview belong to a single chart.
+        for (var i = 0; i < spec.Charts.Count; i++)
+        {
+            var further = spec.Charts[i];
+            problems.AddRange(Check(further).Select(problem => $"Chart {i + 2}: {problem}"));
+            if (further.Charts.Count > 0)
+            {
+                problems.Add($"Chart {i + 2}: only the first chart of a description has further charts.");
+            }
+        }
+
+        if (spec.Charts.Count > 0 && (ViewsOf(spec) is not null || spec.Charts.Exists(further => ViewsOf(further) is not null)))
+        {
+            problems.Add("Linked views fill a description alone; remove the further charts.");
+        }
+
+        if (spec.Charts.Count > 0 && (spec.Overview || spec.Charts.Exists(further => further.Overview)))
+        {
+            problems.Add("The overview goes with a single chart; remove the further charts or the overview.");
+        }
+
         if (spec.ExportMenu && spec.Series.Exists(HasViews))
         {
             problems.Add("The export menu saves one chart; linked views leave it out.");

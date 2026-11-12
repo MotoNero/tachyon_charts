@@ -28,6 +28,8 @@ internal sealed class ConfiguratorWindow : Window
     // The charts of the preview: one, or one per linked view.
     private readonly System.Windows.Controls.Primitives.UniformGrid _previews = new() { Columns = 1 };
     private readonly StackPanel _fields = new() { Margin = new Thickness(0, 0, 8, 0) };
+    // The charts of the description; the fields edit the one chosen here.
+    private readonly ComboBox _chartChoice = new() { MinWidth = 170, Margin = new Thickness(0, 0, 6, 6) };
     private readonly ComboBox _series = new() { Margin = new Thickness(0, 0, 0, 8) };
     private readonly TabControl _code = new();
     private readonly TextBlock _status = new() { Margin = new Thickness(12, 6, 12, 8), TextWrapping = TextWrapping.Wrap };
@@ -244,6 +246,17 @@ internal sealed class ConfiguratorWindow : Window
         notes.Children.Add(kinds);
         notes.Children.Add(Action("+ Annotation", () => _session.AddAnnotation(ConfiguratorSession.AnnotationKinds[kinds.SelectedIndex].Id)));
         notes.Children.Add(Action("− Annotation", _session.RemoveAnnotation));
+        var charts = new WrapPanel { Margin = new Thickness(0, 0, 0, 8) };
+        charts.Children.Add(_chartChoice);
+        charts.Children.Add(Action("+ Chart", () => _session.AddChart(_session.Catalog.Types[add.SelectedIndex].Id)));
+        charts.Children.Add(Action("− Chart", _session.RemoveChart));
+        _chartChoice.SelectionChanged += (_, _) =>
+        {
+            if (!_isFilling && _chartChoice.SelectedIndex >= 0)
+            {
+                _session.SelectedChart = _chartChoice.SelectedIndex;
+            }
+        };
         _series.SelectionChanged += (_, _) =>
         {
             if (!_isFilling && _series.SelectedIndex >= 0)
@@ -254,6 +267,8 @@ internal sealed class ConfiguratorWindow : Window
         var top = new StackPanel { Margin = new Thickness(16, 16, 8, 0) };
         top.Children.Add(new TextBlock { Text = "Configurator", FontSize = 20, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 12) });
         top.Children.Add(file);
+        top.Children.Add(Heading("Charts"));
+        top.Children.Add(charts);
         top.Children.Add(Heading("Chart type"));
         top.Children.Add(types);
         top.Children.Add(buttons);
@@ -333,12 +348,15 @@ internal sealed class ConfiguratorWindow : Window
     private void Fill()
     {
         _isFilling = true;
-        _series.ItemsSource = _session.Spec.Series.Select((series, index) => $"{index + 1}. {series.Name}").ToList();
+        _chartChoice.ItemsSource = Enumerable.Range(0, _session.ChartCount).Select(index => index == 0 ? _session.Spec : _session.Spec.Charts[index - 1])
+            .Select((chart, index) => $"{index + 1}. {(chart.Title.Length > 0 ? chart.Title : _session.Catalog.FindType(chart.Series.FirstOrDefault()?.Type ?? string.Empty)?.Name ?? "Chart")}").ToList();
+        _chartChoice.SelectedIndex = _session.SelectedChart;
+        _series.ItemsSource = _session.EditedChart.Series.Select((series, index) => $"{index + 1}. {series.Name}").ToList();
         _series.SelectedIndex = _session.SelectedSeries;
         if (_types is not null)
         {
             // A loaded description or a template shows its type without starting a new chart.
-            _types.SelectedIndex = _session.Catalog.Types.ToList().FindIndex(type => type.Id == _session.Spec.Series[0].Type);
+            _types.SelectedIndex = _session.Catalog.Types.ToList().FindIndex(type => type.Id == _session.EditedChart.Series[0].Type);
         }
 
         _isFilling = false;

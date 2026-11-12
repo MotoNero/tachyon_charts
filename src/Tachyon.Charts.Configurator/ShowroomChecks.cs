@@ -32,6 +32,8 @@ internal static class ShowroomChecks
         FineField(),
         Decades(),
         Tone(),
+        SteadyTone(),
+        FineField(withHole: false),
     ];
 
     private static string Invariant(FormattableString text) => text.ToString(CultureInfo.InvariantCulture);
@@ -209,9 +211,12 @@ internal static class ShowroomChecks
         new((byte)MathF.Round(50 + (205 * x)), (byte)MathF.Round(210 - (130 * MathF.Abs((2 * x) - 1))), (byte)MathF.Round(235 - (180 * x)), (byte)MathF.Round(150 + (105 * y)));
 
     // A fine field over 0 to 8 with a hole, 4096 cells per side by default.
-    private static SampleInfo FineField() => new(
-        "fineFieldWithHole",
-        "A fine field with a hole",
+    // The part of the formula of the fine field that leaves the hole.
+    private const string Hole = "x is > 5 and < 6.5 && y is > 1 and < 2.5 ? float.NaN : ";
+
+    private static SampleInfo FineField(bool withHole = true) => new(
+        withHole ? "fineFieldWithHole" : "fineField",
+        withHole ? "A fine field with a hole" : "A fine field without a hole",
         DataShape.Grid,
         4096,
         n =>
@@ -223,7 +228,7 @@ internal static class ShowroomChecks
                 for (var column = 0; column < n; column++)
                 {
                     var x = column * 8.0 / n;
-                    values[(row * n) + column] = x is > 5 and < 6.5 && y is > 1 and < 2.5 ? float.NaN : (float)((Math.Sin(x * x * 0.6) * Math.Cos(y * 2.1)) + Math.Exp(-(((x - 3) * (x - 3)) + ((y - 5) * (y - 5)))));
+                    values[(row * n) + column] = withHole && x is > 5 and < 6.5 && y is > 1 and < 2.5 ? float.NaN : (float)((Math.Sin(x * x * 0.6) * Math.Cos(y * 2.1)) + Math.Exp(-(((x - 3) * (x - 3)) + ((y - 5) * (y - 5)))));
                 }
             });
             var data = new HeatmapData(n, n);
@@ -231,7 +236,7 @@ internal static class ShowroomChecks
             return data;
         },
         "HeatmapData",
-        method => SampleCatalog.Header("a fine field with a hole", method, "HeatmapData", "The number of cells per side.") + """
+        method => (SampleCatalog.Header(withHole ? "a fine field with a hole" : "a fine field without a hole", method, "HeatmapData", "The number of cells per side.") + """
                 {
                     var values = new float[count * count];
                     Parallel.For(0, count, row =>
@@ -248,7 +253,7 @@ internal static class ShowroomChecks
                     return data;
                 }
 
-            """)
+            """).Replace(Hole, withHole ? Hole : string.Empty, StringComparison.Ordinal))
     { MinimumCount = 2 };
 
     // Six by four cells of their own widths, the values over four decades, one missing.
@@ -273,6 +278,44 @@ internal static class ShowroomChecks
 
             """)
     { HasCount = false };
+
+    // The tone without pauses over 512 rows, as a spectrogram that keeps running shows it.
+    private static SampleInfo SteadyTone() => new(
+        "steadyTone",
+        "A wandering tone over 512 rows",
+        DataShape.Spectrogram,
+        1024,
+        n =>
+        {
+            var (data, row) = (new SpectrogramData(n, 512), new float[n]);
+            for (long index = 0; index < 512; index++)
+            {
+                SpectrogramFeed.Append(data, index, row, pauses: false);
+            }
+
+            return data;
+        },
+        "SpectrogramData",
+        method => SampleCatalog.Header("a wandering tone over 512 rows", method, "SpectrogramData", "The number of frequencies.") + """
+                {
+                    var (data, row) = (new SpectrogramData(count, 512), new float[count]);
+                    for (long index = 0; index < 512; index++)
+                    {
+                        var center = (count / 2.0) + (count / 2.5 * Math.Sin(index * 0.03));
+                        for (var i = 0; i < count; i++)
+                        {
+                            var (distance, overtone) = ((i - center) / 6, (i - (center / 2)) / 10);
+                            row[i] = (float)(Math.Exp(-distance * distance) + (0.4 * Math.Exp(-overtone * overtone)) + (0.05 * Math.Sin(i * 0.9)));
+                        }
+
+                        data.AppendRow(row);
+                    }
+
+                    return data;
+                }
+
+            """)
+    { MinimumCount = 2 };
 
     // A tone that wanders and its overtone, row by row with short pauses; 400 rows into 256.
     private static SampleInfo Tone() => new(

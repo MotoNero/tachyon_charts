@@ -30,36 +30,8 @@ public sealed class GroupStackedScene : IScene
     public void Render(IRenderDevice device, IRenderTarget target)
     {
         var size = new PixelSize(target.Size.Width, target.Size.Height / ChartCount);
-        var group = new ChartGroup();
-        var parts = new (ChartSurface Chart, IDisposable Series)[ChartCount];
-        double[] heights = [1, 100_000, 25];
-        Rgba8[] colors = [new(80, 170, 240, 255), new(240, 130, 90, 255), new(110, 210, 130, 255)];
-        for (var i = 0; i < ChartCount; i++)
-        {
-            var height = heights[i];
-            var x = new NumericAxis("x", AxisPosition.Bottom)
-            {
-                VisibleRange = new DoubleRange(0, 10),
-                LabelFormat = new NumericLabelFormat { Culture = CultureInfo.InvariantCulture },
-            };
-            var y = new NumericAxis("y", AxisPosition.Left)
-            {
-                VisibleRange = new DoubleRange(-1.2 * height, 1.2 * height),
-                LabelFormat = new NumericLabelFormat { Culture = CultureInfo.InvariantCulture },
-            };
-            var chart = new ChartSurface([x], [new LayoutPane([y])], SkiaTextEngine.Default);
-            var source = new DataSource<double, double>();
-            for (var point = 0; point < 400; point++)
-            {
-                var value = point * 0.025;
-                source.Append(value, height * Math.Sin((value * (i + 1)) + i));
-            }
-
-            var line = new LineSeries<double, double>(source, x, y) { Color = colors[i], Thickness = 1.5 };
-            chart.AddSeries(line);
-            group.Add(chart);
-            parts[i] = (chart, line);
-        }
+        var charts = CreateCharts(out var disposables);
+        var parts = charts.Select((chart, i) => (Chart: chart, Series: disposables[i])).ToArray();
 
         var targets = new IOffscreenRenderTarget[ChartCount];
         for (var i = 0; i < ChartCount; i++)
@@ -67,7 +39,6 @@ public sealed class GroupStackedScene : IScene
             targets[i] = device.CreateOffscreenTarget(size, target.DpiScale);
         }
 
-        parts[0].Chart.HorizontalAxes[0].VisibleRange = new DoubleRange(2, 8);
 
         // Twice: the first frame tells the group the room each chart needs.
         for (var pass = 0; pass < 2; pass++)
@@ -99,5 +70,46 @@ public sealed class GroupStackedScene : IScene
             targets[i].Dispose();
             parts[i].Series.Dispose();
         }
+    }
+
+    /// <summary>Creates the three charts of the group, the first showing 2 to 8, which the group shares.</summary>
+    /// <param name="disposables">Receives the series, one per chart.</param>
+    /// <returns>The charts from top to bottom.</returns>
+    public static IReadOnlyList<ChartSurface> CreateCharts(out IReadOnlyList<IDisposable> disposables)
+    {
+        var group = new ChartGroup();
+        var parts = new (ChartSurface Chart, IDisposable Series)[ChartCount];
+        double[] heights = [1, 100_000, 25];
+        Rgba8[] colors = [new(80, 170, 240, 255), new(240, 130, 90, 255), new(110, 210, 130, 255)];
+        for (var i = 0; i < ChartCount; i++)
+        {
+            var height = heights[i];
+            var x = new NumericAxis("x", AxisPosition.Bottom)
+            {
+                VisibleRange = new DoubleRange(0, 10),
+                LabelFormat = new NumericLabelFormat { Culture = CultureInfo.InvariantCulture },
+            };
+            var y = new NumericAxis("y", AxisPosition.Left)
+            {
+                VisibleRange = new DoubleRange(-1.2 * height, 1.2 * height),
+                LabelFormat = new NumericLabelFormat { Culture = CultureInfo.InvariantCulture },
+            };
+            var chart = new ChartSurface([x], [new LayoutPane([y])], SkiaTextEngine.Default);
+            var source = new DataSource<double, double>();
+            for (var point = 0; point < 400; point++)
+            {
+                var value = point * 0.025;
+                source.Append(value, height * Math.Sin((value * (i + 1)) + i));
+            }
+
+            var line = new LineSeries<double, double>(source, x, y) { Color = colors[i], Thickness = 1.5 };
+            chart.AddSeries(line);
+            group.Add(chart);
+            parts[i] = (chart, line);
+        }
+
+        parts[0].Chart.HorizontalAxes[0].VisibleRange = new DoubleRange(2, 8);
+        disposables = [.. parts.Select(part => part.Series)];
+        return [.. parts.Select(part => part.Chart)];
     }
 }

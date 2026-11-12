@@ -165,13 +165,27 @@ internal static class ScienceTypes
         ChartCategory.TwoD,
         DataShape.Spectrogram,
         "waves",
-        [Colormap("Plasma"), _colorRange, _missingColor],
+        [
+            Colormap("Plasma"),
+            _colorRange,
+            _missingColor,
+            new("live", "Live rows", ParameterKind.Flag, false) { Description = "New rows keep coming after the newest one, as from a measurement." },
+            new("rate", "Rows per second", ParameterKind.Number, 60.0) { Minimum = 1, Maximum = 1000 },
+        ],
         (chart, series, data, _) => chart.AddSpectrogram((SpectrogramData)data, spectrogram => spectrogram.Name(series.Name)
             .ColorAxis(axis => Ranged(CoreModule.ColorScale(axis.Colormap(CoreModule.Colormap(series.Parameters.GetText("colormap", "Plasma"))), series.Parameters), series.Parameters))),
         (series, data, _) => $".AddSpectrogram({data}, s => s.Name({CodeText.String(series.Name)}).ColorAxis(a => a.Colormap(Colormaps.{series.Parameters.GetText("colormap", "Plasma")}){CoreModule.ColorScaleCode(series.Parameters)}{RangedCode(series.Parameters)}))")
     {
-        Usings = ["Tachyon.Charts.Core.Colors"],
+        Usings = ["Tachyon.Charts.Core.Colors", "System.Diagnostics"],
+        Start = (series, data) => series.Parameters.GetFlag("live", false) ? SpectrogramFeed.Start((SpectrogramData)data, series.Parameters.GetNumber("rate", 60), Pauses(series)) : null,
+        PrepareCode = (series, data) => series.Parameters.GetFlag("live", false)
+            ? [$"StartRows({data}, {CodeText.Number(series.Parameters.GetNumber("rate", 60))}, {CodeText.Flag(Pauses(series))});"]
+            : [],
+        Helpers = SpectrogramFeed.Code,
     };
+
+    // The tone of the sample with pauses goes on with them.
+    private static bool Pauses(SeriesSpec series) => series.Data.Sample == "wanderingTone";
 
     private static ChartTypeInfo Polar()
     {

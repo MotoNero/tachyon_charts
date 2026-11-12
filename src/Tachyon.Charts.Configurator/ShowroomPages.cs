@@ -236,6 +236,16 @@ internal static class ShowroomPages
         new("Smith (interaktiv)", _ => Instrument(Series("smith", string.Empty, "seriesCircuit", 200, ("marker", 100.0)))),
         new("ParallelCoordinates", _ => Untitled(Instrument(Series("parallel", string.Empty, "sixColumns", 2000, ("names", "Volt, Strom, Temp, Druck, Hz, dB"), ("color", "#50AAF032"))), "ParallelCoordinates")),
         new("Parallel (interaktiv)", _ => Instrument(Series("parallel", string.Empty, "loads", 20_000, ("names", "V, A, °C, hPa, Hz, dB")))),
+        // Several charts: a group of three, four rasters, three stacked charts of one group.
+        new("Gruppe (3 Charts)", _ => Several(1, GroupChart("Small", "groupSmall"), GroupChart("Large", "groupLarge"), GroupChart("Medium", "groupMedium"))),
+        new("Raster (interaktiv)", _ => Several(
+            2,
+            Raster("Heatmap 4096 × 4096", Series("heatmap", "Value", "fineField", 4096, ("colormap", "Inferno"), ("size", 8.0)), "zoompan", "rubberband", "axisdrag", "tooltip"),
+            Raster("Spectrogram, 60 rows per second", Series("spectrogram", "Level", "steadyTone", 1024, ("colormap", "Plasma"), ("colorRange", "-0.1..1.1"), ("live", true), ("rate", 60.0)), 0, 1024, -512, 0, "zoompan", "axisdrag", "tooltip"),
+            Raster("Contour, filled", Series("contour", "Height", "hills", 256, ("from", -1.0), ("to", 1.25), ("levels", 10.0), ("filled", true), ("labels", false), ("size", 6.0)), "zoompan", "rubberband"),
+            Raster("5 million points: zoom in for markers", Series("scatter", "Points", "cloud50M", 5_000_000, ("size", 4.0), ("density", true), ("densityColormap", "Inferno")), 0, 10, 0, 10, "zoompan", "rubberband", "tooltip"))),
+        new("GroupStacked", _ => Several(1, Stacked("stackedFirst", "#50AAF0", 1, 2, 8), Stacked("stackedSecond", "#F0825A", 100_000), Stacked("stackedThird", "#6ED282", 25))),
+
         // The instruments: live on their pages, as still pictures in the gallery.
         new("Oszilloskop (interaktiv)", _ => Instrument(Series("oscilloscope", string.Empty, "scope", 5000, [.. FourChannels, ("live", true)]))),
         new("Oscilloscope", _ => Instrument(Series("oscilloscope", string.Empty, "scope", 5000, FourChannels))),
@@ -460,6 +470,57 @@ internal static class ShowroomPages
         Interactions(spec, interactions);
         return spec;
     }
+
+    // A description of several charts in columns: the first chart with the others as its further charts.
+    private static ChartSpec Several(int columns, params ChartSpec[] charts)
+    {
+        var first = charts[0];
+        first.Charts.AddRange(charts.Skip(1));
+        first.Columns = columns;
+        return first;
+    }
+
+    // A chart of the group of three: one curve over 0 to 20, the values followed, zoom and crosshair shared.
+    private static ChartSpec GroupChart(string title, string sample)
+    {
+        var spec = new ChartSpec
+        {
+            Title = title,
+            Theme = "TachyonDark",
+            Group = "showroom",
+            XAxes = { new AxisSpec { Id = "x", Minimum = 0, Maximum = 20 } },
+            YAxes = { new AxisSpec { Id = "y" } },
+            Series = { Series("line", string.Empty, sample, 2000, ("thickness", 1.5)) },
+        };
+        Interactions(spec, "zoompan", "crosshair");
+        return spec;
+    }
+
+    // A chart of the rasters: its title, the theme of the page, axes that follow the data.
+    private static ChartSpec Raster(string title, SeriesSpec series, params string[] interactions) => Raster(title, series, double.NaN, double.NaN, double.NaN, double.NaN, interactions);
+
+    private static ChartSpec Raster(string title, SeriesSpec series, double left, double right, double bottom, double top, params string[] interactions)
+    {
+        var spec = new ChartSpec
+        {
+            Title = title,
+            Theme = "TachyonDark",
+            XAxes = { new AxisSpec { Id = "x", Minimum = double.IsNaN(left) ? null : left, Maximum = double.IsNaN(right) ? null : right } },
+            YAxes = { new AxisSpec { Id = "y", Minimum = double.IsNaN(bottom) ? null : bottom, Maximum = double.IsNaN(top) ? null : top } },
+            Series = { series },
+        };
+        Interactions(spec, interactions);
+        return spec;
+    }
+
+    // A chart of the stacked group: one curve between ±1.2 times its height; the first shows 2 to 8, which the group shares.
+    private static ChartSpec Stacked(string sample, string color, double height, double from = 0, double to = 10) => new()
+    {
+        Group = "stacked",
+        XAxes = { new AxisSpec { Id = "x", Minimum = from, Maximum = to } },
+        YAxes = { new AxisSpec { Id = "y", Minimum = -1.2 * height, Maximum = 1.2 * height } },
+        Series = { Series("line", string.Empty, sample, 400, ("color", color), ("thickness", 1.5)) },
+    };
 
     // The four channels of the oscilloscope of the showroom: sine, square, burst and triangle, spread from top to bottom.
     private static (string Name, object Value)[] FourChannels =>

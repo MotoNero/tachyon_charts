@@ -45,7 +45,55 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     /// <param name="options">The options.</param>
     /// <returns>The C# file.</returns>
     /// <exception cref="InvalidOperationException">The description has problems, or a data source the generator does not write yet.</exception>
-    public string Setup(ChartSpec spec, CodeOptions options)
+    public string Setup(ChartSpec spec, CodeOptions options) =>
+        Several(spec) ? string.Join(Environment.NewLine, ChartFiles(spec, options).Select(file => $"// {file.Name}Setup.cs{Environment.NewLine}{file.Setup}")) : SetupOf(spec, options);
+
+    /// <summary>
+    /// Gets the files of each chart of a description with several charts: <c>ChartSetup.cs</c> and
+    /// <c>ChartViewModel.cs</c> for the first, <c>Chart2Setup.cs</c> and <c>Chart2ViewModel.cs</c> for the second and so on.
+    /// </summary>
+    /// <param name="spec">The description.</param>
+    /// <param name="options">The options.</param>
+    /// <returns>The name of each chart in the window, such as <c>Chart2</c>, with its two files.</returns>
+    public IReadOnlyList<(string Name, string Setup, string ViewModel)> ChartFiles(ChartSpec spec, CodeOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(spec);
+        if (_catalog.Check(spec) is { Count: > 0 } problems)
+        {
+            throw new InvalidOperationException(string.Join(" ", problems));
+        }
+
+        var files = new List<(string, string, string)>();
+        IReadOnlyList<ChartSpec> charts = [Alone(spec), .. spec.Charts];
+        for (var i = 0; i < charts.Count; i++)
+        {
+            var name = ChartName(i);
+            files.Add((name, Renamed(SetupOf(charts[i], options), name), Renamed(ViewModelOf(charts[i], options), name)));
+        }
+
+        return files;
+    }
+
+    // Whether a description has further charts.
+    private static bool Several(ChartSpec spec) => spec.Charts.Count > 0;
+
+    // The name of a chart in the window: Chart, Chart2, Chart3 …
+    private static string ChartName(int index) => index == 0 ? "Chart" : "Chart" + (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    // The classes of a further chart are named after it, so that the files of all charts stand side by side.
+    private static string Renamed(string code, string name) =>
+        name == "Chart" ? code : code.Replace("ChartSetup", name + "Setup", StringComparison.Ordinal).Replace("ChartViewModel", name + "ViewModel", StringComparison.Ordinal);
+
+    // The first chart of a description without the further ones.
+    private static ChartSpec Alone(ChartSpec spec)
+    {
+        var copy = ChartSpecJson.Copy(spec);
+        copy.Charts.Clear();
+        copy.Columns = 0;
+        return copy;
+    }
+
+    private string SetupOf(ChartSpec spec, CodeOptions options)
     {
         spec = WithOverviewGroup(spec);
         var plan = Plan(spec, options);
@@ -143,7 +191,10 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     /// <param name="spec">The description.</param>
     /// <param name="options">The options.</param>
     /// <returns>The C# file.</returns>
-    public string ViewModel(ChartSpec spec, CodeOptions options)
+    public string ViewModel(ChartSpec spec, CodeOptions options) =>
+        Several(spec) ? string.Join(Environment.NewLine, ChartFiles(spec, options).Select(file => $"// {file.Name}ViewModel.cs{Environment.NewLine}{file.ViewModel}")) : ViewModelOf(spec, options);
+
+    private string ViewModelOf(ChartSpec spec, CodeOptions options)
     {
         spec = WithOverviewGroup(spec);
         var plan = Plan(spec, options);
@@ -318,6 +369,12 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         ArgumentNullException.ThrowIfNull(options);
         var title = System.Security.SecurityElement.Escape(spec.Title.Length > 0 ? spec.Title : options.ProjectName);
         var charts = "<t:Chart x:Name=\"Chart\" />";
+        if (Several(spec))
+        {
+            // The charts of the description fill the rows of a grid.
+            charts = $"<UniformGrid Columns=\"{Math.Max(1, spec.Columns)}\">\n" + string.Concat(Enumerable.Range(0, spec.Charts.Count + 1).Select(i => $"        <t:Chart x:Name=\"{ChartName(i)}\" />\n")) + "    </UniformGrid>";
+        }
+
         if (HasOverview(spec))
         {
             // The overview docks below the chart.
@@ -376,6 +433,12 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     {
         ArgumentNullException.ThrowIfNull(spec);
         var code = WindowCodeOf(spec, options, views);
+        if (Several(spec))
+        {
+            // Each further chart is described by its own view model.
+            code = code.Replace("Chart.Configure(model.Configure);", "Chart.Configure(model.Configure);" + string.Concat(Enumerable.Range(1, spec.Charts.Count).Select(i => $"\n        {ChartName(i)}.Configure(new {ChartName(i)}ViewModel().Configure);")), StringComparison.Ordinal);
+        }
+
         return spec.Overview && views.Count == 0
             ? code.Replace("Chart.Configure(model.Configure);", "Chart.Configure(model.Configure);\n        Overview.Configure(model.ConfigureOverview);", StringComparison.Ordinal)
             : code;
@@ -573,14 +636,31 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     public IReadOnlyDictionary<string, string> Project(ChartSpec spec, CodeOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(spec);
+        IReadOnlyList<ChartSpec> charts = [spec, .. spec.Charts];
         var files = new SortedDictionary<string, string>(StringComparer.Ordinal)
         {
-            ["ChartSetup.cs"] = Setup(spec, options),
-            ["ChartViewModel.cs"] = ViewModel(spec, options),
             ["MainWindow.xaml.cs".Replace(".xaml", options.Framework == UiFramework.Wpf ? ".xaml" : ".axaml", StringComparison.Ordinal)] = WindowCode(spec, options, ViewNames(spec)),
             [options.Framework == UiFramework.Wpf ? "MainWindow.xaml" : "MainWindow.axaml"] = WindowMarkup(spec, options),
-            [options.ProjectName + ".csproj"] = ProjectFile(options, _catalog.SceneOf(spec), spec.Series.Exists(series => series.Data.Kind == DataKind.Hdf5), Packages(spec), [.. spec.Series.SelectMany(series => _catalog.FindType(series.Type)!.Packages).Distinct()]),
+            [options.ProjectName + ".csproj"] = ProjectFile(
+                options,
+                charts.Select(_catalog.SceneOf).FirstOrDefault(scene => scene is not null),
+                charts.Any(chart => chart.Series.Exists(series => series.Data.Kind == DataKind.Hdf5)),
+                [.. charts.SelectMany(Packages).Distinct()],
+                [.. charts.SelectMany(chart => chart.Series).SelectMany(series => _catalog.FindType(series.Type)!.Packages).Distinct()]),
         };
+        if (Several(spec))
+        {
+            foreach (var (name, setup, viewModel) in ChartFiles(spec, options))
+            {
+                (files[name + "Setup.cs"], files[name + "ViewModel.cs"]) = (setup, viewModel);
+            }
+        }
+        else
+        {
+            (files["ChartSetup.cs"], files["ChartViewModel.cs"]) = (Setup(spec, options), ViewModel(spec, options));
+        }
+
         foreach (var (path, content) in ApplicationFiles(options))
         {
             files[path] = content;

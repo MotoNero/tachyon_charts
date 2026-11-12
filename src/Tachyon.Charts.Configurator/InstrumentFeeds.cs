@@ -387,3 +387,92 @@ internal static class SweepFeed
 
         """;
 }
+
+/// <summary>Live rows of a spectrogram: the wandering tone goes on after the newest row.</summary>
+internal static class SpectrogramFeed
+{
+    /// <summary>Calculates a row of the wandering tone and its overtone and appends it.</summary>
+    /// <param name="data">The spectrogram.</param>
+    /// <param name="index">The number of the row since the start.</param>
+    /// <param name="row">The row, as wide as the spectrogram.</param>
+    /// <param name="pauses">Whether the tone pauses for six of every hundred rows.</param>
+    public static void Append(SpectrogramData data, long index, float[] row, bool pauses)
+    {
+        var center = (row.Length / 2.0) + (row.Length / 2.5 * Math.Sin(index * 0.03));
+        for (var i = 0; i < row.Length; i++)
+        {
+            var (distance, overtone) = ((i - center) / 6, (i - (center / 2)) / 10);
+            row[i] = pauses && index % 100 is >= 60 and < 66 ? float.NaN : (float)(Math.Exp(-distance * distance) + (0.4 * Math.Exp(-overtone * overtone)) + (0.05 * Math.Sin(i * 0.9)));
+        }
+
+        data.AppendRow(row);
+    }
+
+    /// <summary>Starts appending rows.</summary>
+    /// <param name="data">The spectrogram.</param>
+    /// <param name="rate">The rows per second.</param>
+    /// <param name="pauses">Whether the tone pauses.</param>
+    /// <returns>The timer; disposing it stops the rows.</returns>
+    public static IDisposable Start(SpectrogramData data, double rate, bool pauses)
+    {
+        var row = new float[data.Columns];
+        var (clock, first, written) = (Stopwatch.StartNew(), data.TotalRows, 0L);
+        return new Timer(
+            _ =>
+            {
+                // Every row due since the last tick; the timer may come late, the rows do not.
+                lock (row)
+                {
+                    for (var due = (long)(clock.Elapsed.TotalSeconds * rate); written < due; written++)
+                    {
+                        Append(data, first + written, row, pauses);
+                    }
+                }
+            },
+            null,
+            0,
+            10);
+    }
+
+    /// <summary>The same as code.</summary>
+    public const string Code = """
+
+            // New rows keep coming at a rate after the newest one; the field keeps the timer alive.
+            private static Timer? _rows;
+
+            private static void StartRows(SpectrogramData data, double rate, bool pauses)
+            {
+                var row = new float[data.Columns];
+                var (clock, first, written) = (Stopwatch.StartNew(), data.TotalRows, 0L);
+                _rows = new Timer(
+                    _ =>
+                    {
+                        // Every row due since the last tick; the timer may come late, the rows do not.
+                        lock (row)
+                        {
+                            for (var due = (long)(clock.Elapsed.TotalSeconds * rate); written < due; written++)
+                            {
+                                NextRow(data, first + written, row, pauses);
+                            }
+                        }
+                    },
+                    null,
+                    0,
+                    10);
+            }
+
+            // A row of a tone that wanders and its overtone; with pauses it stops for six of every hundred rows.
+            private static void NextRow(SpectrogramData data, long index, float[] row, bool pauses)
+            {
+                var center = (row.Length / 2.0) + (row.Length / 2.5 * Math.Sin(index * 0.03));
+                for (var i = 0; i < row.Length; i++)
+                {
+                    var (distance, overtone) = ((i - center) / 6, (i - (center / 2)) / 10);
+                    row[i] = pauses && index % 100 is >= 60 and < 66 ? float.NaN : (float)(Math.Exp(-distance * distance) + (0.4 * Math.Exp(-overtone * overtone)) + (0.05 * Math.Sin(i * 0.9)));
+                }
+
+                data.AppendRow(row);
+            }
+
+        """;
+}

@@ -56,6 +56,16 @@ public sealed class ChartSpec
 
     /// <summary>Gets the settings of the scene the series go into, such as the camera of a 3D chart; see <see cref="SceneInfo"/>.</summary>
     public SpecValues Scene { get; init; } = new();
+
+    /// <summary>
+    /// Gets the further charts of the description, shown after this one in <see cref="Columns"/> columns, each with its
+    /// own series, axes, annotations and interactions; charts of one <see cref="Group"/> share range and cursor. Only the
+    /// first chart of a description has further charts.
+    /// </summary>
+    public List<ChartSpec> Charts { get; init; } = [];
+
+    /// <summary>Gets or sets the number of columns the charts of the description are arranged in; 0 or 1 for one column.</summary>
+    public int Columns { get; set; }
 }
 
 /// <summary>An annotation of the chart.</summary>
