@@ -15,7 +15,7 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 /// <summary>
 /// The same chart rendered with one built-in theme.
 /// </summary>
-public sealed class ThemeScene : IScene
+public sealed class ThemeScene : IScene, IChartScene
 {
     private readonly Theme _theme;
 
@@ -47,6 +47,14 @@ public sealed class ThemeScene : IScene
         {
             (series as IDisposable)?.Dispose();
         }
+    }
+
+    /// <inheritdoc />
+    ChartSurface IChartScene.CreateChart(out IReadOnlyList<IDisposable> disposables)
+    {
+        var chart = CreateChart();
+        disposables = [.. chart.Series.OfType<IDisposable>()];
+        return chart;
     }
 
     /// <summary>Creates the chart of this scene. The series belong to the caller.</summary>

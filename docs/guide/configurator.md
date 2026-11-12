@@ -17,6 +17,8 @@ dotnet tool install -g Tachyon.Charts.Configurator.Tool
 tachyon-configurator --type spectrum --modifier crosshair
 ```
 
+Every example of the showroom has its description in the configurator: the same data (the formulas of the examples are sample data of the configurator), colors, axes and interactions. Options that came with them: label rotation of category axes; base, floor and the handling of 0 and below of logarithmic axes; borders of markers and colors per point; the colormap of a density; extent, missing color and logarithmic colors of heatmaps; the range of the colors of a spectrogram; colors of stacked layers; gradients and shadow color of bars; collapsed groups of a Gantt chart; colors and hollow candles, the height of the volume, live prices and example drawings of candles; the number of spokes of a polar chart; the extent of contours; three more dash patterns and the intensity of a glow.
+
 In the showroom, **Open in configurator** opens the example of the page completely: the same charts, including an overview below, series with their names and colors, axes, interactions, theme and data of the same form, live where the page is live (`--page <name>`). Pages the configurator does not describe yet start with their type and sample data. On pages that are checks rather than examples the button is greyed out; its tooltip says why. Medical pages start with the phantoms of the configurator, never with files loaded in the showroom. The showroom downloads carry the configurator beside them.
 
 ![The configurator with a box plot: settings on the left, the chart in the middle, the generated C# on the right](../images/configurator.png)

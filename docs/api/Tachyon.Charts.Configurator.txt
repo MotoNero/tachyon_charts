@@ -16,13 +16,17 @@ sealed class Tachyon.Charts.Configurator.AxisSpec
   System.Boolean IsOpposite { get; set; }
   System.Boolean SkipsWeekends { get; set; }
   System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.Double, System.Double>> ReadBreaks()
+  System.Double LabelRotation { get; set; }
+  System.Double LogBase { get; set; }
   System.Double PaneWeight { get; set; }
   System.Int32 Pane { get; set; }
+  System.Nullable<System.Double> Floor { get; set; }
   System.Nullable<System.Double> Maximum { get; set; }
   System.Nullable<System.Double> Minimum { get; set; }
   System.String Breaks { get; set; }
   System.String Categories { get; set; }
   System.String Id { get; set; }
+  System.String NonPositive { get; set; }
   System.String Title { get; set; }
   System.String[] ReadCategories()
   Tachyon.Charts.Configurator.AxisKind Kind { get; set; }

@@ -13,7 +13,7 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Common;
 /// <summary>
 /// Common ground of the scenes of filled shapes.
 /// </summary>
-public abstract class ShapeScene : IScene
+public abstract class ShapeScene : IScene, IChartScene
 {
     /// <summary>The label format, fixed so that images do not depend on the system language.</summary>
     protected static readonly NumericLabelFormat Labels = new() { Culture = CultureInfo.InvariantCulture };
@@ -41,6 +41,9 @@ public abstract class ShapeScene : IScene
     /// <param name="disposables">Receives what ends with the scene.</param>
     /// <returns>The chart.</returns>
     protected abstract ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables);
+
+    /// <inheritdoc />
+    ChartSurface IChartScene.CreateChart(out IReadOnlyList<IDisposable> disposables) => CreateChart(out disposables);
 
     /// <summary>Creates a chart with numeric axes.</summary>
     /// <param name="x">The horizontal range.</param>

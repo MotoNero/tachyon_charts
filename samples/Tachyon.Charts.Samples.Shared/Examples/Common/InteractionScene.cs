@@ -9,13 +9,16 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Common;
 /// A chart with modifiers and simulated input. The layout must exist before input can hit anything,
 /// so the scene renders twice.
 /// </summary>
-public abstract class InteractionScene : LineScene
+public abstract class InteractionScene : LineScene, Scenes.IChartScene
 {
     /// <summary>
     /// Gets the modifiers.
     /// </summary>
     /// <returns>The modifiers.</returns>
     protected abstract IEnumerable<ChartModifier> CreateModifiers();
+
+    /// <inheritdoc />
+    IEnumerable<ChartModifier> Scenes.IChartScene.CreateInteractions() => CreateModifiers();
 
     /// <inheritdoc />
     public override void Render(IRenderDevice device, IRenderTarget target)

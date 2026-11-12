@@ -916,7 +916,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     {
         var code = new StringBuilder(axis.Kind switch
         {
-            AxisKind.Logarithmic => $".Log({CodeText.String(axis.Id)})",
+            AxisKind.Logarithmic => axis.LogBase == 10 && axis.NonPositive == "Hide" ? $".Log({CodeText.String(axis.Id)})" : $".Log({CodeText.String(axis.Id)}, {CodeText.Number(axis.LogBase)}, Tachyon.Charts.Core.Axes.NonPositiveValues.{(Enum.TryParse<Core.Axes.NonPositiveValues>(axis.NonPositive, out var nonPositive) ? nonPositive : Core.Axes.NonPositiveValues.Hide)})",
             AxisKind.DateTime => $".DateTime({CodeText.String(axis.Id)})",
             AxisKind.Category => $".Category([{string.Join(", ", axis.ReadCategories().Select(CodeText.String))}], {CodeText.String(axis.Id)})",
             _ => $".Numeric({CodeText.String(axis.Id)})",
@@ -949,6 +949,16 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         if (axis.CrossesZero)
         {
             code.Append(".CrossesAt(0)");
+        }
+
+        if (axis.LabelRotation != 0)
+        {
+            code.Append(".LabelRotation(").Append(CodeText.Number(axis.LabelRotation)).Append(')');
+        }
+
+        if (axis.Kind == AxisKind.Logarithmic && axis.Floor is { } floor)
+        {
+            code.Append(".Floor(").Append(CodeText.Number(floor)).Append(')');
         }
 
         if (axis.ReadBreaks() is { Count: > 0 } breaks)

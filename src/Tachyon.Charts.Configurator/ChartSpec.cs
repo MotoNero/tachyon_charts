@@ -129,6 +129,18 @@ public sealed class AxisSpec
     /// <summary>Gets or sets a value indicating whether the axis is hidden; it still scales its series.</summary>
     public bool IsHidden { get; set; }
 
+    /// <summary>Gets or sets the base of a logarithmic axis.</summary>
+    public double LogBase { get; set; } = 10;
+
+    /// <summary>Gets or sets what a logarithmic axis does with values of 0 and below: Hide, Clamp or SymLog.</summary>
+    public string NonPositive { get; set; } = "Hide";
+
+    /// <summary>Gets or sets where a logarithmic axis that clamps puts 0 and below, or <see langword="null"/> for its own.</summary>
+    public double? Floor { get; set; }
+
+    /// <summary>Gets or sets the rotation of the labels in degrees; 0 leaves them level. Category axes turn them.</summary>
+    public double LabelRotation { get; set; }
+
     /// <summary>Reads <see cref="Breaks"/>.</summary>
     /// <returns>The ranges, or <see langword="null"/> when the text is no list of ranges.</returns>
     public IReadOnlyList<(double From, double To)>? ReadBreaks()

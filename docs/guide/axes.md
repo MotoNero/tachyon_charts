@@ -10,6 +10,8 @@
 |---|---|
 | `Numeric`, `DateTime`, `Log`, `Category` | Kind of axis |
 | `Title` | Title |
+| `Log(id, base, nonPositive)`, `Floor` | Logarithmic axis: the base, what happens to 0 and below (`Hide`, `Clamp` to the `Floor`, `SymLog` for a symmetric scale through 0) |
+| `LabelRotation(degrees)` | Turns the labels of a category axis, for long names |
 | `Position` | Side |
 | `Range` | Fixed range |
 | `Limits` | Bounds for zoom and pan |

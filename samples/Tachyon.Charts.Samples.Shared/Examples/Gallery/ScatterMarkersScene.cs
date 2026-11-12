@@ -14,7 +14,7 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 /// <summary>
 /// All six SDF marker shapes, including their borders.
 /// </summary>
-public sealed class ScatterMarkersScene : IScene
+public sealed class ScatterMarkersScene : IScene, IChartScene
 {
     private static readonly Rgba8[] _colors =
     [
@@ -31,6 +31,37 @@ public sealed class ScatterMarkersScene : IScene
 
     /// <inheritdoc />
     public PixelSize Size { get; } = new(900, 540);
+
+    /// <inheritdoc />
+    public ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables)
+    {
+        var x = CreateAxis("x", AxisPosition.Bottom, 0, 10);
+        var y = CreateAxis("y", AxisPosition.Left, 0, 7);
+        var chart = new ChartSurface([x], [new LayoutPane([y])], SkiaTextEngine.Default) { Title = Name };
+        var series = new ScatterSeries<double, double>[6];
+        for (var shape = 0; shape < series.Length; shape++)
+        {
+            var source = new DataSource<double, double>(9);
+            for (var point = 0; point < 9; point++)
+            {
+                var px = 1 + point;
+                source.Append(px, 6 - shape + (Math.Sin(px * 1.7) * 0.16));
+            }
+
+            series[shape] = new ScatterSeries<double, double>(source, x, y)
+            {
+                Shape = (MarkerShape)shape,
+                Color = _colors[shape],
+                Size = 16,
+                BorderColor = new Rgba8(10, 15, 24, 255),
+                BorderThickness = shape == (int)MarkerShape.Circle ? 2 : 0,
+            };
+            chart.AddSeries(series[shape]);
+        }
+
+        disposables = [.. series];
+        return chart;
+    }
 
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)

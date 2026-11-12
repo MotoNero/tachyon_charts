@@ -14,6 +14,9 @@ public sealed class AxisBreakScene(string name, Action<ChartBuilder> configure) 
     /// <inheritdoc />
     public string Name => name;
 
+    /// <summary>Gets the description of the chart, the same as on its page among the chart types.</summary>
+    public Action<ChartBuilder> Configure => configure;
+
     /// <inheritdoc />
     public PixelSize Size { get; } = new(900, 520);
 

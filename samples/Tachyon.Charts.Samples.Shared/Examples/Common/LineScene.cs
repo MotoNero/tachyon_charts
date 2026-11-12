@@ -13,7 +13,7 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Common;
 /// <summary>
 /// A chart with line series in one scene.
 /// </summary>
-public abstract class LineScene : IScene
+public abstract class LineScene : IScene, IChartScene
 {
     private const int PointCount = 240;
 
@@ -48,6 +48,13 @@ public abstract class LineScene : IScene
         {
             item.Dispose();
         }
+    }
+
+    /// <inheritdoc />
+    ChartSurface IChartScene.CreateChart(out IReadOnlyList<IDisposable> disposables)
+    {
+        (var chart, disposables) = CreateChart();
+        return chart;
     }
 
     /// <summary>

@@ -458,13 +458,22 @@ public static class ScientificCharts
     /// <param name="columns">The values of each measure.</param>
     /// <param name="names">The names of the measures.</param>
     /// <returns>The description.</returns>
-    public static ChartBuilder ParallelCoordinates(this ChartBuilder builder, double[][] columns, IReadOnlyList<string> names)
+    public static ChartBuilder ParallelCoordinates(this ChartBuilder builder, double[][] columns, IReadOnlyList<string> names) =>
+        ParallelCoordinates(builder, columns, names, null);
+
+    /// <summary>Describes parallel coordinates in a color of their own.</summary>
+    /// <param name="builder">The description.</param>
+    /// <param name="columns">The values of each measure.</param>
+    /// <param name="names">The names of the measures.</param>
+    /// <param name="color">The color of the lines, with little opacity so that many lines show where they gather.</param>
+    /// <returns>The description.</returns>
+    public static ChartBuilder ParallelCoordinates(this ChartBuilder builder, double[][] columns, IReadOnlyList<string> names, Rgba8? color)
     {
         ArgumentNullException.ThrowIfNull(builder);
         return builder
             .XAxis(axis => axis.Numeric("x").Range(0, 1).Hidden())
             .YAxis(axis => axis.Numeric("y").Range(0, 1).Hidden())
-            .AddSeries((x, y) => new ParallelCoordinatesSeries(columns, x, y))
+            .AddSeries((x, y) => color is { } chosen ? new ParallelCoordinatesSeries(columns, x, y) { Color = chosen } : new ParallelCoordinatesSeries(columns, x, y))
             .AddOverlay(chart => new ParallelAxesOverlay(chart.Series.OfType<ParallelCoordinatesSeries>().First(), names))
             .Modifiers(m => m.Custom(() => new Instruments.ParallelAxesModifier()));
     }

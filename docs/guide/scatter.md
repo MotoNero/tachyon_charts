@@ -20,4 +20,4 @@ The color bar reacts to the mouse, see [Rasters](rasters.md#color-bar). A range 
 
 ## Own colors
 
-`ScatterSeries.PointColors` takes one color per point. 10 million points with own colors are a measured target.
+`.Colors(colors)` gives each point its own color, `ScatterSeries.PointColors` does the same on a series. 10 million points with own colors are a measured target. `.Border(color, thickness)` draws a border around each marker; `Border(default, 0)` leaves it out.

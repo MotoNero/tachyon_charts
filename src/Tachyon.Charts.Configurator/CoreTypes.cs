@@ -1,6 +1,7 @@
 using Tachyon.Charts.Core.Data;
 using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Core.Series;
+using Tachyon.Charts.Rendering;
 
 namespace Tachyon.Charts.Configurator;
 
@@ -12,9 +13,26 @@ internal static class CoreTypes
 
     public static ChartTypeInfo StackedArea { get; } = new SeriesRecipe(
         typeof(StackedAreaSeries),
-        [new("percent", "Share in percent", ParameterKind.Flag, false)],
+        [
+            new("percent", "Share in percent", ParameterKind.Flag, false),
+            new("colors", "Colors of the layers", ParameterKind.Text, string.Empty) { Description = "#RRGGBB or #RRGGBBAA per layer, separated by commas; empty for the colors of the theme." },
+        ],
         ("percent", nameof(StackedAreaSeries.IsPercent)))
-        .Type("stackedarea", "Stacked area", DataShape.Layers, "layers", (_, data, x, y) => new StackedAreaSeries((DataSource<double, double>[])data, x, y), (_, data) => $"new StackedAreaSeries({data}, x, y)");
+        .Type(
+            "stackedarea",
+            "Stacked area",
+            DataShape.Layers,
+            "layers",
+            (series, data, x, y) => LayerFills(series) is { Length: > 0 } fills
+                ? new StackedAreaSeries((DataSource<double, double>[])data, x, y) { Fills = [.. fills.Select(fill => new SolidFill(fill))] }
+                : new StackedAreaSeries((DataSource<double, double>[])data, x, y),
+            (series, data) => LayerFills(series) is { Length: > 0 } fills
+                ? $"(new StackedAreaSeries({data}, x, y) {{ Fills = [{string.Join(", ", fills.Select(fill => $"new SolidFill({CodeText.Color(fill)})"))}] }})"
+                : $"new StackedAreaSeries({data}, x, y)");
+
+    // The colors of the layers that parse; the others are left out.
+    private static Rgba8[] LayerFills(SpecValues values) =>
+        [.. ParameterInfo.Split(values.GetText("colors", string.Empty)).Select(text => SpecColor.TryParse(text, out var color) ? (Rgba8?)color : null).OfType<Rgba8>()];
 
     public static ChartTypeInfo Band { get; } = new SeriesRecipe(
         typeof(BandSeries),

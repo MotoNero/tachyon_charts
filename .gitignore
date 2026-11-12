@@ -2,6 +2,7 @@
 bin/
 obj/
 artifacts/
+graphify-out/
 
 # Test and benchmark results
 TestResults/

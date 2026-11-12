@@ -1,5 +1,6 @@
 using Tachyon.Charts.Core.Axes;
 using Tachyon.Charts.Core.Fluent;
+using Tachyon.Charts.Core.Pipeline;
 using Tachyon.Charts.Core.Themes;
 using Tachyon.Charts.Rendering;
 using Tachyon.Charts.Rendering.Skia;
@@ -9,7 +10,7 @@ using Tachyon.Charts.Samples.Shared.Scenes;
 namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 
 /// <summary>Three temperatures whose newest values lie close together: their marks at the axis move apart.</summary>
-public sealed class LastValueScene : IScene
+public sealed class LastValueScene : IScene, IChartScene
 {
     /// <inheritdoc />
     public string Name => "LastValue";
@@ -19,6 +20,19 @@ public sealed class LastValueScene : IScene
 
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)
+    {
+        var chart = CreateChart(out var disposables);
+        chart.Render(device, target);
+        chart.Render(device, target);
+        device.WaitForIdle();
+        foreach (var item in disposables)
+        {
+            item.Dispose();
+        }
+    }
+
+    /// <inheritdoc />
+    public ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables)
     {
         var lines = LastValueDemo.Recorded(285);
         var builder = new ChartBuilder().Title("Temperatures").Theme(BuiltInThemes.TachyonDark)
@@ -32,8 +46,7 @@ public sealed class LastValueScene : IScene
         }
 
         var chart = builder.ToDefinition().Build(SkiaTextEngine.Default).Surface;
-        chart.Render(device, target);
-        chart.Render(device, target);
-        device.WaitForIdle();
+        disposables = [];
+        return chart;
     }
 }

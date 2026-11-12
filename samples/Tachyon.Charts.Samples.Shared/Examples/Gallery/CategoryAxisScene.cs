@@ -11,7 +11,7 @@ using Tachyon.Charts.Samples.Shared.Scenes;
 namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 
 /// <summary>Named places with rotated labels above a pane with too many names, which get thinned out.</summary>
-public sealed class CategoryAxisScene : IScene
+public sealed class CategoryAxisScene : IScene, IChartScene
 {
     private static readonly string[] _months = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
@@ -24,12 +24,24 @@ public sealed class CategoryAxisScene : IScene
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)
     {
+        var chart = CreateChart(out var disposables);
+        chart.Render(device, target);
+        chart.Render(device, target);
+        device.WaitForIdle();
+        foreach (var item in disposables)
+        {
+            item.Dispose();
+        }
+    }
+
+    /// <inheritdoc />
+    public ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables)
+    {
         var x = new CategoryAxis("x", AxisPosition.Bottom, _months) { LabelRotation = -45 };
         var y = new NumericAxis("y", AxisPosition.Left) { VisibleRange = new DoubleRange(0, 10), LabelFormat = new NumericLabelFormat { Culture = CultureInfo.InvariantCulture } };
         var chart = new ChartSurface([x], [new LayoutPane([y])], SkiaTextEngine.Default) { Title = Name };
         chart.AddSeries(new BarSeries([[3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4]], x, y));
-        chart.Render(device, target);
-        chart.Render(device, target);
-        device.WaitForIdle();
+        disposables = [];
+        return chart;
     }
 }

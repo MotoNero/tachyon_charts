@@ -211,7 +211,7 @@ public static class SpecChartBuilder
     {
         _ = axis.Kind switch
         {
-            AxisKind.Logarithmic => builder.Log(axis.Id),
+            AxisKind.Logarithmic => builder.Log(axis.Id, axis.LogBase, Enum.TryParse<NonPositiveValues>(axis.NonPositive, out var nonPositive) ? nonPositive : NonPositiveValues.Hide),
             AxisKind.DateTime => builder.DateTime(axis.Id),
             AxisKind.Category => builder.Category(axis.ReadCategories(), axis.Id),
             _ => builder.Numeric(axis.Id),
@@ -248,6 +248,16 @@ public static class SpecChartBuilder
         if (axis.CrossesZero)
         {
             builder.CrossesAt(0);
+        }
+
+        if (axis.LabelRotation != 0)
+        {
+            builder.LabelRotation(axis.LabelRotation);
+        }
+
+        if (axis.Kind == AxisKind.Logarithmic && axis.Floor is { } floor)
+        {
+            builder.Floor(floor);
         }
 
         if (axis.ReadBreaks() is { Count: > 0 } breaks)

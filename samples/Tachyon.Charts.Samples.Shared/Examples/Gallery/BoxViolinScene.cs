@@ -11,7 +11,7 @@ using Tachyon.Charts.Samples.Shared.Scenes;
 namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 
 /// <summary>Three samples as box plots with outliers, the same samples as violins in a second pane.</summary>
-public sealed class BoxViolinScene : IScene
+public sealed class BoxViolinScene : IScene, IChartScene
 {
     /// <inheritdoc />
     public string Name => "BoxViolin";
@@ -21,6 +21,19 @@ public sealed class BoxViolinScene : IScene
 
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)
+    {
+        var chart = CreateChart(out var disposables);
+        chart.Render(device, target);
+        chart.Render(device, target);
+        device.WaitForIdle();
+        foreach (var item in disposables)
+        {
+            item.Dispose();
+        }
+    }
+
+    /// <inheritdoc />
+    public ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables)
     {
         var random = new Random(5);
         double[][] samples =
@@ -37,8 +50,7 @@ public sealed class BoxViolinScene : IScene
         var chart = new ChartSurface([x], [new LayoutPane([top]), new LayoutPane([bottom])], SkiaTextEngine.Default) { Title = Name };
         chart.AddSeries(new BoxPlotSeries(samples, x, top));
         chart.AddSeries(new ViolinSeries(samples, x, bottom) { Fill = new SolidFill(new Rgba8(247, 37, 133, 64)) });
-        chart.Render(device, target);
-        chart.Render(device, target);
-        device.WaitForIdle();
+        disposables = [];
+        return chart;
     }
 }

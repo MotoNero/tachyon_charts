@@ -17,7 +17,7 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 /// A ring of 256 rows after 400 appended rows: a tone that sweeps up and down, and a pause of missing
 /// rows. The ring has wrapped, and the rows must still run without a seam.
 /// </summary>
-public sealed class SpectrogramScene : IScene
+public sealed class SpectrogramScene : IScene, IChartScene
 {
     private const int Columns = 256;
     private const int Rows = 256;
@@ -30,6 +30,29 @@ public sealed class SpectrogramScene : IScene
 
     /// <inheritdoc />
     public PixelSize Size { get; } = new(800, 500);
+
+    /// <inheritdoc />
+    public ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables)
+    {
+        var x = new NumericAxis("x", AxisPosition.Bottom) { VisibleRange = new DoubleRange(0, Columns), LabelFormat = _labels, Title = "Frequency" };
+        var y = new NumericAxis("y", AxisPosition.Left) { VisibleRange = new DoubleRange(-Rows, 0), LabelFormat = _labels };
+        var color = new ColorAxis("color") { LabelFormat = _labels, Colormap = Colormaps.Plasma, VisibleRange = new DoubleRange(-0.1, 1.1), MissingColor = new Rgba8(40, 40, 40, 255) };
+        var chart = new ChartSurface([x], [new LayoutPane([y, color])], SkiaTextEngine.Default) { Title = Name };
+        var data = new SpectrogramData(Columns, Rows);
+        var series = new SpectrogramSeries(data, x, y, color);
+        chart.AddSeries(series);
+
+
+        // All rows at once, as the scene appends them over its frames.
+        var row = new float[Columns];
+        for (var i = 0; i < Appended; i++)
+        {
+            AppendSignal(data, i, row);
+        }
+
+        disposables = [series];
+        return chart;
+    }
 
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)

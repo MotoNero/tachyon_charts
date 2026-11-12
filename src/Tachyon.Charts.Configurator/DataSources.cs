@@ -61,7 +61,7 @@ internal static class DataSources
             kinds.Add(DataKind.Csv);
         }
 
-        if (type.Shape == DataShape.Points && catalog.Samples.Any(sample => sample.Curve is not null))
+        if ((type.Shape == DataShape.Points && catalog.Samples.Any(sample => sample.Curve is not null)) || type.Shape == DataShape.Candles)
         {
             kinds.Add(DataKind.Live);
         }
@@ -241,6 +241,7 @@ internal static class DataSources
     public static object Load(SeriesSpec series, ChartTypeInfo type, ChartCatalog catalog, ICollection<IDisposable>? running) => Loader(series, type, catalog) is { } loader ? loader.Load(series) : series.Data.Kind switch
     {
         DataKind.Csv => FromCsv(series, type.Shape),
+        DataKind.Live when type.Shape == DataShape.Candles => LivePrices(series, catalog, running),
         DataKind.Live => Live(series, catalog, running),
         DataKind.Hdf5 => FromHdf5(series, type.Shape),
         _ => throw new InvalidOperationException($"The data of {series.Name} come from {series.Data.Kind}, which the configurator does not read yet."),
@@ -255,6 +256,7 @@ internal static class DataSources
     public static DataCode Code(SeriesSpec series, ChartTypeInfo type, ChartCatalog catalog, string method) => Loader(series, type, catalog) is { } loader ? loader.Code(series, method) : series.Data.Kind switch
     {
         DataKind.Csv => CsvCode(series, type, catalog, method),
+        DataKind.Live when type.Shape == DataShape.Candles => LivePricesCode(series, catalog, method),
         DataKind.Live => LiveCode(series, catalog, method),
         DataKind.Hdf5 => Hdf5Code(series, type, catalog, method),
         _ => throw new InvalidOperationException($"The data of {series.Name} come from {series.Data.Kind}; the code for such sources is not written yet."),
@@ -578,6 +580,22 @@ internal static class DataSources
     }
 
     private static double Rate(SeriesSpec series) => Math.Max(1, series.Data.Options.GetNumber("rate", 200));
+
+    // Live prices: the prices of the sample, whose last period trades five times a second.
+    private static object LivePrices(SeriesSpec series, ChartCatalog catalog, ICollection<IDisposable>? running)
+    {
+        var sample = catalog.FindSample(series.Data.Sample) ?? throw new InvalidOperationException($"The sample {series.Data.Sample} is unknown.");
+        var data = (CandleData)sample.Create(Math.Max(2, series.Data.Count));
+        running?.Add(ShowroomPrices.Trade(data));
+        return data;
+    }
+
+    private static DataCode LivePricesCode(SeriesSpec series, ChartCatalog catalog, string method)
+    {
+        var sample = catalog.FindSample(series.Data.Sample)!;
+        var code = sample.Method(method + "Start") + ShowroomPrices.TradeCode(method, method + "Start");
+        return new DataCode("CandleData", method, $"{method}({Math.Max(2, series.Data.Count).ToString(CultureInfo.InvariantCulture)})", code, ["Tachyon.Charts.Core.Data"]);
+    }
 
     private static DataCode LiveCode(SeriesSpec series, ChartCatalog catalog, string method)
     {

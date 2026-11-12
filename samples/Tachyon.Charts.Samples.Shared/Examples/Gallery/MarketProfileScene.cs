@@ -1,5 +1,6 @@
 using Tachyon.Charts.Core.Fluent;
 using Tachyon.Charts.Core.Numerics;
+using Tachyon.Charts.Core.Pipeline;
 using Tachyon.Charts.Core.Series;
 using Tachyon.Charts.Core.Themes;
 using Tachyon.Charts.Rendering;
@@ -10,13 +11,27 @@ using Tachyon.Charts.Samples.Shared.Scenes;
 namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 
 /// <summary>Daily candles with the volume per price level of the shown months, point of control and value area highlighted.</summary>
-public sealed class MarketProfileScene : IScene
+public sealed class MarketProfileScene : IScene, IChartScene
 {
     /// <inheritdoc />
     public string Name => "MarketProfile";
 
     /// <inheritdoc />
     public PixelSize Size { get; } = new(900, 560);
+
+    /// <inheritdoc />
+    public ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables)
+    {
+        var data = CandleDemo.Create(200, TimeSpan.FromDays(1), seed: 11);
+        var builder = new ChartBuilder().Title("Market profile").Theme(BuiltInThemes.TachyonDark)
+            .XAxis(a => a.DateTime("time"))
+            .YAxis(a => a.Numeric("price").Title("Price").AutoRange())
+            .Candles(data, yAxis: "price")
+            .VolumeProfile(data, profile => profile.Levels = 40, yAxis: "price");
+        var chart = builder.ToDefinition().Build(SkiaTextEngine.Default).Surface;
+        disposables = [];
+        return chart;
+    }
 
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)

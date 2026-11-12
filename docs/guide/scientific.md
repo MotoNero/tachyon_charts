@@ -22,6 +22,8 @@ Three shares per point, with the names of the three corners.
 
 ```csharp
 chart.Configure(c => c.ParallelCoordinates(columns, ["V", "A", "°C"]));
+// or in a color of their own, with little opacity so that many lines show where they gather:
+chart.Configure(c => c.ParallelCoordinates(columns, ["V", "A", "°C"], new Rgba8(80, 170, 240, 50)));
 ```
 
 `columns` holds one array per measure. Each row becomes a line across the axes. Rows above 2,000 get more transparent on their own, so that the density stays visible.

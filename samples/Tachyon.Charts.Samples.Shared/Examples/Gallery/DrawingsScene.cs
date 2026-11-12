@@ -1,6 +1,7 @@
 using Tachyon.Charts.Core.Annotations;
 using Tachyon.Charts.Core.Data;
 using Tachyon.Charts.Core.Fluent;
+using Tachyon.Charts.Core.Pipeline;
 using Tachyon.Charts.Core.Series;
 using Tachyon.Charts.Core.Themes;
 using Tachyon.Charts.Rendering;
@@ -13,7 +14,7 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 /// <summary>Candles with drawings fixed to days and prices; the second set comes from JSON, as saved drawings do.</summary>
 /// <param name="name">The snapshot name.</param>
 /// <param name="add">Adds the drawings.</param>
-public sealed class DrawingsScene(string name, Action<CandleData, DrawingLayer> add) : IScene
+public sealed class DrawingsScene(string name, Action<CandleData, DrawingLayer> add) : IScene, IChartScene
 {
     /// <inheritdoc />
     public string Name => name;
@@ -23,6 +24,19 @@ public sealed class DrawingsScene(string name, Action<CandleData, DrawingLayer> 
 
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)
+    {
+        var chart = CreateChart(out var disposables);
+        chart.Render(device, target);
+        chart.Render(device, target);
+        device.WaitForIdle();
+        foreach (var item in disposables)
+        {
+            item.Dispose();
+        }
+    }
+
+    /// <inheritdoc />
+    public ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables)
     {
         var prices = DrawingDemo.Prices();
         var builder = new ChartBuilder().Title("Drawing tools").Theme(BuiltInThemes.TachyonDark)
@@ -37,8 +51,7 @@ public sealed class DrawingsScene(string name, Action<CandleData, DrawingLayer> 
                 layer.Load(scratch.Save());
             });
         var chart = builder.ToDefinition().Build(SkiaTextEngine.Default).Surface;
-        chart.Render(device, target);
-        chart.Render(device, target);
-        device.WaitForIdle();
+        disposables = [];
+        return chart;
     }
 }

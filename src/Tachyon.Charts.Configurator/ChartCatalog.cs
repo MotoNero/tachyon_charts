@@ -734,9 +734,9 @@ public sealed class ChartCatalog
         {
             problems.Add(missing);
         }
-        else if (series.Data.Kind == DataKind.Live && FindSample(series.Data.Sample)?.Curve is null)
+        else if (series.Data.Kind == DataKind.Live && (type.Shape == DataShape.Candles ? FindSample(series.Data.Sample)?.Shape != DataShape.Candles : FindSample(series.Data.Sample)?.Curve is null))
         {
-            problems.Add($"Live data of {series.Name} need a curve as sample data.");
+            problems.Add(type.Shape == DataShape.Candles ? $"Live prices of {series.Name} need prices as sample data." : $"Live data of {series.Name} need a curve as sample data.");
         }
 
         if (series.Data.Kind == DataKind.Sample && FindSample(series.Data.Sample) is { } sample && sample.Shape != type.Shape)

@@ -230,12 +230,23 @@ public sealed class ConfiguratorSession
                         fields.Add(Field(group, new("weekends", "Without weekends", ParameterKind.Flag, false), () => axis.SkipsWeekends, value => axis.SkipsWeekends = (bool)value));
                     }
 
+                    if (axis.Kind == AxisKind.Logarithmic)
+                    {
+                        fields.Add(Field(group, new("logBase", "Base", ParameterKind.Number, 10.0) { Minimum = 1.000001, Maximum = 1000 }, () => axis.LogBase, value => axis.LogBase = (double)value));
+                        fields.Add(Field(group, new("floor", "Floor when clamping", ParameterKind.Number, 0.0) { Minimum = 0, Description = "Where values of 0 and below are put; 0 for the axis to choose." }, () => axis.Floor ?? 0.0, value => axis.Floor = (double)value > 0 ? (double)value : null));
+                        fields.Add(Field(group, new("nonPositive", "Values of 0 and below", ParameterKind.Choice, "Hide") { Choices = Enum.GetNames<Core.Axes.NonPositiveValues>(), Description = "Hide them, clamp them to the floor, or show them on a symmetric logarithmic scale." }, () => axis.NonPositive, value => axis.NonPositive = (string)value));
+                    }
+
                     if (axis.Kind == AxisKind.Category)
                     {
                         fields.Add(Field(group, new("categories", "Names of the places", ParameterKind.Text, string.Empty) { Description = "One per place 0, 1, 2 …, separated by commas." }, () => axis.Categories, value => axis.Categories = (string)value));
                     }
 
                     fields.Add(Field(group, new("origin", "Through the origin", ParameterKind.Flag, false) { Description = "The axis runs where the other axis is 0." }, () => axis.CrossesZero, value => axis.CrossesZero = (bool)value));
+                    if (axis.Kind == AxisKind.Category)
+                    {
+                        fields.Add(Field(group, new("rotation", "Label rotation", ParameterKind.Number, 0.0) { Minimum = -90, Maximum = 90, Description = "In degrees; negative labels rise to the right." }, () => axis.LabelRotation, value => axis.LabelRotation = (double)value));
+                    }
                     fields.Add(Field(group, new("breaks", "Scale breaks", ParameterKind.Text, string.Empty) { Description = "Ranges left out, such as 10..90, separated by commas." }, () => axis.Breaks, value => axis.Breaks = (string)value));
                     fields.Add(Field(group, new("hidden", "Hidden", ParameterKind.Flag, false), () => axis.IsHidden, value => axis.IsHidden = (bool)value));
                     if (name == "Y axis")

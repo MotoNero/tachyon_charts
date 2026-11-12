@@ -1,4 +1,5 @@
 using Tachyon.Charts.Core.Fluent;
+using Tachyon.Charts.Core.Pipeline;
 using Tachyon.Charts.Core.Series;
 using Tachyon.Charts.Core.Themes;
 using Tachyon.Charts.Rendering;
@@ -12,7 +13,7 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 /// <param name="name">The snapshot name.</param>
 /// <param name="theme">The theme.</param>
 /// <param name="style">How a day is drawn.</param>
-public sealed class CandleScene(string name, Theme theme, CandleStyle style) : IScene
+public sealed class CandleScene(string name, Theme theme, CandleStyle style) : IScene, IChartScene
 {
     /// <inheritdoc />
     public string Name => name;
@@ -23,6 +24,19 @@ public sealed class CandleScene(string name, Theme theme, CandleStyle style) : I
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)
     {
+        var chart = CreateChart(out var disposables);
+        chart.Render(device, target);
+        chart.Render(device, target);
+        device.WaitForIdle();
+        foreach (var item in disposables)
+        {
+            item.Dispose();
+        }
+    }
+
+    /// <inheritdoc />
+    public ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables)
+    {
         var data = CandleDemo.Create(90, TimeSpan.FromDays(1));
         var builder = new ChartBuilder().Title("Share price").Theme(theme)
             .XAxis(a => a.DateTime("time"))
@@ -31,8 +45,7 @@ public sealed class CandleScene(string name, Theme theme, CandleStyle style) : I
             .Candles(data, s => s.Style = style, yAxis: "price")
             .Volume(data, yAxis: "volume");
         var chart = builder.ToDefinition().Build(SkiaTextEngine.Default).Surface;
-        chart.Render(device, target);
-        chart.Render(device, target);
-        device.WaitForIdle();
+        disposables = [];
+        return chart;
     }
 }

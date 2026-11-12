@@ -13,7 +13,7 @@ using Tachyon.Charts.Samples.Shared.Scenes;
 namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 
 /// <summary>An area colored by its values above round bars with soft shadows.</summary>
-public sealed class GradientsScene : IScene
+public sealed class GradientsScene : IScene, IChartScene
 {
     /// <inheritdoc />
     public string Name => "Gradients";
@@ -23,6 +23,19 @@ public sealed class GradientsScene : IScene
 
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)
+    {
+        var chart = CreateChart(out var disposables);
+        chart.Render(device, target);
+        chart.Render(device, target);
+        device.WaitForIdle();
+        foreach (var item in disposables)
+        {
+            item.Dispose();
+        }
+    }
+
+    /// <inheritdoc />
+    public ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables)
     {
         var labels = new NumericLabelFormat { Culture = CultureInfo.InvariantCulture };
         var x = new NumericAxis("x", AxisPosition.Bottom) { VisibleRange = new DoubleRange(-0.5, 9.5), LabelFormat = labels };
@@ -44,8 +57,7 @@ public sealed class GradientsScene : IScene
             Fills = [new PositionGradientFill(new Rgba8(255, 183, 3, 255), new Rgba8(247, 37, 133, 255))],
             ShadowColor = new Rgba8(0, 0, 0, 60),
         });
-        chart.Render(device, target);
-        chart.Render(device, target);
-        device.WaitForIdle();
+        disposables = [];
+        return chart;
     }
 }

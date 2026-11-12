@@ -57,6 +57,9 @@ public sealed record AxisDefinition(AxisKind Kind, string Id)
     /// <summary>Gets a value indicating whether the axis takes no room and shows nothing.</summary>
     public bool IsHidden { get; init; }
 
+    /// <summary>Gets the rotation of the labels in degrees; 0 leaves them level. Only axes with free text, such as categories, turn them.</summary>
+    public double LabelRotation { get; init; }
+
     /// <summary>Gets the pane of a vertical axis, counted from the top; 0 is the first.</summary>
     public int Pane { get; init; }
 
@@ -77,6 +80,9 @@ public sealed record AxisDefinition(AxisKind Kind, string Id)
 
     /// <summary>Gets what a logarithmic axis does with values at or below zero.</summary>
     public NonPositiveValues NonPositive { get; init; }
+
+    /// <summary>Gets the value a logarithmic axis that clamps puts 0 and below at, or <see langword="null"/> for its own.</summary>
+    public double? LogFloor { get; init; }
 }
 
 /// <summary>A described series.</summary>
@@ -337,6 +343,9 @@ public sealed record ScatterDefinition<TX, TY> : ScatterDefinition
             Shape = Shape,
             Size = Size,
             PointSizes = PointSizes,
+            PointColors = PointColors,
+            BorderColor = BorderColor,
+            BorderThickness = BorderThickness,
             DensityAxis = colorAxis,
             DensityThreshold = DensityThreshold,
         };
@@ -357,6 +366,15 @@ public abstract record ScatterDefinition : SeriesDefinition
 
     /// <summary>Gets one diameter per point for bubbles, or nothing for equal markers.</summary>
     public ReadOnlyMemory<float> PointSizes { get; init; }
+
+    /// <summary>Gets a color per point, or empty for the color of the series.</summary>
+    public ReadOnlyMemory<Rgba8> PointColors { get; init; }
+
+    /// <summary>Gets the color of the border around each marker.</summary>
+    public Rgba8 BorderColor { get; init; } = new(20, 50, 70, 255);
+
+    /// <summary>Gets the thickness of the border in device-independent units; 0 for none.</summary>
+    public double BorderThickness { get; init; } = 1;
 
     /// <summary>Gets the scale of the density map, or <see langword="null"/> for markers only.</summary>
     public ColorAxisDefinition? DensityAxis { get; init; }
@@ -620,7 +638,9 @@ public sealed record ChartDefinition(
         {
             AxisKind.DateTime => new DateTimeAxis(definition.Id, position) { Gaps = definition.Gaps },
             AxisKind.Category => new CategoryAxis(definition.Id, position, definition.Categories),
-            AxisKind.Log => new LogAxis(definition.Id, position) { Base = definition.LogBase, NonPositive = definition.NonPositive },
+            AxisKind.Log => definition.LogFloor is { } floor
+                ? new LogAxis(definition.Id, position) { Base = definition.LogBase, NonPositive = definition.NonPositive, Floor = floor }
+                : new LogAxis(definition.Id, position) { Base = definition.LogBase, NonPositive = definition.NonPositive },
             _ => new NumericAxis(definition.Id, position) { Breaks = definition.Breaks },
         };
         axis.Title = definition.Title;
@@ -634,6 +654,10 @@ public sealed record ChartDefinition(
         axis.IsAutoRange = definition.IsAutoRange;
         axis.IsHidden = definition.IsHidden;
         axis.CrossesAt = definition.CrossesAt;
+        if (definition.LabelRotation != 0)
+        {
+            axis.LabelRotation = definition.LabelRotation;
+        }
         return axis;
     }
 
@@ -912,6 +936,11 @@ public sealed class AxisBuilder
     public AxisBuilder Log(string? id = null, double logBase = 10, NonPositiveValues nonPositive = NonPositiveValues.Hide) =>
         Change(_definition with { Kind = AxisKind.Log, Id = id ?? _definition.Id, LogBase = logBase, NonPositive = nonPositive });
 
+    /// <summary>Sets where a logarithmic axis that clamps puts values of 0 and below.</summary>
+    /// <param name="floor">The value, positive.</param>
+    /// <returns>This builder.</returns>
+    public AxisBuilder Floor(double floor) => Change(_definition with { LogFloor = floor });
+
     /// <summary>Makes this an axis with names instead of numbers.</summary>
     /// <param name="categories">The names of the places.</param>
     /// <param name="id">The name of the axis.</param>
@@ -952,6 +981,11 @@ public sealed class AxisBuilder
     /// <summary>Hides the axis: it takes no room and shows nothing.</summary>
     /// <returns>This builder.</returns>
     public AxisBuilder Hidden() => Change(Definition with { IsHidden = true });
+
+    /// <summary>Turns the labels, for long names on a category axis.</summary>
+    /// <param name="degrees">The rotation in degrees, negative for labels that rise to the right.</param>
+    /// <returns>This builder.</returns>
+    public AxisBuilder LabelRotation(double degrees) => Change(Definition with { LabelRotation = degrees });
 
     /// <summary>Lets the axis run through the plot where the other axis has a value, for example 0 for axes in the origin.</summary>
     /// <param name="value">The value of the other axis.</param>
@@ -1109,6 +1143,17 @@ public sealed class ScatterBuilder<TX, TY>
     /// <param name="size">The size in device-independent units.</param>
     /// <returns>This builder.</returns>
     public ScatterBuilder<TX, TY> Size(double size) => Change(Definition with { Size = size });
+
+    /// <summary>Gives each point a color of its own.</summary>
+    /// <param name="colors">One color per point, in the order of the data.</param>
+    /// <returns>This builder.</returns>
+    public ScatterBuilder<TX, TY> Colors(ReadOnlyMemory<Rgba8> colors) => Change(Definition with { PointColors = colors });
+
+    /// <summary>Draws a border around each marker.</summary>
+    /// <param name="color">The color of the border.</param>
+    /// <param name="thickness">The thickness in device-independent units.</param>
+    /// <returns>This builder.</returns>
+    public ScatterBuilder<TX, TY> Border(Rgba8 color, double thickness) => Change(Definition with { BorderColor = color, BorderThickness = thickness });
 
     /// <summary>Gives each point its own diameter, which makes a bubble chart.</summary>
     /// <param name="sizes">One diameter per point in device-independent units.</param>

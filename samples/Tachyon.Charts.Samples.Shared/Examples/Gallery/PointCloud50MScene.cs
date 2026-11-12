@@ -15,7 +15,7 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 /// <summary>
 /// 50 million points in clusters. Their number switches the series to a density map by itself.
 /// </summary>
-public sealed class PointCloud50MScene : IScene
+public sealed class PointCloud50MScene : IScene, IChartScene
 {
     private const int PointCount = 50_000_000;
 
@@ -30,6 +30,19 @@ public sealed class PointCloud50MScene : IScene
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)
     {
+        var chart = CreateChart(out var disposables);
+        chart.Render(device, target);
+        chart.Render(device, target);
+        device.WaitForIdle();
+        foreach (var item in disposables)
+        {
+            item.Dispose();
+        }
+    }
+
+    /// <inheritdoc />
+    public ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables)
+    {
         var x = new NumericAxis("x", AxisPosition.Bottom) { VisibleRange = new DoubleRange(0, 10), LabelFormat = _labels };
         var y = new NumericAxis("y", AxisPosition.Left) { VisibleRange = new DoubleRange(0, 10), LabelFormat = _labels };
         var color = new ColorAxis("color") { Colormap = Colormaps.Inferno, IsLogarithmic = true, BelowColor = default(Rgba8) };
@@ -38,9 +51,8 @@ public sealed class PointCloud50MScene : IScene
         chart.AddSeries(scatter);
 
         // The range of the colors follows the first count.
-        chart.Render(device, target);
-        chart.Render(device, target);
-        device.WaitForIdle();
+        disposables = [];
+        return chart;
     }
 
 }

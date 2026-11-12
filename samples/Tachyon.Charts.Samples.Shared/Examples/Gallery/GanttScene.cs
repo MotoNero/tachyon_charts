@@ -1,4 +1,5 @@
 using Tachyon.Charts.Core.Fluent;
+using Tachyon.Charts.Core.Pipeline;
 using Tachyon.Charts.Core.Series;
 using Tachyon.Charts.Core.Themes;
 using Tachyon.Charts.Rendering;
@@ -12,13 +13,30 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 /// <param name="name">The snapshot name.</param>
 /// <param name="theme">The theme.</param>
 /// <param name="collapsed">The group to collapse, or <see langword="null"/>.</param>
-public sealed class GanttScene(string name, Theme theme, string? collapsed) : IScene
+public sealed class GanttScene(string name, Theme theme, string? collapsed) : IScene, IChartScene
 {
     /// <inheritdoc />
     public string Name => name;
 
     /// <inheritdoc />
     public PixelSize Size { get; } = new(1000, 520);
+
+    /// <inheritdoc />
+    public ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables)
+    {
+        var plan = GanttDemo.TestPlan();
+        if (collapsed is not null)
+        {
+            plan.SetCollapsed(collapsed, true);
+        }
+
+        var builder = new ChartBuilder().Title("Test plan").Theme(theme)
+            .XAxis(a => a.DateTime("time").AutoRange())
+            .Gantt(plan);
+        var chart = builder.ToDefinition().Build(SkiaTextEngine.Default).Surface;
+        disposables = [];
+        return chart;
+    }
 
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)

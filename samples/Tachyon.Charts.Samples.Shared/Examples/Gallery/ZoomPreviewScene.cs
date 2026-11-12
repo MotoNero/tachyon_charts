@@ -9,8 +9,11 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 /// <summary>
 /// The preview of a rubber band zoom over a line.
 /// </summary>
-public sealed class ZoomPreviewScene : LineScene
+public sealed class ZoomPreviewScene : LineScene, Scenes.IChartScene
 {
+    /// <inheritdoc />
+    IEnumerable<Core.Input.ChartModifier> Scenes.IChartScene.CreateInteractions() => [new Core.Input.RubberBandZoomModifier()];
+
     /// <inheritdoc />
     public override string Name => "ZoomPreview";
 

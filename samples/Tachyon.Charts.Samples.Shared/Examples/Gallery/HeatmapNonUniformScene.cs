@@ -15,7 +15,7 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 /// <summary>
 /// Cells of different sizes on a logarithmic Y axis, colored by the logarithm of their values.
 /// </summary>
-public sealed class HeatmapNonUniformScene : IScene
+public sealed class HeatmapNonUniformScene : IScene, IChartScene
 {
     private static readonly NumericLabelFormat _labels = new() { Culture = CultureInfo.InvariantCulture };
 
@@ -27,6 +27,19 @@ public sealed class HeatmapNonUniformScene : IScene
 
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)
+    {
+        var chart = CreateChart(out var disposables);
+        chart.Render(device, target);
+        chart.Render(device, target);
+        device.WaitForIdle();
+        foreach (var item in disposables)
+        {
+            item.Dispose();
+        }
+    }
+
+    /// <inheritdoc />
+    public ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables)
     {
         double[] xEdges = [0, 1, 3, 4, 8, 9, 10];
         double[] yEdges = [1, 10, 100, 1000, 10000];
@@ -44,8 +57,7 @@ public sealed class HeatmapNonUniformScene : IScene
         var chart = new ChartSurface([x], [new LayoutPane([y, color])], SkiaTextEngine.Default) { Title = Name };
         using var heatmap = new HeatmapSeries(data, x, y, color) { XEdges = xEdges, YEdges = yEdges };
         chart.AddSeries(heatmap);
-        chart.Render(device, target);
-        chart.Render(device, target);
-        device.WaitForIdle();
+        disposables = [];
+        return chart;
     }
 }

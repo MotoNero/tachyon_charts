@@ -19,6 +19,13 @@ public sealed class CrosshairValuesScene(string name, Action<ChartBuilder> confi
     /// <inheritdoc />
     public string Name => name;
 
+    /// <summary>Gets the description of the chart, in the dark theme the scene shows it in.</summary>
+    public Action<ChartBuilder> Configure => builder =>
+    {
+        configure(builder);
+        builder.Theme(BuiltInThemes.TachyonDark);
+    };
+
     /// <inheritdoc />
     public PixelSize Size { get; } = new(900, 520);
 
