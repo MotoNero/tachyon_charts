@@ -300,7 +300,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             [
                 new("projection", "Camera", ParameterKind.Choice, nameof(CameraProjection.Perspective)) { Choices = Enum.GetNames<CameraProjection>() },
                 new("cut", "Cut plane", ParameterKind.Choice, "None") { Choices = ["None", "X", "Y", "Z"], Description = "A plane across an axis that hides what lies beyond it." },
-                new("cutAt", "Cut at", ParameterKind.Number, 5.0) { Description = "Where the plane crosses its axis." },
+                new("cutAt", "Cut at", ParameterKind.Number, 5.0) { Description = "Where the plane crosses its axis, in the units of the axis; outside its range the plane cuts through the middle. What lies beyond the value disappears." },
                 .. AxisParameters("x"),
                 .. AxisParameters("y"),
                 .. AxisParameters("z"),
@@ -398,7 +398,9 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         SetAxes(scene, spec.Scene);
         if (Normal(spec.Scene) is { } normal)
         {
-            scene.AddPlane(new ClipPlane3D(normal, spec.Scene.GetNumber("cutAt", 5)));
+            // The plane lives in box coordinates, where every axis spans -1 to 1; the value is one of the axis.
+            var range = normal.X > 0 ? scene.Scene.XAxis.VisibleRange : normal.Y > 0 ? scene.Scene.YAxis.VisibleRange : scene.Scene.ZAxis.VisibleRange;
+            scene.AddPlane(new ClipPlane3D(normal, Offset(range, spec.Scene.GetNumber("cutAt", 5))));
         }
     });
 
@@ -411,7 +413,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         }
 
         var end = AxesCode(spec.Scene) + (Normal(spec.Scene) is { } normal
-            ? $".AddPlane(new ClipPlane3D(new Point3D({CodeText.Number(normal.X)}, {CodeText.Number(normal.Y)}, {CodeText.Number(normal.Z)}), {CodeText.Number(spec.Scene.GetNumber("cutAt", 5))})))"
+            ? $".AddPlane(new ClipPlane3D(new Point3D({CodeText.Number(normal.X)}, {CodeText.Number(normal.Y)}, {CodeText.Number(normal.Z)}), s.Scene.{(normal.X > 0 ? "X" : normal.Y > 0 ? "Y" : "Z")}Axis.VisibleRange is {{ }} range && {CodeText.Number(spec.Scene.GetNumber("cutAt", 5))} >= range.Min && {CodeText.Number(spec.Scene.GetNumber("cutAt", 5))} <= range.Max ? -1 + (2 * ({CodeText.Number(spec.Scene.GetNumber("cutAt", 5))} - range.Min) / (range.Max - range.Min)) : 0)))"
             : ")");
         return (start, end);
     }
@@ -458,6 +460,13 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
     private static string AxesCode(SpecValues values) => string.Concat(new[] { "x", "y", "z" }.Select(axis => Range(values, axis) is { } range
         ? $".{axis.ToUpperInvariant()}Axis({CodeText.Number(range.From)}, {CodeText.Number(range.To)}, {(values.GetText(axis + "Title", string.Empty) is { Length: > 0 } title ? CodeText.String(title) : $"s.Scene.{axis.ToUpperInvariant()}Axis.Title")})"
         : string.Empty));
+
+    /// <summary>Gets where a plane across an axis stands in box coordinates: the value of the axis, or the middle when it lies outside.</summary>
+    /// <param name="range">The range of the axis.</param>
+    /// <param name="value">The value of the axis.</param>
+    /// <returns>The offset from -1 to 1.</returns>
+    internal static double Offset(DoubleRange range, double value) =>
+        value >= range.Min && value <= range.Max && range.Max > range.Min ? -1 + (2 * (value - range.Min) / (range.Max - range.Min)) : 0;
 
     private static Point3D? Normal(SpecValues values) => values.GetText("cut", "None") switch
     {
