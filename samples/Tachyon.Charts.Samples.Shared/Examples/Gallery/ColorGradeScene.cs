@@ -1,5 +1,6 @@
 using Tachyon.Charts.Core.Fluent;
 using Tachyon.Charts.Core.Instruments;
+using Tachyon.Charts.Core.Pipeline;
 using Tachyon.Charts.Core.Themes;
 using Tachyon.Charts.Rendering;
 using Tachyon.Charts.Rendering.Skia;
@@ -8,7 +9,7 @@ using Tachyon.Charts.Samples.Shared.Scenes;
 namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 
 /// <summary>A noisy, jittering sine after many acquisitions, colored by how often each pixel was hit.</summary>
-public sealed class ColorGradeScene : IScene
+public sealed class ColorGradeScene : IScene, IChartScene
 {
     /// <inheritdoc />
     public string Name => "ColorGrade";
@@ -19,9 +20,7 @@ public sealed class ColorGradeScene : IScene
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)
     {
-        var display = new ScopeDisplay { TimePerDivision = 5e-4, Persistence = ScopePersistence.ColorGrade };
-        var channel = display.AddChannel();
-        var chart = new ChartBuilder().Oscilloscope(display).Theme(BuiltInThemes.Instrument).ToDefinition().Build(SkiaTextEngine.Default).Surface;
+        var chart = Create(out var channel, out var disposables);
         var random = new Random(1);
         var time = new double[3000];
         var volts = new float[3000];
@@ -42,9 +41,21 @@ public sealed class ColorGradeScene : IScene
 
         chart.Render(device, target);
         device.WaitForIdle();
-        foreach (var series in chart.Series)
+        foreach (var item in disposables)
         {
-            (series as IDisposable)?.Dispose();
+            item.Dispose();
         }
+    }
+
+    /// <inheritdoc/>
+    public ChartSurface CreateChart(out IReadOnlyList<IDisposable> disposables) => Create(out _, out disposables);
+
+    private static ChartSurface Create(out ScopeChannel channel, out IReadOnlyList<IDisposable> disposables)
+    {
+        var display = new ScopeDisplay { TimePerDivision = 5e-4, Persistence = ScopePersistence.ColorGrade };
+        channel = display.AddChannel();
+        var chart = new ChartBuilder().Oscilloscope(display).Theme(BuiltInThemes.Instrument).ToDefinition().Build(SkiaTextEngine.Default).Surface;
+        disposables = [.. chart.Series.OfType<IDisposable>()];
+        return chart;
     }
 }

@@ -134,7 +134,16 @@ public static class SpecChartBuilder
             var index = 0;
             foreach (var series in DataSources.Expanded(spec.Series, catalog))
             {
-                catalog.FindType(series.Type)!.Apply(chart, series, prepared?[index] ?? Data(catalog, series, running), new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id));
+                var type = catalog.FindType(series.Type)!;
+                var data = prepared?[index] ?? Data(catalog, series, running);
+                type.Apply(chart, series, data, new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id));
+
+                // What keeps the data coming, such as live acquisitions, runs while the chart is shown.
+                if (running is not null && type.Start?.Invoke(series, data) is { } feed)
+                {
+                    running.Add(feed);
+                }
+
                 index++;
             }
         }
@@ -375,12 +384,12 @@ public static class SpecChartBuilder
         {
             var loaded = DataSources.Load(series, type, catalog, running);
             type.Prepare?.Invoke(series, loaded);
-            return loaded;
+            return type.Make?.Invoke(series, loaded) ?? loaded;
         }
 
         var sample = catalog.FindSample(series.Data.Sample)!;
         var data = sample.Create(Math.Max(sample.MinimumCount, series.Data.Count));
-        catalog.FindType(series.Type)!.Prepare?.Invoke(series, data);
-        return data;
+        type.Prepare?.Invoke(series, data);
+        return type.Make?.Invoke(series, data) ?? data;
     }
 }

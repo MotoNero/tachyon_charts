@@ -236,6 +236,18 @@ internal static class ShowroomPages
         new("Smith (interaktiv)", _ => Instrument(Series("smith", string.Empty, "seriesCircuit", 200, ("marker", 100.0)))),
         new("ParallelCoordinates", _ => Untitled(Instrument(Series("parallel", string.Empty, "sixColumns", 2000, ("names", "Volt, Strom, Temp, Druck, Hz, dB"), ("color", "#50AAF032"))), "ParallelCoordinates")),
         new("Parallel (interaktiv)", _ => Instrument(Series("parallel", string.Empty, "loads", 20_000, ("names", "V, A, °C, hPa, Hz, dB")))),
+        // The instruments: live on their pages, as still pictures in the gallery.
+        new("Oszilloskop (interaktiv)", _ => Instrument(Series("oscilloscope", string.Empty, "scope", 5000, [.. FourChannels, ("live", true)]))),
+        new("Oscilloscope", _ => Instrument(Series("oscilloscope", string.Empty, "scope", 5000, FourChannels))),
+        new("ColorGrade", _ => Instrument(Series("oscilloscope", string.Empty, "scope", 3000, ("channels", 1.0), ("signals", "Sine"), ("volts", "1"), ("positions", "0"), ("trigger", 0.0), ("persistence", "ColorGrade"), ("live", true), ("noise", 0.3)))),
+        new("Spektrum (interaktiv)", _ => Instrument(Series("spectrum", string.Empty, "noisyCarriers", 1500, ("maskLevel", -9.0), ("marker", -1.0), ("historyBelow", true), ("live", true)))),
+        new("Spectrum", _ => Instrument(Series("spectrum", string.Empty, "noisyCarriers", 1500, ("marker", -1.0)))),
+        new("Network (interaktiv)", _ => Instrument(Series("network", string.Empty, "filter", 801, ("secondMarker", 1.7e9)))),
+        new("Network", _ => Instrument(Series("network", string.Empty, "filter", 801, ("secondMarker", 1.7e9), ("failing", true)))),
+        new("Sweep monitor", _ => Monitor("Sweep", live: true)),
+        new("Stepping monitor", _ => Monitor("Stepping", live: true)),
+        new("Sweep", _ => Monitor("Sweep", live: false)),
+        new("Stepping", _ => Monitor("Stepping", live: false)),
         // The gallery: scenes that check single abilities of the charts.
         new("ScatterMarkers", _ =>
         {
@@ -446,6 +458,28 @@ internal static class ShowroomPages
     {
         spec.Title = title;
         Interactions(spec, interactions);
+        return spec;
+    }
+
+    // The four channels of the oscilloscope of the showroom: sine, square, burst and triangle, spread from top to bottom.
+    private static (string Name, object Value)[] FourChannels =>
+        [("channels", 4.0), ("signals", "Sine, Square, Burst, Triangle"), ("volts", "1, 0.5, 0.5, 0.5"), ("positions", "3, 1, -1, -3")];
+
+    // The patient monitor: live on its page from the start, as 8.4 s recorded in the gallery.
+    private static ChartSpec Monitor(string mode, bool live)
+    {
+        var spec = Instrument(Series("monitor", string.Empty, "patient", live ? 2 : 210_000,
+            ("mode", mode), ("gap", 0.03), ("names", "ECG I, ECG II, Pleth, Resp"), ("ranges", "-0.6..1.4, -0.6..1.4, -0.1..1.1, -1.2..1.2"), ("live", live), ("rate", 25_000.0)));
+        if (live)
+        {
+            (spec.Title, spec.Theme) = ("Monitor, 4 channels × 25 000 samples per second", null);
+            Interactions(spec, "axisdrag");
+        }
+        else
+        {
+            spec.Title = mode;
+        }
+
         return spec;
     }
 

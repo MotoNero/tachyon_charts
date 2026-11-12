@@ -55,6 +55,19 @@ Every color field has a swatch beside its hex value. A click opens the color pic
 
 Changes are worked on away from the window: the settings stay responsive while large data load, and the status line says how long data, code and preview took.
 
+## Instruments
+
+The instrument types reproduce what the instrument pages of the showroom show:
+
+| Type | Options |
+|---|---|
+| Oscilloscope | Channels with signal, volts per division and position; time base, trigger level, persistence. **Live acquisitions** at a rate, each at a random phase as from a free-running signal, with optional **noise**; the trigger holds the picture still. |
+| Spectrum analyzer | Reference level, dB per division, max hold, density, limit mask with its **level above 3.2 MHz**, marker, axes. **Live spectra** at a rate; **history below the trace** as a second chart from the same measurement, or the history alone. Samples: three carriers, three carriers in noise, a drifting carrier. |
+| Network analyzer | Level range, limit lines (the passing set, or **limits the filter fails**), a **second marker**. |
+| Sweep monitor | Sweep or stepping, gap, names and **range per channel** (`-0.6..1.4, …`), **live samples** at a rate after the newest one. Samples: three channels, or a patient monitor with four channels at 25 000 samples per second. |
+
+The generated code starts the same feeds with a timer it keeps in a field.
+
 ## Linked charts
 
 Some types fill several charts from one display; a click, a window or a measurement in one shows in all.

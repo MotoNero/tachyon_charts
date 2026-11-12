@@ -288,6 +288,12 @@ public sealed class ChartTypeInfo
     /// </summary>
     public Func<SeriesSpec, object, IDisposable?>? Start { get; init; }
 
+    /// <summary>
+    /// Gets how the data of a sample or source turn into what the type draws, such as the display of an oscilloscope
+    /// from its waveforms, after <see cref="Prepare"/>; <see langword="null"/> when the type draws them as they are.
+    /// </summary>
+    public Func<SeriesSpec, object, object>? Make { get; init; }
+
     /// <summary>Gets the number of columns the views are arranged in, by the settings; one when not given.</summary>
     public Func<SeriesSpec, int>? Columns { get; init; }
 
@@ -433,6 +439,9 @@ public sealed class ChartCatalog
     /// <returns>The description, or <see langword="null"/> when no module describes the page.</returns>
     public ChartSpec? CreatePage(string page) => _pages.Find(known => known.Page == page)?.Create(this);
 
+    // Whether a series fills linked charts by its settings.
+    private bool HasViews(SeriesSpec series) => FindType(series.Type)?.Views is { } views && views(series).Count > 0;
+
     /// <summary>Gets the linked charts of a description and their columns, or <see langword="null"/> for one chart.</summary>
     /// <param name="spec">The description.</param>
     /// <returns>The views and the number of columns.</returns>
@@ -445,7 +454,8 @@ public sealed class ChartCatalog
         }
 
         var series = spec.Series[0];
-        return (views(series), Math.Max(1, type.Columns?.Invoke(series) ?? 1));
+        var linked = views(series);
+        return linked.Count == 0 ? null : (linked, Math.Max(1, type.Columns?.Invoke(series) ?? 1));
     }
 
     /// <summary>Gets the interactions.</summary>
@@ -589,12 +599,12 @@ public sealed class ChartCatalog
             problems.Add($"The theme {theme} is unknown.");
         }
 
-        if (spec.ExportMenu && spec.Series.Exists(series => FindType(series.Type)?.Views is not null))
+        if (spec.ExportMenu && spec.Series.Exists(HasViews))
         {
             problems.Add("The export menu saves one chart; linked views leave it out.");
         }
 
-        if (spec.Annotations.Count > 0 && spec.Series.Exists(series => FindType(series.Type)?.Views is not null))
+        if (spec.Annotations.Count > 0 && spec.Series.Exists(HasViews))
         {
             problems.Add("Annotations go into a single chart; linked charts leave them out.");
         }

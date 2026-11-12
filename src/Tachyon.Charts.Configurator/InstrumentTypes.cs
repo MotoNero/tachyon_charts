@@ -13,11 +13,10 @@ namespace Tachyon.Charts.Configurator;
 internal static class InstrumentTypes
 {
     private static readonly double[] _maskFrequencies = [0, 3e6, 3.2e6, 1e7];
-    private static readonly double[] _maskLevels = [-5, -5, -25, -25];
 
     public static IReadOnlyList<ChartTypeInfo> Create() => [Oscilloscope(), Spectrum(), Network(), Monitor()];
 
-    public static IReadOnlyList<SampleInfo> Samples() => [ScopeSample(), SpectrumSample(), DriftSample(), NetworkSample(), MonitorSample()];
+    public static IReadOnlyList<SampleInfo> Samples() => [ScopeSample(), SpectrumSample(), CarriersSample(), DriftSample(), NetworkSample(), MonitorSample(), PatientSample()];
 
     private static readonly string[] _signals = ["Sine", "Square", "Burst", "Triangle"];
 
@@ -37,8 +36,16 @@ internal static class InstrumentTypes
             new("timeOffset", "Time offset in s", ParameterKind.Number, 0.0),
             new("trigger", "Trigger level in V", ParameterKind.Number, 0.5),
             new("persistence", "Persistence", ParameterKind.Choice, nameof(ScopePersistence.Off)) { Choices = Enum.GetNames<ScopePersistence>() },
+            new("live", "Live acquisitions", ParameterKind.Flag, false) { Description = "New acquisitions keep coming, each at a random phase as from a free-running signal; the trigger holds the picture still." },
+            new("rate", "Acquisitions per second", ParameterKind.Number, 30.0) { Minimum = 1, Maximum = 200 },
+            new("noise", "Noise in V", ParameterKind.Number, 0.0) { Minimum = 0, Description = "With live acquisitions: noise on the signals, which also lets their amplitude vary." },
         ],
-        (chart, series, data, _) =>
+        (chart, _, data, _) => chart.Oscilloscope((ScopeDisplay)data),
+        (_, data, _) => $".Oscilloscope({data}Display)")
+    {
+        Usings = ["Tachyon.Charts.Core.Instruments"],
+        OwnsAxes = true,
+        Make = (series, data) =>
         {
             var ((time, waves), values) = (((double[], float[][]))data, series.Parameters);
             var scope = new ScopeDisplay
@@ -55,12 +62,12 @@ internal static class InstrumentTypes
                 channel.SetWaveform(time, waves[signal]);
             }
 
-            chart.Oscilloscope(scope);
+            return scope;
         },
-        (_, data, _) => $".Oscilloscope({data}Display)")
-    {
-        Usings = ["Tachyon.Charts.Core.Instruments"],
-        OwnsAxes = true,
+        Start = (series, data) => series.Parameters.GetFlag("live", false)
+            ? ScopeFeed.Start((ScopeDisplay)data, [.. Channels(series.Parameters).Select(channel => channel.Signal)], series.Parameters.GetNumber("noise", 0), series.Parameters.GetNumber("rate", 30))
+            : null,
+        Helpers = ScopeFeed.Code,
         Region = (series, _) => (new ScopeDisplay { TimePerDivision = series.Parameters.GetNumber("timePerDivision", 5e-4), TimeOffset = series.Parameters.GetNumber("timeOffset", 0) }.GetTimeRange(), Level(Channels(series.Parameters)[0])),
         PrepareCode = (series, data) =>
         {
@@ -75,6 +82,11 @@ internal static class InstrumentTypes
                 $"    channel.SetWaveform({data}.Time, {data}.Waves[signal]);",
                 "}",
             };
+            if (values.GetFlag("live", false))
+            {
+                lines.Add($"StartAcquisitions({data}Display, [{string.Join(", ", Channels(values).Select(channel => channel.Signal.ToString(System.Globalization.CultureInfo.InvariantCulture)))}], {CodeText.Number(values.GetNumber("noise", 0))}, {CodeText.Number(values.GetNumber("rate", 30))});");
+            }
+
             return lines;
         },
     };
@@ -120,7 +132,10 @@ internal static class InstrumentTypes
         "spectrum",
         [
             .. SpectrumSettings(),
-            new("history", "History below", ParameterKind.Flag, false) { Description = "The spectra over time as a waterfall below the trace." },
+            new("history", "History only", ParameterKind.Flag, false) { Description = "The spectra over time as a waterfall instead of the trace." },
+            new("historyBelow", "History below the trace", ParameterKind.Flag, false) { Description = "A second chart below the trace with the spectra over time, both from the same measurement." },
+            new("live", "Live spectra", ParameterKind.Flag, false) { Description = "New spectra keep coming, as from a measurement." },
+            new("rate", "Spectra per second", ParameterKind.Number, 30.0) { Minimum = 1, Maximum = 200 },
         ],
         (chart, series, data, _) =>
         {
@@ -139,8 +154,29 @@ internal static class InstrumentTypes
         OwnsAxes = true,
         Region = (_, data) => SpectrumRegion((SpectrumDisplay)data),
         Prepare = (series, data) => PrepareSpectrum(series.Parameters, (SpectrumDisplay)data),
-        PrepareCode = (series, data) => PrepareSpectrumCode(series.Parameters, data),
+        PrepareCode = (series, data) =>
+        [
+            .. PrepareSpectrumCode(series.Parameters, data),
+            .. series.Parameters.GetFlag("live", false)
+                ? [series.Data.Sample == "drift" ? $"StartFeed({data}, {CodeText.Number(series.Parameters.GetNumber("rate", 30))});" : $"StartSpectra({data}, {LiveFrequencies(series).ToString(System.Globalization.CultureInfo.InvariantCulture)}, {CodeText.Number(series.Parameters.GetNumber("rate", 30))});"]
+                : Array.Empty<string>(),
+        ],
+        Views = series => series.Parameters.GetFlag("historyBelow", false)
+            ?
+            [
+                new ViewInfo("Spectrum", (chart, _, data) => chart.Spectrum((SpectrumDisplay)data), (_, data) => $"chart.Spectrum({data});"),
+                new ViewInfo("History", (chart, _, data) => chart.SpectrumHistory((SpectrumDisplay)data), (_, data) => $"chart.SpectrumHistory({data});"),
+            ]
+            : [],
+        Columns = _ => 1,
+        Start = (series, data) => !series.Parameters.GetFlag("live", false) ? null
+            : series.Data.Sample == "drift" ? SpectrumFeed.Start((SpectrumDisplay)data, series.Parameters.GetNumber("rate", 30))
+            : CarrierFeed.Start((SpectrumDisplay)data, LiveFrequencies(series), series.Parameters.GetNumber("rate", 30)),
+        Helpers = SpectrumFeed.StartCode + CarrierFeed.StartCode,
     };
+
+    // The frequencies of live spectra: as many as the sample has.
+    private static int LiveFrequencies(SeriesSpec series) => Math.Max(16, series.Data.Count);
 
     /// <summary>Gets the settings of a spectrum analyzer that other types with a spectrum share.</summary>
     /// <returns>The parameters.</returns>
@@ -151,6 +187,7 @@ internal static class InstrumentTypes
         new("maxHold", "Max hold", ParameterKind.Flag, false),
         new("density", "Density", ParameterKind.Flag, true),
         new("mask", "Limit mask", ParameterKind.Flag, true),
+        new("maskLevel", "Mask above 3.2 MHz in dBm", ParameterKind.Number, -25.0) { Description = "The limit of the mask beyond the carrier at 2 MHz; below 3 MHz it stays at -5 dBm." },
         new("marker", "Marker in Hz", ParameterKind.Number, 2e6) { Description = "A negative value for none." },
         new("axes", "Axes with numbers", ParameterKind.Flag, false) { Description = "The frequency below with its unit and the level in dBm on the left; without, the readings in the corners name them." },
     ];
@@ -169,9 +206,15 @@ internal static class InstrumentTypes
         spectrum.SetView(spectrum.Start, spectrum.Stop, values.GetNumber("reference", 0), values.GetNumber("perDivision", 10));
         spectrum.ShowsMaxHold = values.GetFlag("maxHold", false);
         spectrum.ShowsDensity = values.GetFlag("density", true);
-        spectrum.Mask = values.GetFlag("mask", true) ? new FrequencyMask(_maskFrequencies, _maskLevels) : null;
+        spectrum.Mask = values.GetFlag("mask", true) ? new FrequencyMask(_maskFrequencies, MaskLevels(values)) : null;
         spectrum.MarkerFrequency = values.GetNumber("marker", 2e6) >= 0 ? values.GetNumber("marker", 2e6) : null;
         spectrum.ShowsAxes = values.GetFlag("axes", false);
+    }
+
+    private static double[] MaskLevels(SpecValues values)
+    {
+        var level = values.GetNumber("maskLevel", -25);
+        return [-5, -5, level, level];
     }
 
     /// <summary>Writes <see cref="PrepareSpectrum"/> as C# statements.</summary>
@@ -186,7 +229,7 @@ internal static class InstrumentTypes
             $"{data}.ShowsMaxHold = {CodeText.Flag(values.GetFlag("maxHold", false))};",
             $"{data}.ShowsDensity = {CodeText.Flag(values.GetFlag("density", true))};",
             values.GetFlag("mask", true)
-                ? $"{data}.Mask = new FrequencyMask([{string.Join(", ", _maskFrequencies.Select(CodeText.Number))}], [{string.Join(", ", _maskLevels.Select(CodeText.Number))}]);"
+                ? $"{data}.Mask = new FrequencyMask([{string.Join(", ", _maskFrequencies.Select(CodeText.Number))}], [{string.Join(", ", MaskLevels(values).Select(CodeText.Number))}]);"
                 : $"{data}.Mask = null;",
         };
         lines.Add(values.GetNumber("marker", 2e6) >= 0 ? $"{data}.MarkerFrequency = {CodeText.Number(values.GetNumber("marker", 2e6))};" : $"{data}.MarkerFrequency = null;");
@@ -208,7 +251,9 @@ internal static class InstrumentTypes
             new("minimum", "Lowest level in dB", ParameterKind.Number, -70.0),
             new("maximum", "Highest level in dB", ParameterKind.Number, 5.0),
             new("limits", "Limit lines", ParameterKind.Flag, true),
+            new("failing", "Limits the filter fails", ParameterKind.Flag, false) { Description = "Stricter limits of the stop band and a wider one of the reflection, which the filter misses." },
             new("marker", "Marker in Hz", ParameterKind.Number, 1.5e9) { Description = "A negative value for none." },
+            new("secondMarker", "Second marker in Hz", ParameterKind.Number, -1.0) { Description = "A negative value for none." },
         ],
         (chart, series, data, _) =>
         {
@@ -226,13 +271,18 @@ internal static class InstrumentTypes
             var (network, values) = ((NetworkDisplay)data, series.Parameters);
             if (values.GetFlag("limits", true))
             {
-                network.Traces[0].AddLimit(new LimitLine(LimitKind.Minimum, 1.45e9, -1, 1.55e9, -1));
-                network.Traces[0].AddLimit(new LimitLine(LimitKind.Maximum, 1e9, -20, 1.15e9, -20));
+                foreach (var (trace, limit) in Limits(values.GetFlag("failing", false)))
+                {
+                    network.Traces[trace].AddLimit(limit);
+                }
             }
 
-            if (values.GetNumber("marker", 1.5e9) >= 0)
+            foreach (var marker in (ReadOnlySpan<double>)[values.GetNumber("marker", 1.5e9), values.GetNumber("secondMarker", -1)])
             {
-                network.AddMarker(values.GetNumber("marker", 1.5e9));
+                if (marker >= 0)
+                {
+                    network.AddMarker(marker);
+                }
             }
         },
         PrepareCode = (series, data) =>
@@ -241,18 +291,27 @@ internal static class InstrumentTypes
             var lines = new List<string>();
             if (values.GetFlag("limits", true))
             {
-                lines.Add($"{data}.Traces[0].AddLimit(new LimitLine(LimitKind.Minimum, 1.45E9, -1, 1.55E9, -1));");
-                lines.Add($"{data}.Traces[0].AddLimit(new LimitLine(LimitKind.Maximum, 1E9, -20, 1.15E9, -20));");
+                lines.AddRange(Limits(values.GetFlag("failing", false)).Select(pair =>
+                    $"{data}.Traces[{pair.Trace}].AddLimit(new LimitLine(LimitKind.{pair.Limit.Kind}, {CodeText.Number(pair.Limit.StartFrequency)}, {CodeText.Number(pair.Limit.StartLevel)}, {CodeText.Number(pair.Limit.StopFrequency)}, {CodeText.Number(pair.Limit.StopLevel)}));"));
             }
 
-            if (values.GetNumber("marker", 1.5e9) >= 0)
+            foreach (var marker in new[] { values.GetNumber("marker", 1.5e9), values.GetNumber("secondMarker", -1) }.Where(marker => marker >= 0))
             {
-                lines.Add($"{data}.AddMarker({CodeText.Number(values.GetNumber("marker", 1.5e9))});");
+                lines.Add($"{data}.AddMarker({CodeText.Number(marker)});");
             }
 
             return lines;
         },
     };
+
+    // The limits of the band pass: the pass band, the stop band below it and the reflection in the pass band; the
+    // failing ones are stricter in the stop band and wider in the reflection.
+    private static (int Trace, LimitLine Limit)[] Limits(bool failing) =>
+    [
+        (0, new LimitLine(LimitKind.Minimum, 1.45e9, -1, 1.55e9, -1)),
+        (0, failing ? new LimitLine(LimitKind.Maximum, 1e9, -40, 1.25e9, -40) : new LimitLine(LimitKind.Maximum, 1e9, -20, 1.15e9, -20)),
+        (1, failing ? new LimitLine(LimitKind.Maximum, 1.4e9, -20, 1.6e9, -20) : new LimitLine(LimitKind.Maximum, 1.47e9, -20, 1.53e9, -20)),
+    ];
 
     private static ChartTypeInfo Monitor() => new(
         "monitor",
@@ -264,21 +323,53 @@ internal static class InstrumentTypes
             new("mode", "Mode", ParameterKind.Choice, nameof(SweepMode.Sweep)) { Choices = Enum.GetNames<SweepMode>() },
             new("gap", "Gap as share of the width", ParameterKind.Number, 0.04) { Minimum = 0, Maximum = 0.5 },
             new("names", "Names of the channels", ParameterKind.Text, "ECG, Pleth, Resp") { Description = "One per channel, separated by commas." },
+            new("ranges", "Range per channel", ParameterKind.Text, string.Empty) { Description = "From..to per channel, separated by commas, such as -0.6..1.4; a missing one is -1.5..1.5." },
+            new("live", "Live samples", ParameterKind.Flag, false) { Description = "New samples keep coming after the newest one." },
+            new("rate", "Samples per second", ParameterKind.Number, 1000.0) { Minimum = 1, Maximum = 100_000 },
         ],
-        (chart, series, data, _) => chart.Sweep((SweepData)data, [new DoubleRange(-1.5, 1.5), new DoubleRange(-1.5, 1.5), new DoubleRange(-1.5, 1.5)], Names(series)),
-        (series, data, _) => $".Sweep({data}, [new DoubleRange(-1.5, 1.5), new DoubleRange(-1.5, 1.5), new DoubleRange(-1.5, 1.5)], [{string.Join(", ", Names(series).Select(CodeText.String))}])")
+        (chart, series, data, _) => chart.Sweep((SweepData)data, Ranges(series, ((SweepData)data).Channels), Names(series)),
+        (series, data, _) => series.Parameters.GetText("ranges", string.Empty).Trim().Length == 0
+            ? $".Sweep({data}, Enumerable.Repeat(new DoubleRange(-1.5, 1.5), {data}.Channels).ToArray(), [{string.Join(", ", Names(series).Select(CodeText.String))}])"
+            : $".Sweep({data}, new[] {{ {string.Join(", ", Ranges(series, 0).Select(range => $"new DoubleRange({CodeText.Number(range.Min)}, {CodeText.Number(range.Max)})"))} }}.Concat(Enumerable.Repeat(new DoubleRange(-1.5, 1.5), {data}.Channels)).Take({data}.Channels).ToArray(), [{string.Join(", ", Names(series).Select(CodeText.String))}])")
     {
-        Usings = ["Tachyon.Charts.Core.Data", "Tachyon.Charts.Core.Numerics", "Tachyon.Charts.Core.Series"],
+        Usings = ["Tachyon.Charts.Core.Data", "Tachyon.Charts.Core.Numerics", "Tachyon.Charts.Core.Series", "System.Diagnostics"],
         OwnsAxes = true,
-        Region = (_, data) => (new DoubleRange(0, ((SweepData)data).Window), new DoubleRange(-1.5, 1.5)),
+        Region = (series, data) => (new DoubleRange(0, ((SweepData)data).Window), Ranges(series, 1)[0]),
+        Start = (series, data) => series.Parameters.GetFlag("live", false) ? SweepFeed.Start((SweepData)data, series.Parameters.GetNumber("rate", 1000)) : null,
+        Helpers = SweepFeed.Code,
         Prepare = (series, data) =>
         {
             var monitor = (SweepData)data;
             monitor.Mode = Enum.Parse<SweepMode>(series.Parameters.GetText("mode", nameof(SweepMode.Sweep)));
             monitor.GapShare = series.Parameters.GetNumber("gap", 0.04);
         },
-        PrepareCode = (series, data) => [$"{data}.Mode = SweepMode.{series.Parameters.GetText("mode", nameof(SweepMode.Sweep))};", $"{data}.GapShare = {CodeText.Number(series.Parameters.GetNumber("gap", 0.04))};"],
+        PrepareCode = (series, data) =>
+        [
+            $"{data}.Mode = SweepMode.{series.Parameters.GetText("mode", nameof(SweepMode.Sweep))};",
+            $"{data}.GapShare = {CodeText.Number(series.Parameters.GetNumber("gap", 0.04))};",
+            .. series.Parameters.GetFlag("live", false) ? [$"StartSamples({data}, {CodeText.Number(series.Parameters.GetNumber("rate", 1000))});"] : Array.Empty<string>(),
+        ],
     };
+
+    // The range of each channel as the list gives it; a missing or unreadable one is -1.5..1.5. With a count of 0, as many
+    // as the list has.
+    private static DoubleRange[] Ranges(SeriesSpec series, int count)
+    {
+        var parts = series.Parameters.GetText("ranges", string.Empty).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        var ranges = new DoubleRange[count > 0 ? count : parts.Length];
+        for (var c = 0; c < ranges.Length; c++)
+        {
+            var ends = c < parts.Length ? parts[c].Split("..") : [];
+            ranges[c] = ends.Length == 2
+                && double.TryParse(ends[0], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var from)
+                && double.TryParse(ends[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var to)
+                && from < to
+                    ? new DoubleRange(from, to)
+                    : new DoubleRange(-1.5, 1.5);
+        }
+
+        return ranges;
+    }
 
     private static string[] Names(SeriesSpec series) =>
         series.Parameters.GetText("names", string.Empty).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
@@ -426,6 +517,41 @@ internal static class InstrumentTypes
             """)
     { MinimumCount = 2 };
 
+    // Three carriers in noise as a measurement delivers them: the last of 60 spectra.
+    private static SampleInfo CarriersSample() => new(
+        "noisyCarriers",
+        "Three carriers in noise",
+        DataShape.Spectrum,
+        1500,
+        count =>
+        {
+            var display = new SpectrumDisplay();
+            display.SetView(0, 1e7, 0);
+            var (frequencies, levels, random) = (new double[count], new float[count], new Random(1)); // NOSONAR: makes sample data, no security
+            for (var sweep = 0; sweep < 60; sweep++)
+            {
+                CarrierFeed.Deliver(display, frequencies, levels, random);
+            }
+
+            return display;
+        },
+        "SpectrumDisplay",
+        method => SampleCatalog.Header("three carriers in noise, the last of 60 spectra", method, "SpectrumDisplay", "The number of frequencies.") + """
+                {
+                    var display = new SpectrumDisplay();
+                    display.SetView(0, 1e7, 0);
+                    var (frequencies, levels, random) = (new double[count], new float[count], new Random(1));
+                    for (var sweep = 0; sweep < 60; sweep++)
+                    {
+                        Deliver(display, frequencies, levels, random);
+                    }
+
+                    return display;
+                }
+
+            """ + CarrierFeed.DeliverCode)
+    { MinimumCount = 16 };
+
     // A band pass around 1.5 GHz: transmission S21 and reflection S11 from 1 to 2 GHz.
     private static SampleInfo NetworkSample() => new(
         "filter",
@@ -510,6 +636,56 @@ internal static class InstrumentTypes
                     data.Append(times, values);
                     return data;
                 }
+
+            """)
+    { MinimumCount = 2 };
+
+    // Four channels of a patient monitor at 25 000 samples per second over a window of 6 s: two leads of a heartbeat, a
+    // pulse wave and breathing.
+    private static SampleInfo PatientSample() => new(
+        "patient",
+        "Patient monitor, four channels",
+        DataShape.Sweep,
+        210_000,
+        count =>
+        {
+            var data = new SweepData(4, 175_000, 6);
+            var values = new float[4];
+            for (var i = 0; i < count; i++)
+            {
+                SweepFeed.Values(i / 25_000.0, values);
+                data.Append(i / 25_000.0, values);
+            }
+
+            return data;
+        },
+        "SweepData",
+        method => SampleCatalog.Header("two leads of a heartbeat, a pulse wave and breathing, 25 000 samples per second", method, "SweepData", "The number of samples per channel.") + """
+                {
+                    var data = new SweepData(4, 175_000, 6);
+                    var values = new float[4];
+                    for (var i = 0; i < count; i++)
+                    {
+                        Values(i / 25_000.0, values);
+                        data.Append(i / 25_000.0, values);
+                    }
+
+                    return data;
+                }
+
+                // The values of the four channels at a time: two leads of a heartbeat, a pulse wave and breathing.
+                private static void Values(double time, float[] values)
+                {
+                    var beat = time * 72 / 60 % 1;
+                    var ecg = (0.12 * Bell(beat, 0.18, 0.025)) - (0.15 * Bell(beat, 0.36, 0.008)) + Bell(beat, 0.39, 0.010) - (0.25 * Bell(beat, 0.42, 0.010)) + (0.3 * Bell(beat, 0.62, 0.045));
+                    values[0] = (float)ecg;
+                    values[1] = (float)((ecg * 0.8) + (0.05 * Math.Sin(time * 2 * Math.PI * 0.3)));
+                    var pulse = (beat + 0.85) % 1;
+                    values[2] = (float)((0.9 * Bell(pulse, 0.25, 0.07)) + (0.3 * Bell(pulse, 0.5, 0.06)));
+                    values[3] = (float)Math.Sin(time * 2 * Math.PI * 0.25);
+                }
+
+                private static double Bell(double x, double center, double width) => Math.Exp(-((x - center) * (x - center)) / (2 * width * width));
 
             """)
     { MinimumCount = 2 };
