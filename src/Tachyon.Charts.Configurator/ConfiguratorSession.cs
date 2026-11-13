@@ -687,6 +687,7 @@ public sealed class ConfiguratorSession
             fields.Add(Field(group, new("source", "Data from", ParameterKind.Choice, nameof(DataKind.Sample)) { Choices = [.. kinds.Select(kind => kind.ToString())] }, () => data.Kind.ToString(), value =>
             {
                 data.Kind = Enum.Parse<DataKind>((string)value);
+                ForgetSceneAxes();
                 if (data.Kind == DataKind.Live && Catalog.FindSample(data.Sample)?.Curve is null)
                 {
                     data.Sample = Catalog.Samples.First(sample => sample.Curve is not null).Id;
@@ -724,7 +725,11 @@ public sealed class ConfiguratorSession
 
                 break;
             case DataKind.File:
-                fields.Add(Field(group, new("file", "File", ParameterKind.File, string.Empty) { Description = "Points: XYZ, PLY or LAS; volumes: NIfTI or raw; models: STL or OBJ." }, () => data.Path ?? string.Empty, value => data.Path = (string)value));
+                fields.Add(Field(group, new("file", "File", ParameterKind.File, string.Empty) { Description = "Points: XYZ, PLY or LAS; volumes: NIfTI or raw; models: STL or OBJ." }, () => data.Path ?? string.Empty, value =>
+                {
+                    data.Path = (string)value;
+                    ForgetSceneAxes();
+                }, structural: true));
                 break;
             case DataKind.Live:
                 fields.Add(Field(group, new("curve", "Curve", ParameterKind.Choice, data.Sample) { Choices = [.. Catalog.Samples.Where(sample => sample.Curve is not null).Select(sample => sample.Id)] }, () => data.Sample, value => data.Sample = (string)value));
@@ -732,7 +737,11 @@ public sealed class ConfiguratorSession
                 fields.Add(Field(group, new("count", "Points kept", ParameterKind.Integer, 1000.0) { Minimum = 2, Maximum = 10_000_000 }, () => (double)data.Count, value => data.Count = (int)(double)value));
                 break;
             default:
-                fields.Add(Field(group, new("sample", "Sample data", ParameterKind.Choice, type.DefaultSample) { Choices = samples }, () => data.Sample, value => data.Sample = (string)value));
+                fields.Add(Field(group, new("sample", "Sample data", ParameterKind.Choice, type.DefaultSample) { Choices = samples }, () => data.Sample, value =>
+                {
+                    data.Sample = (string)value;
+                    ForgetSceneAxes();
+                }, structural: true));
                 if (Catalog.FindSample(data.Sample)?.HasCount == false)
                 {
                     break;
@@ -865,6 +874,21 @@ public sealed class ConfiguratorSession
                 Refresh();
             }
         });
+
+    // Ranges and titles a 3D scene sets for its axes belong to the data it had; with other data the axes follow them again.
+    private void ForgetSceneAxes()
+    {
+        if (Catalog.SceneOf(_spec) is null)
+        {
+            return;
+        }
+
+        foreach (var axis in (ReadOnlySpan<string>)["x", "y", "z"])
+        {
+            _spec.Scene.Remove(axis + "Range");
+            _spec.Scene.Remove(axis + "Title");
+        }
+    }
 
     private void Toggle(ModifierInfo info, bool on)
     {
