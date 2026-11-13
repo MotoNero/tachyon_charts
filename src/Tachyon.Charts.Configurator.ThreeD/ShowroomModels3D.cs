@@ -16,6 +16,12 @@ namespace Tachyon.Charts.Configurator.ThreeD;
 internal static class ShowroomModels3D
 {
     private const string Model = "ModelFileData";
+    private const string PipeType = "(ModelFileData Model, double[] Values)";
+
+    /// <summary>Gets a value indicating whether the data of a series bring a value per corner besides the model.</summary>
+    /// <param name="series">The series.</param>
+    /// <returns>Whether its sample makes the model with values.</returns>
+    public static bool HasValues(SeriesSpec series) => series.Data.Kind == DataKind.Sample && series.Data.Sample == "pipeBend";
     private const double Leg = 40;
     private const double Bend = 60;
     private const double Outer = 15;
@@ -54,8 +60,8 @@ internal static class ShowroomModels3D
                 }
 
             """) { HasCount = false },
-        new("pipeBend", "A pipe bend, wall temperature in °C", DataShape.Model, 96, _ => Pipe(), Model, method => SampleCatalog.Header("a pipe bend with flanges, colored by the temperature of its wall from 55 to 115 °C", method, Model, "Not used: 96 corners around.") + PipeCode) { HasCount = false },
-        new("tubeKnot", "A knot of tube, colored by height", DataShape.Model, 4000, _ => Knot(), Model, method => SampleCatalog.Header("a knot of tube of a million triangles, colored by height", method, Model, "Not used: 4000 rings of 125 corners.") + KnotCode) { HasCount = false },
+        new("pipeBend", "A pipe bend with the temperature of its wall", DataShape.Model, 96, _ => Pipe(), PipeType, method => SampleCatalog.Header("a pipe bend with flanges and the temperature of its wall in °C at each corner", method, PipeType, "Not used: 96 corners around.") + PipeCode) { HasCount = false },
+        new("tubeKnot", "A knot of tube", DataShape.Model, 4000, _ => Knot(), Model, method => SampleCatalog.Header("a knot of tube of a million triangles", method, Model, "Not used: 4000 rings of 125 corners.") + KnotCode) { HasCount = false },
         new("testZone", "A zone where a test runs", DataShape.Model, 1, _ => Zone(), Model, method => SampleCatalog.Header("an upright zone where a test runs", method, Model, "Not used.") + """
                 {
                     var zone = Shapes3D.Rectangle(new Point3D(4.5, 0, -1.5), new Point3D(0, 6, 0), new Point3D(0, 0, 3.5), new Rgba8(58, 134, 255, 255));
@@ -204,7 +210,7 @@ internal static class ShowroomModels3D
 
     // The pipe: flanges and the bend as rings of triangles, written and read as STL like a file, colored by the
     // temperature of the wall with a hot spot on the outside of the bend.
-    private static ModelFileData Pipe()
+    private static (ModelFileData Model, double[] Values) Pipe()
     {
         const int Around = 96;
         const int BendSteps = 48;
@@ -237,16 +243,15 @@ internal static class ShowroomModels3D
 
         var model = ModelFile.ReadStl(new MemoryStream(bytes));
         var spot = Middle(Leg + (Bend * Math.PI / 4)) + (new Point3D(Math.Sin(Math.PI / 4), 0, -Math.Cos(Math.PI / 4)) * Outer);
-        var colors = new Rgba8[model.Positions.Length];
-        for (var i = 0; i < colors.Length; i++)
+        var temperatures = new double[model.Positions.Length];
+        for (var i = 0; i < temperatures.Length; i++)
         {
             var place = model.Positions[i];
             var distance = (place - spot).Length;
-            var temperature = 92 - (34 * Along(place) / _pipeLength) + (26 * Math.Exp(-distance * distance / 500));
-            colors[i] = Colormaps.Turbo.Sample(Math.Clamp((temperature - 55) / 60, 0, 1));
+            temperatures[i] = 92 - (34 * Along(place) / _pipeLength) + (26 * Math.Exp(-distance * distance / 500));
         }
 
-        return new ModelFileData(model.Positions, model.Triangles, colors);
+        return (model, temperatures);
     }
 
     private static Point3D Middle(double s)
@@ -328,17 +333,18 @@ internal static class ShowroomModels3D
                 }
 
                 var model = ModelFile.ReadStl(new MemoryStream(bytes));
+                // The temperature of the wall: hot water enters at the first flange and cools down, with a hot spot on the
+                // outside of the bend.
                 var spot = Middle(Leg + (Bend * Math.PI / 4)) + (new Point3D(Math.Sin(Math.PI / 4), 0, -Math.Cos(Math.PI / 4)) * Outer);
-                var colors = new Rgba8[model.Positions.Length];
-                for (var i = 0; i < colors.Length; i++)
+                var temperatures = new double[model.Positions.Length];
+                for (var i = 0; i < temperatures.Length; i++)
                 {
                     var place = model.Positions[i];
                     var distance = (place - spot).Length;
-                    var temperature = 92 - (34 * Along(place) / PipeLength) + (26 * Math.Exp(-distance * distance / 500));
-                    colors[i] = Colormaps.Turbo.Sample(Math.Clamp((temperature - 55) / 60, 0, 1));
+                    temperatures[i] = 92 - (34 * Along(place) / PipeLength) + (26 * Math.Exp(-distance * distance / 500));
                 }
 
-                return new ModelFileData(model.Positions, model.Triangles, colors);
+                return (model, temperatures);
             }
 
             // The pipe in mm: two legs of 40 joined by a bend of radius 60, outside 15, inside 12, flanges of 25.
@@ -416,7 +422,7 @@ internal static class ShowroomModels3D
 
         var start = KnotTangent(0);
         var turn = Math.Atan2(Point3D.Dot(Point3D.Cross(frames[0], frames[Along]), start), Point3D.Dot(frames[0], frames[Along]));
-        var (positions, colors) = (new Point3D[Along * Around], new Rgba8[Along * Around]);
+        var positions = new Point3D[Along * Around];
         for (var i = 0; i < Along; i++)
         {
             var t = 2 * Math.PI * i / Along;
@@ -425,9 +431,7 @@ internal static class ShowroomModels3D
             for (var j = 0; j < Around; j++)
             {
                 var angle = (2 * Math.PI * j / Around) - (turn * i / Along);
-                var place = middle + (((frame * Math.Cos(angle)) + (side * Math.Sin(angle))) * 0.42);
-                positions[(i * Around) + j] = place;
-                colors[(i * Around) + j] = Colormaps.Viridis.Sample(Math.Clamp((place.Z + 1.4) / 2.8, 0, 1));
+                positions[(i * Around) + j] = middle + (((frame * Math.Cos(angle)) + (side * Math.Sin(angle))) * 0.42);
             }
         }
 
@@ -445,7 +449,7 @@ internal static class ShowroomModels3D
             }
         }
 
-        return new ModelFileData(positions, triangles, colors);
+        return new ModelFileData(positions, triangles, null);
     }
 
     private static Point3D KnotTangent(double t) => (KnotAt(t + 1e-4) - KnotAt(t - 1e-4)).Normalized();
@@ -466,7 +470,7 @@ internal static class ShowroomModels3D
 
                 var start = KnotTangent(0);
                 var turn = Math.Atan2(Point3D.Dot(Point3D.Cross(frames[0], frames[Along]), start), Point3D.Dot(frames[0], frames[Along]));
-                var (positions, colors) = (new Point3D[Along * Around], new Rgba8[Along * Around]);
+                var positions = new Point3D[Along * Around];
                 for (var i = 0; i < Along; i++)
                 {
                     var t = 2 * Math.PI * i / Along;
@@ -475,9 +479,7 @@ internal static class ShowroomModels3D
                     for (var j = 0; j < Around; j++)
                     {
                         var angle = (2 * Math.PI * j / Around) - (turn * i / Along);
-                        var place = middle + (((frame * Math.Cos(angle)) + (side * Math.Sin(angle))) * 0.42);
-                        positions[(i * Around) + j] = place;
-                        colors[(i * Around) + j] = Colormaps.Viridis.Sample(Math.Clamp((place.Z + 1.4) / 2.8, 0, 1));
+                        positions[(i * Around) + j] = middle + (((frame * Math.Cos(angle)) + (side * Math.Sin(angle))) * 0.42);
                     }
                 }
 
@@ -495,7 +497,7 @@ internal static class ShowroomModels3D
                     }
                 }
 
-                return new ModelFileData(positions, triangles, colors);
+                return new ModelFileData(positions, triangles, null);
             }
 
             private static Point3D KnotTangent(double t) => (KnotAt(t + 1e-4) - KnotAt(t - 1e-4)).Normalized();

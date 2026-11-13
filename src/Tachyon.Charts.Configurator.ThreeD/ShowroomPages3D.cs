@@ -50,12 +50,12 @@ internal static class ShowroomPages3D
         new("Axis box", catalog => Scene(catalog, "Axis box", "box3d", "scattered", 400, [], Box("0..10", "Time in s", "-5..5", "Offset in mm", "0..100", "Level in dB"))),
         new("Model with measuring points", catalog =>
         {
-            var spec = Scene(catalog, "Pipe bend, wall temperature in °C", "model3d", "pipeBend", 96, [("gloss", 0.3), ("colorScale", true), ("colormap", "Turbo"), ("scaleFrom", 55.0), ("scaleTo", 115.0), ("scaleTitle", "°C")], Box("-1.25..126.25", "x in mm", "-63.75..63.75", "y in mm", "-26.25..101.25", "z in mm"));
+            var spec = Scene(catalog, "Pipe bend, wall temperature in °C", "model3d", "pipeBend", 96, [("gloss", 0.3), ("colorBy", "Values"), ("colormap", "Turbo"), ("scaleFrom", 55.0), ("scaleTo", 115.0), ("scaleTitle", "°C")], Box("-1.25..126.25", "x in mm", "-63.75..63.75", "y in mm", "-26.25..101.25", "z in mm"));
             spec.Series.Add(Series(catalog, "scatter3d", "pipeSensors", 9));
             spec.Scene.Set("planes", "0 1 0 @ -0.05");
             return spec;
         }),
-        new("Model of 1 million triangles", catalog => Scene(catalog, "Knot of tube, colored by height", "model3d", "tubeKnot", 4000, [("gloss", 0.4), ("sharpness", 48.0), ("colorScale", true), ("colormap", "Viridis"), ("scaleFrom", -1.4), ("scaleTo", 1.4), ("scaleTitle", "Height in m")], Box("-2.99531..3.630977", "x in m", "-3.313152..3.313136", "y in m", "-3.313141..3.313146", "z in m"))),
+        new("Model of 1 million triangles", catalog => Scene(catalog, "Knot of tube, colored by height", "model3d", "tubeKnot", 4000, [("gloss", 0.4), ("sharpness", 48.0), ("colorBy", "Height"), ("colormap", "Viridis"), ("scaleFrom", -1.4), ("scaleTo", 1.4), ("scaleTitle", "Height in m")], Box("-2.99531..3.630977", "x in m", "-3.313152..3.313136", "y in m", "-3.313141..3.313146", "z in m"))),
         new("Path of 200 000 points", catalog => Scene(catalog, "Path of a particle", "line3d", "particlePath", 200_000, [], Box("-25..25", "x", "-30..30", "y", "0..55", "z"))),
     ];
 

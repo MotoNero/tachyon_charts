@@ -336,21 +336,21 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         DataShape.Model,
         "torus",
         [Color(), Lit(), Opacity(), new("gloss", "Gloss", ParameterKind.Number, 0.18) { Minimum = 0, Maximum = 1, Description = "The strength of the highlights." }, new("sharpness", "Sharpness of the highlights", ParameterKind.Number, 64.0) { Minimum = 1, Maximum = 256 },
-            new("colorScale", "Color scale", ParameterKind.Flag, false) { Description = "For a model whose colors come from a colormap, such as a temperature: the scale beside the box." },
+            new("colorBy", "Color by", ParameterKind.Choice, ModelColors) { Choices = [ModelColors, "Height", "Values"], Description = "The colors of the model, or its height or the values its data bring (such as the temperature of the pipe bend) through the colormap; then the color scale shows beside the box. Data without values color by height." },
             Colormap("Viridis"),
-            new("scaleFrom", "Scale from", ParameterKind.Number, 0.0),
-            new("scaleTo", "Scale to", ParameterKind.Number, 1.0),
+            new("scaleFrom", "Colors from", ParameterKind.Number, 0.0) { Description = "The value at the start of the colormap." },
+            new("scaleTo", "Colors to", ParameterKind.Number, 1.0) { Description = "The value at the end of the colormap." },
             new("scaleTitle", "Title of the scale", ParameterKind.Text, string.Empty) { Description = "The name or unit of the values, such as °C." }],
         (_, _, _, _) => throw new InvalidOperationException("Model 3D goes into a 3D scene."),
-        (series, data, axes) => (axes.InSharedBox ? string.Empty : $".XAxis(Cube({data}, 0).From, Cube({data}, 0).To, \"x\").YAxis(Cube({data}, 1).From, Cube({data}, 1).To, \"y\").ZAxis(Cube({data}, 2).From, Cube({data}, 2).To, \"z\")")
-            + $".AddMesh({data}.ToMesh({ModelColorCode(series.Parameters)}, new Material3D {{ IsLit = {CodeText.Flag(series.Parameters.GetFlag("lit", true))}, Opacity = {CodeText.Number(series.Parameters.GetNumber("opacity", 1))}, Gloss = {CodeText.Number(series.Parameters.GetNumber("gloss", 0.18))}, Sharpness = {CodeText.Number(series.Parameters.GetNumber("sharpness", 64))} }}, {ScaleCode(series.Parameters)}))")
+        (series, data, axes) => ModelCode(series, ShowroomModels3D.HasValues(series) ? data + ".Model" : data, data, axes))
     {
         Usings = ["Tachyon.Charts.ThreeD.Files", "Tachyon.Charts.ThreeD.Scene", "Tachyon.Charts.Core.Colors", "Tachyon.Charts.Core.Numerics"],
         OwnsAxes = true,
         Helpers = CubeCode,
         SceneApply = (builder, series, data) =>
         {
-            var (scene, model, values) = ((Chart3DBuilder)builder, (ModelFileData)data, series.Parameters);
+            var (scene, values) = ((Chart3DBuilder)builder, series.Parameters);
+            var (model, carried) = data is ValueTuple<ModelFileData, double[]> withValues ? (withValues.Item1, withValues.Item2) : ((ModelFileData)data, null);
             if (TakesTheBox(scene))
             {
                 scene.XAxis(Cube(model, 0).From, Cube(model, 0).To, "x")
@@ -358,7 +358,10 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
                     .ZAxis(Cube(model, 2).From, Cube(model, 2).To, "z");
             }
 
-            scene.AddMesh(model.ToMesh(SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? color : null, new Material3D { IsLit = values.GetFlag("lit", true), Opacity = values.GetNumber("opacity", 1), Gloss = values.GetNumber("gloss", 0.18), Sharpness = values.GetNumber("sharpness", 64) }, Scale(values)));
+            var material = new Material3D { IsLit = values.GetFlag("lit", true), Opacity = values.GetNumber("opacity", 1), Gloss = values.GetNumber("gloss", 0.18), Sharpness = values.GetNumber("sharpness", 64) };
+            scene.AddMesh(values.GetText("colorBy", ModelColors) == ModelColors
+                ? model.ToMesh(SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? color : null, material)
+                : model.ToMesh(values.GetText("colorBy", ModelColors) == "Values" && carried is not null ? carried : [.. model.Positions.Select(place => place.Z)], CoreModule.Colormap(values.GetText("colormap", "Viridis")), new DoubleRange(values.GetNumber("scaleFrom", 0), values.GetNumber("scaleTo", 1)), material, ScaleTitle(values)));
         },
     };
 
@@ -410,13 +413,27 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         """;
 
     // The color scale of a model whose colors come from a colormap, or none.
-    private static ColorScale3D? Scale(SpecValues values) => values.GetFlag("colorScale", false)
-        ? new ColorScale3D(CoreModule.Colormap(values.GetText("colormap", "Viridis")), new DoubleRange(values.GetNumber("scaleFrom", 0), values.GetNumber("scaleTo", 1)), values.GetText("scaleTitle", string.Empty) is { Length: > 0 } title ? title : null)
-        : null;
+    private const string ModelColors = "Model colors";
 
-    private static string ScaleCode(SpecValues values) => values.GetFlag("colorScale", false)
-        ? $"new ColorScale3D(Colormaps.{values.GetText("colormap", "Viridis")}, new DoubleRange({CodeText.Number(values.GetNumber("scaleFrom", 0))}, {CodeText.Number(values.GetNumber("scaleTo", 1))}){(values.GetText("scaleTitle", string.Empty) is { Length: > 0 } title ? ", " + CodeText.String(title) : string.Empty)})"
-        : "null";
+    private static string? ScaleTitle(SpecValues values) => values.GetText("scaleTitle", string.Empty) is { Length: > 0 } title ? title : null;
+
+    // The model with its box and its colors: those of the model, or its height or values through the colormap, whose
+    // scale then shows beside the box. The same choice as the preview, so that scale and model always agree.
+    private static string ModelCode(SeriesSpec series, string model, string data, SeriesAxes axes)
+    {
+        var values = series.Parameters;
+        var material = $"new Material3D {{ IsLit = {CodeText.Flag(values.GetFlag("lit", true))}, Opacity = {CodeText.Number(values.GetNumber("opacity", 1))}, Gloss = {CodeText.Number(values.GetNumber("gloss", 0.18))}, Sharpness = {CodeText.Number(values.GetNumber("sharpness", 64))} }}";
+        var box = axes.InSharedBox ? string.Empty : $".XAxis(Cube({model}, 0).From, Cube({model}, 0).To, \"x\").YAxis(Cube({model}, 1).From, Cube({model}, 1).To, \"y\").ZAxis(Cube({model}, 2).From, Cube({model}, 2).To, \"z\")";
+        var colorBy = values.GetText("colorBy", ModelColors);
+        if (colorBy == ModelColors)
+        {
+            return box + $".AddMesh({model}.ToMesh({ModelColorCode(values)}, {material}))";
+        }
+
+        var perPoint = colorBy == "Values" && ShowroomModels3D.HasValues(series) ? $"{data}.Values" : $"[.. {model}.Positions.Select(place => place.Z)]";
+        var title = ScaleTitle(values) is { } named ? CodeText.String(named) : "null";
+        return box + $".AddMesh({model}.ToMesh({perPoint}, Colormaps.{values.GetText("colormap", "Viridis")}, new DoubleRange({CodeText.Number(values.GetNumber("scaleFrom", 0))}, {CodeText.Number(values.GetNumber("scaleTo", 1))}), {material}, {title}))";
+    }
 
     private static string ModelColorCode(SpecValues values) => SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? CodeText.Color(color) : "null";
 
