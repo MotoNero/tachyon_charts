@@ -687,7 +687,7 @@ public sealed class ConfiguratorSession
             fields.Add(Field(group, new("source", "Data from", ParameterKind.Choice, nameof(DataKind.Sample)) { Choices = [.. kinds.Select(kind => kind.ToString())] }, () => data.Kind.ToString(), value =>
             {
                 data.Kind = Enum.Parse<DataKind>((string)value);
-                ForgetSceneAxes();
+                TakeNewData(series);
                 if (data.Kind == DataKind.Live && Catalog.FindSample(data.Sample)?.Curve is null)
                 {
                     data.Sample = Catalog.Samples.First(sample => sample.Curve is not null).Id;
@@ -728,7 +728,7 @@ public sealed class ConfiguratorSession
                 fields.Add(Field(group, new("file", "File", ParameterKind.File, string.Empty) { Description = "Points: XYZ, PLY or LAS; volumes: NIfTI or raw; models: STL or OBJ." }, () => data.Path ?? string.Empty, value =>
                 {
                     data.Path = (string)value;
-                    ForgetSceneAxes();
+                    TakeNewData(series);
                 }, structural: true));
                 break;
             case DataKind.Live:
@@ -740,7 +740,7 @@ public sealed class ConfiguratorSession
                 fields.Add(Field(group, new("sample", "Sample data", ParameterKind.Choice, type.DefaultSample) { Choices = samples }, () => data.Sample, value =>
                 {
                     data.Sample = (string)value;
-                    ForgetSceneAxes();
+                    TakeNewData(series);
                 }, structural: true));
                 if (Catalog.FindSample(data.Sample)?.HasCount == false)
                 {
@@ -876,6 +876,13 @@ public sealed class ConfiguratorSession
         });
 
     // Ranges and titles a 3D scene sets for its axes belong to the data it had; with other data the axes follow them again.
+    // Settings that fitted the data before: the axes of a 3D scene, and what the type of the series names.
+    private void TakeNewData(SeriesSpec series)
+    {
+        Catalog.FindType(series.Type)?.OnNewData?.Invoke(series);
+        ForgetSceneAxes();
+    }
+
     private void ForgetSceneAxes()
     {
         if (Catalog.SceneOf(_spec) is null)

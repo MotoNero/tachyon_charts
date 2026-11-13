@@ -294,6 +294,12 @@ public sealed class ChartTypeInfo
     /// </summary>
     public Func<SeriesSpec, object, object>? Make { get; init; }
 
+    /// <summary>
+    /// Gets what the type sets right when a series takes other data (another sample, file or kind of source), such as
+    /// settings that only fit the data before; <see langword="null"/> for nothing.
+    /// </summary>
+    public Action<SeriesSpec>? OnNewData { get; init; }
+
     /// <summary>Gets the number of columns the views are arranged in, by the settings; one when not given.</summary>
     public Func<SeriesSpec, int>? Columns { get; init; }
 

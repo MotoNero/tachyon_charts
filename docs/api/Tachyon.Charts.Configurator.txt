@@ -82,6 +82,7 @@ sealed class Tachyon.Charts.Configurator.ChartTypeInfo
   System.Action<System.Object, Tachyon.Charts.Configurator.SeriesSpec, System.Object> SceneApply { get; set; }
   System.Action<Tachyon.Charts.Configurator.SeriesSpec, System.Object, Tachyon.Charts.Configurator.SeriesSpec, System.Object> TakeOver { get; set; }
   System.Action<Tachyon.Charts.Configurator.SeriesSpec, System.Object> Prepare { get; set; }
+  System.Action<Tachyon.Charts.Configurator.SeriesSpec> OnNewData { get; set; }
   System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder, Tachyon.Charts.Configurator.SeriesSpec, System.Object, Tachyon.Charts.Configurator.SeriesAxes> Apply { get; }
   System.Boolean OwnsAxes { get; set; }
   System.Boolean TakesInteractions { get; set; }

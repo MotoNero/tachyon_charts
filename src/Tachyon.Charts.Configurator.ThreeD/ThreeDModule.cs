@@ -338,6 +338,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         [Color(), Lit(), Opacity(), new("gloss", "Gloss", ParameterKind.Number, 0.18) { Minimum = 0, Maximum = 1, Description = "The strength of the highlights." }, new("sharpness", "Sharpness of the highlights", ParameterKind.Number, 64.0) { Minimum = 1, Maximum = 256 },
             new("colorBy", "Color by", ParameterKind.Choice, ModelColors) { Choices = [ModelColors, "Height", "Values"], Description = "The colors of the model, or its height or the values its data bring (such as the temperature of the pipe bend) through the colormap; then the color scale shows beside the box. Data without values color by height." },
             Colormap("Viridis"),
+            new("colorsFollow", "Colors follow the values", ParameterKind.Flag, true) { Description = "The colormap spans from the lowest to the highest value of the model; off for the range below." },
             new("scaleFrom", "Colors from", ParameterKind.Number, 0.0) { Description = "The value at the start of the colormap." },
             new("scaleTo", "Colors to", ParameterKind.Number, 1.0) { Description = "The value at the end of the colormap." },
             new("scaleTitle", "Title of the scale", ParameterKind.Text, string.Empty) { Description = "The name or unit of the values, such as °C." }],
@@ -347,6 +348,19 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         Usings = ["Tachyon.Charts.ThreeD.Files", "Tachyon.Charts.ThreeD.Scene", "Tachyon.Charts.Core.Colors", "Tachyon.Charts.Core.Numerics"],
         OwnsAxes = true,
         Helpers = CubeCode,
+        OnNewData = series =>
+        {
+            // Range and title set for the data before rarely fit others; values the new data do not bring become heights.
+            foreach (var name in (ReadOnlySpan<string>)["colorsFollow", "scaleFrom", "scaleTo", "scaleTitle"])
+            {
+                series.Parameters.Remove(name);
+            }
+
+            if (series.Parameters.GetText("colorBy", ModelColors) == "Values" && !ShowroomModels3D.HasValues(series))
+            {
+                series.Parameters.Set("colorBy", "Height");
+            }
+        },
         SceneApply = (builder, series, data) =>
         {
             var (scene, values) = ((Chart3DBuilder)builder, series.Parameters);
@@ -361,7 +375,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             var material = new Material3D { IsLit = values.GetFlag("lit", true), Opacity = values.GetNumber("opacity", 1), Gloss = values.GetNumber("gloss", 0.18), Sharpness = values.GetNumber("sharpness", 64) };
             scene.AddMesh(values.GetText("colorBy", ModelColors) == ModelColors
                 ? model.ToMesh(SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? color : null, material)
-                : model.ToMesh(values.GetText("colorBy", ModelColors) == "Values" && carried is not null ? carried : [.. model.Positions.Select(place => place.Z)], CoreModule.Colormap(values.GetText("colormap", "Viridis")), new DoubleRange(values.GetNumber("scaleFrom", 0), values.GetNumber("scaleTo", 1)), material, ScaleTitle(values)));
+                : Colored(model, values.GetText("colorBy", ModelColors) == "Values" && carried is not null ? carried : [.. model.Positions.Select(place => place.Z)], values, material));
         },
     };
 
@@ -396,6 +410,16 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
 
     private const string CubeCode = """
 
+            // The height of each corner of a model.
+            private static double[] Heights(ModelFileData model) => [.. model.Positions.Select(place => place.Z)];
+
+            // From the lowest to the highest value; one value alone gets a little room around it.
+            private static DoubleRange ValueRange(IReadOnlyList<double> values)
+            {
+                var (low, high) = (values.Where(double.IsFinite).DefaultIfEmpty(0).Min(), values.Where(double.IsFinite).DefaultIfEmpty(1).Max());
+                return high > low ? new DoubleRange(low, high) : new DoubleRange(low - 0.5, high + 0.5);
+            }
+
             // A cube around the model, so that all axes share one scale and the model keeps its shape.
             private static (double From, double To) Cube(ModelFileData model, int axis)
             {
@@ -415,7 +439,20 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
     // The color scale of a model whose colors come from a colormap, or none.
     private const string ModelColors = "Model colors";
 
-    private static string? ScaleTitle(SpecValues values) => values.GetText("scaleTitle", string.Empty) is { Length: > 0 } title ? title : null;
+    // The model colored by a value per corner, from the lowest to the highest value or over the range chosen.
+    private static Mesh3D Colored(ModelFileData model, double[] perPoint, SpecValues values, Material3D material) =>
+        model.ToMesh(perPoint, CoreModule.Colormap(values.GetText("colormap", "Viridis")), values.GetFlag("colorsFollow", true) ? ValueRange(perPoint) : new DoubleRange(values.GetNumber("scaleFrom", 0), values.GetNumber("scaleTo", 1)), material, ScaleTitle(values));
+
+    // From the lowest to the highest value; one value alone gets a little room around it.
+    private static DoubleRange ValueRange(IReadOnlyList<double> values)
+    {
+        var (low, high) = (values.Where(double.IsFinite).DefaultIfEmpty(0).Min(), values.Where(double.IsFinite).DefaultIfEmpty(1).Max());
+        return high > low ? new DoubleRange(low, high) : new DoubleRange(low - 0.5, high + 0.5);
+    }
+
+    // The title of the scale; without one, colors by height name it.
+    private static string? ScaleTitle(SpecValues values) =>
+        values.GetText("scaleTitle", string.Empty) is { Length: > 0 } title ? title : values.GetText("colorBy", ModelColors) == "Height" ? "Height" : null;
 
     // The model with its box and its colors: those of the model, or its height or values through the colormap, whose
     // scale then shows beside the box. The same choice as the preview, so that scale and model always agree.
@@ -430,9 +467,16 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             return box + $".AddMesh({model}.ToMesh({ModelColorCode(values)}, {material}))";
         }
 
-        var perPoint = colorBy == "Values" && ShowroomModels3D.HasValues(series) ? $"{data}.Values" : $"[.. {model}.Positions.Select(place => place.Z)]";
+        var perPoint = colorBy == "Values" && ShowroomModels3D.HasValues(series) ? $"{data}.Values" : $"Heights({model})";
         var title = ScaleTitle(values) is { } named ? CodeText.String(named) : "null";
-        return box + $".AddMesh({model}.ToMesh({perPoint}, Colormaps.{values.GetText("colormap", "Viridis")}, new DoubleRange({CodeText.Number(values.GetNumber("scaleFrom", 0))}, {CodeText.Number(values.GetNumber("scaleTo", 1))}), {material}, {title}))";
+        var range = values.GetFlag("colorsFollow", true) ? $"ValueRange({perPoint})" : $"new DoubleRange({CodeText.Number(values.GetNumber("scaleFrom", 0))}, {CodeText.Number(values.GetNumber("scaleTo", 1))})";
+        if (values.GetFlag("colorsFollow", true) && !perPoint.EndsWith(".Values", StringComparison.Ordinal))
+        {
+            // The heights are needed twice: for the colors and their range.
+            return box + $".AddMesh({model}.ToMesh(Heights({model}), Colormaps.{values.GetText("colormap", "Viridis")}, ValueRange(Heights({model})), {material}, {title}))";
+        }
+
+        return box + $".AddMesh({model}.ToMesh({perPoint}, Colormaps.{values.GetText("colormap", "Viridis")}, {range}, {material}, {title}))";
     }
 
     private static string ModelColorCode(SpecValues values) => SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? CodeText.Color(color) : "null";
