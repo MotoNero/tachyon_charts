@@ -62,6 +62,12 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
     /// <inheritdoc />
     protected override long Version => scene.Camera.Version + scene.Version + Volatile.Read(ref _paletteVersion) + SpectrumLinks.Stamp(scene) + (_quality.WantsFinePicture(Environment.TickCount64) ? 1 : 0);
 
+    /// <summary>
+    /// Gets or sets where the series finds its chart and group when it was made without its overlays, as when a chart
+    /// builds only its series anew; it connects them before it draws the first time.
+    /// </summary>
+    internal Func<(ChartSurface Chart, ChartGroup? Group)?>? Binding { get; set; }
+
     /// <summary>Connects the chart, whose theme gives the colors, and the group it belongs to.</summary>
     /// <param name="chart">The chart.</param>
     /// <param name="group">The group, if any.</param>
@@ -98,6 +104,11 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
     /// <inheritdoc />
     protected override void Prepare(IRenderDevice device, in SeriesFrame frame)
     {
+        if (_chart is null && Binding?.Invoke() is { } binding)
+        {
+            Bind(binding.Chart, binding.Group);
+        }
+
         _drawsCopy = device is not WebGpuRenderDevice;
         if (device is WebGpuRenderDevice webGpu)
         {

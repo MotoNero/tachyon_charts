@@ -335,12 +335,17 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         ChartCategory.ThreeD,
         DataShape.Model,
         "torus",
-        [Color(), Lit(), Opacity(), new("gloss", "Gloss", ParameterKind.Number, 0.18) { Minimum = 0, Maximum = 1, Description = "The strength of the highlights." }, new("sharpness", "Sharpness of the highlights", ParameterKind.Number, 64.0) { Minimum = 1, Maximum = 256 }],
+        [Color(), Lit(), Opacity(), new("gloss", "Gloss", ParameterKind.Number, 0.18) { Minimum = 0, Maximum = 1, Description = "The strength of the highlights." }, new("sharpness", "Sharpness of the highlights", ParameterKind.Number, 64.0) { Minimum = 1, Maximum = 256 },
+            new("colorScale", "Color scale", ParameterKind.Flag, false) { Description = "For a model whose colors come from a colormap, such as a temperature: the scale beside the box." },
+            Colormap("Viridis"),
+            new("scaleFrom", "Scale from", ParameterKind.Number, 0.0),
+            new("scaleTo", "Scale to", ParameterKind.Number, 1.0),
+            new("scaleTitle", "Title of the scale", ParameterKind.Text, string.Empty) { Description = "The name or unit of the values, such as °C." }],
         (_, _, _, _) => throw new InvalidOperationException("Model 3D goes into a 3D scene."),
         (series, data, axes) => (axes.InSharedBox ? string.Empty : $".XAxis(Cube({data}, 0).From, Cube({data}, 0).To, \"x\").YAxis(Cube({data}, 1).From, Cube({data}, 1).To, \"y\").ZAxis(Cube({data}, 2).From, Cube({data}, 2).To, \"z\")")
-            + $".AddMesh({data}.ToMesh({ModelColorCode(series.Parameters)}, new Material3D {{ IsLit = {CodeText.Flag(series.Parameters.GetFlag("lit", true))}, Opacity = {CodeText.Number(series.Parameters.GetNumber("opacity", 1))}, Gloss = {CodeText.Number(series.Parameters.GetNumber("gloss", 0.18))}, Sharpness = {CodeText.Number(series.Parameters.GetNumber("sharpness", 64))} }}))")
+            + $".AddMesh({data}.ToMesh({ModelColorCode(series.Parameters)}, new Material3D {{ IsLit = {CodeText.Flag(series.Parameters.GetFlag("lit", true))}, Opacity = {CodeText.Number(series.Parameters.GetNumber("opacity", 1))}, Gloss = {CodeText.Number(series.Parameters.GetNumber("gloss", 0.18))}, Sharpness = {CodeText.Number(series.Parameters.GetNumber("sharpness", 64))} }}, {ScaleCode(series.Parameters)}))")
     {
-        Usings = ["Tachyon.Charts.ThreeD.Files", "Tachyon.Charts.ThreeD.Scene"],
+        Usings = ["Tachyon.Charts.ThreeD.Files", "Tachyon.Charts.ThreeD.Scene", "Tachyon.Charts.Core.Colors", "Tachyon.Charts.Core.Numerics"],
         OwnsAxes = true,
         Helpers = CubeCode,
         SceneApply = (builder, series, data) =>
@@ -353,7 +358,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
                     .ZAxis(Cube(model, 2).From, Cube(model, 2).To, "z");
             }
 
-            scene.AddMesh(model.ToMesh(SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? color : null, new Material3D { IsLit = values.GetFlag("lit", true), Opacity = values.GetNumber("opacity", 1), Gloss = values.GetNumber("gloss", 0.18), Sharpness = values.GetNumber("sharpness", 64) }));
+            scene.AddMesh(model.ToMesh(SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? color : null, new Material3D { IsLit = values.GetFlag("lit", true), Opacity = values.GetNumber("opacity", 1), Gloss = values.GetNumber("gloss", 0.18), Sharpness = values.GetNumber("sharpness", 64) }, Scale(values)));
         },
     };
 
@@ -403,6 +408,15 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             }
 
         """;
+
+    // The color scale of a model whose colors come from a colormap, or none.
+    private static ColorScale3D? Scale(SpecValues values) => values.GetFlag("colorScale", false)
+        ? new ColorScale3D(CoreModule.Colormap(values.GetText("colormap", "Viridis")), new DoubleRange(values.GetNumber("scaleFrom", 0), values.GetNumber("scaleTo", 1)), values.GetText("scaleTitle", string.Empty) is { Length: > 0 } title ? title : null)
+        : null;
+
+    private static string ScaleCode(SpecValues values) => values.GetFlag("colorScale", false)
+        ? $"new ColorScale3D(Colormaps.{values.GetText("colormap", "Viridis")}, new DoubleRange({CodeText.Number(values.GetNumber("scaleFrom", 0))}, {CodeText.Number(values.GetNumber("scaleTo", 1))}){(values.GetText("scaleTitle", string.Empty) is { Length: > 0 } title ? ", " + CodeText.String(title) : string.Empty)})"
+        : "null";
 
     private static string ModelColorCode(SpecValues values) => SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? CodeText.Color(color) : "null";
 

@@ -35,7 +35,14 @@ public sealed class ModelFileData(Point3D[] positions, int[] triangles, Rgba8[]?
     /// <param name="color">One color for the whole model, or <see langword="null"/> for the colors of the file, or gray when it has none.</param>
     /// <param name="material">How the surface takes the light, or <see langword="null"/> for the default.</param>
     /// <returns>The surface.</returns>
-    public Mesh3D ToMesh(Rgba8? color = null, Material3D? material = null)
+    public Mesh3D ToMesh(Rgba8? color = null, Material3D? material = null) => ToMesh(color, material, null);
+
+    /// <summary>Makes a surface for a 3D chart in one color or the colors of the file, with the color scale they come from.</summary>
+    /// <param name="color">The color, or <see langword="null"/> for the colors of the file and gray where it has none.</param>
+    /// <param name="material">How the surface takes the light.</param>
+    /// <param name="colorScale">The color scale the colors of the file come from, shown beside the box, or <see langword="null"/>.</param>
+    /// <returns>The surface.</returns>
+    public Mesh3D ToMesh(Rgba8? color, Material3D? material, ColorScale3D? colorScale)
     {
         var vertices = new Vertex3D[Positions.Length];
         for (var i = 0; i < vertices.Length; i++)
@@ -43,7 +50,7 @@ public sealed class ModelFileData(Point3D[] positions, int[] triangles, Rgba8[]?
             vertices[i] = new Vertex3D(Positions[i], color ?? Colors?[i] ?? _gray);
         }
 
-        return new Mesh3D(vertices, Triangles) { Material = material ?? new Material3D() };
+        return new Mesh3D(vertices, Triangles) { Material = material ?? new Material3D(), ColorScale = colorScale };
     }
 
     /// <summary>Creates a surface colored by a value per point, such as a measured temperature. The pointer shows the value.</summary>
@@ -53,7 +60,16 @@ public sealed class ModelFileData(Point3D[] positions, int[] triangles, Rgba8[]?
     /// <param name="material">How the surface takes the light, or <see langword="null"/> for the default.</param>
     /// <returns>The surface.</returns>
     /// <exception cref="ArgumentException">The number of values differs from the number of points.</exception>
-    public Mesh3D ToMesh(IReadOnlyList<double> values, Colormap colormap, DoubleRange range, Material3D? material = null)
+    public Mesh3D ToMesh(IReadOnlyList<double> values, Colormap colormap, DoubleRange range, Material3D? material = null) => ToMesh(values, colormap, range, material, null);
+
+    /// <summary>Makes a surface colored by a value per point, with the color scale shown beside the box.</summary>
+    /// <param name="values">One value per point.</param>
+    /// <param name="colormap">The colormap.</param>
+    /// <param name="range">The values at the ends of the colormap.</param>
+    /// <param name="material">How the surface takes the light.</param>
+    /// <param name="title">The name or unit of the values above the scale, or <see langword="null"/>.</param>
+    /// <returns>The surface.</returns>
+    public Mesh3D ToMesh(IReadOnlyList<double> values, Colormap colormap, DoubleRange range, Material3D? material, string? title)
     {
         ArgumentNullException.ThrowIfNull(values);
         ArgumentNullException.ThrowIfNull(colormap);
@@ -70,7 +86,7 @@ public sealed class ModelFileData(Point3D[] positions, int[] triangles, Rgba8[]?
             vertices[i] = new Vertex3D(Positions[i], double.IsFinite(value) ? colormap.Sample(Position(value, range.Min, span)) : _gray);
         }
 
-        return new Mesh3D(vertices, Triangles) { Material = material ?? new Material3D(), Values = values };
+        return new Mesh3D(vertices, Triangles) { Material = material ?? new Material3D(), Values = values, ColorScale = new ColorScale3D(colormap, range, title) };
     }
 
     /// <summary>

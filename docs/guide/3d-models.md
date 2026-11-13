@@ -22,10 +22,10 @@ for (var i = 0; i < values.Length; i++)
     values[i] = temperature(model.Positions[i]);   // from a simulation, or spread from sensors
 }
 
-var mesh = model.ToMesh(values, Colormaps.Turbo, new DoubleRange(55, 115));
+var mesh = model.ToMesh(values, Colormaps.Turbo, new DoubleRange(55, 115), null, "°C");
 ```
 
-`Mesh3D.Values` does the same for a mesh you build yourself. Measuring points next to the model are a `Scatter3D`; a `ClipPlane3D` cuts the model open and shows the wall inside.
+The color scale shows beside the box, with the range at its ends and the title above. A model whose file already holds colors from a colormap takes the scale along: `model.ToMesh(null, material, new ColorScale3D(Colormaps.Turbo, new DoubleRange(55, 115), "°C"))`. `Mesh3D.Values` and `Mesh3D.ColorScale` do the same for a mesh you build yourself. Measuring points next to the model are a `Scatter3D`; a `ClipPlane3D` cuts the model open and shows the wall inside.
 
 ## What the readers do
 

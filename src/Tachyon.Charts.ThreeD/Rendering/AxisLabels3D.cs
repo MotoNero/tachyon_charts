@@ -58,6 +58,36 @@ internal sealed class AxisLabels3D(Scene3D scene) : ChartOverlay
         if (scene.Antennas.Count > 0)
         {
             DrawAntenna(canvas, scene.Antennas[0], pane, view);
+            return;
+        }
+
+        // The first surface whose colors come from a color scale shows it; a loop, as this runs every frame.
+        foreach (var mesh in scene.Meshes)
+        {
+            if (mesh.ColorScale is { } scale)
+            {
+                DrawScale(canvas, scale, pane);
+                return;
+            }
+        }
+    }
+
+    private static void DrawScale(OverlayCanvas canvas, ColorScale3D scale, DipRect pane)
+    {
+        var (x, top) = (pane.X + pane.Width - ScaleMargin, pane.Y + ((pane.Height - ScaleHeight) / 2));
+        var step = ScaleHeight / ScaleSteps;
+        for (var i = 0; i < ScaleSteps; i++)
+        {
+            canvas.FillRectangle(new DipRect(x, top + (i * step), ScaleWidth, step + 0.5), scale.Colormap.Sample(1 - ((i + 0.5) / ScaleSteps)));
+        }
+
+        var height = canvas.GetLineHeight(canvas.LabelSize);
+        var middle = x + (ScaleWidth / 2);
+        canvas.DrawText(scale.HighText, Math.Round(middle - (canvas.MeasureWidth(scale.HighText, canvas.LabelSize) / 2)), Math.Round(top - (height / 2)), canvas.LabelSize, canvas.TextColor);
+        canvas.DrawText(scale.LowText, Math.Round(middle - (canvas.MeasureWidth(scale.LowText, canvas.LabelSize) / 2)), Math.Round(top + ScaleHeight + height), canvas.LabelSize, canvas.TextColor);
+        if (scale.Title is { Length: > 0 } title)
+        {
+            canvas.DrawText(title, Math.Round(Math.Min(middle - (canvas.MeasureWidth(title, canvas.LabelSize) / 2), pane.X + pane.Width - canvas.MeasureWidth(title, canvas.LabelSize))), Math.Round(top - (height * 1.7)), canvas.LabelSize, canvas.TextColor);
         }
     }
 

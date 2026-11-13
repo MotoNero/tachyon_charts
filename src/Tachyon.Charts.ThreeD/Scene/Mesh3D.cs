@@ -1,3 +1,6 @@
+using System.Globalization;
+using Tachyon.Charts.Core.Colors;
+using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Rendering;
 
 namespace Tachyon.Charts.ThreeD.Scene;
@@ -18,6 +21,19 @@ public sealed record Material3D
     public double Sharpness { get; init; } = 64;
 }
 
+/// <summary>The color scale the colors of a surface come from, shown beside the box.</summary>
+/// <param name="Colormap">The colormap.</param>
+/// <param name="Range">The values at the ends of the colormap.</param>
+/// <param name="Title">The name or unit of the values, shown above the scale, or <see langword="null"/>.</param>
+public sealed record ColorScale3D(Colormap Colormap, DoubleRange Range, string? Title = null)
+{
+    /// <summary>Gets the text at the top of the scale, made once so that drawing allocates nothing.</summary>
+    internal string HighText { get; } = Range.Max.ToString("G4", CultureInfo.InvariantCulture);
+
+    /// <summary>Gets the text at the bottom of the scale.</summary>
+    internal string LowText { get; } = Range.Min.ToString("G4", CultureInfo.InvariantCulture);
+}
+
 /// <summary>A point of a surface.</summary>
 /// <param name="Position">The place in units of the axes.</param>
 /// <param name="Color">The color.</param>
@@ -36,6 +52,12 @@ public sealed class Mesh3D(IReadOnlyList<Vertex3D> vertices, IReadOnlyList<int> 
 
     /// <summary>Gets or sets how the surface takes the light.</summary>
     public Material3D Material { get; init; } = new();
+
+    /// <summary>
+    /// Gets the color scale the colors of the surface come from, shown beside the box, or <see langword="null"/> for
+    /// colors of their own.
+    /// </summary>
+    public ColorScale3D? ColorScale { get; init; }
 
     /// <summary>
     /// Gets a value per point, such as a measured temperature, or <see langword="null"/>. The value under the pointer is

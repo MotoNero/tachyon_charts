@@ -129,6 +129,11 @@ struct Tachyon.Charts.ThreeD.Scene.CloudMemory : System.IEquatable<Tachyon.Chart
   .ctor(System.Int64 Gpu, System.Int64 Cpu)
   System.Int64 Cpu { get; set; }
   System.Int64 Gpu { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.ColorScale3D : System.IEquatable<Tachyon.Charts.ThreeD.Scene.ColorScale3D>
+  .ctor(Tachyon.Charts.Core.Colors.Colormap Colormap, Tachyon.Charts.Core.Numerics.DoubleRange Range, System.String Title = null)
+  System.String Title { get; set; }
+  Tachyon.Charts.Core.Colors.Colormap Colormap { get; set; }
+  Tachyon.Charts.Core.Numerics.DoubleRange Range { get; set; }
 sealed class Tachyon.Charts.ThreeD.Scene.Contours3D : System.IEquatable<Tachyon.Charts.ThreeD.Scene.Contours3D>
   .ctor(System.Collections.Generic.IReadOnlyList<System.Double> Levels)
   System.Boolean OnFloor { get; set; }
@@ -185,6 +190,7 @@ sealed class Tachyon.Charts.ThreeD.Scene.Mesh3D
   System.Collections.Generic.IReadOnlyList<System.Double> Values { get; set; }
   System.Collections.Generic.IReadOnlyList<System.Int32> Indices { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.ThreeD.Scene.Vertex3D> Vertices { get; }
+  Tachyon.Charts.ThreeD.Scene.ColorScale3D ColorScale { get; set; }
   Tachyon.Charts.ThreeD.Scene.Material3D Material { get; set; }
 struct Tachyon.Charts.ThreeD.Scene.Pick3D : System.IEquatable<Tachyon.Charts.ThreeD.Scene.Pick3D>
   .ctor(Tachyon.Charts.ThreeD.Scene.Point3D Position, System.Object Source)

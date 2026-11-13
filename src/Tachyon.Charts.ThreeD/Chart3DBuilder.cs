@@ -248,6 +248,9 @@ public sealed class Chart3DBuilder
     {
         ArgumentNullException.ThrowIfNull(builder);
         Scene3DSeries? series = null;
+
+        // The chart and group of the last build; a series made later without its overlays connects to them.
+        (ChartSurface Chart, ChartGroup? Group)? bound = null;
         var picker = new ScenePicker(Scene);
         var pointer = new PointerPick3D(Scene, picker);
         if (_title is not null)
@@ -258,10 +261,11 @@ public sealed class Chart3DBuilder
         builder.Theme(_theme)
             .XAxis(a => a.Numeric("x").Range(0, 1).Hidden())
             .YAxis(a => a.Numeric("y").Range(0, 1).Hidden())
-            .AddSeries((x, y) => series = new Scene3DSeries(Scene, picker, x, y))
+            .AddSeries((x, y) => series = new Scene3DSeries(Scene, picker, x, y) { Binding = () => bound })
             .AddOverlay(chart =>
             {
-                series?.Bind(chart, _group is { } name ? ChartGroup.Get(name) : null);
+                bound = (chart, _group is { } name ? ChartGroup.Get(name) : null);
+                series?.Bind(chart, bound.Value.Group);
                 return new AxisLabels3D(Scene);
             })
             .AddOverlay(_ => new PieLabels3D(Scene))

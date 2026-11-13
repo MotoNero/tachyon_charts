@@ -9,7 +9,9 @@ sealed class Tachyon.Charts.ThreeD.Files.ModelFileData
   Tachyon.Charts.Rendering.Rgba8[] Colors { get; }
   Tachyon.Charts.ThreeD.Chart3DBuilder AddToScale(Tachyon.Charts.ThreeD.Chart3DBuilder chart, Tachyon.Charts.ThreeD.Scene.Mesh3D mesh = null, System.String unit = mm)
   Tachyon.Charts.ThreeD.Scene.Mesh3D ToMesh(System.Collections.Generic.IReadOnlyList<System.Double> values, Tachyon.Charts.Core.Colors.Colormap colormap, Tachyon.Charts.Core.Numerics.DoubleRange range, Tachyon.Charts.ThreeD.Scene.Material3D material = null)
+  Tachyon.Charts.ThreeD.Scene.Mesh3D ToMesh(System.Collections.Generic.IReadOnlyList<System.Double> values, Tachyon.Charts.Core.Colors.Colormap colormap, Tachyon.Charts.Core.Numerics.DoubleRange range, Tachyon.Charts.ThreeD.Scene.Material3D material, System.String title)
   Tachyon.Charts.ThreeD.Scene.Mesh3D ToMesh(System.Nullable<Tachyon.Charts.Rendering.Rgba8> color = null, Tachyon.Charts.ThreeD.Scene.Material3D material = null)
+  Tachyon.Charts.ThreeD.Scene.Mesh3D ToMesh(System.Nullable<Tachyon.Charts.Rendering.Rgba8> color, Tachyon.Charts.ThreeD.Scene.Material3D material, Tachyon.Charts.ThreeD.Scene.ColorScale3D colorScale)
   Tachyon.Charts.ThreeD.Scene.Point3D Highest { get; }
   Tachyon.Charts.ThreeD.Scene.Point3D Lowest { get; }
   Tachyon.Charts.ThreeD.Scene.Point3D[] Positions { get; }

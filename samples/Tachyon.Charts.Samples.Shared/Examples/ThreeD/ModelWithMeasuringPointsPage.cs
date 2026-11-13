@@ -27,7 +27,7 @@ public static class ModelWithMeasuringPointsPage
             values[i] = Models3D.Temperature(model.Positions[i]);
         }
 
-        var mesh = model.ToMesh(values, Colormaps.Turbo, new DoubleRange(55, 115), new Material3D { Gloss = 0.3 });
+        var mesh = model.ToMesh(values, Colormaps.Turbo, new DoubleRange(55, 115), new Material3D { Gloss = 0.3 }, "°C");
         model.AddToScale(c.Title("Pipe bend, wall temperature in °C"), mesh);
 
         var sensors = Models3D.Sensors(9);

@@ -26,7 +26,7 @@ public static class ModelOf1MillionTrianglesPage
             heights[i] = model.Positions[i].Z;
         }
 
-        var mesh = model.ToMesh(heights, Colormaps.Viridis, new DoubleRange(-1.4, 1.4), new Material3D { Gloss = 0.4, Sharpness = 48 });
+        var mesh = model.ToMesh(heights, Colormaps.Viridis, new DoubleRange(-1.4, 1.4), new Material3D { Gloss = 0.4, Sharpness = 48 }, "Height in m");
         model.AddToScale(c.Title("Knot of tube, colored by height"), mesh, "m");
     }
 }
