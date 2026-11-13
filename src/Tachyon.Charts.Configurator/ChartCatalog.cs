@@ -354,7 +354,11 @@ public delegate string SeriesCodeWriter(SeriesSpec series, string data, SeriesAx
 /// <summary>The axes a series uses, by identifier.</summary>
 /// <param name="X">The horizontal axis.</param>
 /// <param name="Y">The vertical axis.</param>
-public readonly record struct SeriesAxes(string X, string Y);
+public readonly record struct SeriesAxes(string X, string Y)
+{
+    /// <summary>Gets a value indicating whether the series goes into a 3D box that an earlier series of the scene set up, so that it leaves the axes alone.</summary>
+    public bool InSharedBox { get; init; }
+}
 
 /// <summary>An interaction the configurator offers.</summary>
 /// <param name="Id">The identifier in <see cref="ModifierSpec.Type"/>.</param>

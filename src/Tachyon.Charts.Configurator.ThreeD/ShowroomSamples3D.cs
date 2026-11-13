@@ -1,5 +1,6 @@
 using Tachyon.Charts.Core.Colors;
 using Tachyon.Charts.Core.Data;
+using Tachyon.Charts.Core.Numerics;
 using Tachyon.Charts.Rendering;
 using Tachyon.Charts.ThreeD.Scene;
 
@@ -149,6 +150,23 @@ internal static class ShowroomSamples3D
 
             """) { MinimumCount = 3 },
     ];
+
+    // The box each finished set of points fills, as the page shows it.
+    private static readonly Dictionary<string, (DoubleRange X, DoubleRange Y, DoubleRange Z)> _boxes = new(StringComparer.Ordinal)
+    {
+        ["threeClouds"] = (new(-1, 1), new(-1, 1), new(-1, 1)),
+        ["particlePath"] = (new(-25, 25), new(-30, 30), new(0, 55)),
+        ["wells"] = (new(0, 10), new(0, 10), new(0, 8)),
+        ["spiralBubbles"] = (new(-1.2, 1.2), new(-1.2, 1.2), new(-1.2, 1.2)),
+        ["pipeSensors"] = (new(-1.25, 126.25), new(-63.75, 63.75), new(-26.25, 101.25)),
+        ["spiralPath"] = (new(-1, 1), new(-1, 1), new(-1, 1)),
+    };
+
+    /// <summary>Gets the box the finished points or bubbles of a series fill, or <see langword="null"/> for other data.</summary>
+    /// <param name="series">The series.</param>
+    /// <returns>The ranges of the three axes.</returns>
+    public static (DoubleRange X, DoubleRange Y, DoubleRange Z)? BoxOf(SeriesSpec series) =>
+        IsReady(series) && _boxes.TryGetValue(series.Data.Sample, out var box) ? box : null;
 
     /// <summary>Gets a value indicating whether the data of a series are the finished points or bubbles.</summary>
     /// <param name="series">The series.</param>

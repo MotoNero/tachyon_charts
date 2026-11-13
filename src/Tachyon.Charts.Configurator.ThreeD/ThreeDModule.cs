@@ -322,6 +322,12 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
 
     private static DoubleRange Box => new(0, 10);
 
+    // The scenes whose box an earlier series set up; the following series go into it and leave the axes alone, the
+    // same as the code does (see SeriesAxes.InSharedBox).
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Chart3DBuilder, object> _boxes = [];
+
+    private static bool TakesTheBox(Chart3DBuilder scene) => _boxes.TryAdd(scene, scene);
+
     // A model from triangles: a torus as sample, or a file of STL or OBJ; the axes follow its corners.
     private static ChartTypeInfo Model() => new(
         "model3d",
@@ -331,7 +337,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         "torus",
         [Color(), Lit(), Opacity(), new("gloss", "Gloss", ParameterKind.Number, 0.18) { Minimum = 0, Maximum = 1, Description = "The strength of the highlights." }, new("sharpness", "Sharpness of the highlights", ParameterKind.Number, 64.0) { Minimum = 1, Maximum = 256 }],
         (_, _, _, _) => throw new InvalidOperationException("Model 3D goes into a 3D scene."),
-        (series, data, _) => $".XAxis(Cube({data}, 0).From, Cube({data}, 0).To, \"x\").YAxis(Cube({data}, 1).From, Cube({data}, 1).To, \"y\").ZAxis(Cube({data}, 2).From, Cube({data}, 2).To, \"z\")"
+        (series, data, axes) => (axes.InSharedBox ? string.Empty : $".XAxis(Cube({data}, 0).From, Cube({data}, 0).To, \"x\").YAxis(Cube({data}, 1).From, Cube({data}, 1).To, \"y\").ZAxis(Cube({data}, 2).From, Cube({data}, 2).To, \"z\")")
             + $".AddMesh({data}.ToMesh({ModelColorCode(series.Parameters)}, new Material3D {{ IsLit = {CodeText.Flag(series.Parameters.GetFlag("lit", true))}, Opacity = {CodeText.Number(series.Parameters.GetNumber("opacity", 1))}, Gloss = {CodeText.Number(series.Parameters.GetNumber("gloss", 0.18))}, Sharpness = {CodeText.Number(series.Parameters.GetNumber("sharpness", 64))} }}))")
     {
         Usings = ["Tachyon.Charts.ThreeD.Files", "Tachyon.Charts.ThreeD.Scene"],
@@ -340,10 +346,14 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         SceneApply = (builder, series, data) =>
         {
             var (scene, model, values) = ((Chart3DBuilder)builder, (ModelFileData)data, series.Parameters);
-            scene.XAxis(Cube(model, 0).From, Cube(model, 0).To, "x")
-                .YAxis(Cube(model, 1).From, Cube(model, 1).To, "y")
-                .ZAxis(Cube(model, 2).From, Cube(model, 2).To, "z")
-                .AddMesh(model.ToMesh(SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? color : null, new Material3D { IsLit = values.GetFlag("lit", true), Opacity = values.GetNumber("opacity", 1), Gloss = values.GetNumber("gloss", 0.18), Sharpness = values.GetNumber("sharpness", 64) }));
+            if (TakesTheBox(scene))
+            {
+                scene.XAxis(Cube(model, 0).From, Cube(model, 0).To, "x")
+                    .YAxis(Cube(model, 1).From, Cube(model, 1).To, "y")
+                    .ZAxis(Cube(model, 2).From, Cube(model, 2).To, "z");
+            }
+
+            scene.AddMesh(model.ToMesh(SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? color : null, new Material3D { IsLit = values.GetFlag("lit", true), Opacity = values.GetNumber("opacity", 1), Gloss = values.GetNumber("gloss", 0.18), Sharpness = values.GetNumber("sharpness", 64) }));
         },
     };
 
@@ -359,7 +369,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         (_, _, _) => string.Empty)
     {
         OwnsAxes = true,
-        SceneApply = (_, _, _) => { },
+        SceneApply = (builder, _, _) => TakesTheBox((Chart3DBuilder)builder),
     };
 
     // A cube around the model, so that all axes share one scale and the model keeps its shape.
@@ -579,16 +589,27 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             sample,
             recipe.Parameters,
             (_, _, _, _) => throw new InvalidOperationException($"{name} goes into a 3D scene."),
-            (series, data, _) => (series.Data.Kind != DataKind.Sample && shape == DataShape.Points3D ? $".XAxis({data}.X.Min(), {data}.X.Max(), \"x\").YAxis({data}.Y.Min(), {data}.Y.Max(), \"y\").ZAxis({data}.Z.Min(), {data}.Z.Max(), \"z\")" : Axes(series.Parameters, height)) + $".{add}({WithExtra(WithExtra(recipe.Expression(write(data, series), series), extra?.InitCode(series.Parameters)), ShowroomSamples3D.IsReady(series) ? readyInit?.Invoke(data) : null)})" + (extra?.AfterCode(series.Parameters) ?? string.Empty))
+            (series, data, axes) => (axes.InSharedBox ? string.Empty
+                : series.Data.Kind != DataKind.Sample && shape == DataShape.Points3D ? $".XAxis({data}.X.Min(), {data}.X.Max(), \"x\").YAxis({data}.Y.Min(), {data}.Y.Max(), \"y\").ZAxis({data}.Z.Min(), {data}.Z.Max(), \"z\")"
+                : ShowroomSamples3D.BoxOf(series) is { } box ? BoxCode(box)
+                : Axes(series.Parameters, height)) + $".{add}({WithExtra(WithExtra(recipe.Expression(write(data, series), series), extra?.InitCode(series.Parameters)), ShowroomSamples3D.IsReady(series) ? readyInit?.Invoke(data) : null)})" + (extra?.AfterCode(series.Parameters) ?? string.Empty))
         {
             Usings = [.. recipe.Usings, .. usings ?? []],
             OwnsAxes = true,
             SceneApply = (builder, series, data) =>
             {
                 var scene = (Chart3DBuilder)builder;
-                if (series.Data.Kind != DataKind.Sample && data is ValueTuple<double[], double[], double[]> points)
+                if (!TakesTheBox(scene))
+                {
+                    // An earlier series set up the box.
+                }
+                else if (series.Data.Kind != DataKind.Sample && data is ValueTuple<double[], double[], double[]> points)
                 {
                     scene.XAxis(points.Item1.Min(), points.Item1.Max(), "x").YAxis(points.Item2.Min(), points.Item2.Max(), "y").ZAxis(points.Item3.Min(), points.Item3.Max(), "z");
+                }
+                else if (ShowroomSamples3D.BoxOf(series) is { } box)
+                {
+                    scene.XAxis(box.X.Min, box.X.Max, "x").YAxis(box.Y.Min, box.Y.Max, "y").ZAxis(box.Z.Min, box.Z.Max, "z");
                 }
                 else if (height is not null)
                 {
@@ -604,6 +625,9 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             },
         };
     }
+
+    private static string BoxCode((DoubleRange X, DoubleRange Y, DoubleRange Z) box) =>
+        $".XAxis({CodeText.Number(box.X.Min)}, {CodeText.Number(box.X.Max)}, \"x\").YAxis({CodeText.Number(box.Y.Min)}, {CodeText.Number(box.Y.Max)}, \"y\").ZAxis({CodeText.Number(box.Z.Min)}, {CodeText.Number(box.Z.Max)}, \"z\")";
 
     private static string Axes(SpecValues values, (double From, double To)? height) => height is { } z
         ? string.Create(CultureInfo.InvariantCulture, $".XAxis(0, {CodeText.Number(values.GetNumber("size", 10))}, \"x\").YAxis(0, {CodeText.Number(values.GetNumber("size", 10))}, \"y\").ZAxis({CodeText.Number(values.GetNumber("zFrom", z.From))}, {CodeText.Number(values.GetNumber("zTo", z.To))}, \"z\")")

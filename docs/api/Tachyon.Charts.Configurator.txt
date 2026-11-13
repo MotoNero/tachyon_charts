@@ -299,6 +299,7 @@ sealed class Tachyon.Charts.Configurator.SceneInfo : System.IEquatable<Tachyon.C
   Tachyon.Charts.Configurator.ChartCategory Category { get; set; }
 struct Tachyon.Charts.Configurator.SeriesAxes : System.IEquatable<Tachyon.Charts.Configurator.SeriesAxes>
   .ctor(System.String X, System.String Y)
+  System.Boolean InSharedBox { get; set; }
   System.String X { get; set; }
   System.String Y { get; set; }
 delegate Tachyon.Charts.Configurator.SeriesCodeWriter : System.ICloneable, System.Runtime.Serialization.ISerializable

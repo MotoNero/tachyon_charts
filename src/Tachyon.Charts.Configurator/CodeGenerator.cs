@@ -934,7 +934,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
                 setup.AddRange(prepare(series, variable));
             }
 
-            (scene is null ? calls : inScene).Add(type.Code(series, variable, new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id)));
+            (scene is null ? calls : inScene).Add(type.Code(series, variable, new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id) { InSharedBox = scene is not null && inScene.Count > 0 }));
         }
 
         if (scene is not null)
