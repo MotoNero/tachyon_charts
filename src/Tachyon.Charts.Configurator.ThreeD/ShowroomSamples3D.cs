@@ -153,7 +153,7 @@ internal static class ShowroomSamples3D
     /// <summary>Gets a value indicating whether the data of a series are the finished points or bubbles.</summary>
     /// <param name="series">The series.</param>
     /// <returns>Whether its sample makes the finished object.</returns>
-    public static bool IsReady(SeriesSpec series) => series.Data.Kind == DataKind.Sample && _ready.Contains(series.Data.Sample);
+    public static bool IsReady(SeriesSpec series) => series.Data.Kind == DataKind.Sample && (_ready.Contains(series.Data.Sample) || ShowroomModels3D.Ready.Contains(series.Data.Sample));
 
     private static Points3D ThreeClouds(int count)
     {

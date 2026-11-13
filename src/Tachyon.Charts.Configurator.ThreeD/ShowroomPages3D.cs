@@ -19,6 +19,43 @@ internal static class ShowroomPages3D
         new("Map from measurements", catalog => Scene(catalog, "Temperature over speed and load", "map3d", "engineMap", 160, [], Box("0..6000", "Speed in rpm", "0..100", "Load in %", "60..120", "Temperature in °C"))),
         new("Height lines", catalog => Surface(catalog, 512, ("heightLines", 13.0), ("onWalls", true))),
         new("Surface 4096 × 4096", catalog => Surface(catalog, 4096)),
+        new("Surface with light", catalog => Hill(catalog)),
+        new("Video recording", catalog =>
+        {
+            var spec = Hill(catalog);
+            spec.ExportMenu = true;
+            return spec;
+        }),
+        new("Cut planes", catalog =>
+        {
+            var spec = Hill(catalog);
+            spec.Scene.Set("planes", "-1 0 0 @ -0.35; -0.5 1 0 @ -0.5");
+            return spec;
+        }),
+        new("One plane, all kinds", catalog =>
+        {
+            var spec = Scene(catalog, "One plane cuts every kind of data", "scatter3d", "threeClouds", 3000, [], _unitBox);
+            spec.Series.Add(Series(catalog, "line3d", "spiralPath", 4000, ("width", 2.5)));
+            spec.Series.Add(Series(catalog, "columns3d", "slopeRaster", 8, ("start", -1.0), ("size", 2.0), ("baseline", -1.0)));
+            spec.Scene.Set("planes", "-1 -0.4 0 @ -0.1");
+            return spec;
+        }),
+        new("Planes and limits", catalog =>
+        {
+            var spec = Scene(catalog, "Surface against a limit of 0.9", "surface3d", "hills", 128, [("size", 6.0), ("zFrom", -1.5), ("zTo", 2.0), ("limit", true), ("limitValue", 0.9), ("limitLine", true)], Box("0..6", "x", "0..6", "y", "-1.5..2", "z"));
+            spec.Series.Add(Series(catalog, "model3d", "testZone", 1, ("color", "#3A86FF"), ("opacity", 0.25), ("gloss", 0.0)));
+            spec.Series.Add(Series(catalog, "model3d", "slantedArea", 1, ("color", "#06D6A0"), ("opacity", 0.6), ("gloss", 0.2)));
+            return spec;
+        }),
+        new("Axis box", catalog => Scene(catalog, "Axis box", "box3d", "scattered", 400, [], Box("0..10", "Time in s", "-5..5", "Offset in mm", "0..100", "Level in dB"))),
+        new("Model with measuring points", catalog =>
+        {
+            var spec = Scene(catalog, "Pipe bend, wall temperature in °C", "model3d", "pipeBend", 96, [("gloss", 0.3)], Box("-1.25..126.25", "x in mm", "-63.75..63.75", "y in mm", "-26.25..101.25", "z in mm"));
+            spec.Series.Add(Series(catalog, "scatter3d", "pipeSensors", 9));
+            spec.Scene.Set("planes", "0 1 0 @ -0.05");
+            return spec;
+        }),
+        new("Model of 1 million triangles", catalog => Scene(catalog, "Knot of tube, colored by height", "model3d", "tubeKnot", 4000, [("gloss", 0.4), ("sharpness", 48.0)], Box("-2.99531..3.630977", "x in m", "-3.313152..3.313136", "y in m", "-3.313141..3.313146", "z in m"))),
         new("Path of 200 000 points", catalog => Scene(catalog, "Path of a particle", "line3d", "particlePath", 200_000, [], Box("-25..25", "x", "-30..30", "y", "0..55", "z"))),
     ];
 
@@ -58,6 +95,16 @@ internal static class ShowroomPages3D
         }
 
         return spec;
+    }
+
+    // The hill of triangles in the unit box.
+    private static ChartSpec Hill(ChartCatalog catalog) => Scene(catalog, "Surface", "model3d", "hillMesh", 96, [], _unitBox);
+
+    // One more series of a type with its sample data and options.
+    private static SeriesSpec Series(ChartCatalog catalog, string type, string sample, int count, params (string Name, object Value)[] parameters)
+    {
+        var spec = Scene(catalog, string.Empty, type, sample, count, parameters, []);
+        return spec.Series[0];
     }
 
     // Columns over a raster of 0 to 16 with two hills, glossy.

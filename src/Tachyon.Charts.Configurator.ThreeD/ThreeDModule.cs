@@ -34,6 +34,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
                 new("onWalls", "Height lines on the walls", ParameterKind.Flag, false) { Description = "The cuts through the surface also show on the walls of the box." },
                 new("limit", "Limit plane", ParameterKind.Flag, false) { Description = "A red plane at a limit; where the surface crosses it is easy to see." },
                 new("limitValue", "Limit at", ParameterKind.Number, 0.5),
+                new("limitLine", "Line at the limit", ParameterKind.Flag, false) { Description = "A red line on the surface where it crosses the limit, instead of height lines." },
             ],
             [("colormap", nameof(Surface3D.Colormap)), ("lit", "Material.IsLit"), ("opacity", "Material.Opacity")],
             data => new Surface3D((HeatmapData)data, Box, Box), data => $"new Surface3D({data}, new DoubleRange(0, 10), new DoubleRange(0, 10))",
@@ -42,13 +43,18 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             extra: new SceneExtra(
                 (created, values) =>
                 {
-                    if (values.GetNumber("heightLines", 0) > 0)
+                    if (values.GetFlag("limitLine", false))
+                    {
+                        typeof(Surface3D).GetProperty(nameof(Surface3D.Contours))!.SetValue(created, new Contours3D([values.GetNumber("limitValue", 0.5)]) { Color = LimitColor, Width = 2.5, OnFloor = false });
+                    }
+                    else if (values.GetNumber("heightLines", 0) > 0)
                     {
                         // Contours can only be given when the surface is made; the preview sets it the same way.
                         typeof(Surface3D).GetProperty(nameof(Surface3D.Contours))!.SetValue(created, HeightLines(values));
                     }
                 },
-                values => values.GetNumber("heightLines", 0) > 0 ? $"Contours = Contours3D.Even(new DoubleRange({CodeText.Number(values.GetNumber("zFrom", -1))}, {CodeText.Number(values.GetNumber("zTo", 1))}), {(int)values.GetNumber("heightLines", 0)}){(values.GetFlag("onWalls", false) ? " with { OnWalls = true }" : string.Empty)}" : null,
+                values => values.GetFlag("limitLine", false) ? $"Contours = new Contours3D([{CodeText.Number(values.GetNumber("limitValue", 0.5))}]) {{ Color = new Rgba8(255, 70, 70, 255), Width = 2.5, OnFloor = false }}"
+                    : values.GetNumber("heightLines", 0) > 0 ? $"Contours = Contours3D.Even(new DoubleRange({CodeText.Number(values.GetNumber("zFrom", -1))}, {CodeText.Number(values.GetNumber("zTo", 1))}), {(int)values.GetNumber("heightLines", 0)}){(values.GetFlag("onWalls", false) ? " with { OnWalls = true }" : string.Empty)}" : null,
                 (scene, values) =>
                 {
                     if (values.GetFlag("limit", false))
@@ -58,8 +64,8 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
                 },
                 values => values.GetFlag("limit", false) ? $".AddMesh(Shapes3D.Limit({SpanCode(values)}, {SpanCode(values)}, {CodeText.Number(values.GetNumber("limitValue", 0.5))}, new Rgba8(255, 70, 70, 255)))" : string.Empty)),
         Type("columns3d", "Columns 3D", DataShape.Grid, "blocks", typeof(Bars3D), nameof(Chart3DBuilder.AddBars), (0, 1),
-            [Colormap("Viridis"), new("width", "Width", ParameterKind.Number, 0.8) { Minimum = 0.05, Maximum = 1 }, Lit(), Opacity(), new("gloss", "Gloss", ParameterKind.Number, 0.18) { Minimum = 0, Maximum = 1, Description = "The strength of the highlights." }, Extent()],
-            [("colormap", nameof(Bars3D.Colormap)), ("width", nameof(Bars3D.Width)), ("lit", "Material.IsLit"), ("opacity", "Material.Opacity"), ("gloss", "Material.Gloss")],
+            [Colormap("Viridis"), new("width", "Width", ParameterKind.Number, 0.8) { Minimum = 0.05, Maximum = 1 }, Lit(), Opacity(), new("gloss", "Gloss", ParameterKind.Number, 0.18) { Minimum = 0, Maximum = 1, Description = "The strength of the highlights." }, Extent(), new("start", "Start", ParameterKind.Number, 0.0) { Description = "Where the grid starts across and along; it ends at the start plus the extent." }, new("baseline", "Base of the columns", ParameterKind.Number, 0.0)],
+            [("colormap", nameof(Bars3D.Colormap)), ("width", nameof(Bars3D.Width)), ("lit", "Material.IsLit"), ("opacity", "Material.Opacity"), ("gloss", "Material.Gloss"), ("baseline", nameof(Bars3D.Baseline))],
             data => new Bars3D((HeatmapData)data, Box, Box), data => $"new Bars3D({data}, new DoubleRange(0, 10), new DoubleRange(0, 10))",
             make: (data, values) => new Bars3D((HeatmapData)data, Span(values), Span(values)),
             write: (data, series) => $"new Bars3D({data}, {SpanCode(series.Parameters)}, {SpanCode(series.Parameters)})"),
@@ -107,11 +113,12 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         Pie3DType("pie3d", "Pie 3D", 0),
         Pie3DType("donut3d", "Donut 3D", 0.5),
         Model(),
+        AxisBox(),
         SpectrumWaterfall(),
     ];
 
     /// <inheritdoc />
-    public IReadOnlyList<SampleInfo> Samples { get; } = [.. Samples3D.Create(), .. ShowroomSamples3D.Create()];
+    public IReadOnlyList<SampleInfo> Samples { get; } = [.. Samples3D.Create(), .. ShowroomSamples3D.Create(), .. ShowroomModels3D.Create()];
 
     /// <inheritdoc />
     public IReadOnlyList<PageInfo> Pages => ShowroomPages3D.All;
@@ -301,6 +308,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
                 new("projection", "Camera", ParameterKind.Choice, nameof(CameraProjection.Perspective)) { Choices = Enum.GetNames<CameraProjection>() },
                 new("cut", "Cut plane", ParameterKind.Choice, "None") { Choices = ["None", "X", "Y", "Z"], Description = "A plane across an axis that hides what lies beyond it." },
                 new("cutAt", "Cut at", ParameterKind.Number, 5.0) { Description = "Where the plane crosses its axis, in the units of the axis; outside its range the plane cuts through the middle. What lies beyond the value disappears." },
+                new("planes", "Further planes", ParameterKind.Text, string.Empty) { Description = "In box coordinates, where every axis spans -1 to 1: the direction to the side that stays, @ and the distance from the middle, such as -1 0 0 @ -0.35; add slice for a plane that only shows its cut. Separated by semicolons." },
                 .. AxisParameters("x"),
                 .. AxisParameters("y"),
                 .. AxisParameters("z"),
@@ -321,10 +329,10 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         ChartCategory.ThreeD,
         DataShape.Model,
         "torus",
-        [Color(), Lit(), Opacity()],
+        [Color(), Lit(), Opacity(), new("gloss", "Gloss", ParameterKind.Number, 0.18) { Minimum = 0, Maximum = 1, Description = "The strength of the highlights." }, new("sharpness", "Sharpness of the highlights", ParameterKind.Number, 64.0) { Minimum = 1, Maximum = 256 }],
         (_, _, _, _) => throw new InvalidOperationException("Model 3D goes into a 3D scene."),
         (series, data, _) => $".XAxis(Cube({data}, 0).From, Cube({data}, 0).To, \"x\").YAxis(Cube({data}, 1).From, Cube({data}, 1).To, \"y\").ZAxis(Cube({data}, 2).From, Cube({data}, 2).To, \"z\")"
-            + $".AddMesh({data}.ToMesh({ModelColorCode(series.Parameters)}, new Material3D {{ IsLit = {CodeText.Flag(series.Parameters.GetFlag("lit", true))}, Opacity = {CodeText.Number(series.Parameters.GetNumber("opacity", 1))} }}))")
+            + $".AddMesh({data}.ToMesh({ModelColorCode(series.Parameters)}, new Material3D {{ IsLit = {CodeText.Flag(series.Parameters.GetFlag("lit", true))}, Opacity = {CodeText.Number(series.Parameters.GetNumber("opacity", 1))}, Gloss = {CodeText.Number(series.Parameters.GetNumber("gloss", 0.18))}, Sharpness = {CodeText.Number(series.Parameters.GetNumber("sharpness", 64))} }}))")
     {
         Usings = ["Tachyon.Charts.ThreeD.Files", "Tachyon.Charts.ThreeD.Scene"],
         OwnsAxes = true,
@@ -335,8 +343,23 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             scene.XAxis(Cube(model, 0).From, Cube(model, 0).To, "x")
                 .YAxis(Cube(model, 1).From, Cube(model, 1).To, "y")
                 .ZAxis(Cube(model, 2).From, Cube(model, 2).To, "z")
-                .AddMesh(model.ToMesh(SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? color : null, new Material3D { IsLit = values.GetFlag("lit", true), Opacity = values.GetNumber("opacity", 1) }));
+                .AddMesh(model.ToMesh(SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? color : null, new Material3D { IsLit = values.GetFlag("lit", true), Opacity = values.GetNumber("opacity", 1), Gloss = values.GetNumber("gloss", 0.18), Sharpness = values.GetNumber("sharpness", 64) }));
         },
+    };
+
+    // Only the box with its axes, which the scene sets: for a frame to start from, or to show the axes alone.
+    private static ChartTypeInfo AxisBox() => new(
+        "box3d",
+        "Axis box only",
+        ChartCategory.ThreeD,
+        DataShape.Points3D,
+        "scattered",
+        [],
+        (_, _, _, _) => throw new InvalidOperationException("Axis box only goes into a 3D scene."),
+        (_, _, _) => string.Empty)
+    {
+        OwnsAxes = true,
+        SceneApply = (_, _, _) => { },
     };
 
     // A cube around the model, so that all axes share one scale and the model keeps its shape.
@@ -402,6 +425,11 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             var range = normal.X > 0 ? scene.Scene.XAxis.VisibleRange : normal.Y > 0 ? scene.Scene.YAxis.VisibleRange : scene.Scene.ZAxis.VisibleRange;
             scene.AddPlane(new ClipPlane3D(normal, Offset(range, spec.Scene.GetNumber("cutAt", 5))));
         }
+
+        foreach (var (direction, offset, slice) in Planes(spec.Scene))
+        {
+            scene.AddPlane(new ClipPlane3D(direction, offset) { Hides = !slice });
+        }
     });
 
     private static (string Start, string End) Code(ChartSpec spec)
@@ -412,10 +440,36 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             start += $".Group({CodeText.String(group)})";
         }
 
+        var planes = string.Concat(Planes(spec.Scene).Select(plane => $".AddPlane(new ClipPlane3D(new Point3D({CodeText.Number(plane.Direction.X)}, {CodeText.Number(plane.Direction.Y)}, {CodeText.Number(plane.Direction.Z)}), {CodeText.Number(plane.Offset)}){(plane.Slice ? " { Hides = false }" : string.Empty)})"));
         var end = AxesCode(spec.Scene) + (Normal(spec.Scene) is { } normal
-            ? $".AddPlane(new ClipPlane3D(new Point3D({CodeText.Number(normal.X)}, {CodeText.Number(normal.Y)}, {CodeText.Number(normal.Z)}), s.Scene.{(normal.X > 0 ? "X" : normal.Y > 0 ? "Y" : "Z")}Axis.VisibleRange is {{ }} range && {CodeText.Number(spec.Scene.GetNumber("cutAt", 5))} >= range.Min && {CodeText.Number(spec.Scene.GetNumber("cutAt", 5))} <= range.Max ? -1 + (2 * ({CodeText.Number(spec.Scene.GetNumber("cutAt", 5))} - range.Min) / (range.Max - range.Min)) : 0)))"
-            : ")");
+            ? $".AddPlane(new ClipPlane3D(new Point3D({CodeText.Number(normal.X)}, {CodeText.Number(normal.Y)}, {CodeText.Number(normal.Z)}), s.Scene.{(normal.X > 0 ? "X" : normal.Y > 0 ? "Y" : "Z")}Axis.VisibleRange is {{ }} range && {CodeText.Number(spec.Scene.GetNumber("cutAt", 5))} >= range.Min && {CodeText.Number(spec.Scene.GetNumber("cutAt", 5))} <= range.Max ? -1 + (2 * ({CodeText.Number(spec.Scene.GetNumber("cutAt", 5))} - range.Min) / (range.Max - range.Min)) : 0))" + planes + ")"
+            : planes + ")");
         return (start, end);
+    }
+
+    /// <summary>Reads the further planes of a scene; entries that cannot be read are left out.</summary>
+    /// <param name="values">The settings of the scene.</param>
+    /// <returns>The direction to the side that stays, the distance from the middle and whether the plane only shows its cut.</returns>
+    internal static IReadOnlyList<(Point3D Direction, double Offset, bool Slice)> Planes(SpecValues values)
+    {
+        var planes = new List<(Point3D, double, bool)>();
+        foreach (var entry in values.GetText("planes", string.Empty).Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+        {
+            var parts = entry.Split('@', StringSplitOptions.TrimEntries);
+            var direction = parts[0].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var rest = parts.Length == 2 ? parts[1].Split(' ', StringSplitOptions.RemoveEmptyEntries) : [];
+            if (direction.Length == 3 && rest.Length is 1 or 2
+                && double.TryParse(direction[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
+                && double.TryParse(direction[1], NumberStyles.Float, CultureInfo.InvariantCulture, out var y)
+                && double.TryParse(direction[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var z)
+                && double.TryParse(rest[0], NumberStyles.Float, CultureInfo.InvariantCulture, out var offset)
+                && (x != 0 || y != 0 || z != 0))
+            {
+                planes.Add((new Point3D(x, y, z), offset, rest.Length == 2 && rest[1].Equals("slice", StringComparison.OrdinalIgnoreCase)));
+            }
+        }
+
+        return planes;
     }
 
     // The range and title of an axis of the box, which win over those of the types.
@@ -478,9 +532,9 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
 
     private static ParameterInfo Extent() => new("size", "Extent", ParameterKind.Number, 10.0) { Minimum = 1e-6, Description = "The grid covers 0 to this value across and along." };
 
-    private static DoubleRange Span(SpecValues values) => new(0, values.GetNumber("size", 10));
+    private static DoubleRange Span(SpecValues values) => new(values.GetNumber("start", 0), values.GetNumber("start", 0) + values.GetNumber("size", 10));
 
-    private static string SpanCode(SpecValues values) => $"new DoubleRange(0, {CodeText.Number(values.GetNumber("size", 10))})";
+    private static string SpanCode(SpecValues values) => $"new DoubleRange({CodeText.Number(Span(values).Min)}, {CodeText.Number(Span(values).Max)})";
 
     private static ParameterInfo Colormap(string standard) => new("colormap", "Colormap", ParameterKind.Choice, standard) { Choices = _colormaps };
 
