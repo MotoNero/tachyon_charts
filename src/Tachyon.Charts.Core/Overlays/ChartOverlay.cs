@@ -42,6 +42,7 @@ public sealed class OverlayCanvas
     private readonly Dictionary<object, IGpuTexture> _textures = [];
     private GlyphInstance[] _glyphs = new GlyphInstance[512];
     private int _glyphCount;
+    private MeshVertex[] _shape = new MeshVertex[64];
 
     internal OverlayCanvas(ITextEngine textEngine)
     {
@@ -265,8 +266,71 @@ public sealed class OverlayCanvas
         }
 
         var normal = new Vector2(-delta.Y, delta.X) / length * (width / 2);
-        FillTriangle(from + normal, to + normal, to - normal, color);
-        FillTriangle(from + normal, to - normal, from - normal, color);
+        FillPolygon([from + normal, to + normal, to - normal, from - normal], color);
+    }
+
+    /// <summary>
+    /// Fills a convex shape with smooth edges: a slanted edge fades out over one pixel, an edge along the pixel grid
+    /// stays sharp. The clip does not apply.
+    /// </summary>
+    /// <param name="corners">The corners in order, at least three, of a convex shape.</param>
+    /// <param name="color">The color.</param>
+    public void FillPolygon(ReadOnlySpan<Vector2> corners, Rgba8 color)
+    {
+        if (corners.Length < 3)
+        {
+            return;
+        }
+
+        // The fill as a fan and a band of one pixel outside each slanted edge, in pixels.
+        var needed = ((corners.Length - 2) * 3) + (corners.Length * 6);
+        if (_shape.Length < needed)
+        {
+            Array.Resize(ref _shape, Math.Max(_shape.Length * 2, needed));
+        }
+
+        var scale = (float)_scale;
+        var middle = Vector2.Zero;
+        foreach (var corner in corners)
+        {
+            middle += corner * scale;
+        }
+
+        middle /= corners.Length;
+        var clear = color with { A = 0 };
+        var count = 0;
+        var first = corners[0] * scale;
+        for (var i = 1; i < corners.Length - 1; i++)
+        {
+            _shape[count++] = new MeshVertex(first, color);
+            _shape[count++] = new MeshVertex(corners[i] * scale, color);
+            _shape[count++] = new MeshVertex(corners[i + 1] * scale, color);
+        }
+
+        for (var i = 0; i < corners.Length; i++)
+        {
+            var (a, b) = (corners[i] * scale, corners[(i + 1) % corners.Length] * scale);
+            var along = b - a;
+            if (MathF.Abs(along.X) < 0.01f || MathF.Abs(along.Y) < 0.01f)
+            {
+                continue;
+            }
+
+            var normal = Vector2.Normalize(new Vector2(along.Y, -along.X));
+            if (Vector2.Dot(normal, ((a + b) / 2) - middle) < 0)
+            {
+                normal = -normal;
+            }
+
+            _shape[count++] = new MeshVertex(a, color);
+            _shape[count++] = new MeshVertex(b, color);
+            _shape[count++] = new MeshVertex(b + normal, clear);
+            _shape[count++] = new MeshVertex(a, color);
+            _shape[count++] = new MeshVertex(b + normal, clear);
+            _shape[count++] = new MeshVertex(a + normal, clear);
+        }
+
+        _commands.FillMesh(_shape.AsSpan(0, count), null);
     }
 
     /// <summary>

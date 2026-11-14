@@ -71,10 +71,18 @@ fn sample_atlas(uv: vec2f) -> vec3f {
     return mix(upper, lower, weight.y);
 }
 
+// Small text gets slightly stronger strokes: a stroke of one pixel or less that falls between two pixels would
+// otherwise show as two faint columns. The em size in pixels is the distance scale times 40 / (2 * 4), the em size
+// and range of the field. The same rule is in the glyph rasterizer of the software renderer.
+fn embolden(distance_scale: f32) -> f32 {
+    let em_pixels = distance_scale * 5.0;
+    return clamp((16.0 - em_pixels) / 8.0, 0.0, 1.0) * 0.15;
+}
+
 @fragment
 fn fs_main(input: VertexOutput) -> @location(0) vec4f {
     let distance = sample_atlas(input.uv);
     let signed_distance = median(distance.r, distance.g, distance.b) - 0.5;
-    let coverage = clamp(signed_distance * input.distance_scale + 0.5, 0.0, 1.0);
+    let coverage = clamp(signed_distance * input.distance_scale + 0.5 + embolden(input.distance_scale), 0.0, 1.0);
     return vec4f(input.color.rgb, input.color.a * coverage);
 }

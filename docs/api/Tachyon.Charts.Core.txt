@@ -15,7 +15,7 @@ abstract class Tachyon.Charts.Core.Annotations.Annotation : Tachyon.Charts.Core.
   protected System.Void DrawEdges(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas, Tachyon.Charts.Core.Layout.DipRect area, System.Single width, Tachyon.Charts.Rendering.Rgba8 color)
   protected System.Void DrawHandles(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas, System.ReadOnlySpan<System.Numerics.Vector2> points)
   protected System.Void SetBounds(Tachyon.Charts.Core.Layout.DipRect bounds)
-  protected System.Void SetHandles(Tachyon.Charts.Core.Layout.DipRect[] areas)
+  protected System.Void SetHandles(System.ReadOnlySpan<Tachyon.Charts.Core.Layout.DipRect> areas)
   protected static Tachyon.Charts.Core.Layout.DipRect Point(System.Numerics.Vector2 point)
   protected static Tachyon.Charts.Core.Layout.DipRect Span(System.Numerics.Vector2 a, System.Numerics.Vector2 b)
   virtual System.Boolean Contains(System.Numerics.Vector2 position, System.Double tolerance)
@@ -1584,6 +1584,7 @@ sealed class Tachyon.Charts.Core.Overlays.OverlayCanvas
   System.Void DrawRectangle(Tachyon.Charts.Core.Layout.DipRect area, Tachyon.Charts.Rendering.Rgba8 color)
   System.Void DrawText(System.ReadOnlySpan<System.Char> text, System.Double x, System.Double baseline, System.Single size, Tachyon.Charts.Rendering.Rgba8 color)
   System.Void DrawText(System.String text, System.Double x, System.Double baseline, System.Single size, Tachyon.Charts.Rendering.Rgba8 color)
+  System.Void FillPolygon(System.ReadOnlySpan<System.Numerics.Vector2> corners, Tachyon.Charts.Rendering.Rgba8 color)
   System.Void FillRectangle(Tachyon.Charts.Core.Layout.DipRect area, Tachyon.Charts.Rendering.Rgba8 color)
   System.Void FillTriangle(System.Numerics.Vector2 a, System.Numerics.Vector2 b, System.Numerics.Vector2 c, Tachyon.Charts.Rendering.Rgba8 color)
   Tachyon.Charts.Core.Layout.ChartLayoutResult Layout { get; }

@@ -139,7 +139,14 @@ public abstract class Annotation(AxisBase? xAxis, AxisBase? yAxis) : ChartOverla
     /// The first that holds a position wins, so corners come before edges.
     /// </summary>
     /// <param name="areas">The places.</param>
-    protected void SetHandles(params DipRect[] areas) => _handles = new HandleAreas(areas);
+    protected void SetHandles(params ReadOnlySpan<DipRect> areas)
+    {
+        // A new copy only when the areas change: an annotation that stays where it is allocates nothing per frame.
+        if (_handles is not { } current || !areas.SequenceEqual(current.Areas))
+        {
+            _handles = new HandleAreas(areas.ToArray());
+        }
+    }
 
     /// <summary>Draws small squares at points, while the pointer is over an annotation that may be edited.</summary>
     /// <param name="canvas">The canvas.</param>
@@ -242,7 +249,13 @@ public abstract class Annotation(AxisBase? xAxis, AxisBase? yAxis) : ChartOverla
 
     /// <summary>Remembers the area of this frame.</summary>
     /// <param name="bounds">The area.</param>
-    protected void SetBounds(DipRect bounds) => _bounds = new StrongBounds(bounds);
+    protected void SetBounds(DipRect bounds)
+    {
+        if (_bounds?.Value != bounds)
+        {
+            _bounds = new StrongBounds(bounds);
+        }
+    }
 
     /// <summary>Spans two positions.</summary>
     /// <param name="a">One corner.</param>
@@ -695,7 +708,10 @@ public sealed class LineAnnotation(AxisBase? xAxis, AxisBase? yAxis) : Annotatio
     protected internal override void Draw(OverlayCanvas canvas)
     {
         var (a, b) = (ToChart(canvas, _x1, _y1), ToChart(canvas, _x2, _y2));
-        _ends = new Ends(a, b);
+        if (_ends is not { } ends || ends.A != a || ends.B != b)
+        {
+            _ends = new Ends(a, b);
+        }
         canvas.Clip = canvas.Layout.PlotArea;
         AnnotationPainter.Line(canvas, a, b, Appearance.Thickness ?? Thickness, Color, Appearance.Dash);
         SetBounds(Span(a, b));

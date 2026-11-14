@@ -219,8 +219,7 @@ internal static class AnnotationPainter
         canvas.Clip = null;
         if (fill.A > 0)
         {
-            canvas.FillTriangle(Corner(-halfWidth, -halfHeight), Corner(halfWidth, -halfHeight), Corner(halfWidth, halfHeight), fill);
-            canvas.FillTriangle(Corner(-halfWidth, -halfHeight), Corner(halfWidth, halfHeight), Corner(-halfWidth, halfHeight), fill);
+            canvas.FillPolygon([Corner(-halfWidth, -halfHeight), Corner(halfWidth, -halfHeight), Corner(halfWidth, halfHeight), Corner(-halfWidth, halfHeight)], fill);
         }
 
         if (look.LabelBorder is { } border)
@@ -272,7 +271,7 @@ internal static class AnnotationPainter
         switch (icon)
         {
             case LabelIcon.Warning:
-                canvas.FillTriangle(At(0, -half), At(half, half), At(-half, half), color);
+                canvas.FillPolygon([At(0, -half), At(half, half), At(-half, half)], color);
 
                 // An exclamation mark cut out of the triangle.
                 var line = Math.Max(1.2f, size / 8);
@@ -280,12 +279,15 @@ internal static class AnnotationPainter
                 canvas.DrawLine(At(0, half * 0.58f), At(0, half * 0.75f), line, cut);
                 break;
             case LabelIcon.Info:
-                const int Steps = 12;
+                const int Steps = 24;
+                Span<Vector2> disc = stackalloc Vector2[Steps];
                 for (var i = 0; i < Steps; i++)
                 {
-                    var (a, b) = (i * MathF.Tau / Steps, (i + 1) * MathF.Tau / Steps);
-                    canvas.FillTriangle(middle, At(MathF.Cos(a) * half, MathF.Sin(a) * half), At(MathF.Cos(b) * half, MathF.Sin(b) * half), color);
+                    var turn = i * MathF.Tau / Steps;
+                    disc[i] = At(MathF.Cos(turn) * half, MathF.Sin(turn) * half);
                 }
+
+                canvas.FillPolygon(disc, color);
 
                 // An "i" cut out of the disc.
                 var stroke = Math.Max(1.2f, size / 7);
@@ -295,11 +297,10 @@ internal static class AnnotationPainter
                 break;
             case LabelIcon.Arrow:
                 canvas.DrawLine(At(-half, 0), At(0, 0), Math.Max(1.5f, size / 5), color);
-                canvas.FillTriangle(At(0, -half * 0.7f), At(half, 0), At(0, half * 0.7f), color);
+                canvas.FillPolygon([At(0, -half * 0.7f), At(half, 0), At(0, half * 0.7f)], color);
                 break;
             case LabelIcon.Marker:
-                canvas.FillTriangle(At(-half * 0.8f, -half * 0.8f), At(half * 0.8f, -half * 0.8f), At(half * 0.8f, half * 0.8f), color);
-                canvas.FillTriangle(At(-half * 0.8f, -half * 0.8f), At(half * 0.8f, half * 0.8f), At(-half * 0.8f, half * 0.8f), color);
+                canvas.FillPolygon([At(-half * 0.8f, -half * 0.8f), At(half * 0.8f, -half * 0.8f), At(half * 0.8f, half * 0.8f), At(-half * 0.8f, half * 0.8f)], color);
                 break;
         }
     }

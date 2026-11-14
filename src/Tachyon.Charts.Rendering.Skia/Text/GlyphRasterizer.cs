@@ -79,7 +79,7 @@ internal static class GlyphRasterizer
                 }
 
                 var uv = Vector2.Lerp(glyph.UvMin, glyph.UvMax, new Vector2(u, v));
-                var coverage = Math.Clamp(((Sample(atlas, uv) - 0.5f) * glyph.DistanceScale) + 0.5f, 0, 1);
+                var coverage = Math.Clamp(((Sample(atlas, uv) - 0.5f) * glyph.DistanceScale) + 0.5f + Embolden(glyph.DistanceScale), 0, 1);
                 var alpha = (byte)((coverage * glyph.Color.A) + 0.5f);
 
                 ref var pixel = ref pixels[((y - top) * width) + (x - left)];
@@ -112,6 +112,10 @@ internal static class GlyphRasterizer
 
         return (minimum, maximum);
     }
+
+    // Small text gets slightly stronger strokes, as in the shader: the em size in pixels is the distance scale times
+    // the em size of the field over twice its range.
+    private static float Embolden(float distanceScale) => Math.Clamp((16f - (distanceScale * 5f)) / 8f, 0f, 1f) * 0.15f;
 
     // Bilinear, like the sampler of the shader, before the median.
     private static float Sample(SkiaTexture atlas, Vector2 uv)

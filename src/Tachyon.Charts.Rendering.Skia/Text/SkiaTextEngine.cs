@@ -140,6 +140,10 @@ public sealed class SkiaTextEngine : ITextEngine, IDisposable
         var scale = size / FieldEmSize;
         var distanceScale = 2 * FieldRange * scale;
         var shaped = GetShaped(text);
+
+        // On whole pixels: the baseline, so that the feet of the letters stay sharp, and the start of the text, so that
+        // the same text looks the same wherever it stands. The letters keep their spacing between them.
+        var (startX, baselineY) = (MathF.Round(baseline.X), MathF.Round(baseline.Y));
         var pen = 0L;
         var count = 0;
         foreach (var glyph in shaped)
@@ -147,8 +151,8 @@ public sealed class SkiaTextEngine : ITextEngine, IDisposable
             var atlasGlyph = GetGlyph(glyph.Codepoint);
             if (atlasGlyph.Width > 0)
             {
-                var x = baseline.X + ((pen + glyph.XOffset) * size / _unitsPerEm) + (atlasGlyph.Left * scale);
-                var y = baseline.Y - (glyph.YOffset * size / _unitsPerEm) + (atlasGlyph.Top * scale);
+                var x = startX + ((pen + glyph.XOffset) * size / _unitsPerEm) + (atlasGlyph.Left * scale);
+                var y = baselineY - (glyph.YOffset * size / _unitsPerEm) + (atlasGlyph.Top * scale);
                 glyphs[count++] = new GlyphInstance(
                     new Vector2(x, y),
                     new Vector2(atlasGlyph.Width * scale, atlasGlyph.Height * scale),
