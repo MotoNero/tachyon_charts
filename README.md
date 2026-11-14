@@ -150,6 +150,10 @@ Seven built-in themes, plus your own from JSON or XAML resources in WPF and Aval
 |---|---|---|---|
 | ![Neon theme](docs/images/theme-neon.png) | ![Paper theme](docs/images/theme-paper.png) | ![Instrument theme](docs/images/theme-instrument.png) | ![An own dark theme with a plot gradient and grid bands](docs/images/theme-own.png) |
 
+Title, axes and labels take their own font: family, bold and italic.
+
+![The title in Roboto Slab bold, the axes in italic, labels in bold, italic and Roboto Slab bold italic](docs/images/text-fonts.png)
+
 ## Features
 
 - Lines, scatter and density, bubbles, area, band, bars, error bars, stems, histogram, box plot, violin, pie and donut
@@ -158,9 +162,10 @@ Seven built-in themes, plus your own from JSON or XAML resources in WPF and Aval
 - Finance: candles and OHLC bars from a thread-safe candle store, a million candles at 60 frames per second, volume in a pane of its own, market profile with point of control and value area
 - Drawing tools: trend line, Fibonacci retracement and extension, channel, pitchfork, Elliott waves, XABCD, head and shoulders and a free brush, fixed to values, saved as JSON
 - Numeric, time, logarithmic and category axes, stacked panes, linked charts, scale breaks and hidden times such as weekends, axes that cross in the origin, charts turned with the X axis down for depth profiles
-- Zoom, pan, crosshair with the values of all series at the pointer, tooltip, lasso selection, measuring cursors, annotations with styled labels (place, size, plate, frame, turn along the line, signs) and dashed lines, one undo chain for navigation and drawings
+- Zoom, pan, crosshair with the values of all series at the pointer, tooltip, lasso selection, measuring cursors, annotations with styled labels (place, size, font, plate, frame, turn along the line, signs) and dashed lines, one undo chain for navigation and drawings
 - Several legends per chart, inside or outside the plot, each with its own series; a click switches a series off and on
 - Signal tools without dependencies: FFT, FIR and biquad filters, generators
+- Fonts for title, axes and labels: Roboto in four cuts and Roboto Slab embedded, installed families too, all in one glyph atlas ([fonts](docs/guide/themes.md#fonts))
 - English and German texts, numbers and month names, switchable at runtime
 
 ### 3D
