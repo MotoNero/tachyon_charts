@@ -38,6 +38,8 @@ sealed class Tachyon.Charts.Wpf.Chart : System.Windows.FrameworkElement, System.
   System.Void StartRecording(System.String path, Tachyon.Charts.Export.VideoOptions options = null)
   System.Void ToggleDiagnostics()
   Tachyon.Charts.Core.Themes.Theme Theme { get; set; }
+  Tachyon.Charts.Rendering.TextFont AxisFont { get; set; }
+  Tachyon.Charts.Rendering.TextFont TitleFont { get; set; }
   Tachyon.Charts.Wpf.Chart Configure(System.Action<Tachyon.Charts.Core.Fluent.ChartBuilder> configure)
   Tachyon.Charts.Wpf.ChartElementCollection<Tachyon.Charts.Wpf.ChartAnnotationElement> Annotations { get; }
   Tachyon.Charts.Wpf.ChartElementCollection<Tachyon.Charts.Wpf.ChartAxis> XAxes { get; }
@@ -60,8 +62,10 @@ sealed class Tachyon.Charts.Wpf.Chart : System.Windows.FrameworkElement, System.
   protected virtual System.Windows.Size ArrangeOverride(System.Windows.Size finalSize)
   protected virtual System.Windows.Size MeasureOverride(System.Windows.Size availableSize)
   static System.Nullable<System.Int32> MaximumFramesPerSecond { get; set; }
+  static System.Windows.DependencyProperty AxisFontProperty
   static System.Windows.DependencyProperty GroupNameProperty
   static System.Windows.DependencyProperty ThemeProperty
+  static System.Windows.DependencyProperty TitleFontProperty
   static System.Windows.DependencyProperty TitleProperty
   static Tachyon.Charts.Rendering.RendererPreference Renderer { get; set; }
 abstract class Tachyon.Charts.Wpf.ChartAnnotationElement : Tachyon.Charts.Wpf.ChartElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable

@@ -86,6 +86,9 @@ interface Tachyon.Charts.Rendering.ISurfaceRenderTarget : System.IDisposable, Ta
   abstract System.Boolean VSync { get; set; }
   abstract System.Void Resize(Tachyon.Charts.Rendering.PixelSize size, System.Double dpiScale)
 interface Tachyon.Charts.Rendering.ITextEngine
+  System.Int32 Layout(System.ReadOnlySpan<System.Char> text, System.Numerics.Vector2 baseline, System.Single size, Tachyon.Charts.Rendering.Rgba8 color, Tachyon.Charts.Rendering.TextFont font, System.Span<Tachyon.Charts.Rendering.GlyphInstance> glyphs)
+  System.Single GetLineHeight(System.Single size, Tachyon.Charts.Rendering.TextFont font)
+  System.Single MeasureWidth(System.ReadOnlySpan<System.Char> text, System.Single size, Tachyon.Charts.Rendering.TextFont font)
   abstract System.Int32 Layout(System.ReadOnlySpan<System.Char> text, System.Numerics.Vector2 baseline, System.Single size, Tachyon.Charts.Rendering.Rgba8 color, System.Span<Tachyon.Charts.Rendering.GlyphInstance> glyphs)
   abstract System.Single GetLineHeight(System.Single size)
   abstract System.Single MeasureWidth(System.ReadOnlySpan<System.Char> text, System.Single size)
@@ -211,6 +214,18 @@ struct Tachyon.Charts.Rendering.Rgba8 : System.IEquatable<Tachyon.Charts.Renderi
   System.Byte G { get; set; }
   System.Byte R { get; set; }
 sealed class Tachyon.Charts.Rendering.Rgba8Converter : System.ComponentModel.TypeConverter
+  .ctor()
+  virtual System.Boolean CanConvertFrom(System.ComponentModel.ITypeDescriptorContext context, System.Type sourceType)
+  virtual System.Object ConvertFrom(System.ComponentModel.ITypeDescriptorContext context, System.Globalization.CultureInfo culture, System.Object value)
+struct Tachyon.Charts.Rendering.TextFont : System.IEquatable<Tachyon.Charts.Rendering.TextFont>
+  .ctor(System.String Family = null, System.Boolean Bold = False, System.Boolean Italic = False)
+  System.Boolean Bold { get; set; }
+  System.Boolean IsDefault { get; }
+  System.Boolean Italic { get; set; }
+  System.String Family { get; set; }
+  System.String ToString()
+  static Tachyon.Charts.Rendering.TextFont Parse(System.String text)
+sealed class Tachyon.Charts.Rendering.TextFontConverter : System.ComponentModel.TypeConverter
   .ctor()
   virtual System.Boolean CanConvertFrom(System.ComponentModel.ITypeDescriptorContext context, System.Type sourceType)
   virtual System.Object ConvertFrom(System.ComponentModel.ITypeDescriptorContext context, System.Globalization.CultureInfo culture, System.Object value)

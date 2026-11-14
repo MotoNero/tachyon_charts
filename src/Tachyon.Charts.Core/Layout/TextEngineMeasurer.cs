@@ -38,9 +38,12 @@ public sealed class TextEngineMeasurer : ITextMeasurer
         }
     }
 
-    /// <inheritdoc />
-    public double LineHeight => _engine.GetLineHeight(_size);
+    /// <summary>Gets or sets the font; the default is the font of the engine.</summary>
+    public TextFont Font { get; set; }
 
     /// <inheritdoc />
-    public double MeasureWidth(string text) => _engine.MeasureWidth(text, _size);
+    public double LineHeight => _engine.GetLineHeight(_size, Font);
+
+    /// <inheritdoc />
+    public double MeasureWidth(string text) => _engine.MeasureWidth(text, _size, Font);
 }

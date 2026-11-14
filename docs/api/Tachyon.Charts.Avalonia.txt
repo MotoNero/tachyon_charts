@@ -32,6 +32,8 @@ sealed class Tachyon.Charts.Avalonia.Chart : Avalonia.Controls.Control, Avalonia
   Tachyon.Charts.Avalonia.ChartElementCollection<Tachyon.Charts.Avalonia.ChartModifierElement> Modifiers { get; }
   Tachyon.Charts.Avalonia.ChartElementCollection<Tachyon.Charts.Avalonia.ChartSeriesElement> Series { get; }
   Tachyon.Charts.Core.Themes.Theme ChartTheme { get; set; }
+  Tachyon.Charts.Rendering.TextFont AxisFont { get; set; }
+  Tachyon.Charts.Rendering.TextFont TitleFont { get; set; }
   protected virtual Avalonia.Automation.Peers.AutomationPeer OnCreateAutomationPeer()
   protected virtual System.Void OnKeyDown(Avalonia.Input.KeyEventArgs e)
   protected virtual System.Void OnKeyUp(Avalonia.Input.KeyEventArgs e)
@@ -48,6 +50,8 @@ sealed class Tachyon.Charts.Avalonia.Chart : Avalonia.Controls.Control, Avalonia
   static Avalonia.StyledProperty<System.String> GroupNameProperty
   static Avalonia.StyledProperty<System.String> TitleProperty
   static Avalonia.StyledProperty<Tachyon.Charts.Core.Themes.Theme> ChartThemeProperty
+  static Avalonia.StyledProperty<Tachyon.Charts.Rendering.TextFont> AxisFontProperty
+  static Avalonia.StyledProperty<Tachyon.Charts.Rendering.TextFont> TitleFontProperty
   static System.Nullable<System.Int32> MaximumFramesPerSecond { get; set; }
   static Tachyon.Charts.Rendering.RendererPreference Renderer { get; set; }
   virtual System.Void Render(Avalonia.Media.DrawingContext context)

@@ -523,6 +523,12 @@ public sealed record ChartDefinition(
     /// <summary>Gets a value indicating whether the chart is turned a quarter, with the X axis running down; see <see cref="ChartBuilder.XDown"/>.</summary>
     public bool IsXDown { get; init; }
 
+    /// <summary>Gets the font of the title; see <see cref="ChartBuilder.TitleFont"/>.</summary>
+    public TextFont TitleFont { get; init; }
+
+    /// <summary>Gets the font of the labels and titles of the axes; see <see cref="ChartBuilder.AxisFont"/>.</summary>
+    public TextFont AxisFont { get; init; }
+
     /// <summary>Gets what creates the overlays. A chart can call it again, for example after a device loss.</summary>
     public IReadOnlyList<Func<ChartSurface, Overlays.ChartOverlay>> Overlays { get; init; } = [];
 
@@ -537,7 +543,7 @@ public sealed record ChartDefinition(
         var colorAxes = Series.Where(series => series.ColorScale is not null).Select((series, index) => (Series: series, Axis: series.ColorScale!.Create($"color{index}"))).ToArray();
         var surface = IsXDown
             ? CreateTurned(xAxes, yAxes, colorAxes.Select(item => item.Axis), textEngine)
-            : new ChartSurface(xAxes, CreatePanes(yAxes, colorAxes.Select(item => item.Axis)), textEngine) { Title = Title, Theme = Theme };
+            : new ChartSurface(xAxes, CreatePanes(yAxes, colorAxes.Select(item => item.Axis)), textEngine) { Title = Title, Theme = Theme, TitleFont = TitleFont, AxisFont = AxisFont };
         foreach (var series in Series)
         {
             var x = Find(xAxes, series.XAxisId, "X");
@@ -599,7 +605,7 @@ public sealed record ChartDefinition(
             axis.IsInverted = !axis.IsInverted;
         }
 
-        return new ChartSurface(yAxes, [new LayoutPane([.. xAxes, .. colorAxes])], textEngine) { Title = Title, Theme = Theme, IsXDown = true };
+        return new ChartSurface(yAxes, [new LayoutPane([.. xAxes, .. colorAxes])], textEngine) { Title = Title, Theme = Theme, IsXDown = true, TitleFont = TitleFont, AxisFont = AxisFont };
     }
 
     // Vertical axes go into the pane they name, from the top; color axes join the first pane.
@@ -1323,6 +1329,8 @@ public sealed class ChartBuilder
     private readonly List<SeriesDefinition> _series = [];
     private readonly List<ModifierDefinition> _modifiers = [];
     private string? _title;
+    private TextFont _titleFont;
+    private TextFont _axisFont;
     private bool _isXDown;
     private Theme? _theme;
     private string? _groupName;
@@ -1346,6 +1354,24 @@ public sealed class ChartBuilder
     public ChartBuilder XDown()
     {
         _isXDown = true;
+        return this;
+    }
+
+    /// <summary>Sets the font of the title, such as <c>new TextFont("Roboto Slab", Bold: true)</c>.</summary>
+    /// <param name="font">The family, bold and italic; a family that is not there takes the font of the chart.</param>
+    /// <returns>This builder.</returns>
+    public ChartBuilder TitleFont(TextFont font)
+    {
+        _titleFont = font;
+        return this;
+    }
+
+    /// <summary>Sets the font of the labels and titles of the axes.</summary>
+    /// <param name="font">The family, bold and italic; a family that is not there takes the font of the chart.</param>
+    /// <returns>This builder.</returns>
+    public ChartBuilder AxisFont(TextFont font)
+    {
+        _axisFont = font;
         return this;
     }
 
@@ -1527,7 +1553,7 @@ public sealed class ChartBuilder
             throw new InvalidOperationException($"The axis name '{duplicate.Key}' occurs twice.");
         }
 
-        return new ChartDefinition(_title, _theme, [.. _xAxes], [.. _yAxes], [.. _series], [.. _modifiers]) { GroupName = _groupName, Overlays = [.. _overlays], IsXDown = _isXDown };
+        return new ChartDefinition(_title, _theme, [.. _xAxes], [.. _yAxes], [.. _series], [.. _modifiers]) { GroupName = _groupName, Overlays = [.. _overlays], IsXDown = _isXDown, TitleFont = _titleFont, AxisFont = _axisFont };
     }
 
     private static AxisDefinition Describe(Action<AxisBuilder> configure, string fallbackId)

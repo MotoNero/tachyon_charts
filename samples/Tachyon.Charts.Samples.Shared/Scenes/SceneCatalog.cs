@@ -41,6 +41,7 @@ public static class SceneCatalog
         new RolloverScene(),
         new AnnotationsScene(),
         new AnnotationStylesScene(),
+        new TextFontsScene(),
         new SelectionScene(),
         new MeasureCursorsScene(),
         new LegendScene(),

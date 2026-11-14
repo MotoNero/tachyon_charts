@@ -609,7 +609,8 @@ public sealed class TextAnnotation(AxisBase? xAxis, AxisBase? yAxis) : Annotatio
             // From the place to the right: the text stands after it, turned and on a plate as the appearance asks.
             AnnotationPainter.Label(canvas, Text, position, position + Vector2.UnitX, Appearance, Color, LabelPlace.Start, LabelSide.Before, FontSize, new Rgba8(0, 0, 0, 0));
             var size = Appearance.LabelSize ?? FontSize;
-            SetBounds(new DipRect(position.X, position.Y - canvas.GetLineHeight(size), canvas.MeasureWidth(Text, size) + 16, canvas.GetLineHeight(size) + 8));
+            var font = Appearance.LabelFont;
+            SetBounds(new DipRect(position.X, position.Y - canvas.GetLineHeight(size, font), canvas.MeasureWidth(Text, size, font) + 16, canvas.GetLineHeight(size, font) + 8));
             return;
         }
 

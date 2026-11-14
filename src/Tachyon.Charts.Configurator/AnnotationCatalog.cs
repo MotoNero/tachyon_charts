@@ -43,6 +43,9 @@ internal static class AnnotationCatalog
         new("labelSide", "Label beside", ParameterKind.Choice, nameof(LabelSide.Auto)) { Choices = Enum.GetNames<LabelSide>(), Description = "Before: above a level line, left of an upright one; After: the other side." },
         new("labelOffset", "Label distance", ParameterKind.Number, 0.0) { Minimum = -200, Maximum = 200, Description = "A further distance from the line, in device-independent units." },
         new("labelSize", "Label size", ParameterKind.Number, 0.0) { Minimum = 0, Maximum = 72, Description = "The size of the text; 0 for that of the chart." },
+        new("labelFont", "Label font", ParameterKind.Choice, FontSpec.DefaultFamily) { Choices = FontSpec.Families, Description = "Default is the font of the chart; Roboto Slab comes with the library, the others when they are installed." },
+        new("labelBold", "Label bold", ParameterKind.Flag, false),
+        new("labelItalic", "Label italic", ParameterKind.Flag, false),
         new("labelColor", "Label text color", ParameterKind.Color, string.Empty) { Description = "Empty for the background of the chart on a plate, the color of the annotation without one." },
         new("labelFill", "Label plate", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the annotation; a transparent color leaves the plate out." },
         new("labelBorder", "Label border", ParameterKind.Color, string.Empty) { Description = "Empty for none." },
@@ -246,6 +249,7 @@ internal static class AnnotationCatalog
         LabelSide = Choice(values, "labelSide", LabelSide.Auto),
         LabelOffset = values.GetNumber("labelOffset", 0),
         LabelSize = Positive(values, "labelSize"),
+        LabelFont = new FontSpec { Family = values.GetText("labelFont", FontSpec.DefaultFamily), Bold = values.GetFlag("labelBold", false), Italic = values.GetFlag("labelItalic", false) }.ToTextFont(),
         LabelColor = ColorOf(values, "labelColor"),
         LabelFill = ColorOf(values, "labelFill"),
         LabelBorder = ColorOf(values, "labelBorder"),
@@ -275,6 +279,7 @@ internal static class AnnotationCatalog
         Add(look.LabelSide != LabelSide.Auto, $"LabelSide = LabelSide.{look.LabelSide}");
         Add(look.LabelOffset != 0, $"LabelOffset = {CodeText.Number(look.LabelOffset)}");
         Add(look.LabelSize is not null, $"LabelSize = {CodeText.Number(look.LabelSize ?? 0)}f");
+        Add(!look.LabelFont.IsDefault, $"LabelFont = {FontSpec.Code(look.LabelFont)}");
         Add(look.LabelColor is not null, $"LabelColor = {CodeText.Color(look.LabelColor ?? default)}");
         Add(look.LabelFill is not null, $"LabelFill = {CodeText.Color(look.LabelFill ?? default)}");
         Add(look.LabelBorder is not null, $"LabelBorder = {CodeText.Color(look.LabelBorder ?? default)}");

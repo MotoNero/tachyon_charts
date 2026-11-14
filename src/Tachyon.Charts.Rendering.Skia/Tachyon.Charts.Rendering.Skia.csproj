@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Fonts/Roboto-Regular.ttf" LogicalName="Roboto-Regular.ttf" />
+    <!-- Roboto in four cuts and Roboto Slab, both Apache-2.0; the licenses lie beside the files. -->
+    <EmbeddedResource Include="Fonts/*.ttf" LogicalName="%(Filename)%(Extension)" />
     <InternalsVisibleTo Include="Tachyon.Charts.Rendering.Tests" />
   </ItemGroup>
 

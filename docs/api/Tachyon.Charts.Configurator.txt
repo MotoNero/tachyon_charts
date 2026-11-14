@@ -70,6 +70,8 @@ sealed class Tachyon.Charts.Configurator.ChartSpec
   System.String Group { get; set; }
   System.String Theme { get; set; }
   System.String Title { get; set; }
+  Tachyon.Charts.Configurator.FontSpec AxisFont { get; set; }
+  Tachyon.Charts.Configurator.FontSpec TitleFont { get; set; }
   Tachyon.Charts.Configurator.LegendSpec Legend { get; set; }
   Tachyon.Charts.Configurator.LegendSpec SecondLegend { get; set; }
   Tachyon.Charts.Configurator.SpecValues Scene { get; set; }
@@ -226,6 +228,13 @@ sealed class Tachyon.Charts.Configurator.FieldModel
   System.String SetText(System.String text)
   System.String Text { get; }
   Tachyon.Charts.Configurator.ParameterInfo Info { get; }
+sealed class Tachyon.Charts.Configurator.FontSpec
+  .ctor()
+  System.Boolean Bold { get; set; }
+  System.Boolean Italic { get; set; }
+  System.String Family { get; set; }
+  static System.Collections.Generic.IReadOnlyList<System.String> Families { get; }
+  static System.String DefaultFamily
 interface Tachyon.Charts.Configurator.IChartModule
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.PageInfo> Pages { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.SceneInfo> Scenes { get; }

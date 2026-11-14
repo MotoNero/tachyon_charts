@@ -96,6 +96,9 @@ public sealed class AnnotationAppearance
     /// <summary>Gets or sets the size of the text, or <see langword="null"/> for the size of the labels of the chart.</summary>
     public float? LabelSize { get; set; }
 
+    /// <summary>Gets or sets the font of the text: family, bold and italic; the default is the font of the chart.</summary>
+    public TextFont LabelFont { get; set; }
+
     /// <summary>Gets or sets the color of the text, or <see langword="null"/>: the background of the chart on a plate, the color of the annotation without one.</summary>
     public Rgba8? LabelColor { get; set; }
 
@@ -130,7 +133,7 @@ public sealed class AnnotationAppearance
     public float? Thickness { get; set; }
 
     /// <summary>Gets a value indicating whether the label draws as it always did.</summary>
-    internal bool IsPlainLabel => LabelPlace == LabelPlace.Auto && LabelSide == LabelSide.Auto && LabelOffset == 0 && LabelSize is null && LabelColor is null
+    internal bool IsPlainLabel => LabelPlace == LabelPlace.Auto && LabelSide == LabelSide.Auto && LabelOffset == 0 && LabelSize is null && LabelFont.IsDefault && LabelColor is null
         && LabelFill is null && LabelBorder is null && LabelTurn == LabelTurn.Level && LabelIcon == LabelIcon.None;
 }
 
@@ -203,9 +206,9 @@ internal static class AnnotationPainter
             _ => 0f,
         };
         var (u, v) = (new Vector2(MathF.Cos(angle), MathF.Sin(angle)), new Vector2(-MathF.Sin(angle), MathF.Cos(angle)));
-        var height = canvas.GetLineHeight(size) + 2;
+        var height = canvas.GetLineHeight(size, look.LabelFont) + 2;
         var icon = look.LabelIcon == LabelIcon.None ? 0 : height * 0.8f;
-        var width = canvas.MeasureWidth(text, size) + (Padding * 2) + icon;
+        var width = canvas.MeasureWidth(text, size, look.LabelFont) + (Padding * 2) + icon;
         var (halfWidth, halfHeight) = (width / 2, height / 2);
 
         // The middle of the plate: beside the line by half its extent across it, and along it from the chosen end.
@@ -240,12 +243,12 @@ internal static class AnnotationPainter
         var textMiddle = Corner((icon / 2) + 0, 0);
         if (angle == 0)
         {
-            var textWidth = canvas.MeasureWidth(text, size);
-            canvas.DrawText(text, textMiddle.X - (textWidth / 2), textMiddle.Y + (height / 2) - (height * 0.28), size, ink);
+            var textWidth = canvas.MeasureWidth(text, size, look.LabelFont);
+            canvas.DrawText(text, textMiddle.X - (textWidth / 2), textMiddle.Y + (height / 2) - (height * 0.28), size, ink, look.LabelFont);
         }
         else
         {
-            canvas.DrawTurnedText(text, textMiddle, angle, size, ink);
+            canvas.DrawTurnedText(text, textMiddle, angle, size, ink, look.LabelFont);
         }
 
         canvas.Clip = clip;

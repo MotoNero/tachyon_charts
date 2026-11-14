@@ -923,6 +923,18 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             calls.Add($".Title({CodeText.String(spec.Title)})");
         }
 
+        if (spec.TitleFont is { IsDefault: false } titleFont)
+        {
+            usings.Add("Tachyon.Charts.Rendering");
+            calls.Add($".TitleFont({FontSpec.Code(titleFont.ToTextFont())})");
+        }
+
+        if (spec.AxisFont is { IsDefault: false } axisFont)
+        {
+            usings.Add("Tachyon.Charts.Rendering");
+            calls.Add($".AxisFont({FontSpec.Code(axisFont.ToTextFont())})");
+        }
+
         var scene = _catalog.SceneOf(spec);
         if (ThemeCall(spec) is { } theme && scene is null)
         {

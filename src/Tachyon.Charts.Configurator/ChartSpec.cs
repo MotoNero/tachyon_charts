@@ -1,4 +1,5 @@
 using Tachyon.Charts.Core.Themes;
+using Tachyon.Charts.Rendering;
 
 namespace Tachyon.Charts.Configurator;
 
@@ -22,6 +23,12 @@ public sealed class ChartSpec
 
     /// <summary>Gets or sets an own theme, which takes the place of <see cref="Theme"/>, or <see langword="null"/> for none.</summary>
     public ThemeSpec? OwnTheme { get; set; }
+
+    /// <summary>Gets or sets the font of the title, or <see langword="null"/> for the font of the chart.</summary>
+    public FontSpec? TitleFont { get; set; }
+
+    /// <summary>Gets or sets the font of the labels and titles of the axes, or <see langword="null"/> for the font of the chart.</summary>
+    public FontSpec? AxisFont { get; set; }
 
     /// <summary>Gets or sets a value indicating whether the X axis runs downwards.</summary>
     public bool XDown { get; set; }
@@ -93,6 +100,56 @@ public sealed class ThemeSpec
     /// <returns>The resolved theme.</returns>
     /// <exception cref="FormatException">A key is unknown or a value cannot be read.</exception>
     public Theme Create() => ThemeResources.Create(Name, SpecChartBuilder.Theme(Base).Name, Values.ToDictionary(pair => ThemeResources.KeyPrefix + pair.Key, pair => pair.Value, StringComparer.Ordinal));
+}
+
+/// <summary>A font of a <see cref="ChartSpec"/>: a family and its cut.</summary>
+public sealed class FontSpec
+{
+    /// <summary>The choice that stands for the font of the chart.</summary>
+    public const string DefaultFamily = "Default";
+
+    /// <summary>Gets the families offered: the font of the chart, the embedded Roboto Slab and common installed ones.</summary>
+    public static IReadOnlyList<string> Families { get; } = [DefaultFamily, "Roboto Slab", "Arial", "Segoe UI", "Consolas", "Times New Roman"];
+
+    /// <summary>Gets or sets the family, one of <see cref="Families"/>.</summary>
+    public string Family { get; set; } = DefaultFamily;
+
+    /// <summary>Gets or sets a value indicating whether the cut is bold.</summary>
+    public bool Bold { get; set; }
+
+    /// <summary>Gets or sets a value indicating whether the cut is italic.</summary>
+    public bool Italic { get; set; }
+
+    /// <summary>Gets a value indicating whether this is the font of the chart, upright and regular.</summary>
+    internal bool IsDefault => Family == DefaultFamily && !Bold && !Italic;
+
+    /// <summary>Gets the font for the renderer.</summary>
+    /// <returns>The font.</returns>
+    internal TextFont ToTextFont() => new(Family == DefaultFamily ? null : Family, Bold, Italic);
+
+    /// <summary>Writes a font as C#.</summary>
+    /// <param name="font">The font.</param>
+    /// <returns>The expression.</returns>
+    internal static string Code(TextFont font)
+    {
+        var parts = new List<string>();
+        if (font.Family is { } family)
+        {
+            parts.Add(CodeText.String(family));
+        }
+
+        if (font.Bold)
+        {
+            parts.Add("Bold: true");
+        }
+
+        if (font.Italic)
+        {
+            parts.Add("Italic: true");
+        }
+
+        return $"new TextFont({string.Join(", ", parts)})";
+    }
 }
 
 /// <summary>An annotation of the chart.</summary>

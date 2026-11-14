@@ -74,6 +74,19 @@ public sealed class OverlayCanvas
     /// <returns>The height.</returns>
     public float GetLineHeight(float size) => _textEngine.GetLineHeight(size);
 
+    /// <summary>Gets the height of a line of text in a font.</summary>
+    /// <param name="size">The font size.</param>
+    /// <param name="font">The font.</param>
+    /// <returns>The height.</returns>
+    public float GetLineHeight(float size, TextFont font) => _textEngine.GetLineHeight(size, font);
+
+    /// <summary>Measures text in a font.</summary>
+    /// <param name="text">The text.</param>
+    /// <param name="size">The font size.</param>
+    /// <param name="font">The font.</param>
+    /// <returns>The width.</returns>
+    public float MeasureWidth(string text, float size, TextFont font) => _textEngine.MeasureWidth(text, size, font);
+
     /// <summary>Measures text.</summary>
     /// <param name="text">The text.</param>
     /// <param name="size">The font size.</param>
@@ -358,11 +371,12 @@ public sealed class OverlayCanvas
     /// <param name="angle">The angle in radians, clockwise on the screen.</param>
     /// <param name="size">The font size.</param>
     /// <param name="color">The color.</param>
-    internal void DrawTurnedText(string text, Vector2 center, float angle, float size, Rgba8 color)
+    /// <param name="font">The font.</param>
+    internal void DrawTurnedText(string text, Vector2 center, float angle, float size, Rgba8 color, TextFont font = default)
     {
         var first = _glyphCount;
-        var width = MeasureWidth(text, size);
-        DrawText(text, center.X - (width / 2), center.Y + (GetLineHeight(size) * 0.3), size, color);
+        var width = MeasureWidth(text, size, font);
+        DrawText(text, center.X - (width / 2), center.Y + (GetLineHeight(size, font) * 0.3), size, color, font);
         var pivot = center * (float)_scale;
         for (var i = first; i < _glyphCount; i++)
         {
@@ -376,7 +390,16 @@ public sealed class OverlayCanvas
     /// <param name="baseline">The baseline.</param>
     /// <param name="size">The font size.</param>
     /// <param name="color">The color.</param>
-    public void DrawText(string text, double x, double baseline, float size, Rgba8 color)
+    public void DrawText(string text, double x, double baseline, float size, Rgba8 color) => DrawText(text, x, baseline, size, color, default);
+
+    /// <summary>Draws text in a font.</summary>
+    /// <param name="text">The text.</param>
+    /// <param name="x">The left edge.</param>
+    /// <param name="baseline">The baseline.</param>
+    /// <param name="size">The font size.</param>
+    /// <param name="color">The color.</param>
+    /// <param name="font">The font.</param>
+    public void DrawText(string text, double x, double baseline, float size, Rgba8 color, TextFont font)
     {
         if (_glyphCount + text.Length > _glyphs.Length)
         {
@@ -384,7 +407,7 @@ public sealed class OverlayCanvas
         }
 
         var position = new Vector2((float)(x * _scale), (float)(baseline * _scale));
-        _glyphCount += _textEngine.Layout(text, position, (float)(size * _scale), color, _glyphs.AsSpan(_glyphCount));
+        _glyphCount += _textEngine.Layout(text, position, (float)(size * _scale), color, font, _glyphs.AsSpan(_glyphCount));
     }
 
     /// <summary>Draws text on a colored plate, kept inside the chart.</summary>

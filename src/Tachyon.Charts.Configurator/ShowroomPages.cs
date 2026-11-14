@@ -109,6 +109,18 @@ internal static class ShowroomPages
             spec.Annotations.Add(Annotation("text", ("x", 6.6), ("y", -1.05), ("text", "Turned note"), ("color", "#F05A5AFF"), ("labelTurn", "Angle"), ("labelAngle", 15.0), ("labelFill", "#F05A5A3C"), ("labelBorder", "#F05A5AFF"), ("labelColor", "#F05A5AFF")));
             return spec;
         }),
+        new("TextFonts", _ =>
+        {
+            var spec = Scene("Fonts: Roboto Slab, bold and italic", "Time in s", -1.5, 1.5, Named(Line("wave13", 240, "#50AAF0", 2), "Wave"));
+            (spec.Theme, spec.YAxes[0].Title) = ("TachyonDark", "Level");
+            spec.TitleFont = new FontSpec { Family = "Roboto Slab", Bold = true };
+            spec.AxisFont = new FontSpec { Italic = true };
+            Interactions(spec, "annotationedit");
+            spec.Annotations.Add(Annotation("hline", ("y", 1.1), ("label", "Bold label"), ("color", "#F05A5AFF"), ("labelPlace", "End"), ("labelBold", true)));
+            spec.Annotations.Add(Annotation("vline", ("x", 6.0), ("label", "Italic label"), ("color", "#6ED282FF"), ("labelItalic", true)));
+            spec.Annotations.Add(Annotation("hline", ("y", -1.2), ("label", "Roboto Slab, bold italic"), ("color", "#F0A03CFF"), ("labelPlace", "Start"), ("labelFont", "Roboto Slab"), ("labelBold", true), ("labelItalic", true)));
+            return spec;
+        }),
         new("ZoomPreview", _ => Interacting(Scene("ZoomPreview", "Time", -1.5, 1.5, Line("wave13", 240, "#50AAF0", 2)), "rubberband")),
         new("LineFifoWrap", _ => Scene("LineFifoWrap", "Time", -1.5, 1.5, Line("wave13", 301, "#50AAF0", 2), Line("vibration", 200_000, "#F0825A", 1))),
         new("Crosshair", _ => Interacting(Scene("Crosshair", "Time", -1.5, 1.5, Line("wave13", 40, "#50AAF0", 2)), "crosshair")),
@@ -707,6 +719,10 @@ internal static class ShowroomPages
             if (value is double number)
             {
                 annotation.Parameters.Set(name, number);
+            }
+            else if (value is bool flag)
+            {
+                annotation.Parameters.Set(name, flag);
             }
             else
             {

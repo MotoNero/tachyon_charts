@@ -34,6 +34,14 @@ public sealed class Chart : FrameworkElement, IRecordableChart
     public static readonly DependencyProperty TitleProperty = DependencyProperty.Register(
         nameof(Title), typeof(string), typeof(Chart), new PropertyMetadata(null, OnTitleChanged));
 
+    /// <summary>Identifies the <see cref="TitleFont"/> property.</summary>
+    public static readonly DependencyProperty TitleFontProperty = DependencyProperty.Register(
+        nameof(TitleFont), typeof(TextFont), typeof(Chart), new PropertyMetadata(default(TextFont), OnFontChanged));
+
+    /// <summary>Identifies the <see cref="AxisFont"/> property.</summary>
+    public static readonly DependencyProperty AxisFontProperty = DependencyProperty.Register(
+        nameof(AxisFont), typeof(TextFont), typeof(Chart), new PropertyMetadata(default(TextFont), OnFontChanged));
+
     /// <summary>Identifies the <see cref="GroupName"/> property.</summary>
     public static readonly DependencyProperty GroupNameProperty = DependencyProperty.Register(
         nameof(GroupName), typeof(string), typeof(Chart), new PropertyMetadata(null, OnGroupNameChanged));
@@ -114,6 +122,20 @@ public sealed class Chart : FrameworkElement, IRecordableChart
     {
         get => (string?)GetValue(TitleProperty);
         set => SetValue(TitleProperty, value);
+    }
+
+    /// <summary>Gets or sets the font of the title, in XAML such as <c>Roboto Slab, Bold</c>; the default is the font of the chart.</summary>
+    public TextFont TitleFont
+    {
+        get => (TextFont)GetValue(TitleFontProperty);
+        set => SetValue(TitleFontProperty, value);
+    }
+
+    /// <summary>Gets or sets the font of the labels and titles of the axes, in XAML such as <c>Italic</c>; the default is the font of the chart.</summary>
+    public TextFont AxisFont
+    {
+        get => (TextFont)GetValue(AxisFontProperty);
+        set => SetValue(AxisFontProperty, value);
     }
 
     /// <summary>
@@ -336,6 +358,7 @@ public sealed class Chart : FrameworkElement, IRecordableChart
         Theme = definition.Theme;
         GroupName = definition.GroupName;
         _isXDown = definition.IsXDown;
+        (TitleFont, AxisFont) = (definition.TitleFont, definition.AxisFont);
         _overlayFactories = definition.Overlays;
 
         // A running chart builds itself anew with the new elements below; it must take the new overlays along.
@@ -343,6 +366,7 @@ public sealed class Chart : FrameworkElement, IRecordableChart
         {
             _controller.OverlayFactories = _overlayFactories;
             _controller.IsXDown = _isXDown;
+            _controller.SetFonts(TitleFont, AxisFont);
         }
 
         Replace(XAxes, definition.XAxes.Select(ChartElementFactory.Create));
@@ -483,6 +507,12 @@ public sealed class Chart : FrameworkElement, IRecordableChart
         _controller?.Pipeline.CancelAllCaptures();
     }
 
+    private static void OnFontChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
+    {
+        var chart = (Chart)sender;
+        chart._controller?.SetFonts(chart.TitleFont, chart.AxisFont);
+    }
+
     private static void OnTitleChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args) =>
         ((Chart)sender)._controller?.SetTitle((string?)args.NewValue);
 
@@ -549,6 +579,7 @@ public sealed class Chart : FrameworkElement, IRecordableChart
             Annotations);
         _controller.OverlayFactories = _overlayFactories;
         _controller.IsXDown = _isXDown;
+        _controller.SetFonts(TitleFont, AxisFont);
         _controller.ShowsDiagnostics = _showsDiagnostics;
         foreach (var element in _logicalChildren)
         {

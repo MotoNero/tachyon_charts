@@ -29,3 +29,25 @@ The palette of a theme colors the traces of oscilloscope, spectrum and network d
 ## Glow
 
 Lines can glow (`glow` in the theme). `ChartSurface.EffectsEnabled = false` turns it off. The glow is clear on a dark background and hardly visible on a bright one.
+
+## Fonts
+
+Text uses the embedded Roboto, so it looks the same everywhere. Title, axes and labels of annotations can take another
+font: a family and its cut.
+
+```csharp
+c.TitleFont(new TextFont("Roboto Slab", Bold: true))
+ .AxisFont(new TextFont(Italic: true));
+```
+
+In XAML the chart has `TitleFont` and `AxisFont`, written as text: `TitleFont="Roboto Slab, Bold"`, `AxisFont="Italic"`.
+Annotations take `LabelFont` in their `Appearance`.
+
+- Roboto in regular, bold, italic and bold italic and Roboto Slab in regular and bold come with the library.
+- Other families come from the fonts installed, such as `Arial` or `Consolas`. A family that is not installed takes Roboto
+  in the same cut, so a chart never loses its text.
+- A family without an italic cut, such as Roboto Slab, leans its upright letters.
+
+All fonts share one glyph atlas; a font used again costs nothing per frame.
+
+![The title in Roboto Slab bold, the axes in italic, labels in bold, italic and Roboto Slab bold italic](../images/text-fonts.png)

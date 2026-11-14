@@ -37,6 +37,7 @@ public sealed class ChartSurface
     private readonly LayoutPane[] _panes;
     private readonly AxisBase[] _axes;
     private readonly ITextEngine _textEngine;
+    private TextFont _titleFont;
     private readonly TextEngineMeasurer _measurer;
     private ChartLayoutOptions _options;
 
@@ -146,6 +147,34 @@ public sealed class ChartSurface
             if (_title != value)
             {
                 _title = value;
+                _structureVersion++;
+            }
+        }
+    }
+
+    /// <summary>Gets or sets the font of the title: family, bold and italic; the default is the font of the text engine.</summary>
+    public TextFont TitleFont
+    {
+        get => _titleFont;
+        set
+        {
+            if (_titleFont != value)
+            {
+                _titleFont = value;
+                _structureVersion++;
+            }
+        }
+    }
+
+    /// <summary>Gets or sets the font of the labels and titles of the axes; the default is the font of the text engine.</summary>
+    public TextFont AxisFont
+    {
+        get => _measurer.Font;
+        set
+        {
+            if (_measurer.Font != value)
+            {
+                _measurer.Font = value;
                 _structureVersion++;
             }
         }
@@ -1117,8 +1146,8 @@ public sealed class ChartSurface
 
         if (!string.IsNullOrEmpty(_title))
         {
-            var left = layout.Title.X + ((layout.Title.Width - _textEngine.MeasureWidth(_title, _titleSize)) / 2);
-            AddText(_title, left, layout.Title.Bottom - 2, _titleSize, _titleColor, scale);
+            var left = layout.Title.X + ((layout.Title.Width - _textEngine.MeasureWidth(_title, _titleSize, _titleFont)) / 2);
+            AddText(_title, left, layout.Title.Bottom - 2, _titleSize, _titleColor, scale, _titleFont);
         }
 
         foreach (var placement in layout.Axes)
@@ -1280,7 +1309,7 @@ public sealed class ChartSurface
         }
         else
         {
-            AddText(label, labelX, baseline, _labelSize, _labelColor, scale);
+            AddText(label, labelX, baseline, _labelSize, _labelColor, scale, _measurer.Font);
         }
     }
 
@@ -1302,10 +1331,10 @@ public sealed class ChartSurface
         switch (axis.Position)
         {
             case AxisPosition.Bottom:
-                AddText(title, bounds.X + ((bounds.Width - width) / 2), bounds.Bottom - 2, _labelSize, _titleColor, scale);
+                AddText(title, bounds.X + ((bounds.Width - width) / 2), bounds.Bottom - 2, _labelSize, _titleColor, scale, _measurer.Font);
                 break;
             case AxisPosition.Top:
-                AddText(title, bounds.X + ((bounds.Width - width) / 2), bounds.Y + _labelSize, _labelSize, _titleColor, scale);
+                AddText(title, bounds.X + ((bounds.Width - width) / 2), bounds.Y + _labelSize, _labelSize, _titleColor, scale, _measurer.Font);
                 break;
             case AxisPosition.Left:
                 AddVerticalTitle(title, bounds.X + AxisTitleInset, bounds.Y + (bounds.Height / 2), width, -90, scale);
@@ -1434,7 +1463,7 @@ public sealed class ChartSurface
     private void AddVerticalTitle(string text, double x, double y, double width, double degrees, double scale)
     {
         var first = _glyphCount;
-        AddText(text, x - (width / 2), y + (_labelSize * 0.36), _labelSize, _titleColor, scale);
+        AddText(text, x - (width / 2), y + (_labelSize * 0.36), _labelSize, _titleColor, scale, _measurer.Font);
         var pivot = new Vector2((float)(x * scale), (float)(y * scale));
         var radians = (float)(degrees * Math.PI / 180);
         for (var i = first; i < _glyphCount; i++)
@@ -1447,7 +1476,7 @@ public sealed class ChartSurface
     {
         var first = _glyphCount;
         var inwards = degrees < 0 ? 1 : -1;
-        AddText(text, x - width, y + (_labelSize * 0.36 * inwards), _labelSize, _labelColor, scale);
+        AddText(text, x - width, y + (_labelSize * 0.36 * inwards), _labelSize, _labelColor, scale, _measurer.Font);
         var pivot = new Vector2((float)(x * scale), (float)(y * scale));
         var radians = (float)(degrees * Math.PI / 180);
         for (var i = first; i < _glyphCount; i++)
@@ -1456,7 +1485,7 @@ public sealed class ChartSurface
         }
     }
 
-    private void AddText(string text, double x, double baseline, float size, Rgba8 color, double scale)
+    private void AddText(string text, double x, double baseline, float size, Rgba8 color, double scale, TextFont font)
     {
         if (_glyphCount + text.Length > _glyphs.Length)
         {
@@ -1464,6 +1493,6 @@ public sealed class ChartSurface
         }
 
         var position = new Vector2((float)(x * scale), (float)(baseline * scale));
-        _glyphCount += _textEngine.Layout(text, position, (float)(size * scale), color, _glyphs.AsSpan(_glyphCount));
+        _glyphCount += _textEngine.Layout(text, position, (float)(size * scale), color, font, _glyphs.AsSpan(_glyphCount));
     }
 }

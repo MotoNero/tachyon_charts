@@ -88,6 +88,16 @@ public static class SpecChartBuilder
             chart.Title(spec.Title);
         }
 
+        if (spec.TitleFont is { IsDefault: false } titleFont)
+        {
+            chart.TitleFont(titleFont.ToTextFont());
+        }
+
+        if (spec.AxisFont is { IsDefault: false } axisFont)
+        {
+            chart.AxisFont(axisFont.ToTextFont());
+        }
+
         // A scene sets its own theme, so the chosen one follows it.
         var scene = catalog.SceneOf(spec);
         if (ThemeOf(spec) is { } theme && scene is null)

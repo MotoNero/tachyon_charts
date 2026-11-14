@@ -39,6 +39,7 @@ sealed class Tachyon.Charts.Core.Annotations.AnnotationAppearance
   Tachyon.Charts.Core.Annotations.LabelSide LabelSide { get; set; }
   Tachyon.Charts.Core.Annotations.LabelTurn LabelTurn { get; set; }
   Tachyon.Charts.Core.Annotations.LineDash Dash { get; set; }
+  Tachyon.Charts.Rendering.TextFont LabelFont { get; set; }
 sealed class Tachyon.Charts.Core.Annotations.ArrowAnnotation : Tachyon.Charts.Core.Annotations.Annotation
   .ctor(Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   System.Single Thickness { get; set; }
@@ -580,11 +581,13 @@ sealed class Tachyon.Charts.Core.Fluent.ChartBuilder
   Tachyon.Charts.Core.Fluent.ChartBuilder AddScatter<TX, TY>(Tachyon.Charts.Core.Data.IDataSource<TX, TY> source, System.Action<Tachyon.Charts.Core.Fluent.ScatterBuilder<TX, TY>> configure = null)
   Tachyon.Charts.Core.Fluent.ChartBuilder AddSeries(System.Func<Tachyon.Charts.Core.Axes.AxisBase, Tachyon.Charts.Core.Axes.AxisBase, Tachyon.Charts.Core.Pipeline.ChartSeries> factory, System.String xAxis = null, System.String yAxis = null)
   Tachyon.Charts.Core.Fluent.ChartBuilder AddSpectrogram(Tachyon.Charts.Core.Data.SpectrogramData data, System.Action<Tachyon.Charts.Core.Fluent.SpectrogramBuilder> configure = null)
+  Tachyon.Charts.Core.Fluent.ChartBuilder AxisFont(Tachyon.Charts.Rendering.TextFont font)
   Tachyon.Charts.Core.Fluent.ChartBuilder Group(System.String name)
   Tachyon.Charts.Core.Fluent.ChartBuilder Legend(System.Action<Tachyon.Charts.Core.Fluent.LegendBuilder> configure = null)
   Tachyon.Charts.Core.Fluent.ChartBuilder Modifiers(System.Action<Tachyon.Charts.Core.Fluent.ModifierBuilder> configure)
   Tachyon.Charts.Core.Fluent.ChartBuilder Theme(Tachyon.Charts.Core.Themes.Theme theme)
   Tachyon.Charts.Core.Fluent.ChartBuilder Title(System.String title)
+  Tachyon.Charts.Core.Fluent.ChartBuilder TitleFont(Tachyon.Charts.Rendering.TextFont font)
   Tachyon.Charts.Core.Fluent.ChartBuilder XAxis(System.Action<Tachyon.Charts.Core.Fluent.AxisBuilder> configure)
   Tachyon.Charts.Core.Fluent.ChartBuilder XDown()
   Tachyon.Charts.Core.Fluent.ChartBuilder YAxis(System.Action<Tachyon.Charts.Core.Fluent.AxisBuilder> configure)
@@ -601,6 +604,8 @@ sealed class Tachyon.Charts.Core.Fluent.ChartDefinition : System.IEquatable<Tach
   System.String Title { get; set; }
   Tachyon.Charts.Core.Fluent.BuiltChart Build(Tachyon.Charts.Rendering.ITextEngine textEngine)
   Tachyon.Charts.Core.Themes.Theme Theme { get; set; }
+  Tachyon.Charts.Rendering.TextFont AxisFont { get; set; }
+  Tachyon.Charts.Rendering.TextFont TitleFont { get; set; }
 sealed class Tachyon.Charts.Core.Fluent.ColorAxisBuilder
   .ctor()
   Tachyon.Charts.Core.Fluent.ColorAxisBuilder Colormap(Tachyon.Charts.Core.Colors.Colormap colormap)
@@ -1479,6 +1484,7 @@ sealed class Tachyon.Charts.Core.Layout.TextEngineMeasurer : Tachyon.Charts.Core
   System.Double LineHeight { get; }
   System.Double MeasureWidth(System.String text)
   System.Single Size { get; set; }
+  Tachyon.Charts.Rendering.TextFont Font { get; set; }
 abstract class Tachyon.Charts.Core.Numerics.AxisScaling
   abstract System.Double Forward(System.Double value)
   abstract System.Double Inverse(System.Double value)
@@ -1576,14 +1582,17 @@ sealed class Tachyon.Charts.Core.Overlays.OverlayCanvas
   System.Boolean TryGetValue(Tachyon.Charts.Core.Axes.AxisBase axis, System.Double position, out System.Double value)
   System.Nullable<Tachyon.Charts.Core.Layout.DipRect> Clip { get; set; }
   System.Single GetLineHeight(System.Single size)
+  System.Single GetLineHeight(System.Single size, Tachyon.Charts.Rendering.TextFont font)
   System.Single LabelSize { get; }
   System.Single MeasureWidth(System.ReadOnlySpan<System.Char> text, System.Single size)
   System.Single MeasureWidth(System.String text, System.Single size)
+  System.Single MeasureWidth(System.String text, System.Single size, Tachyon.Charts.Rendering.TextFont font)
   System.Void DrawImage(System.Object owner, Tachyon.Charts.Rendering.Rgba8[] pixels, Tachyon.Charts.Rendering.PixelSize size, Tachyon.Charts.Core.Layout.DipRect area)
   System.Void DrawLine(System.Numerics.Vector2 from, System.Numerics.Vector2 to, System.Single width, Tachyon.Charts.Rendering.Rgba8 color)
   System.Void DrawRectangle(Tachyon.Charts.Core.Layout.DipRect area, Tachyon.Charts.Rendering.Rgba8 color)
   System.Void DrawText(System.ReadOnlySpan<System.Char> text, System.Double x, System.Double baseline, System.Single size, Tachyon.Charts.Rendering.Rgba8 color)
   System.Void DrawText(System.String text, System.Double x, System.Double baseline, System.Single size, Tachyon.Charts.Rendering.Rgba8 color)
+  System.Void DrawText(System.String text, System.Double x, System.Double baseline, System.Single size, Tachyon.Charts.Rendering.Rgba8 color, Tachyon.Charts.Rendering.TextFont font)
   System.Void FillPolygon(System.ReadOnlySpan<System.Numerics.Vector2> corners, Tachyon.Charts.Rendering.Rgba8 color)
   System.Void FillRectangle(Tachyon.Charts.Core.Layout.DipRect area, Tachyon.Charts.Rendering.Rgba8 color)
   System.Void FillTriangle(System.Numerics.Vector2 a, System.Numerics.Vector2 b, System.Numerics.Vector2 c, Tachyon.Charts.Rendering.Rgba8 color)
@@ -1682,6 +1691,8 @@ sealed class Tachyon.Charts.Core.Pipeline.ChartSurface
   Tachyon.Charts.Core.Pipeline.ChartSurfaceStyle Style { get; set; }
   Tachyon.Charts.Core.Pipeline.FramePhases Phases { get; }
   Tachyon.Charts.Core.Themes.Theme Theme { get; set; }
+  Tachyon.Charts.Rendering.TextFont AxisFont { get; set; }
+  Tachyon.Charts.Rendering.TextFont TitleFont { get; set; }
   static Tachyon.Charts.Core.Themes.Theme ThemeOverride { get; set; }
 sealed class Tachyon.Charts.Core.Pipeline.ChartSurfaceStyle : System.IEquatable<Tachyon.Charts.Core.Pipeline.ChartSurfaceStyle>
   .ctor()

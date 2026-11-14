@@ -21,6 +21,7 @@ Every annotation has an `Appearance` that sets how its label and its lines look.
 | `LabelPlace` | Start, middle or end of the line; `Auto` keeps the usual place |
 | `LabelSide`, `LabelOffset` | Which side of the line the label stands on, and a further distance from it |
 | `LabelSize`, `LabelColor` | Size and color of the text |
+| `LabelFont` | Family, bold and italic of the text, such as `new TextFont("Roboto Slab", Bold: true)`; in XAML `LabelFont="Roboto Slab, Bold"` |
 | `LabelFill` | The plate behind the text; a transparent color leaves it out |
 | `LabelBorder`, `LabelBorderThickness` | A frame around the plate |
 | `LabelTurn`, `LabelAngle` | `Level`, `AlongLine` (upright at a vertical line, reading upward, or following a sloped line) or a free `Angle` in degrees |

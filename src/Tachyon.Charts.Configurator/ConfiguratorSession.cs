@@ -292,6 +292,8 @@ public sealed class ConfiguratorSession
         Field("Chart", new("title", "Title", ParameterKind.Text, string.Empty), () => _spec.Title, value => _spec.Title = (string)value),
         Field("Chart", new("theme", "Theme", ParameterKind.Choice, "Application") { Choices = ["Application", .. ChartCatalog.Themes, OwnTheme], Description = "Own: a built-in theme as the base, with own values under Own theme." }, () => _spec.OwnTheme is not null ? OwnTheme : _spec.Theme ?? "Application", value => ChooseTheme((string)value), structural: true),
         .. OwnThemeFields(_spec.OwnTheme),
+        .. FontFields("title", "Title", () => _spec.TitleFont, font => _spec.TitleFont = font),
+        .. FontFields("axis", "Axes", () => _spec.AxisFont, font => _spec.AxisFont = font),
         Field("Chart", new("xDown", "X axis downwards", ParameterKind.Flag, false), () => _spec.XDown, value => _spec.XDown = (bool)value),
         Field("Chart", new("legend", "Legend", ParameterKind.Flag, false), () => _spec.Legend is not null, value => _spec.Legend = (bool)value ? _spec.Legend ?? new LegendSpec() : null, structural: true),
         .. LegendFields("Legend", _spec.Legend),
@@ -789,6 +791,21 @@ public sealed class ConfiguratorSession
         }
 
         return fields;
+    }
+
+    // Family, bold and italic of a font of the chart; a font set back to the default leaves the description.
+    private IEnumerable<FieldModel> FontFields(string name, string label, Func<FontSpec?> read, Action<FontSpec?> write)
+    {
+        void Change(Action<FontSpec> change)
+        {
+            var font = read() ?? new FontSpec();
+            change(font);
+            write(font.IsDefault ? null : font);
+        }
+
+        yield return Field("Chart", new(name + "Font", label + " font", ParameterKind.Choice, FontSpec.DefaultFamily) { Choices = FontSpec.Families, Description = "Default is the font of the chart; Roboto Slab comes with the library, the others when they are installed, else the default stands in." }, () => read()?.Family ?? FontSpec.DefaultFamily, value => Change(font => font.Family = (string)value));
+        yield return Field("Chart", new(name + "Bold", label + " bold", ParameterKind.Flag, false), () => read()?.Bold ?? false, value => Change(font => font.Bold = (bool)value));
+        yield return Field("Chart", new(name + "Italic", label + " italic", ParameterKind.Flag, false), () => read()?.Italic ?? false, value => Change(font => font.Italic = (bool)value));
     }
 
     // The choice of the theme that opens the fields of an own theme.

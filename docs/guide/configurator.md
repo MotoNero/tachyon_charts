@@ -94,6 +94,7 @@ Some types fill several charts from one display; a click, a window or a measurem
 - **Medical oblique and curved:** 3D with the oblique plane in it, a plane, the oblique plane that follows its line and the curved section along its arc; each chart can be left out.
 - **Spectrum with 3D waterfall:** a spectrum analyzer and its waterfall in 3D, side by side, one above the other, or the waterfall above the spectrum; reference level, divisions, mask and marker hold for both, and live spectra run into both. *Axes with numbers* labels frequency and level on the spectrum analyzer, alone or linked.
 - **Surface with its cut:** a surface in 3D with a plane across it and, below, above or beside it, a chart of the height along the plane. Dragging the outline of the plane moves the curve; a click in 3D or a Ctrl+click on the curve sets a marker that shows in both. *Plane at* sets where it starts, from -1 to 1 across the box. The 3D chart keeps its own title and box.
+- **Fonts:** under Chart, *Title font* and *Axes font* with bold and italic; each annotation has *Label font*, *Label bold* and *Label italic*. Roboto Slab comes with the library, the other families when they are installed.
 
 The generated window arranges the charts in the same way, and the view model sets the shared data up once.
 

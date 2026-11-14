@@ -40,6 +40,12 @@ public sealed class Chart : Control, IRecordableChart
     /// <summary>Identifies the <see cref="Title"/> property.</summary>
     public static readonly StyledProperty<string?> TitleProperty = AvaloniaProperty.Register<Chart, string?>(nameof(Title));
 
+    /// <summary>Defines the <see cref="TitleFont"/> property.</summary>
+    public static readonly StyledProperty<TextFont> TitleFontProperty = AvaloniaProperty.Register<Chart, TextFont>(nameof(TitleFont));
+
+    /// <summary>Defines the <see cref="AxisFont"/> property.</summary>
+    public static readonly StyledProperty<TextFont> AxisFontProperty = AvaloniaProperty.Register<Chart, TextFont>(nameof(AxisFont));
+
     /// <summary>Identifies the <see cref="GroupName"/> property.</summary>
     public static readonly StyledProperty<string?> GroupNameProperty = AvaloniaProperty.Register<Chart, string?>(nameof(GroupName));
 
@@ -116,6 +122,20 @@ public sealed class Chart : Control, IRecordableChart
     {
         get => GetValue(TitleProperty);
         set => SetValue(TitleProperty, value);
+    }
+
+    /// <summary>Gets or sets the font of the title, in XAML such as <c>Roboto Slab, Bold</c>; the default is the font of the chart.</summary>
+    public TextFont TitleFont
+    {
+        get => GetValue(TitleFontProperty);
+        set => SetValue(TitleFontProperty, value);
+    }
+
+    /// <summary>Gets or sets the font of the labels and titles of the axes, in XAML such as <c>Italic</c>; the default is the font of the chart.</summary>
+    public TextFont AxisFont
+    {
+        get => GetValue(AxisFontProperty);
+        set => SetValue(AxisFontProperty, value);
     }
 
     /// <summary>Gets or sets the name of a group of charts that share their X range, cursor and axis widths.</summary>
@@ -308,6 +328,7 @@ public sealed class Chart : Control, IRecordableChart
         ChartTheme = definition.Theme;
         GroupName = definition.GroupName;
         _isXDown = definition.IsXDown;
+        (TitleFont, AxisFont) = (definition.TitleFont, definition.AxisFont);
         _overlayFactories = definition.Overlays;
 
         // A running chart builds itself anew with the new elements below; it must take the new overlays along.
@@ -315,6 +336,7 @@ public sealed class Chart : Control, IRecordableChart
         {
             _controller.OverlayFactories = _overlayFactories;
             _controller.IsXDown = _isXDown;
+            _controller.SetFonts(TitleFont, AxisFont);
         }
 
         Replace(XAxes, definition.XAxes.Select(ChartElementFactory.Create));
@@ -407,6 +429,10 @@ public sealed class Chart : Control, IRecordableChart
         if (change.Property == TitleProperty)
         {
             _controller?.SetTitle(Title);
+        }
+        else if (change.Property == TitleFontProperty || change.Property == AxisFontProperty)
+        {
+            _controller?.SetFonts(TitleFont, AxisFont);
         }
         else if (change.Property == GroupNameProperty)
         {
@@ -565,6 +591,7 @@ public sealed class Chart : Control, IRecordableChart
             []);
         _controller.OverlayFactories = _overlayFactories;
         _controller.IsXDown = _isXDown;
+        _controller.SetFonts(TitleFont, AxisFont);
         _controller.ShowsDiagnostics = _showsDiagnostics;
         foreach (var element in LogicalChildren.OfType<ChartElement>())
         {

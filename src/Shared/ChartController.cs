@@ -112,6 +112,21 @@ internal sealed class ChartController : IChartElementHost, IDisposable
     /// <summary>Gets or sets a value indicating whether the X axis runs down the side and the values along the bottom.</summary>
     public bool IsXDown { get; set; }
 
+    private TextFont _titleFont;
+    private TextFont _axisFont;
+
+    /// <summary>Sets the fonts of the title and of the axes.</summary>
+    /// <param name="title">The font of the title.</param>
+    /// <param name="axes">The font of the labels and titles of the axes.</param>
+    public void SetFonts(TextFont title, TextFont axes)
+    {
+        (_titleFont, _axisFont) = (title, axes);
+        if (_surface is { } surface)
+        {
+            Post(() => (surface.TitleFont, surface.AxisFont) = (title, axes));
+        }
+    }
+
     /// <summary>Gets the input pipeline, used on the UI thread.</summary>
     public ModifierPipeline Pipeline { get; } = new();
 
@@ -406,8 +421,8 @@ internal sealed class ChartController : IChartElementHost, IDisposable
         }
 
         var surface = IsXDown
-            ? new ChartSurface(yAxes, [new LayoutPane([.. xAxes, .. colorAxes])], _textEngine) { Title = _title, Theme = _theme, IsXDown = true }
-            : new ChartSurface(xAxes, Panes(yAxes, colorAxes), _textEngine) { Title = _title, Theme = _theme };
+            ? new ChartSurface(yAxes, [new LayoutPane([.. xAxes, .. colorAxes])], _textEngine) { Title = _title, Theme = _theme, IsXDown = true, TitleFont = _titleFont, AxisFont = _axisFont }
+            : new ChartSurface(xAxes, Panes(yAxes, colorAxes), _textEngine) { Title = _title, Theme = _theme, TitleFont = _titleFont, AxisFont = _axisFont };
         var series = BuildSeries();
         var annotations = BuildAnnotations();
         _builtAnnotations.Clear();
