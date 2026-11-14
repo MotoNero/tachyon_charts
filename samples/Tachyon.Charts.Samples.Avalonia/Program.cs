@@ -86,7 +86,7 @@ internal sealed class SampleWindow : Window
     private IChartRecording? _recording;
     private string? _recordingPath;
     private readonly TextBlock _stillInfo = new() { FontSize = 12, Margin = new Thickness(8), Padding = new Thickness(6, 3, 6, 3), Background = new SolidColorBrush(Color.FromArgb(200, 20, 24, 32)), Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, IsVisible = false };
-    private readonly IReadOnlyList<SamplePage> _pageList;
+    private IReadOnlyList<SamplePage> _pageList;
     private SamplePage? _selected;
     private bool _isSwitching;
     private readonly ComboBox _colormap = new() { Width = 130, Margin = new Thickness(0, 0, 8, 0), IsVisible = false };
@@ -232,7 +232,7 @@ internal sealed class SampleWindow : Window
                 ShowSelection();
             }
         };
-        _list.SelectedItem = _pageList.FirstOrDefault(page => page.Id == startPage && !page.IsHeader) ?? _pageList[1];
+        _list.SelectedItem = _pageList.FirstOrDefault(page => page.Id == startPage && !page.IsHeader) ?? _pageList.First(page => page.Id == LiveEntry);
         if (ShowsSourceAtStart)
         {
             Opened += (_, _) => ShowSource();
@@ -370,6 +370,9 @@ internal sealed class SampleWindow : Window
         Fill(_trigger, new[] { "Trigger Auto", "Trigger Normal", "Trigger Single" }.Select(SampleText.T));
         Fill(_persistence, new[] { "Persistence off", "Variable", "Infinite", "Color grade" }.Select(SampleText.T));
         _list.ItemsSource = null;
+
+        // The names change with the language, and so does their order.
+        _pageList = SampleText.Sorted(_pageList);
         _list.ItemsSource = _pageList;
         _list.SelectedItem = _selected;
         _isSwitching = false;

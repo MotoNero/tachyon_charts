@@ -130,7 +130,7 @@ internal sealed class SampleWindow : Window
     private string? _recordingPath;
     private readonly TextBlock _stillInfo = new() { FontSize = 12, Margin = new Thickness(8), Padding = new Thickness(6, 3, 6, 3), Background = new SolidColorBrush(Color.FromArgb(200, 20, 24, 32)), Foreground = Brushes.White, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Visibility = Visibility.Collapsed };
     private readonly Grid _stage;
-    private readonly IReadOnlyList<SamplePage> _pageList;
+    private IReadOnlyList<SamplePage> _pageList;
     private bool _isSwitching;
     private readonly UniformGrid _rasterPanel = new() { Columns = 2, Visibility = Visibility.Collapsed };
     private readonly ScopeDemo _scopeDemo = new();
@@ -252,12 +252,18 @@ internal sealed class SampleWindow : Window
         SourceInitialized += (_, _) => SampleStyle.DarkenTitleBar(this);
         ApplyLanguage();
 
-        _list.SelectionChanged += (_, _) => ShowSelection();
+        _list.SelectionChanged += (_, _) =>
+        {
+            if (!_isSwitching)
+            {
+                ShowSelection();
+            }
+        };
         _theme.SelectionChanged += (_, _) => ApplyTheme();
         PreviewKeyDown += OnPreviewKey;
         Loaded += (_, _) =>
         {
-            _list.SelectedItem = _pageList.FirstOrDefault(page => page.Id == startPage && !page.IsHeader) ?? _pageList[1];
+            _list.SelectedItem = _pageList.FirstOrDefault(page => page.Id == startPage && !page.IsHeader) ?? _pageList.First(page => page.Id == LiveEntry);
             if (ShowsSourceAtStart)
             {
                 ShowSource();
@@ -378,6 +384,12 @@ internal sealed class SampleWindow : Window
         FillThemes();
         Fill(_trigger, "Trigger Auto", "Trigger Normal", "Trigger Single");
         Fill(_persistence, "Persistence off", "Variable", "Infinite", "Color grade");
+
+        // The names change with the language, and so does their order.
+        var selected = SelectedId;
+        _pageList = SampleText.Sorted(_pageList);
+        _list.ItemsSource = _pageList;
+        _list.SelectedItem = _pageList.FirstOrDefault(page => page.Id == selected);
         _isSwitching = false;
         foreach (var (button, text) in _actions)
         {

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Tachyon.Charts.Core.Instruments;
 using Tachyon.Charts.Samples.Shared.Scenes;
 
@@ -247,7 +248,43 @@ public static class SampleText
     /// <returns>Whether it has one.</returns>
     public static bool Knows(string english) => _german.ContainsKey(english);
 
-    /// <summary>Creates the page list, the same in both showrooms.</summary>
+    /// <summary>
+    /// Sorts the pages of each group by the names they show in the current language, so that a page is easy to find;
+    /// the groups keep their order.
+    /// </summary>
+    /// <param name="pages">The entries with their headings.</param>
+    /// <returns>The same entries, sorted within each group.</returns>
+    public static IReadOnlyList<SamplePage> Sorted(IReadOnlyList<SamplePage> pages)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        var culture = CultureInfo.GetCultureInfo(ChartText.Language == ChartLanguage.German ? "de-DE" : "en-US");
+        var order = StringComparer.Create(culture, CompareOptions.IgnoreCase);
+        var sorted = new List<SamplePage>(pages.Count);
+        var group = new List<SamplePage>();
+        void Close()
+        {
+            sorted.AddRange(group.OrderBy(page => page.ToString(), order));
+            group.Clear();
+        }
+
+        foreach (var page in pages)
+        {
+            if (page.IsHeader)
+            {
+                Close();
+                sorted.Add(page);
+            }
+            else
+            {
+                group.Add(page);
+            }
+        }
+
+        Close();
+        return sorted;
+    }
+
+    /// <summary>Creates the page list, the same in both showrooms, each group sorted by name.</summary>
     /// <returns>The entries with their headings.</returns>
     public static IReadOnlyList<SamplePage> CreatePages()
     {
@@ -273,6 +310,6 @@ public static class SampleText
         pages.AddRange(Pages3D.All.Select(page => new SamplePage(page.Name, page.Name)));
         pages.Add(new SamplePage("Gallery", "Gallery", true));
         pages.AddRange(SceneCatalog.All.Select(scene => new SamplePage(scene.Name, scene.Name)));
-        return pages;
+        return Sorted(pages);
     }
 }
