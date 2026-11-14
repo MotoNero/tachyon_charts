@@ -21,6 +21,13 @@ public sealed record Material3D
     public double Sharpness { get; init; } = 64;
 }
 
+/// <summary>The colors elements of a 3D chart take when they have none of their own.</summary>
+internal static class ThemeColors
+{
+    /// <summary>The color without a palette, as before themes gave one.</summary>
+    public static readonly Rgba8 Fallback = new(90, 170, 255, 255);
+}
+
 /// <summary>The color scale the colors of a surface come from, shown beside the box.</summary>
 /// <param name="Colormap">The colormap.</param>
 /// <param name="Range">The values at the ends of the colormap.</param>
@@ -58,6 +65,12 @@ public sealed class Mesh3D(IReadOnlyList<Vertex3D> vertices, IReadOnlyList<int> 
     /// colors of their own.
     /// </summary>
     public ColorScale3D? ColorScale { get; init; }
+
+    /// <summary>
+    /// Gets a value indicating whether the surface takes the next color of the palette of the theme instead of the
+    /// colors of its points, as a model without colors of its own does.
+    /// </summary>
+    public bool TakesThemeColor { get; init; }
 
     /// <summary>
     /// Gets a value per point, such as a measured temperature, or <see langword="null"/>. The value under the pointer is

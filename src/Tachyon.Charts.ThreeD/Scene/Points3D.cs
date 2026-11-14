@@ -369,8 +369,17 @@ public sealed class Line3D(Points3D points)
     /// <summary>Gets the points.</summary>
     public Points3D Points { get; } = points ?? throw new ArgumentNullException(nameof(points));
 
-    /// <summary>Gets the color of the points without one.</summary>
-    public Rgba8 Color { get; init; } = new(90, 170, 255, 255);
+    /// <summary>Gets the color of the points without one; without one set here, the next color of the palette of the theme.</summary>
+    public Rgba8 Color
+    {
+        get => _color ?? ThemeColors.Fallback;
+        init => _color = value;
+    }
+
+    /// <summary>Gets a value indicating whether the color was set here; otherwise the palette of the theme gives it.</summary>
+    internal bool HasOwnColor => _color is not null;
+
+    private readonly Rgba8? _color;
 
     /// <summary>Gets the width in device-independent units.</summary>
     public double Width { get; init; } = 1.5;

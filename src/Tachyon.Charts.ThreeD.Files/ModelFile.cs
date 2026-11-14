@@ -50,7 +50,8 @@ public sealed class ModelFileData(Point3D[] positions, int[] triangles, Rgba8[]?
             vertices[i] = new Vertex3D(Positions[i], color ?? Colors?[i] ?? _gray);
         }
 
-        return new Mesh3D(vertices, Triangles) { Material = material ?? new Material3D(), ColorScale = colorScale };
+        // Without a color and without colors of the file the model takes the color of the theme.
+        return new Mesh3D(vertices, Triangles) { Material = material ?? new Material3D(), ColorScale = colorScale, TakesThemeColor = color is null && Colors is null };
     }
 
     /// <summary>Creates a surface colored by a value per point, such as a measured temperature. The pointer shows the value.</summary>

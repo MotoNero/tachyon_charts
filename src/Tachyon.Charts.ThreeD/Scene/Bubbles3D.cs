@@ -55,8 +55,17 @@ public sealed class Bubbles3D
     /// <summary>Gets the unit of the diameters.</summary>
     public BubbleSizeUnit SizeUnit { get; init; } = BubbleSizeUnit.Data;
 
-    /// <summary>Gets the color of the bubbles without one of their own.</summary>
-    public Rgba8 Color { get; init; } = new(90, 170, 255, 255);
+    /// <summary>Gets the color of the bubbles without one of their own; without one set here, the next color of the palette of the theme.</summary>
+    public Rgba8 Color
+    {
+        get => _color ?? ThemeColors.Fallback;
+        init => _color = value;
+    }
+
+    /// <summary>Gets a value indicating whether the color was set here; otherwise the palette of the theme gives it.</summary>
+    internal bool HasOwnColor => _color is not null;
+
+    private readonly Rgba8? _color;
 
     /// <summary>Gets a color per bubble, or <see langword="null"/> for <see cref="Color"/>.</summary>
     /// <exception cref="ArgumentException">The number of colors differs from the number of bubbles.</exception>

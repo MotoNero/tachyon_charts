@@ -31,6 +31,11 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
     private ChartGroup? _group;
     private (Tachyon.Charts.Core.Numerics.DoubleRange, Tachyon.Charts.Core.Numerics.DoubleRange, Tachyon.Charts.Core.Numerics.DoubleRange) _ranges;
     private bool _meshesAreStale;
+
+    // The colors of the palette the elements without a color of their own take, in the order lines, scatters, bubbles,
+    // models; made anew only when the palette or the scene changes, so that a frame allocates nothing.
+    private readonly Dictionary<object, Rgba8> _themeColors = [];
+    private long _themeColorsStamp = -1;
     private int _framesUntilMeasure;
     private double _gpuMilliseconds = double.NaN;
     private int _picturesBeforeMeasure = 2;
@@ -302,18 +307,20 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
     {
         var ranges = (scene.XAxis.VisibleRange, scene.YAxis.VisibleRange, scene.ZAxis.VisibleRange);
         _lineStates.TryGetValue(line, out var state);
-        var uploaded = state.Ranges == ranges ? state.Uploaded : 0;
-        TraceRing.Upload(line.Points, ref uploaded, new BoxMap(scene), line.Color, _renderer!.GetTrace(line));
-        _lineStates[line] = new LineState(uploaded, ranges);
+        var color = ColorOf(line, line.HasOwnColor, line.Color);
+        var uploaded = state.Ranges == ranges && state.Color == color ? state.Uploaded : 0;
+        TraceRing.Upload(line.Points, ref uploaded, new BoxMap(scene), color, _renderer!.GetTrace(line));
+        _lineStates[line] = new LineState(uploaded, ranges, color);
     }
 
     private void UpdateScatter(Scatter3D scatter)
     {
         var ranges = (scene.XAxis.VisibleRange, scene.YAxis.VisibleRange, scene.ZAxis.VisibleRange);
         _scatterStates.TryGetValue(scatter, out var state);
-        var uploaded = state.Ranges == ranges ? state.Uploaded : 0;
-        TraceRing.Upload(scatter.Points, ref uploaded, new BoxMap(scene), scatter.Color, _renderer!.GetSpots(scatter), Points3D.ToSizeCode(scatter.Size));
-        _scatterStates[scatter] = new LineState(uploaded, ranges);
+        var color = ColorOf(scatter, scatter.HasOwnColor, scatter.Color);
+        var uploaded = state.Ranges == ranges && state.Color == color ? state.Uploaded : 0;
+        TraceRing.Upload(scatter.Points, ref uploaded, new BoxMap(scene), color, _renderer!.GetSpots(scatter), Points3D.ToSizeCode(scatter.Size));
+        _scatterStates[scatter] = new LineState(uploaded, ranges, color);
     }
 
     // Waiting for the GPU costs a little, so only some frames do it, and only while the view moves.
@@ -358,6 +365,9 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
     {
         _palette = palette.ToArray();
         Interlocked.Increment(ref _paletteVersion);
+
+        // Meshes and bubbles take their colors when they are uploaded; another palette uploads them anew.
+        _meshesAreStale = true;
     }
 
     /// <summary>Writes the lines of the 3D chart: time of the GPU, point budget, loading, graphics memory.</summary>
@@ -560,7 +570,54 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
         return levels;
     }
 
-    private readonly record struct LineState(long Uploaded, (Tachyon.Charts.Core.Numerics.DoubleRange, Tachyon.Charts.Core.Numerics.DoubleRange, Tachyon.Charts.Core.Numerics.DoubleRange) Ranges);
+    private readonly record struct LineState(long Uploaded, (Tachyon.Charts.Core.Numerics.DoubleRange, Tachyon.Charts.Core.Numerics.DoubleRange, Tachyon.Charts.Core.Numerics.DoubleRange) Ranges, Rgba8 Color);
+
+    // The color an element draws with: its own, or the color of the palette its place among the elements without one gives.
+    private Rgba8 ColorOf(object element, bool hasOwn, Rgba8 own)
+    {
+        if (hasOwn || _palette.Length == 0)
+        {
+            return own;
+        }
+
+        var stamp = scene.Version + Volatile.Read(ref _paletteVersion);
+        if (stamp != _themeColorsStamp)
+        {
+            _themeColors.Clear();
+            var next = 0;
+            foreach (var line in scene.Lines)
+            {
+                Take(line, line.HasOwnColor, ref next);
+            }
+
+            foreach (var scatter in scene.Scatters)
+            {
+                Take(scatter, scatter.HasOwnColor, ref next);
+            }
+
+            foreach (var bubbles in scene.Bubbles)
+            {
+                Take(bubbles, bubbles.HasOwnColor, ref next);
+            }
+
+            foreach (var mesh in scene.Meshes)
+            {
+                Take(mesh, !mesh.TakesThemeColor, ref next);
+            }
+
+            _themeColorsStamp = stamp;
+        }
+
+        return _themeColors.GetValueOrDefault(element, own);
+    }
+
+    private void Take(object element, bool hasOwn, ref int next)
+    {
+        if (!hasOwn)
+        {
+            _themeColors[element] = _palette[next++ % _palette.Length];
+        }
+    }
 
     private void AddPointMarks(MeasuredMap3D map)
     {
@@ -795,6 +852,7 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
         var range = scene.XAxis.VisibleRange;
         var span = range.Max - range.Min;
         var isScreen = bubbles.SizeUnit == BubbleSizeUnit.Screen;
+        var color = ColorOf(bubbles, bubbles.HasOwnColor, bubbles.Color);
         var instances = new BubbleInstance[bubbles.Count];
         var numbers = new int[bubbles.Count];
         var count = 0;
@@ -809,7 +867,7 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
 
             // A radius in the box spans half the diameter of 2 / span: the box is 2 wide.
             var size = isScreen ? -(float)diameter : (float)(diameter / span);
-            instances[count] = new BubbleInstance(place, size, bubbles.Colors?[i] ?? bubbles.Color);
+            instances[count] = new BubbleInstance(place, size, bubbles.Colors?[i] ?? color);
             numbers[count++] = i;
         }
 
@@ -828,10 +886,11 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
 
         var normals = Mesh3D.CalculateNormals(positions, mesh.Indices);
         var vertices = new MeshVertex[positions.Length];
+        Rgba8? themeColor = mesh.TakesThemeColor && _palette.Length > 0 ? ColorOf(mesh, false, default) : null;
         for (var i = 0; i < vertices.Length; i++)
         {
             var (p, n) = (positions[i], normals[i]);
-            vertices[i] = new MeshVertex(new Vector3((float)p.X, (float)p.Y, (float)p.Z), new Vector3((float)n.X, (float)n.Y, (float)n.Z), mesh.Vertices[i].Color);
+            vertices[i] = new MeshVertex(new Vector3((float)p.X, (float)p.Y, (float)p.Z), new Vector3((float)n.X, (float)n.Y, (float)n.Z), themeColor ?? mesh.Vertices[i].Color);
         }
 
         var indices = Mesh3D.ValidIndices(positions, mesh.Indices);
