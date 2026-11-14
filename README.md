@@ -1,4 +1,9 @@
-# Tachyon Charts
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/logo/tachyon-charts-lockup-dark-transparent.svg">
+    <img alt="Tachyon Charts" src="docs/images/logo/tachyon-charts-lockup-light-transparent.svg" width="440">
+  </picture>
+</h1>
 
 GPU-accelerated 2D and 3D charts for .NET 10, built for test and measurement, laboratory and scientific work. Runs in WPF and Avalonia on WebGPU, with a CPU fallback through Skia.
 

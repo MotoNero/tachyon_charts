@@ -2766,6 +2766,156 @@
                   "burasagari": "standard"
                 }
               }
+            },
+            {
+              "id": 35,
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "none"
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 2.5
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            89.2,
+                            636.9
+                          ]
+                        },
+                        {
+                          "p": [
+                            1190.8,
+                            636.9
+                          ]
+                        },
+                        {
+                          "p": [
+                            1190.8,
+                            893.7
+                          ]
+                        },
+                        {
+                          "p": [
+                            89.2,
+                            893.7
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                },
+                "live": {
+                  "shape": "rectangle",
+                  "w": 1101.6,
+                  "h": 256.80000000000007,
+                  "radii": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "xf": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    89.2,
+                    636.9
+                  ]
+                }
+              }
+            },
+            {
+              "id": 36,
+              "appearance": {
+                "items": [
+                  {
+                    "kind": "fill",
+                    "paint": {
+                      "type": "none"
+                    }
+                  },
+                  {
+                    "kind": "stroke",
+                    "paint": {
+                      "type": "none"
+                    },
+                    "width": 2.5
+                  }
+                ]
+              },
+              "kind": {
+                "type": "path",
+                "path": {
+                  "subpaths": [
+                    {
+                      "anchors": [
+                        {
+                          "p": [
+                            89.2,
+                            1084.9
+                          ]
+                        },
+                        {
+                          "p": [
+                            1190.8,
+                            1084.9
+                          ]
+                        },
+                        {
+                          "p": [
+                            1190.8,
+                            1341.7
+                          ]
+                        },
+                        {
+                          "p": [
+                            89.2,
+                            1341.7
+                          ]
+                        }
+                      ],
+                      "closed": true
+                    }
+                  ]
+                },
+                "live": {
+                  "shape": "rectangle",
+                  "w": 1101.6,
+                  "h": 256.79999999999995,
+                  "radii": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "xf": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    1.0,
+                    89.2,
+                    1084.9
+                  ]
+                }
+              }
             }
           ]
         }
@@ -3703,7 +3853,7 @@
     },
     "raster_effects_ppi": 72.0,
     "images": {},
-    "next_id": 35,
+    "next_id": 37,
     "metadata": {
       "author": "",
       "authorTitle": "",
@@ -3717,7 +3867,7 @@
       "copyrightNotice": "",
       "copyrightUrl": "",
       "created": 1794654876,
-      "modified": 1794656384
+      "modified": 1794657300
     },
     "last_view": {
       "name": "",
