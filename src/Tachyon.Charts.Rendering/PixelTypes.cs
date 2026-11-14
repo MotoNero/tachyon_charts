@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.InteropServices;
 
 namespace Tachyon.Charts.Rendering;
@@ -80,4 +82,33 @@ public readonly record struct PixelRect(float X, float Y, float Width, float Hei
 /// <param name="B">The blue channel.</param>
 /// <param name="A">The alpha channel, 255 is opaque.</param>
 [StructLayout(LayoutKind.Sequential)]
+[TypeConverter(typeof(Rgba8Converter))]
 public readonly record struct Rgba8(byte R, byte G, byte B, byte A);
+
+/// <summary>
+/// Reads a color from text, so that markup can set it: <c>#RRGGBB</c>, or <c>#AARRGGBB</c> with the opacity first as
+/// markup writes colors.
+/// </summary>
+public sealed class Rgba8Converter : TypeConverter
+{
+    /// <inheritdoc />
+    public override bool CanConvertFrom(ITypeDescriptorContext? context, Type sourceType) => sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
+
+    /// <inheritdoc />
+    public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
+    {
+        if (value is not string text)
+        {
+            return base.ConvertFrom(context, culture, value);
+        }
+
+        var digits = text.Trim().TrimStart('#');
+        if (digits.Length is not (6 or 8) || !uint.TryParse(digits, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var number))
+        {
+            throw new FormatException($"'{text}' is not a color of the form #RRGGBB or #AARRGGBB.");
+        }
+
+        var alpha = digits.Length == 8 ? (byte)(number >> 24) : (byte)255;
+        return new Rgba8((byte)(number >> 16), (byte)(number >> 8), (byte)number, alpha);
+    }
+}

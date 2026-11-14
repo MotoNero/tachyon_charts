@@ -8,6 +8,8 @@ sealed class Tachyon.Charts.Wpf.BoxAnnotation : Tachyon.Charts.Wpf.ChartAnnotati
   System.Double X2 { get; set; }
   System.Double Y1 { get; set; }
   System.Double Y2 { get; set; }
+  System.String Label { get; set; }
+  static System.Windows.DependencyProperty LabelProperty
   static System.Windows.DependencyProperty X1Property
   static System.Windows.DependencyProperty X2Property
   static System.Windows.DependencyProperty Y1Property
@@ -67,7 +69,9 @@ abstract class Tachyon.Charts.Wpf.ChartAnnotationElement : Tachyon.Charts.Wpf.Ch
   System.String XAxisId { get; set; }
   System.String YAxisId { get; set; }
   System.Windows.Media.Color Color { get; set; }
+  Tachyon.Charts.Core.Annotations.AnnotationAppearance Appearance { get; set; }
   protected .ctor()
+  static System.Windows.DependencyProperty AppearanceProperty
   static System.Windows.DependencyProperty ColorProperty
   static System.Windows.DependencyProperty IsEditableProperty
   static System.Windows.DependencyProperty XAxisIdProperty

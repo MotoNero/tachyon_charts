@@ -120,6 +120,7 @@ public static class ConfiguratorLink
         ["TextSizes"] = "excluded",
         ["ChartFrame"] = "excluded",
         ["LineDash"] = "line",
+        ["AnnotationStyles"] = "option:annotations",
         ["ZoomPreview"] = "rubberband",
         ["Selection"] = "selection",
         ["GroupStacked"] = "option:group",

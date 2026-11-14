@@ -2,6 +2,7 @@ using Tachyon.Charts.Core.Annotations;
 using Tachyon.Charts.Core.Axes;
 using Tachyon.Charts.Core.Overlays;
 using Tachyon.Charts.Core.Pipeline;
+using Tachyon.Charts.Rendering;
 
 namespace Tachyon.Charts.Configurator;
 
@@ -26,31 +27,49 @@ internal static class AnnotationCatalog
     private static readonly ParameterInfo _color = new("color", "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the usual color." };
     private static readonly ParameterInfo _label = new("label", "Label", ParameterKind.Text, string.Empty);
 
+    // How the label and the lines look; left as they are, an annotation draws as it always did.
+    private static readonly ParameterInfo[] _look =
+    [
+        new("labelPlace", "Label along", ParameterKind.Choice, nameof(LabelPlace.Auto)) { Choices = Enum.GetNames<LabelPlace>(), Description = "Where the label stands along its line: at the start, in the middle or at the end." },
+        new("labelSide", "Label beside", ParameterKind.Choice, nameof(LabelSide.Auto)) { Choices = Enum.GetNames<LabelSide>(), Description = "Before: above a level line, left of an upright one; After: the other side." },
+        new("labelOffset", "Label distance", ParameterKind.Number, 0.0) { Minimum = -200, Maximum = 200, Description = "A further distance from the line, in device-independent units." },
+        new("labelSize", "Label size", ParameterKind.Number, 0.0) { Minimum = 0, Maximum = 72, Description = "The size of the text; 0 for that of the chart." },
+        new("labelColor", "Label text color", ParameterKind.Color, string.Empty) { Description = "Empty for the background of the chart on a plate, the color of the annotation without one." },
+        new("labelFill", "Label plate", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the annotation; a transparent color leaves the plate out." },
+        new("labelBorder", "Label border", ParameterKind.Color, string.Empty) { Description = "Empty for none." },
+        new("labelBorderWidth", "Label border width", ParameterKind.Number, 1.0) { Minimum = 0.5, Maximum = 10 },
+        new("labelTurn", "Label turn", ParameterKind.Choice, nameof(LabelTurn.Level)) { Choices = Enum.GetNames<LabelTurn>(), Description = "Level, along the line (upright at an upright line), or by the angle." },
+        new("labelAngle", "Label angle", ParameterKind.Number, 0.0) { Minimum = -180, Maximum = 180, Description = "In degrees, counterclockwise, for the turn Angle." },
+        new("labelIcon", "Label sign", ParameterKind.Choice, nameof(LabelIcon.None)) { Choices = Enum.GetNames<LabelIcon>() },
+        new("dash", "Line", ParameterKind.Choice, nameof(LineDash.Solid)) { Choices = Enum.GetNames<LineDash>() },
+        new("thickness", "Line width", ParameterKind.Number, 0.0) { Minimum = 0, Maximum = 20, Description = "0 for that of the annotation; a band draws its edges only with a width." },
+    ];
+
     public static IReadOnlyList<AnnotationInfo> All { get; } =
     [
-        new("hline", "Horizontal line", [new("y", "Value", ParameterKind.Number, 0.5), _label, _color],
+        new("hline", "Horizontal line", [new("y", "Value", ParameterKind.Number, 0.5), _label, _color, .. _look],
             (c, v) => Colored(new HorizontalLineAnnotation(Y(c)) { Y = v.GetNumber("y", 0.5), Label = Label(v) }, v),
             (v, more) => $"new HorizontalLineAnnotation({YCode}){Init($"Y = {CodeText.Number(v.GetNumber("y", 0.5))}", LabelCode(v), ColorCode(v), more)}"),
-        new("vline", "Vertical line", [new("x", "Place", ParameterKind.Number, 5.0), _label, _color],
+        new("vline", "Vertical line", [new("x", "Place", ParameterKind.Number, 5.0), _label, _color, .. _look],
             (c, v) => Colored(new VerticalLineAnnotation(c.FirstXAxis) { X = v.GetNumber("x", 5), Label = Label(v) }, v),
             (v, more) => $"new VerticalLineAnnotation({XCode}){Init($"X = {CodeText.Number(v.GetNumber("x", 5))}", LabelCode(v), ColorCode(v), more)}"),
-        new("band", "Band", [new("from", "From", ParameterKind.Number, 2.0), new("to", "To", ParameterKind.Number, 4.0), new("color", "Color", ParameterKind.Color, "#F0BE5A30") { Description = "A band covers what lies behind it; a color with little opacity keeps that visible." }],
+        new("band", "Band", [new("from", "From", ParameterKind.Number, 2.0), new("to", "To", ParameterKind.Number, 4.0), new("color", "Color", ParameterKind.Color, "#F0BE5A30") { Description = "A band covers what lies behind it; a color with little opacity keeps that visible." }, _label, .. _look],
             (c, v) =>
             {
-                var band = new BandAnnotation(c.FirstXAxis);
+                var band = new BandAnnotation(c.FirstXAxis) { Label = Label(v) };
                 band.SetRange(v.GetNumber("from", 2), v.GetNumber("to", 4));
                 return Colored(band, v, "#F0BE5A30");
             },
-            (v, more) => $"Band(new BandAnnotation({XCode}){Init(more)}, {CodeText.Number(v.GetNumber("from", 2))}, {CodeText.Number(v.GetNumber("to", 4))})"),
-        new("box", "Box", [new("x1", "Left", ParameterKind.Number, 6.0), new("y1", "Bottom", ParameterKind.Number, -0.5), new("x2", "Right", ParameterKind.Number, 8.0), new("y2", "Top", ParameterKind.Number, 0.5), _color],
+            (v, more) => $"Band(new BandAnnotation({XCode}){Init(LabelCode(v), more)}, {CodeText.Number(v.GetNumber("from", 2))}, {CodeText.Number(v.GetNumber("to", 4))})"),
+        new("box", "Box", [new("x1", "Left", ParameterKind.Number, 6.0), new("y1", "Bottom", ParameterKind.Number, -0.5), new("x2", "Right", ParameterKind.Number, 8.0), new("y2", "Top", ParameterKind.Number, 0.5), _label, _color, .. _look],
             (c, v) =>
             {
-                var box = new BoxAnnotation(c.FirstXAxis, Y(c));
+                var box = new BoxAnnotation(c.FirstXAxis, Y(c)) { Label = Label(v) };
                 box.SetCorners(v.GetNumber("x1", 6), v.GetNumber("y1", -0.5), v.GetNumber("x2", 8), v.GetNumber("y2", 0.5));
                 return Colored(box, v);
             },
-            (v, more) => $"Box(new BoxAnnotation({XCode}, {YCode}){Init(more)}, {CodeText.Number(v.GetNumber("x1", 6))}, {CodeText.Number(v.GetNumber("y1", -0.5))}, {CodeText.Number(v.GetNumber("x2", 8))}, {CodeText.Number(v.GetNumber("y2", 0.5))})"),
-        new("text", "Text", [new("x", "Place", ParameterKind.Number, 1.0), new("y", "Value", ParameterKind.Number, 0.8), new("text", "Text", ParameterKind.Text, "Note"), new("size", "Font size", ParameterKind.Number, 13.0) { Minimum = 6, Maximum = 72 }, _color],
+            (v, more) => $"Box(new BoxAnnotation({XCode}, {YCode}){Init(LabelCode(v), more)}, {CodeText.Number(v.GetNumber("x1", 6))}, {CodeText.Number(v.GetNumber("y1", -0.5))}, {CodeText.Number(v.GetNumber("x2", 8))}, {CodeText.Number(v.GetNumber("y2", 0.5))})"),
+        new("text", "Text", [new("x", "Place", ParameterKind.Number, 1.0), new("y", "Value", ParameterKind.Number, 0.8), new("text", "Text", ParameterKind.Text, "Note"), new("size", "Font size", ParameterKind.Number, 13.0) { Minimum = 6, Maximum = 72 }, _color, .. _look],
             (c, v) =>
             {
                 var text = new TextAnnotation(c.FirstXAxis, Y(c)) { Text = v.GetText("text", "Note"), FontSize = (float)v.GetNumber("size", 13) };
@@ -58,7 +77,7 @@ internal static class AnnotationCatalog
                 return Colored(text, v);
             },
             (v, more) => $"Text(new TextAnnotation({XCode}, {YCode}){Init($"Text = {CodeText.String(v.GetText("text", "Note"))}", $"FontSize = {CodeText.Number(v.GetNumber("size", 13))}f", more)}, {CodeText.Number(v.GetNumber("x", 1))}, {CodeText.Number(v.GetNumber("y", 0.8))})"),
-        new("line", "Line", [new("x1", "Start place", ParameterKind.Number, 2.0), new("y1", "Start value", ParameterKind.Number, -0.5), new("x2", "End place", ParameterKind.Number, 8.0), new("y2", "End value", ParameterKind.Number, 0.5), _label, _color],
+        new("line", "Line", [new("x1", "Start place", ParameterKind.Number, 2.0), new("y1", "Start value", ParameterKind.Number, -0.5), new("x2", "End place", ParameterKind.Number, 8.0), new("y2", "End value", ParameterKind.Number, 0.5), _label, _color, .. _look],
             (c, v) =>
             {
                 var line = new LineAnnotation(c.FirstXAxis, Y(c)) { Label = Label(v) };
@@ -201,6 +220,62 @@ internal static class AnnotationCatalog
 
     private static AxisBase Y(ChartSurface chart) => chart.IsXDown ? chart.HorizontalAxes[0] : chart.Panes[0].Axes[0];
 
+    private static Rgba8? ColorOf(SpecValues values, string name) => SpecColor.TryParse(values.GetText(name, string.Empty), out var color) ? color : null;
+
+    private static float? Positive(SpecValues values, string name) => values.GetNumber(name, 0) is > 0 and var value ? (float)value : null;
+
+    private static T Choice<T>(SpecValues values, string name, T standard)
+        where T : struct, Enum => Enum.TryParse<T>(values.GetText(name, standard.ToString()), out var value) ? value : standard;
+
+    /// <summary>Reads the appearance the fields describe.</summary>
+    /// <param name="values">The values of an annotation.</param>
+    /// <returns>The appearance.</returns>
+    internal static AnnotationAppearance Look(SpecValues values) => new()
+    {
+        LabelPlace = Choice(values, "labelPlace", LabelPlace.Auto),
+        LabelSide = Choice(values, "labelSide", LabelSide.Auto),
+        LabelOffset = values.GetNumber("labelOffset", 0),
+        LabelSize = Positive(values, "labelSize"),
+        LabelColor = ColorOf(values, "labelColor"),
+        LabelFill = ColorOf(values, "labelFill"),
+        LabelBorder = ColorOf(values, "labelBorder"),
+        LabelBorderThickness = Positive(values, "labelBorderWidth") ?? 1,
+        LabelTurn = Choice(values, "labelTurn", LabelTurn.Level),
+        LabelAngle = values.GetNumber("labelAngle", 0),
+        LabelIcon = Choice(values, "labelIcon", LabelIcon.None),
+        Dash = Choice(values, "dash", LineDash.Solid),
+        Thickness = Positive(values, "thickness"),
+    };
+
+    // The same as code: only what differs from an appearance left as it is, or nothing.
+    private static string LookCode(SpecValues values)
+    {
+        var look = Look(values);
+        var parts = new List<string>();
+        void Add(bool differs, string member)
+        {
+            if (differs)
+            {
+                parts.Add(member);
+            }
+        }
+
+        Add(look.LabelPlace != LabelPlace.Auto, $"LabelPlace = LabelPlace.{look.LabelPlace}");
+        Add(look.LabelSide != LabelSide.Auto, $"LabelSide = LabelSide.{look.LabelSide}");
+        Add(look.LabelOffset != 0, $"LabelOffset = {CodeText.Number(look.LabelOffset)}");
+        Add(look.LabelSize is not null, $"LabelSize = {CodeText.Number(look.LabelSize ?? 0)}f");
+        Add(look.LabelColor is not null, $"LabelColor = {CodeText.Color(look.LabelColor ?? default)}");
+        Add(look.LabelFill is not null, $"LabelFill = {CodeText.Color(look.LabelFill ?? default)}");
+        Add(look.LabelBorder is not null, $"LabelBorder = {CodeText.Color(look.LabelBorder ?? default)}");
+        Add(look.LabelBorderThickness != 1, $"LabelBorderThickness = {CodeText.Number(look.LabelBorderThickness)}f");
+        Add(look.LabelTurn != LabelTurn.Level, $"LabelTurn = LabelTurn.{look.LabelTurn}");
+        Add(look.LabelAngle != 0, $"LabelAngle = {CodeText.Number(look.LabelAngle)}");
+        Add(look.LabelIcon != LabelIcon.None, $"LabelIcon = LabelIcon.{look.LabelIcon}");
+        Add(look.Dash != LineDash.Solid, $"Dash = LineDash.{look.Dash}");
+        Add(look.Thickness is not null, $"Thickness = {CodeText.Number(look.Thickness ?? 0)}f");
+        return parts.Count == 0 ? string.Empty : $"Appearance = new AnnotationAppearance {{ {string.Join(", ", parts)} }}";
+    }
+
     private static string? Label(SpecValues values) => values.GetText("label", string.Empty) is { Length: > 0 } label ? label : null;
 
     private static string LabelCode(SpecValues values) => Label(values) is { } label ? $"Label = {CodeText.String(label)}" : string.Empty;
@@ -214,6 +289,7 @@ internal static class AnnotationCatalog
             annotation.Color = color;
         }
 
+        annotation.Appearance = Look(values);
         return annotation;
     }
 
@@ -224,7 +300,8 @@ internal static class AnnotationCatalog
     /// <returns>The expression.</returns>
     public static string Expression(AnnotationInfo info, SpecValues values, bool isEditable)
     {
-        var code = info.Code(values, isEditable ? "IsEditable = true" : string.Empty);
+        var more = string.Join(", ", new[] { isEditable ? "IsEditable = true" : string.Empty, LookCode(values) }.Where(member => member.Length > 0));
+        var code = info.Code(values, more);
         var standard = (string)info.Parameters.First(parameter => parameter.Name == "color").Default;
         return info.Id is "band" or "box" or "text" && SpecColor.TryParse(values.GetText("color", standard), out var color)
             ? $"Colored({code}, {CodeText.Color(color)})"

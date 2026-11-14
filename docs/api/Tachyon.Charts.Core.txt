@@ -1,6 +1,7 @@
 abstract class Tachyon.Charts.Core.Annotations.Annotation : Tachyon.Charts.Core.Overlays.ChartOverlay
   System.Boolean IsEditable { get; set; }
   System.Nullable<Tachyon.Charts.Core.Layout.DipRect> LastBounds { get; }
+  Tachyon.Charts.Core.Annotations.AnnotationAppearance Appearance { get; set; }
   Tachyon.Charts.Core.Axes.AxisBase XAxis { get; }
   Tachyon.Charts.Core.Axes.AxisBase YAxis { get; }
   Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
@@ -11,6 +12,7 @@ abstract class Tachyon.Charts.Core.Annotations.Annotation : Tachyon.Charts.Core.
   protected System.Boolean IsTurned { get; }
   protected System.Numerics.Vector2 ToChart(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas, System.Double x, System.Double y)
   protected System.Void DrawAcross(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas, Tachyon.Charts.Core.Axes.AxisBase axis, System.Double value, System.String label)
+  protected System.Void DrawEdges(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas, Tachyon.Charts.Core.Layout.DipRect area, System.Single width, Tachyon.Charts.Rendering.Rgba8 color)
   protected System.Void DrawHandles(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas, System.ReadOnlySpan<System.Numerics.Vector2> points)
   protected System.Void SetBounds(Tachyon.Charts.Core.Layout.DipRect bounds)
   protected System.Void SetHandles(Tachyon.Charts.Core.Layout.DipRect[] areas)
@@ -21,6 +23,21 @@ abstract class Tachyon.Charts.Core.Annotations.Annotation : Tachyon.Charts.Core.
   virtual System.Object Capture()
   virtual System.Void MoveHandle(System.Int32 handle, System.Double deltaX, System.Double deltaY)
   virtual System.Void Restore(System.Object state)
+sealed class Tachyon.Charts.Core.Annotations.AnnotationAppearance
+  .ctor()
+  System.Double LabelAngle { get; set; }
+  System.Double LabelOffset { get; set; }
+  System.Nullable<System.Single> LabelSize { get; set; }
+  System.Nullable<System.Single> Thickness { get; set; }
+  System.Nullable<Tachyon.Charts.Rendering.Rgba8> LabelBorder { get; set; }
+  System.Nullable<Tachyon.Charts.Rendering.Rgba8> LabelColor { get; set; }
+  System.Nullable<Tachyon.Charts.Rendering.Rgba8> LabelFill { get; set; }
+  System.Single LabelBorderThickness { get; set; }
+  Tachyon.Charts.Core.Annotations.LabelIcon LabelIcon { get; set; }
+  Tachyon.Charts.Core.Annotations.LabelPlace LabelPlace { get; set; }
+  Tachyon.Charts.Core.Annotations.LabelSide LabelSide { get; set; }
+  Tachyon.Charts.Core.Annotations.LabelTurn LabelTurn { get; set; }
+  Tachyon.Charts.Core.Annotations.LineDash Dash { get; set; }
 sealed class Tachyon.Charts.Core.Annotations.ArrowAnnotation : Tachyon.Charts.Core.Annotations.Annotation
   .ctor(Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   System.Single Thickness { get; set; }
@@ -37,6 +54,7 @@ sealed class Tachyon.Charts.Core.Annotations.BandAnnotation : Tachyon.Charts.Cor
   .ctor(Tachyon.Charts.Core.Axes.AxisBase axis)
   System.Double End { get; }
   System.Double Start { get; }
+  System.String Label { get; set; }
   System.Void SetRange(System.Double start, System.Double end)
   protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
   virtual System.Boolean Resize(System.Double deltaX, System.Double deltaY)
@@ -46,6 +64,7 @@ sealed class Tachyon.Charts.Core.Annotations.BandAnnotation : Tachyon.Charts.Cor
   virtual System.Void Restore(System.Object state)
 sealed class Tachyon.Charts.Core.Annotations.BoxAnnotation : Tachyon.Charts.Core.Annotations.Annotation
   .ctor(Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  System.String Label { get; set; }
   System.ValueTuple<System.Double, System.Double> First { get; }
   System.ValueTuple<System.Double, System.Double> Second { get; }
   System.Void SetCorners(System.Double x1, System.Double y1, System.Double x2, System.Double y2)
@@ -118,6 +137,25 @@ sealed class Tachyon.Charts.Core.Annotations.ImageAnnotation : Tachyon.Charts.Co
   System.Void MoveTo(System.Double x, System.Double y)
   protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
   virtual System.Void Move(System.Double deltaX, System.Double deltaY)
+enum Tachyon.Charts.Core.Annotations.LabelIcon : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Arrow = 3
+  Info = 2
+  Marker = 4
+  None = 0
+  Warning = 1
+enum Tachyon.Charts.Core.Annotations.LabelPlace : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Auto = 0
+  End = 3
+  Middle = 2
+  Start = 1
+enum Tachyon.Charts.Core.Annotations.LabelSide : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  After = 2
+  Auto = 0
+  Before = 1
+enum Tachyon.Charts.Core.Annotations.LabelTurn : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  AlongLine = 1
+  Angle = 2
+  Level = 0
 sealed class Tachyon.Charts.Core.Annotations.LineAnnotation : Tachyon.Charts.Core.Annotations.Annotation
   .ctor(Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   System.Single Thickness { get; set; }
@@ -131,6 +169,10 @@ sealed class Tachyon.Charts.Core.Annotations.LineAnnotation : Tachyon.Charts.Cor
   virtual System.Void Move(System.Double deltaX, System.Double deltaY)
   virtual System.Void MoveHandle(System.Int32 handle, System.Double deltaX, System.Double deltaY)
   virtual System.Void Restore(System.Object state)
+enum Tachyon.Charts.Core.Annotations.LineDash : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Dashed = 1
+  Dotted = 2
+  Solid = 0
 sealed class Tachyon.Charts.Core.Annotations.MarkerAnnotation : Tachyon.Charts.Core.Annotations.Annotation
   .ctor(Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   System.Single Size { get; set; }

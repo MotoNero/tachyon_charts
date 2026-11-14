@@ -26,6 +26,10 @@ public abstract class ChartAnnotationElement : ChartElement
     public static readonly DependencyProperty ColorProperty = DependencyProperty.Register(
         nameof(Color), typeof(Color), typeof(ChartAnnotationElement), new PropertyMetadata(Color.FromRgb(240, 190, 90), OnAppearanceChanged));
 
+    /// <summary>Identifies the <see cref="Appearance"/> property.</summary>
+    public static readonly DependencyProperty AppearanceProperty = DependencyProperty.Register(
+        nameof(Appearance), typeof(AnnotationAppearance), typeof(ChartAnnotationElement), new PropertyMetadata(null, OnAppearanceChanged));
+
     /// <summary>Identifies the <see cref="XAxisId"/> property.</summary>
     public static readonly DependencyProperty XAxisIdProperty = DependencyProperty.Register(
         nameof(XAxisId), typeof(string), typeof(ChartAnnotationElement), new PropertyMetadata(null, OnStructureChanged));
@@ -48,6 +52,16 @@ public abstract class ChartAnnotationElement : ChartElement
     {
         get => (Color)GetValue(ColorProperty);
         set => SetValue(ColorProperty, value);
+    }
+
+    /// <summary>
+    /// Gets or sets how the label and the lines are drawn: place, size, colors, plate, border, turn and sign of the
+    /// label, dash and width of the lines; <see langword="null"/> draws them as usual. Set a new object to change it.
+    /// </summary>
+    public AnnotationAppearance? Appearance
+    {
+        get => (AnnotationAppearance?)GetValue(AppearanceProperty);
+        set => SetValue(AppearanceProperty, value);
     }
 
     /// <summary>Gets or sets the name of the X axis, or <see langword="null"/> for the first one.</summary>
@@ -77,6 +91,7 @@ public abstract class ChartAnnotationElement : ChartElement
         ApplyTo(core, ReadState());
         core.IsEditable = IsEditable;
         core.Color = ToEngine(Color);
+        core.Appearance = Appearance ?? new AnnotationAppearance();
         core.Edited += OnEdited;
         Core = core;
         return core;
@@ -135,11 +150,12 @@ public abstract class ChartAnnotationElement : ChartElement
             return;
         }
 
-        var (isEditable, color) = (element.IsEditable, ToEngine(element.Color));
+        var (isEditable, color, appearance) = (element.IsEditable, ToEngine(element.Color), element.Appearance ?? new AnnotationAppearance());
         host.Post(() =>
         {
             core.IsEditable = isEditable;
             core.Color = color;
+            core.Appearance = appearance;
             core.Move(0, 0);
         });
     }
@@ -244,6 +260,17 @@ public sealed class BoxAnnotation : ChartAnnotationElement
     /// <summary>Identifies the <see cref="Y2"/> property.</summary>
     public static readonly DependencyProperty Y2Property = Register(nameof(Y2));
 
+    /// <summary>Identifies the <see cref="Label"/> property.</summary>
+    public static readonly DependencyProperty LabelProperty = DependencyProperty.Register(
+        nameof(Label), typeof(string), typeof(BoxAnnotation), new PropertyMetadata(null));
+
+    /// <summary>Gets or sets a label at the upper edge, or <see langword="null"/> for none.</summary>
+    public string? Label
+    {
+        get => (string?)GetValue(LabelProperty);
+        set => SetValue(LabelProperty, value);
+    }
+
     /// <summary>Gets or sets the X value of the first corner.</summary>
     public double X1
     {
@@ -272,7 +299,7 @@ public sealed class BoxAnnotation : ChartAnnotationElement
         set => SetValue(Y2Property, value);
     }
 
-    private protected override Annotation Create(AxisBase x, AxisBase y) => new CoreBox(x, y);
+    private protected override Annotation Create(AxisBase x, AxisBase y) => new CoreBox(x, y) { Label = Label };
 
     private protected override double[] ReadState() => [X1, Y1, X2, Y2];
 

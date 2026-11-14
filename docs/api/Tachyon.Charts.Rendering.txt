@@ -210,6 +210,10 @@ struct Tachyon.Charts.Rendering.Rgba8 : System.IEquatable<Tachyon.Charts.Renderi
   System.Byte B { get; set; }
   System.Byte G { get; set; }
   System.Byte R { get; set; }
+sealed class Tachyon.Charts.Rendering.Rgba8Converter : System.ComponentModel.TypeConverter
+  .ctor()
+  virtual System.Boolean CanConvertFrom(System.ComponentModel.ITypeDescriptorContext context, System.Type sourceType)
+  virtual System.Object ConvertFrom(System.ComponentModel.ITypeDescriptorContext context, System.Globalization.CultureInfo culture, System.Object value)
 sealed class Tachyon.Charts.Rendering.TextureDesc
   .ctor(Tachyon.Charts.Rendering.PixelSize size, Tachyon.Charts.Rendering.TextureFormat format)
   System.Int64 SizeInBytes { get; }

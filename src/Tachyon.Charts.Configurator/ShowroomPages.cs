@@ -96,6 +96,18 @@ internal static class ShowroomPages
         new("LineStep", _ => Scene("LineStep", "Time", -1.5, 1.5, Line("wave11", 25, "#50AAF0", 1), Line("wave11", 25, "#F0825A", 2, ("style", "step")))),
         new("LineGaps", _ => Scene("LineGaps", "Time", -1.5, 1.5, Line("wavesWithHoles", 240, "#50AAF0", 2), Line("wavesWithHolesTurned", 60, "#F0825A", 2, ("style", "step")))),
         new("LineDash", _ => Scene("LineDash", "Time", -1.5, 1.5, Line("wave13", 240, "#50AAF0", 2, ("dash", "Long dashes")), Line("fastCosineHalf", 240, "#F0825A", 3, ("dash", "Sparse dots")), Line("ramp", 240, "#6ED282", 2, ("dash", "Long dash dot")))),
+        new("AnnotationStyles", _ =>
+        {
+            var spec = Scene("AnnotationStyles", "Time", -1.5, 1.5, Line("wave13", 240, "#50AAF0", 2));
+            Interactions(spec, "annotationedit");
+            spec.Annotations.Add(Annotation("hline", ("y", 1.1), ("label", "Upper limit"), ("color", "#F05A5AFF"), ("labelPlace", "End"), ("labelIcon", "Warning"), ("labelColor", "#FFFFFFFF"), ("dash", "Dashed")));
+            spec.Annotations.Add(Annotation("vline", ("x", 6.0), ("label", "Trigger"), ("color", "#6ED282FF"), ("labelTurn", "AlongLine"), ("labelFill", "#00000000"), ("labelSize", 14.0), ("thickness", 2.0)));
+            spec.Annotations.Add(Annotation("band", ("from", 7.5), ("to", 9.0), ("label", "Window"), ("color", "#6ED2822D"), ("labelFill", "#00000000"), ("labelBorder", "#6ED282FF"), ("labelColor", "#6ED282FF"), ("dash", "Dotted"), ("thickness", 1.5)));
+            spec.Annotations.Add(Annotation("box", ("x1", 1.9), ("y1", 1.25), ("x2", 3.6), ("y2", 0.55), ("label", "Peak"), ("color", "#F0825AFF"), ("labelIcon", "Info"), ("labelBorder", "#1E1E1EFF"), ("labelBorderWidth", 1.5), ("dash", "Dashed")));
+            spec.Annotations.Add(Annotation("line", ("x1", 0.4), ("y1", -1.3), ("x2", 4.6), ("y2", -0.5), ("label", "Trend"), ("color", "#966EE6FF"), ("labelTurn", "AlongLine"), ("labelPlace", "Middle"), ("labelIcon", "Arrow"), ("dash", "Dotted")));
+            spec.Annotations.Add(Annotation("text", ("x", 6.6), ("y", -1.05), ("text", "Turned note"), ("color", "#F05A5AFF"), ("labelTurn", "Angle"), ("labelAngle", 15.0), ("labelFill", "#F05A5A3C"), ("labelBorder", "#F05A5AFF"), ("labelColor", "#F05A5AFF")));
+            return spec;
+        }),
         new("ZoomPreview", _ => Interacting(Scene("ZoomPreview", "Time", -1.5, 1.5, Line("wave13", 240, "#50AAF0", 2)), "rubberband")),
         new("LineFifoWrap", _ => Scene("LineFifoWrap", "Time", -1.5, 1.5, Line("wave13", 301, "#50AAF0", 2), Line("vibration", 200_000, "#F0825A", 1))),
         new("Crosshair", _ => Interacting(Scene("Crosshair", "Time", -1.5, 1.5, Line("wave13", 40, "#50AAF0", 2)), "crosshair")),
@@ -620,6 +632,24 @@ internal static class ShowroomPages
         spec.Theme = theme;
         return spec;
     });
+
+    private static AnnotationSpec Annotation(string type, params (string Name, object Value)[] values)
+    {
+        var annotation = new AnnotationSpec { Type = type };
+        foreach (var (name, value) in values)
+        {
+            if (value is double number)
+            {
+                annotation.Parameters.Set(name, number);
+            }
+            else
+            {
+                annotation.Parameters.Set(name, (string)value);
+            }
+        }
+
+        return annotation;
+    }
 
     private static ChartSpec Interacting(ChartSpec spec, params string[] interactions)
     {

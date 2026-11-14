@@ -28,6 +28,17 @@ public abstract class Annotation(AxisBase? xAxis, AxisBase? yAxis) : ChartOverla
     /// <summary>Gets or sets a value indicating whether an edit modifier may change it.</summary>
     public bool IsEditable { get; set; }
 
+    /// <summary>Gets or sets how the label and the lines are drawn: place, size, colors, plate, border, turn and sign of the label, dash and width of the lines.</summary>
+    public AnnotationAppearance Appearance
+    {
+        get;
+        set
+        {
+            field = value ?? throw new ArgumentNullException(nameof(value));
+            OnChanged();
+        }
+    } = new();
+
     /// <summary>
     /// Gets the area of the last frame in chart coordinates, for hit tests on any thread.
     /// </summary>
@@ -186,19 +197,19 @@ public abstract class Annotation(AxisBase? xAxis, AxisBase? yAxis) : ChartOverla
         }
 
         canvas.Clip = plot;
-        if (axis.IsHorizontal)
-        {
-            canvas.DrawLine(new Vector2((float)at, (float)plot.Y), new Vector2((float)at, (float)plot.Bottom), 1, Color);
-            SetBounds(new DipRect(at, plot.Y, 1, plot.Height));
-        }
-        else
-        {
-            canvas.DrawLine(new Vector2((float)plot.X, (float)at), new Vector2((float)plot.Right, (float)at), 1, Color);
-            SetBounds(new DipRect(plot.X, at, plot.Width, 1));
-        }
-
+        var (from, to) = axis.IsHorizontal
+            ? (new Vector2((float)at, (float)plot.Y), new Vector2((float)at, (float)plot.Bottom))
+            : (new Vector2((float)plot.X, (float)at), new Vector2((float)plot.Right, (float)at));
+        AnnotationPainter.Line(canvas, from, to, Appearance.Thickness ?? 1, Color, Appearance.Dash);
+        SetBounds(axis.IsHorizontal ? new DipRect(at, plot.Y, 1, plot.Height) : new DipRect(plot.X, at, plot.Width, 1));
         if (label is null)
         {
+            return;
+        }
+
+        if (!Appearance.IsPlainLabel)
+        {
+            AnnotationPainter.Label(canvas, label, from, to, Appearance, Color, axis.IsHorizontal ? LabelPlace.Start : LabelPlace.End, LabelSide.Before);
             return;
         }
 
@@ -212,6 +223,21 @@ public abstract class Annotation(AxisBase? xAxis, AxisBase? yAxis) : ChartOverla
         {
             canvas.DrawLabel(label, plot.Right - width - 4, at - canvas.GetLineHeight(canvas.LabelSize) - 3, Color, canvas.BackgroundColor);
         }
+    }
+
+    /// <summary>Draws the four edges of an area with the dash of the appearance.</summary>
+    /// <param name="canvas">The canvas.</param>
+    /// <param name="area">The area.</param>
+    /// <param name="width">The width of the edges.</param>
+    /// <param name="color">The color.</param>
+    protected void DrawEdges(OverlayCanvas canvas, DipRect area, float width, Rgba8 color)
+    {
+        ArgumentNullException.ThrowIfNull(canvas);
+        var (a, b, c, d) = (new Vector2((float)area.X, (float)area.Y), new Vector2((float)area.Right, (float)area.Y), new Vector2((float)area.Right, (float)area.Bottom), new Vector2((float)area.X, (float)area.Bottom));
+        AnnotationPainter.Line(canvas, a, b, width, color, Appearance.Dash);
+        AnnotationPainter.Line(canvas, b, c, width, color, Appearance.Dash);
+        AnnotationPainter.Line(canvas, c, d, width, color, Appearance.Dash);
+        AnnotationPainter.Line(canvas, d, a, width, color, Appearance.Dash);
     }
 
     /// <summary>Remembers the area of this frame.</summary>
@@ -316,6 +342,9 @@ public sealed class BoxAnnotation(AxisBase? xAxis, AxisBase? yAxis) : Annotation
     /// <summary>Gets or sets the fill, which can be transparent.</summary>
     public Rgba8 Fill { get; set; } = new(240, 190, 90, 40);
 
+    /// <summary>Gets or sets a label at the upper edge, or <see langword="null"/> for none.</summary>
+    public string? Label { get; set; }
+
     /// <summary>Gets the first corner.</summary>
     public (double X, double Y) First => (_x1, _y1);
 
@@ -386,8 +415,22 @@ public sealed class BoxAnnotation(AxisBase? xAxis, AxisBase? yAxis) : Annotation
         var area = Span(a, c);
         canvas.Clip = canvas.Layout.PlotArea;
         canvas.FillRectangle(area, Fill);
-        canvas.DrawRectangle(area, Color);
+        if (Appearance.Thickness is null && Appearance.Dash == LineDash.Solid)
+        {
+            canvas.DrawRectangle(area, Color);
+        }
+        else
+        {
+            DrawEdges(canvas, area, Appearance.Thickness ?? 1, Color);
+        }
+
         SetBounds(area);
+        if (Label is { Length: > 0 } label)
+        {
+            var top = (float)area.Y;
+            AnnotationPainter.Label(canvas, label, new Vector2((float)area.X, top), new Vector2((float)area.Right, top), Appearance, Color, LabelPlace.Start, LabelSide.After);
+        }
+
         SetHandles(Point(a), Point(b), Point(c), Point(d), Span(a, d), Span(b, c), Span(a, b), Span(d, c));
         DrawHandles(canvas, [a, b, c, d]);
     }
@@ -397,6 +440,9 @@ public sealed class BoxAnnotation(AxisBase? xAxis, AxisBase? yAxis) : Annotation
 /// <param name="axis">The axis.</param>
 public sealed class BandAnnotation(AxisBase axis) : Annotation(axis.IsHorizontal ? axis : null, axis.IsHorizontal ? null : axis)
 {
+    /// <summary>Gets or sets a label at the upper edge, or <see langword="null"/> for none.</summary>
+    public string? Label { get; set; }
+
     private double _start;
     private double _end;
 
@@ -470,7 +516,27 @@ public sealed class BandAnnotation(AxisBase axis) : Annotation(axis.IsHorizontal
         var area = axis.IsHorizontal ? new DipRect(low, plot.Y, length, plot.Height) : new DipRect(plot.X, low, plot.Width, length);
         canvas.Clip = plot;
         canvas.FillRectangle(area, Color);
+        if (Appearance.Thickness is { } edge)
+        {
+            var opaque = Color with { A = 255 };
+            if (axis.IsHorizontal)
+            {
+                AnnotationPainter.Line(canvas, new Vector2((float)first, (float)plot.Y), new Vector2((float)first, (float)plot.Bottom), edge, opaque, Appearance.Dash);
+                AnnotationPainter.Line(canvas, new Vector2((float)second, (float)plot.Y), new Vector2((float)second, (float)plot.Bottom), edge, opaque, Appearance.Dash);
+            }
+            else
+            {
+                AnnotationPainter.Line(canvas, new Vector2((float)plot.X, (float)first), new Vector2((float)plot.Right, (float)first), edge, opaque, Appearance.Dash);
+                AnnotationPainter.Line(canvas, new Vector2((float)plot.X, (float)second), new Vector2((float)plot.Right, (float)second), edge, opaque, Appearance.Dash);
+            }
+        }
+
         SetBounds(area);
+        if (Label is { Length: > 0 } label)
+        {
+            var top = (float)area.Y;
+            AnnotationPainter.Label(canvas, label, new Vector2((float)area.X, top), new Vector2((float)area.Right, top), Appearance, Color with { A = 255 }, LabelPlace.Start, LabelSide.After);
+        }
 
         // The edges of the start and the end, each as a line across the plot.
         var (startEdge, endEdge) = axis.IsHorizontal
@@ -525,6 +591,15 @@ public sealed class TextAnnotation(AxisBase? xAxis, AxisBase? yAxis) : Annotatio
     protected internal override void Draw(OverlayCanvas canvas)
     {
         var position = ToChart(canvas, _x, _y);
+        if (!Appearance.IsPlainLabel)
+        {
+            // From the place to the right: the text stands after it, turned and on a plate as the appearance asks.
+            AnnotationPainter.Label(canvas, Text, position, position + Vector2.UnitX, Appearance, Color, LabelPlace.Start, LabelSide.Before, FontSize, new Rgba8(0, 0, 0, 0));
+            var size = Appearance.LabelSize ?? FontSize;
+            SetBounds(new DipRect(position.X, position.Y - canvas.GetLineHeight(size), canvas.MeasureWidth(Text, size) + 16, canvas.GetLineHeight(size) + 8));
+            return;
+        }
+
         canvas.DrawText(Text, position.X, position.Y, FontSize, Color);
         var height = canvas.GetLineHeight(FontSize);
         SetBounds(new DipRect(position.X, position.Y - height, canvas.MeasureWidth(Text, FontSize), height));
@@ -622,13 +697,20 @@ public sealed class LineAnnotation(AxisBase? xAxis, AxisBase? yAxis) : Annotatio
         var (a, b) = (ToChart(canvas, _x1, _y1), ToChart(canvas, _x2, _y2));
         _ends = new Ends(a, b);
         canvas.Clip = canvas.Layout.PlotArea;
-        canvas.DrawLine(a, b, Thickness, Color);
+        AnnotationPainter.Line(canvas, a, b, Appearance.Thickness ?? Thickness, Color, Appearance.Dash);
         SetBounds(Span(a, b));
         SetHandles(Point(a), Point(b));
         DrawHandles(canvas, [a, b]);
         if (Label is { Length: > 0 } label)
         {
-            canvas.DrawLabel(label, b.X + 6, b.Y - canvas.GetLineHeight(canvas.LabelSize) - 2, Color, canvas.BackgroundColor);
+            if (Appearance.IsPlainLabel)
+            {
+                canvas.DrawLabel(label, b.X + 6, b.Y - canvas.GetLineHeight(canvas.LabelSize) - 2, Color, canvas.BackgroundColor);
+            }
+            else
+            {
+                AnnotationPainter.Label(canvas, label, a, b, Appearance, Color, LabelPlace.End, LabelSide.Before);
+            }
         }
     }
 

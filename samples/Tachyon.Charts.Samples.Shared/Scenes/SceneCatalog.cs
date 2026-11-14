@@ -40,6 +40,7 @@ public static class SceneCatalog
         new CrosshairSnapScene(),
         new RolloverScene(),
         new AnnotationsScene(),
+        new AnnotationStylesScene(),
         new SelectionScene(),
         new MeasureCursorsScene(),
         new LegendScene(),
