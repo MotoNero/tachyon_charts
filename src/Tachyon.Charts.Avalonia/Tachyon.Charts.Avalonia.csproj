@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Tachyon.Charts.Avalonia.Tests" />
+    <InternalsVisibleTo Include="Tachyon.Charts.AvaloniaHostTests" />
   </ItemGroup>
 
 </Project>

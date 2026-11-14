@@ -150,7 +150,10 @@ public sealed class CrosshairOverlay : ChartOverlay
     /// different one moves beside the others, and with several on a side each takes the color of its curve. A hidden
     /// axis whose curves are all switched off, such as a max hold not shown, has nothing to read and shows nothing.
     /// </summary>
-    private void DrawAxisLabels(OverlayCanvas canvas, Vector2 center)
+    /// <param name="canvas">The canvas.</param>
+    /// <param name="center">The cross.</param>
+    /// <param name="runningLike">For a line another chart set: only the axes that run like this one get a value.</param>
+    private void DrawAxisLabels(OverlayCanvas canvas, Vector2 center, AxisBase? runningLike = null)
     {
         _axisLabels.Clear();
 
@@ -160,6 +163,11 @@ public sealed class CrosshairOverlay : ChartOverlay
         {
             var placement = placements[p];
             var axis = placement.Axis;
+            if (runningLike is not null && axis.IsHorizontal != runningLike.IsHorizontal)
+            {
+                continue;
+            }
+
             var bounds = placement.Bounds;
             double along = axis.IsHorizontal ? center.X : center.Y;
             var isInside = axis.IsHorizontal
@@ -282,7 +290,9 @@ public sealed class CrosshairOverlay : ChartOverlay
         };
     }
 
-    private static void DrawSyncedLine(OverlayCanvas canvas, AxisBase axis, double value)
+    // The line another chart of the group set, with its value at the axis it runs along, as the own cross shows it; the
+    // other axes show nothing, as the pointer is not over this chart.
+    private void DrawSyncedLine(OverlayCanvas canvas, AxisBase axis, double value)
     {
         if (!canvas.TryGetPosition(axis, value, out var at))
         {
@@ -296,6 +306,11 @@ public sealed class CrosshairOverlay : ChartOverlay
         }
 
         canvas.Clip = null;
+        var first = canvas.Layout.Panes[0];
+        var center = axis.IsHorizontal
+            ? new Vector2((float)at, (float)(first.Y + (first.Height / 2)))
+            : new Vector2((float)(first.X + (first.Width / 2)), (float)at);
+        DrawAxisLabels(canvas, center, axis);
     }
 
     /// <summary>Draws the line through a pane at a place of an axis: upright for a horizontal axis, level for a standing one.</summary>
