@@ -27,6 +27,15 @@ internal static class AnnotationCatalog
     private static readonly ParameterInfo _color = new("color", "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the usual color." };
     private static readonly ParameterInfo _label = new("label", "Label", ParameterKind.Text, string.Empty);
 
+    /// <summary>Gets the signs as pictures for the list of choices, drawn as the chart draws them.</summary>
+    internal static IReadOnlyDictionary<string, string> SignPictures { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        [nameof(LabelIcon.Warning)] = "F0 M12,2 L23,21 L1,21 Z M11,9 L13,9 L13,15 L11,15 Z M11,16.5 L13,16.5 L13,18.5 L11,18.5 Z",
+        [nameof(LabelIcon.Info)] = "F0 M12,2 A10,10 0 1 1 11.99,2 Z M11,10 L13,10 L13,18 L11,18 Z M11,6 L13,6 L13,8 L11,8 Z",
+        [nameof(LabelIcon.Arrow)] = "M2,10.5 L13,10.5 L13,5 L22,12 L13,19 L13,13.5 L2,13.5 Z",
+        [nameof(LabelIcon.Marker)] = "M4,4 L20,4 L20,20 L4,20 Z",
+    };
+
     // How the label and the lines look; left as they are, an annotation draws as it always did.
     private static readonly ParameterInfo[] _look =
     [
@@ -40,7 +49,8 @@ internal static class AnnotationCatalog
         new("labelBorderWidth", "Label border width", ParameterKind.Number, 1.0) { Minimum = 0.5, Maximum = 10 },
         new("labelTurn", "Label turn", ParameterKind.Choice, nameof(LabelTurn.Level)) { Choices = Enum.GetNames<LabelTurn>(), Description = "Level, along the line (upright at an upright line), or by the angle." },
         new("labelAngle", "Label angle", ParameterKind.Number, 0.0) { Minimum = -180, Maximum = 180, Description = "In degrees, counterclockwise, for the turn Angle." },
-        new("labelIcon", "Label sign", ParameterKind.Choice, nameof(LabelIcon.None)) { Choices = Enum.GetNames<LabelIcon>() },
+        new("labelIcon", "Label sign", ParameterKind.Choice, nameof(LabelIcon.None)) { Choices = Enum.GetNames<LabelIcon>(), ChoicePictures = SignPictures },
+        new("labelIconColor", "Label sign color", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the text." },
         new("dash", "Line", ParameterKind.Choice, nameof(LineDash.Solid)) { Choices = Enum.GetNames<LineDash>() },
         new("thickness", "Line width", ParameterKind.Number, 0.0) { Minimum = 0, Maximum = 20, Description = "0 for that of the annotation; a band draws its edges only with a width." },
     ];
@@ -243,6 +253,7 @@ internal static class AnnotationCatalog
         LabelTurn = Choice(values, "labelTurn", LabelTurn.Level),
         LabelAngle = values.GetNumber("labelAngle", 0),
         LabelIcon = Choice(values, "labelIcon", LabelIcon.None),
+        LabelIconColor = ColorOf(values, "labelIconColor"),
         Dash = Choice(values, "dash", LineDash.Solid),
         Thickness = Positive(values, "thickness"),
     };
@@ -271,6 +282,7 @@ internal static class AnnotationCatalog
         Add(look.LabelTurn != LabelTurn.Level, $"LabelTurn = LabelTurn.{look.LabelTurn}");
         Add(look.LabelAngle != 0, $"LabelAngle = {CodeText.Number(look.LabelAngle)}");
         Add(look.LabelIcon != LabelIcon.None, $"LabelIcon = LabelIcon.{look.LabelIcon}");
+        Add(look.LabelIconColor is not null, $"LabelIconColor = {CodeText.Color(look.LabelIconColor ?? default)}");
         Add(look.Dash != LineDash.Solid, $"Dash = LineDash.{look.Dash}");
         Add(look.Thickness is not null, $"Thickness = {CodeText.Number(look.Thickness ?? 0)}f");
         return parts.Count == 0 ? string.Empty : $"Appearance = new AnnotationAppearance {{ {string.Join(", ", parts)} }}";

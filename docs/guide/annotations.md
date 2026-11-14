@@ -24,7 +24,7 @@ Every annotation has an `Appearance` that sets how its label and its lines look.
 | `LabelFill` | The plate behind the text; a transparent color leaves it out |
 | `LabelBorder`, `LabelBorderThickness` | A frame around the plate |
 | `LabelTurn`, `LabelAngle` | `Level`, `AlongLine` (upright at a vertical line, reading upward, or following a sloped line) or a free `Angle` in degrees |
-| `LabelIcon` | A sign before the text: warning, information, arrow or marker |
+| `LabelIcon`, `LabelIconColor` | A sign before the text: warning, information, arrow or marker, in the color of the text or its own |
 | `Dash`, `Thickness` | Solid, dashed or dotted lines and their width; a band draws its edges only with a width |
 
 ```csharp
@@ -46,7 +46,7 @@ In XAML colors take the form `#RRGGBB` or `#AARRGGBB`:
 </t:HorizontalLineAnnotation>
 ```
 
-Here `core` is `clr-namespace:Tachyon.Charts.Core.Annotations;assembly=Tachyon.Charts.Core`. Bands and boxes take a `Label` too. The configurator offers all of these settings for each annotation.
+Here `core` is `clr-namespace:Tachyon.Charts.Core.Annotations;assembly=Tachyon.Charts.Core`. Bands and boxes take a `Label` too. The configurator offers all of these settings for each annotation; its list of signs shows each sign before its name.
 
 ![Annotations with a label at the end of a dashed limit, a label upright along a vertical line, a framed label of a band, a box with an information sign, a label following a sloped line and a turned note](../images/annotation-styles.png)
 

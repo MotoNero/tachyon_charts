@@ -32,6 +32,7 @@ sealed class Tachyon.Charts.Core.Annotations.AnnotationAppearance
   System.Nullable<Tachyon.Charts.Rendering.Rgba8> LabelBorder { get; set; }
   System.Nullable<Tachyon.Charts.Rendering.Rgba8> LabelColor { get; set; }
   System.Nullable<Tachyon.Charts.Rendering.Rgba8> LabelFill { get; set; }
+  System.Nullable<Tachyon.Charts.Rendering.Rgba8> LabelIconColor { get; set; }
   System.Single LabelBorderThickness { get; set; }
   Tachyon.Charts.Core.Annotations.LabelIcon LabelIcon { get; set; }
   Tachyon.Charts.Core.Annotations.LabelPlace LabelPlace { get; set; }

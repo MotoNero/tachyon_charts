@@ -117,6 +117,9 @@ public sealed class AnnotationAppearance
     /// <summary>Gets or sets a sign before the text.</summary>
     public LabelIcon LabelIcon { get; set; }
 
+    /// <summary>Gets or sets the color of the sign, or <see langword="null"/> for that of the text.</summary>
+    public Rgba8? LabelIconColor { get; set; }
+
     /// <summary>Gets or sets how the lines of the annotation are drawn.</summary>
     public LineDash Dash { get; set; }
 
@@ -232,7 +235,7 @@ internal static class AnnotationPainter
         var ink = look.LabelColor ?? (fill.A > 0 ? canvas.BackgroundColor : color);
         if (icon > 0)
         {
-            DrawIcon(canvas, look.LabelIcon, Corner(-halfWidth + Padding + (icon / 2), 0), icon * 0.8f, u, v, ink, fill.A > 0 ? fill with { A = 255 } : canvas.BackgroundColor);
+            DrawIcon(canvas, look.LabelIcon, Corner(-halfWidth + Padding + (icon / 2), 0), icon * 0.8f, u, v, look.LabelIconColor ?? ink, fill.A > 0 ? fill with { A = 255 } : canvas.BackgroundColor);
         }
 
         var textMiddle = Corner((icon / 2) + 0, 0);

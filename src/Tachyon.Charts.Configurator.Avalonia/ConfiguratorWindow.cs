@@ -337,6 +337,22 @@ internal sealed class ConfiguratorWindow : Window
                 return check;
             case ParameterKind.Choice:
                 var choice = new ComboBox { ItemsSource = field.Info.Choices, SelectedItem = field.Value, HorizontalAlignment = HorizontalAlignment.Stretch };
+                if (field.Info.ChoicePictures.Count > 0)
+                {
+                    var pictures = field.Info.ChoicePictures;
+
+                    // A choice with its picture before the name, in the color of the text.
+                    choice.ItemTemplate = new global::Avalonia.Controls.Templates.FuncDataTemplate<string>((item, _) => new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Children =
+                        {
+                            new global::Avalonia.Controls.Shapes.Path { Data = item is not null && pictures.TryGetValue(item, out var data) ? Geometry.Parse(data) : null, Fill = _ink, Stretch = Stretch.Uniform, Width = 14, Height = 14, Margin = new Thickness(0, 0, 6, 0) },
+                            new TextBlock { Text = item },
+                        },
+                    });
+                }
+
                 choice.SelectionChanged += (_, _) => Report(choice.SelectedItem is string text ? field.Set(text) : null);
                 editor = choice;
                 break;

@@ -46,6 +46,12 @@ public sealed record ParameterInfo(string Name, string Label, ParameterKind Kind
     /// <summary>Gets the choices of a <see cref="ParameterKind.Choice"/>.</summary>
     public IReadOnlyList<string> Choices { get; init; } = [];
 
+    /// <summary>
+    /// Gets pictures of choices for the list, by choice: path data of the form SVG and markup use, on 24 by 24 units;
+    /// a choice without one shows as text alone.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> ChoicePictures { get; init; } = new Dictionary<string, string>();
+
     /// <summary>Gets a sentence on what the parameter does.</summary>
     public string Description { get; init; } = string.Empty;
 

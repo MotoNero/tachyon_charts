@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -391,6 +392,11 @@ internal sealed class ConfiguratorWindow : Window
                 return check;
             case ParameterKind.Choice:
                 var choice = new ComboBox { ItemsSource = field.Info.Choices, SelectedItem = field.Value, HorizontalAlignment = HorizontalAlignment.Stretch };
+                if (field.Info.ChoicePictures.Count > 0)
+                {
+                    choice.ItemTemplate = ChoiceWithPicture(field.Info.ChoicePictures, (Brush)FindResource("Ink"));
+                }
+
                 choice.SelectionChanged += (_, _) => Report(choice.SelectedItem is string text ? field.Set(text) : null);
                 editor = choice;
                 break;
@@ -588,6 +594,34 @@ internal sealed class ConfiguratorWindow : Window
         _status.Foreground = (Brush)FindResource("Muted");
         _status.Text = string.Create(CultureInfo.InvariantCulture, $"Data and code in {_session.LastUpdate.TotalMilliseconds:F0} ms, preview in {clock.Elapsed.TotalMilliseconds:F0} ms.");
     }
+
+    // A choice with its picture before the name, in the color of the text.
+    internal static DataTemplate ChoiceWithPicture(IReadOnlyDictionary<string, string> pictures, Brush ink)
+    {
+        var picture = new FrameworkElementFactory(typeof(System.Windows.Shapes.Path));
+        picture.SetBinding(System.Windows.Shapes.Path.DataProperty, new Binding { Converter = new PictureConverter(pictures) });
+        picture.SetValue(System.Windows.Shapes.Path.FillProperty, ink);
+        picture.SetValue(System.Windows.Shapes.Shape.StretchProperty, Stretch.Uniform);
+        picture.SetValue(WidthProperty, 14.0);
+        picture.SetValue(HeightProperty, 14.0);
+        picture.SetValue(MarginProperty, new Thickness(0, 0, 6, 0));
+        var name = new FrameworkElementFactory(typeof(TextBlock));
+        name.SetBinding(TextBlock.TextProperty, new Binding());
+        var row = new FrameworkElementFactory(typeof(StackPanel));
+        row.SetValue(StackPanel.OrientationProperty, Orientation.Horizontal);
+        row.AppendChild(picture);
+        row.AppendChild(name);
+        return new DataTemplate { VisualTree = row };
+    }
+
+    // The path data of a choice as a geometry, or none.
+    internal sealed class PictureConverter(IReadOnlyDictionary<string, string> pictures) : IValueConverter
+    {
+        public object? Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+            value is string choice && pictures.TryGetValue(choice, out var data) ? Geometry.Parse(data) : null;
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotSupportedException();
+    }
 }
 
 /// <summary>Starts the configurator.</summary>
@@ -613,4 +647,5 @@ internal static class Program
         SampleStyle.Apply(application);
         application.Run(new ConfiguratorWindow { ScreenshotPath = path, StartType = type >= 0 && type + 1 < args.Length ? args[type + 1] : null, StartSpec = spec >= 0 && spec + 1 < args.Length ? args[spec + 1] : null, StartModifier = modifier >= 0 && modifier + 1 < args.Length ? args[modifier + 1] : null, StartPage = page >= 0 && page + 1 < args.Length ? args[page + 1] : null, OpenColorPicker = color >= 0 && color + 1 < args.Length && int.TryParse(args[color + 1], out var number) ? number : null });
     }
+
 }

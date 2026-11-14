@@ -255,6 +255,7 @@ sealed class Tachyon.Charts.Configurator.PageInfo : System.IEquatable<Tachyon.Ch
 sealed class Tachyon.Charts.Configurator.ParameterInfo : System.IEquatable<Tachyon.Charts.Configurator.ParameterInfo>
   .ctor(System.String Name, System.String Label, Tachyon.Charts.Configurator.ParameterKind Kind, System.Object Default)
   System.Boolean Flag(Tachyon.Charts.Configurator.SpecValues values)
+  System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> ChoicePictures { get; set; }
   System.Collections.Generic.IReadOnlyList<System.String> Choices { get; set; }
   System.Double Maximum { get; set; }
   System.Double Minimum { get; set; }
