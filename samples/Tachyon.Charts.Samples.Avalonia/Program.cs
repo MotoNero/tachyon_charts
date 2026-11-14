@@ -41,6 +41,7 @@ internal sealed class SampleWindow : Window
 {
     private const string LiveEntry = "Live-Chart (interaktiv)";
     private const string RasterEntry = "Raster (interaktiv)";
+    private const string GroupName = "showroom";
     private const string ScopeEntry = "Oszilloskop (interaktiv)";
     private const string SpectrumEntry = "Spektrum (interaktiv)";
     private const int SpectrogramColumns = 1024;
@@ -52,6 +53,9 @@ internal sealed class SampleWindow : Window
     private readonly Grid _content = new();
     private readonly Chart _live = new();
     private readonly UniformGrid _raster = new() { Columns = 2, IsVisible = false };
+
+    // Three charts of one group, one above the other: zoom and crosshair reach all of them.
+    private readonly UniformGrid _group = new() { Columns = 1, IsVisible = false };
     private readonly ScopeDemo _scopeDemo = new();
     private readonly Chart _scope = new() { IsVisible = false };
     private readonly SpectrumDemo _spectrumDemo = new();
@@ -149,6 +153,7 @@ internal sealed class SampleWindow : Window
         _sceneView.Content = new Grid { Children = { _image, _stillInfo } };
         _content.Children.Add(_live);
         _content.Children.Add(_raster);
+        _content.Children.Add(_group);
         _scope.Configure(c => OscilloscopePage.Configure(c, _scopeDemo));
         _content.Children.Add(_scope);
         _spectrum.Configure(c => SpectrumAnalyzerPage.Configure(c, _spectrumDemo));
@@ -159,7 +164,7 @@ internal sealed class SampleWindow : Window
 
         _content.Children.Add(_sceneView);
 
-        _pageList = SampleText.CreatePages(hasLinkedCharts: false);
+        _pageList = SampleText.CreatePages();
         _list.ItemTemplate = new FuncDataTemplate<SamplePage?>((page, _) => CreateListText(page));
         _list.ItemsSource = _pageList;
 
@@ -455,7 +460,7 @@ internal sealed class SampleWindow : Window
 
         var theme = SelectedTheme;
         _live.ChartTheme = theme ?? BuiltInThemes.TachyonDark;
-        foreach (var chart in _raster.Children.OfType<Chart>())
+        foreach (var chart in _raster.Children.OfType<Chart>().Concat(_group.Children.OfType<Chart>()))
         {
             chart.ChartTheme = theme ?? BuiltInThemes.TachyonDark;
         }
@@ -490,7 +495,7 @@ internal sealed class SampleWindow : Window
                 return _scope;
             }
 
-            return _raster.IsVisible ? (Chart)_raster.Children[0] : _live;
+            return _raster.IsVisible ? (Chart)_raster.Children[0] : _group.IsVisible ? (Chart)_group.Children[0] : _live;
         }
     }
 
@@ -827,6 +832,20 @@ internal sealed class SampleWindow : Window
     }
 
     // Built on the first visit: the grids and clouds take a moment and a lot of memory.
+    // Built on the first visit, as in the showroom for Windows.
+    private void ConfigureGroup()
+    {
+        if (_group.Children.Count > 0)
+        {
+            return;
+        }
+
+        foreach (var (title, scale) in LinkedChartsPage.Charts)
+        {
+            _group.Children.Add(new Chart { ChartTheme = SelectedTheme ?? BuiltInThemes.TachyonDark }.Configure(c => LinkedChartsPage.Configure(c, title, scale, GroupName)));
+        }
+    }
+
     private void ConfigureRaster()
     {
         if (_raster.Children.Count > 0)
@@ -913,6 +932,7 @@ internal sealed class SampleWindow : Window
 
         var isLive = SelectedId is LiveEntry;
         var isRaster = SelectedId is RasterEntry;
+        var isGroup = SelectedId is LinkedChartsPage.Name;
         var isScope = SelectedId is ScopeEntry;
         var isSpectrum = SelectedId is SpectrumEntry;
         var extra = FindPage();
@@ -953,14 +973,20 @@ internal sealed class SampleWindow : Window
             ConfigureRaster();
         }
 
+        if (isGroup)
+        {
+            ConfigureGroup();
+        }
+
         _showsRaster = isRaster;
         _live.IsVisible = isLive;
         _raster.IsVisible = isRaster;
+        _group.IsVisible = isGroup;
         _scope.IsVisible = isScope;
         _spectrumPanel.IsVisible = isSpectrum;
         _colormap.IsVisible = isRaster;
         _select.IsVisible = isLive;
-        _sceneView.IsVisible = !isLive && !isRaster && !isScope && !isSpectrum && extra is null;
+        _sceneView.IsVisible = !isLive && !isRaster && !isGroup && !isScope && !isSpectrum && extra is null;
         _scopeControls.IsVisible = isScope;
         ShowConfiguratorChoice();
         _pageTitle.Text = _selected?.ToString() ?? string.Empty;
@@ -971,6 +997,7 @@ internal sealed class SampleWindow : Window
             _ when isScope => "Drag at the left: channel | at the right: trigger | else: time | Wheel: time/div | Left, on V/div or Ctrl+wheel: volts/div",
             _ when isLive => "Wheel: zoom | Drag: pan | Ctrl+drag: zoom into a rectangle | Shift+drag: select points | Alt+drag: measure | Double click: all | Right click: menu",
             _ when isRaster => "Wheel: zoom | Drag: pan | Wheel over the color bar: color range | List: colormap",
+            _ when isGroup => LinkedChartsPage.Hint,
             _ => "Still image of the scene. The pages above it are interactive.",
         });
         ShowDataChoice();

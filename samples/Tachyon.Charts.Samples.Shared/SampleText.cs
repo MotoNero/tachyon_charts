@@ -247,20 +247,16 @@ public static class SampleText
     /// <returns>Whether it has one.</returns>
     public static bool Knows(string english) => _german.ContainsKey(english);
 
-    /// <summary>Creates the page list.</summary>
-    /// <param name="hasLinkedCharts">Whether the app has the page with linked charts.</param>
+    /// <summary>Creates the page list, the same in both showrooms.</summary>
     /// <returns>The entries with their headings.</returns>
-    public static IReadOnlyList<SamplePage> CreatePages(bool hasLinkedCharts)
+    public static IReadOnlyList<SamplePage> CreatePages()
     {
         var pages = new List<SamplePage>
         {
             new("Interactive", "Interactive", true),
             new("Live-Chart (interaktiv)", "Live chart"),
+            new("Gruppe (3 Charts)", "Linked charts"),
         };
-        if (hasLinkedCharts)
-        {
-            pages.Add(new SamplePage("Gruppe (3 Charts)", "Linked charts"));
-        }
 
         pages.Add(new SamplePage("Raster (interaktiv)", "Rasters"));
         pages.Add(new SamplePage("Instruments", "Instruments", true));

@@ -161,7 +161,7 @@ internal sealed class SampleWindow : Window
         _sceneView.Content = new Grid { Children = { _image, _stillInfo } };
         _sceneView.Visibility = Visibility.Collapsed;
 
-        _pageList = SampleText.CreatePages(hasLinkedCharts: true);
+        _pageList = SampleText.CreatePages();
         _list.ItemsSource = _pageList;
 
         FillThemes();
