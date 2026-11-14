@@ -145,6 +145,7 @@ internal sealed class SampleWindow : Window
     public SampleWindow(string? startPage)
     {
         RequestedThemeVariant = ThemeVariant.Dark;
+        Icon = AppLogo.Icon();
         Width = 1280;
         Height = 800;
 
@@ -300,20 +301,9 @@ internal sealed class SampleWindow : Window
 
     private Control BuildShell(Control bar)
     {
-        var logo = new StackPanel { Margin = new Thickness(20, 22, 20, 18) };
-        logo.Children.Add(new TextBlock
-        {
-            Text = "TACHYON",
-            FontSize = 22,
-            FontWeight = FontWeight.Bold,
-            Foreground = new LinearGradientBrush
-            {
-                StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-                EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
-                GradientStops = { new GradientStop(Color.Parse("#38BDF8"), 0), new GradientStop(Color.Parse("#6366F1"), 1) },
-            },
-        });
-        logo.Children.Add(new TextBlock { Text = "CHARTS", FontSize = 11, FontWeight = FontWeight.SemiBold, Foreground = new SolidColorBrush(Color.Parse("#8B97A8")) });
+        var logo = new Image { Source = AppLogo.Logo(), Width = 200, Margin = new Thickness(14, 16, 20, 12), HorizontalAlignment = HorizontalAlignment.Left };
+        ToolTip.SetTip(logo, "Tachyon Charts");
+        RenderOptions.SetBitmapInterpolationMode(logo, global::Avalonia.Media.Imaging.BitmapInterpolationMode.HighQuality);
         var sidebar = new DockPanel
         {
             Width = 250,

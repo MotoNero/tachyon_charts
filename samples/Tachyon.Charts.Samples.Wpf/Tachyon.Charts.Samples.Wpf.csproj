@@ -4,7 +4,14 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <OutputType>WinExe</OutputType>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>../../docs/images/logo/app/tachyon-charts.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The logo: the icon of the window and the file, and the lockup at the top of the sidebar. -->
+    <EmbeddedResource Include="../../docs/images/logo/app/tachyon-charts.ico" LogicalName="Logo.ico" Link="Logo/tachyon-charts.ico" />
+    <EmbeddedResource Include="../../docs/images/logo/app/tachyon-charts-sidebar.png" LogicalName="Logo.Sidebar.png" Link="Logo/tachyon-charts-sidebar.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/Tachyon.Charts.ThreeD.Wpf/Tachyon.Charts.ThreeD.Wpf.csproj" />

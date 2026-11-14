@@ -10,7 +10,14 @@
     <PackageId>Tachyon.Charts.Configurator.Tool</PackageId>
     <Description>The Tachyon Charts configurator: put a chart together, see it, and copy its C#, view model, window and project.</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>../../docs/images/logo/app/tachyon-charts.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The logo: the icon of the window and the file, and the lockup at the top of the sidebar. -->
+    <EmbeddedResource Include="../../docs/images/logo/app/tachyon-charts.ico" LogicalName="Logo.ico" Link="Logo/tachyon-charts.ico" />
+    <EmbeddedResource Include="../../docs/images/logo/app/tachyon-charts-sidebar.png" LogicalName="Logo.Sidebar.png" Link="Logo/tachyon-charts-sidebar.png" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Avalonia" />
@@ -20,6 +27,11 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Tachyon.Charts.AvaloniaHostTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The logo, shared as source with the showroom. -->
+    <Compile Include="../../samples/Tachyon.Charts.Samples.Avalonia/AppLogo.cs" Link="AppLogo.cs" />
   </ItemGroup>
 
   <ItemGroup>

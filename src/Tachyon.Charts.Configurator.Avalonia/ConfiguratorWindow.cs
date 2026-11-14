@@ -47,6 +47,7 @@ internal sealed class ConfiguratorWindow : Window
     public ConfiguratorWindow()
     {
         Title = "Tachyon Charts Configurator";
+        Icon = global::Tachyon.Charts.Samples.Avalonia.AppLogo.Icon();
         Width = 1600;
         Height = 950;
         Background = _shell;

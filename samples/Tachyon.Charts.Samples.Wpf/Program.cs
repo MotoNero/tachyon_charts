@@ -149,6 +149,7 @@ internal sealed class SampleWindow : Window
     public SampleWindow(string? startPage)
     {
         Title = "Tachyon Charts – Showroom";
+        Icon = SampleStyle.Icon();
         Width = 1280;
         Height = 800;
         DataContext = _model;
@@ -304,9 +305,8 @@ internal sealed class SampleWindow : Window
 
     private FrameworkElement BuildShell(FrameworkElement bar, FrameworkElement content)
     {
-        var logo = new StackPanel { Margin = new Thickness(20, 22, 20, 18) };
-        logo.Children.Add(new TextBlock { Text = "TACHYON", FontSize = 22, FontWeight = FontWeights.Bold, Foreground = (Brush)FindResource("Accent") });
-        logo.Children.Add(new TextBlock { Text = "CHARTS", FontSize = 11, FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("Muted") });
+        var logo = new Image { Source = SampleStyle.Logo(), Width = 200, Margin = new Thickness(14, 16, 20, 12), HorizontalAlignment = HorizontalAlignment.Left, ToolTip = "Tachyon Charts" };
+        RenderOptions.SetBitmapScalingMode(logo, BitmapScalingMode.HighQuality);
         var sidebar = new DockPanel { Background = (Brush)FindResource("Sidebar") };
         DockPanel.SetDock(logo, Dock.Top);
         sidebar.Children.Add(logo);

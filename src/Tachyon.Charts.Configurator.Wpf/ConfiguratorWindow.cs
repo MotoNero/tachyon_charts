@@ -39,6 +39,7 @@ internal sealed class ConfiguratorWindow : Window
     public ConfiguratorWindow()
     {
         Title = "Tachyon Charts Configurator";
+        Icon = SampleStyle.Icon();
         Width = 1600;
         Height = 950;
         Background = (Brush)FindResource("Shell");

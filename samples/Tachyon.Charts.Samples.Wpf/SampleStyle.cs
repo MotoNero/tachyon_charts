@@ -2,6 +2,8 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Markup;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace Tachyon.Charts.Samples.Wpf;
 
@@ -257,6 +259,22 @@ internal static class SampleStyle
     /// <param name="application">The application.</param>
     public static void Apply(Application application) =>
         application.Resources.MergedDictionaries.Add((ResourceDictionary)XamlReader.Parse(Xaml));
+
+    /// <summary>The icon of a window: the logo, from small to large.</summary>
+    /// <returns>The icon.</returns>
+    public static ImageSource Icon() => Picture("Logo.ico");
+
+    /// <summary>The logo with its name, light on the dark sidebar.</summary>
+    /// <returns>The logo.</returns>
+    public static ImageSource Logo() => Picture("Logo.Sidebar.png");
+
+    private static BitmapFrame Picture(string name)
+    {
+        using var stream = typeof(SampleStyle).Assembly.GetManifestResourceStream(name) ?? throw new InvalidOperationException($"The picture {name} is missing.");
+        var frame = BitmapFrame.Create(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+        frame.Freeze();
+        return frame;
+    }
 
     /// <summary>Darkens the title bar of a window.</summary>
     /// <param name="window">The window.</param>
