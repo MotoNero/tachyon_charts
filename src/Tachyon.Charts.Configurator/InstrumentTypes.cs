@@ -175,8 +175,10 @@ internal static class InstrumentTypes
         Helpers = SpectrumFeed.StartCode + CarrierFeed.StartCode,
     };
 
-    // The frequencies of live spectra: as many as the sample has.
-    private static int LiveFrequencies(SeriesSpec series) => Math.Max(16, series.Data.Count);
+    /// <summary>Gets how many frequencies live spectra have: as many as the sample has.</summary>
+    /// <param name="series">The series.</param>
+    /// <returns>The number of frequencies.</returns>
+    internal static int LiveFrequencies(SeriesSpec series) => Math.Max(16, series.Data.Count);
 
     /// <summary>Gets the settings of a spectrum analyzer that other types with a spectrum share.</summary>
     /// <returns>The parameters.</returns>

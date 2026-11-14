@@ -75,6 +75,22 @@ internal static class ShowroomPages3D
         new("Cloud of 20 million points", catalog => Scene(catalog, "Scanned landscape", "cloud3d", "landscape", 20_000_000, [], _unitBox)),
         new("Cloud of 100 million points", catalog => Scene(catalog, "Scanned landscape", "cloud3d", "landscape", 100_000_000, [], _unitBox)),
         new("Path of 200 000 points", catalog => Scene(catalog, "Path of a particle", "line3d", "particlePath", 200_000, [], Box("-25..25", "x", "-30..30", "y", "0..55", "z"))),
+
+        // The live pages: points that keep coming, and the waterfall of a running spectrum above it.
+        new("Path, live", catalog => Scene(catalog, "Path of a particle, live", "line3d", "particlePathLive", 100_000, [], Box("-25..25", "x", "-30..30", "y", "0..55", "z"))),
+        new("Cloud, live", catalog => Scene(catalog, "A million points per second", "scatter3d", "sweepLive", 5_000_000, [("size", 1.5)], _unitBox)),
+        new("Waterfall, live", catalog =>
+        {
+            var spec = catalog.CreateSpec("spectrumWaterfall");
+            spec.Theme = "Instrument";
+            var series = spec.Series[0];
+            (series.Data.Sample, series.Data.Count) = ("noisyCarriers", 1500);
+            series.Parameters.Set("layout", "Waterfall above the spectrum");
+            series.Parameters.Set("maskLevel", -9.0);
+            series.Parameters.Set("marker", -1.0);
+            series.Parameters.Set("live", true);
+            return spec;
+        }),
     ];
 
     private const string ZRange = "zRange";

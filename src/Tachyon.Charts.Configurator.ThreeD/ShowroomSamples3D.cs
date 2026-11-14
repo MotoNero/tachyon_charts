@@ -16,7 +16,7 @@ internal static class ShowroomSamples3D
     private const string Pattern = "(double[] Azimuths, double[] Elevations, double[,] Gains)";
 
     // The samples whose data are the finished points or bubbles.
-    private static readonly HashSet<string> _ready = ["threeClouds", "particlePath", "wells", "spiralBubbles"];
+    private static readonly HashSet<string> _ready = ["threeClouds", "particlePath", "wells", "spiralBubbles", .. LiveSamples3D.Ids];
 
     public static IReadOnlyList<SampleInfo> Create() =>
     [
@@ -156,6 +156,8 @@ internal static class ShowroomSamples3D
     {
         ["threeClouds"] = (new(-1, 1), new(-1, 1), new(-1, 1)),
         ["particlePath"] = (new(-25, 25), new(-30, 30), new(0, 55)),
+        ["particlePathLive"] = (new(-25, 25), new(-30, 30), new(0, 55)),
+        ["sweepLive"] = (new(-1, 1), new(-1, 1), new(-1, 1)),
         ["wells"] = (new(0, 10), new(0, 10), new(0, 8)),
         ["spiralBubbles"] = (new(-1.2, 1.2), new(-1.2, 1.2), new(-1.2, 1.2)),
         ["pipeSensors"] = (new(-1.25, 126.25), new(-63.75, 63.75), new(-26.25, 101.25)),

@@ -79,14 +79,16 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             data => new Line3D(Points(data)), data => $"new Line3D(Points3D.From({data}.X, {data}.Y, {data}.Z))",
             make: (data, _) => new Line3D(data as Points3D ?? Points(data)),
             write: (data, series) => ShowroomSamples3D.IsReady(series) ? $"new Line3D({data})" : $"new Line3D(Points3D.From({data}.X, {data}.Y, {data}.Z))",
-            usings: ["Tachyon.Charts.Core.Colors"]),
+            usings: ["Tachyon.Charts.Core.Colors"],
+            start: LiveSamples3D.Start),
         Type("scatter3d", "Scatter 3D", DataShape.Points3D, "scattered", typeof(Scatter3D), nameof(Chart3DBuilder.AddScatter), (-1, 1),
             [Color(), new("size", "Size", ParameterKind.Number, 3.0) { Minimum = 1, Maximum = 30 }],
             [("color", nameof(Scatter3D.Color)), ("size", nameof(Scatter3D.Size))],
             data => new Scatter3D(Points(data)), data => $"new Scatter3D(Points3D.From({data}.X, {data}.Y, {data}.Z))",
             make: (data, _) => new Scatter3D(data as Points3D ?? Points(data)),
             write: (data, series) => ShowroomSamples3D.IsReady(series) ? $"new Scatter3D({data})" : $"new Scatter3D(Points3D.From({data}.X, {data}.Y, {data}.Z))",
-            usings: ["Tachyon.Charts.Core.Colors"]),
+            usings: ["Tachyon.Charts.Core.Colors", "Tachyon.Charts.Rendering"],
+            start: LiveSamples3D.Start),
         Type("bubbles3d", "Bubbles 3D", DataShape.Bubbles3D, "balls", typeof(Bubbles3D), nameof(Chart3DBuilder.AddBubbles), (-1, 1),
             [Color(), new("sizeUnit", "Size in", ParameterKind.Choice, nameof(BubbleSizeUnit.Data)) { Choices = Enum.GetNames<BubbleSizeUnit>(), Description = "Data: the diameters are in the units of the axes; Screen: in screen points, the same at every distance." }],
             [("color", nameof(Bubbles3D.Color)), ("sizeUnit", nameof(Bubbles3D.SizeUnit))],
@@ -147,16 +149,18 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
     ];
 
     /// <inheritdoc />
-    public IReadOnlyList<SampleInfo> Samples { get; } = [.. Samples3D.Create(), .. ShowroomSamples3D.Create(), .. ShowroomModels3D.Create(), .. ShowroomVolumes3D.Create()];
+    public IReadOnlyList<SampleInfo> Samples { get; } = [.. Samples3D.Create(), .. ShowroomSamples3D.Create(), .. LiveSamples3D.Create(), .. ShowroomModels3D.Create(), .. ShowroomVolumes3D.Create()];
 
     /// <inheritdoc />
     public IReadOnlyList<PageInfo> Pages => ShowroomPages3D.All;
 
     // A spectrum analyzer and the same measurement as a waterfall in 3D, side by side or one above the other; both show
     // the same display, so the reference level, the mask and new spectra show in both.
+    private const string WaterfallAbove = "Waterfall above the spectrum";
+
     private static ChartTypeInfo SpectrumWaterfall() => new("spectrumWaterfall", "Spectrum with 3D waterfall", ChartCategory.Instrument, DataShape.Spectrum, "drift",
         [
-            new("layout", "Arrangement", ParameterKind.Choice, "Side by side") { Choices = ["Side by side", "One above the other"] },
+            new("layout", "Arrangement", ParameterKind.Choice, "Side by side") { Choices = ["Side by side", "One above the other", WaterfallAbove] },
             .. InstrumentTypes.SpectrumSettings(),
             Colormap("Inferno"),
             new("style", "Style", ParameterKind.Choice, nameof(WaterfallStyle.Surface)) { Choices = Enum.GetNames<WaterfallStyle>() },
@@ -171,19 +175,26 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         Packages = [("Tachyon.Charts.ThreeD", PackageVersion)],
         Region = (_, data) => InstrumentTypes.SpectrumRegion((SpectrumDisplay)data),
         Views = series =>
-        [
-            new ViewInfo("Spectrum", (chart, _, data) => chart.Spectrum((SpectrumDisplay)data), (_, data) => $"chart.Spectrum({data});"),
-            new ViewInfo("Waterfall", (chart, s, data) => chart.Scene3D(scene => Waterfall(scene, (SpectrumDisplay)data, s.Parameters)), (s, data) => $"chart.Scene3D(scene => Waterfall(scene, {data}, Colormaps.{s.Parameters.GetText("colormap", "Inferno")}, WaterfallStyle.{s.Parameters.GetText("style", nameof(WaterfallStyle.Surface))}));"),
-        ],
+        {
+            var spectrum = new ViewInfo("Spectrum", (chart, _, data) => chart.Spectrum((SpectrumDisplay)data), (_, data) => $"chart.Spectrum({data});");
+            var waterfall = new ViewInfo("Waterfall", (chart, s, data) => chart.Scene3D(scene => Waterfall(scene, (SpectrumDisplay)data, s.Parameters)), (s, data) => $"chart.Scene3D(scene => Waterfall(scene, {data}, Colormaps.{s.Parameters.GetText("colormap", "Inferno")}, WaterfallStyle.{s.Parameters.GetText("style", nameof(WaterfallStyle.Surface))}));");
+            return series.Parameters.GetText("layout", "Side by side") == WaterfallAbove ? [waterfall, spectrum] : [spectrum, waterfall];
+        },
         Columns = series => series.Parameters.GetText("layout", "Side by side") == "Side by side" ? 2 : 1,
         Prepare = (series, data) => InstrumentTypes.PrepareSpectrum(series.Parameters, (SpectrumDisplay)data),
         PrepareCode = (series, data) =>
         [
             .. InstrumentTypes.PrepareSpectrumCode(series.Parameters, data),
-            .. series.Parameters.GetFlag("live", false) ? [$"StartFeed({data}, {CodeText.Number(series.Parameters.GetNumber("rate", 20))});"] : Array.Empty<string>(),
+            .. !series.Parameters.GetFlag("live", false) ? Array.Empty<string>()
+                : series.Data.Sample == "drift" ? [$"StartFeed({data}, {CodeText.Number(series.Parameters.GetNumber("rate", 20))});"]
+                : [$"StartSpectra({data}, {InstrumentTypes.LiveFrequencies(series).ToString(System.Globalization.CultureInfo.InvariantCulture)}, {CodeText.Number(series.Parameters.GetNumber("rate", 20))});"],
         ],
-        Start = (series, data) => series.Parameters.GetFlag("live", false) ? SpectrumFeed.Start((SpectrumDisplay)data, series.Parameters.GetNumber("rate", 20)) : null,
-        Helpers = WaterfallCode + SpectrumFeed.StartCode,
+
+        // The drifting carrier for its own sample; other spectra come as the analyzer brings them.
+        Start = (series, data) => !series.Parameters.GetFlag("live", false) ? null
+            : series.Data.Sample == "drift" ? SpectrumFeed.Start((SpectrumDisplay)data, series.Parameters.GetNumber("rate", 20))
+            : CarrierFeed.Start((SpectrumDisplay)data, InstrumentTypes.LiveFrequencies(series), series.Parameters.GetNumber("rate", 20)),
+        Helpers = WaterfallCode + SpectrumFeed.StartCode + CarrierFeed.StartCode,
     };
 
     // The waterfall of a spectrum: frequencies across, the spectra so far into the depth, the levels of the spectrum up.
@@ -680,7 +691,8 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         Func<string, string>? readyInit = null,
         IReadOnlyList<string>? usings = null,
         Func<string, SeriesSpec, string?>? dataInit = null,
-        string helpers = "")
+        string helpers = "",
+        Func<SeriesSpec, object, IDisposable?>? start = null)
     {
         make ??= (data, _) => create(data);
         write ??= (data, _) => constructor(data);
@@ -703,6 +715,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             Usings = [.. recipe.Usings, .. usings ?? []],
             OwnsAxes = true,
             Helpers = helpers,
+            Start = start,
             SceneApply = (builder, series, data) =>
             {
                 var scene = (Chart3DBuilder)builder;

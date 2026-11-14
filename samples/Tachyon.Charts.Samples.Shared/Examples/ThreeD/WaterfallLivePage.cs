@@ -22,12 +22,26 @@ public static class WaterfallLivePage
 
     /// <summary>Builds the chart.</summary>
     /// <param name="c">The chart.</param>
-    public static void Configure(Chart3DBuilder c) => c.Title("Waterfall of the spectrum")
-        .XAxis(new NumericAxis("x3d", AxisPosition.Bottom) { VisibleRange = new DoubleRange(0, 10_000_000), Title = "Frequency", LabelFormat = new NumericLabelFormat { UseSiPrefixes = true, Unit = "Hz" } })
-        .YAxis(0, 400, "Traces ago")
-        .ZAxis(-90, 0, "Level in dBm")
-        .AddWaterfall(new Tachyon.Charts.ThreeD.Scene.Waterfall3D(_spectrum.Display.History, new DoubleRange(0, 10_000_000), new DoubleRange(0, 400)) { Display = _spectrum.Display })
-        .Group(SpectrumGroup);
+    public static void Configure(Chart3DBuilder c)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        var display = _spectrum.Display;
+
+        // The ten divisions below the reference level, the same as the spectrum shows.
+        var levels = new DoubleRange(display.ReferenceLevel - (ScopeDisplay.VerticalDivisions * display.PerDivision), display.ReferenceLevel);
+        c.Title("Waterfall")
+            .XAxis(new NumericAxis("x3d", AxisPosition.Bottom) { VisibleRange = new DoubleRange(display.Start, display.Stop), Title = "Frequency", LabelFormat = new NumericLabelFormat { UseSiPrefixes = true, Unit = "Hz" } })
+            .YAxis(0, 400, "Spectra ago")
+            .ZAxis(levels.Min, levels.Max, "dBm")
+            .AddWaterfall(new Tachyon.Charts.ThreeD.Scene.Waterfall3D(display.History, new DoubleRange(display.HistoryStart, display.HistoryStop), new DoubleRange(0, 400))
+            {
+                Display = display,
+                Colormap = Tachyon.Charts.Core.Colors.Colormaps.Inferno,
+                Style = Tachyon.Charts.ThreeD.Scene.WaterfallStyle.Surface,
+                ColorRange = levels,
+            })
+            .Group(SpectrumGroup);
+    }
 
     /// <summary>Starts or stops the live data.</summary>
     /// <param name="isRunning">Whether the page is shown.</param>

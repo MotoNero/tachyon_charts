@@ -120,7 +120,16 @@ public static class SpecChartBuilder
                 var index = 0;
                 foreach (var series in spec.Series)
                 {
-                    catalog.FindType(series.Type)!.SceneApply!(builder, series, prepared?[index] ?? Data(catalog, series, running));
+                    var type = catalog.FindType(series.Type)!;
+                    var data = prepared?[index] ?? Data(catalog, series, running);
+                    type.SceneApply!(builder, series, data);
+
+                    // Points that keep coming, such as a live path, run while the chart is shown.
+                    if (running is not null && type.Start?.Invoke(series, data) is { } feed)
+                    {
+                        running.Add(feed);
+                    }
+
                     index++;
                 }
             });
