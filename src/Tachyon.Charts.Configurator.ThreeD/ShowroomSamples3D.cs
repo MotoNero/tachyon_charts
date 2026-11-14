@@ -160,6 +160,8 @@ internal static class ShowroomSamples3D
         ["spiralBubbles"] = (new(-1.2, 1.2), new(-1.2, 1.2), new(-1.2, 1.2)),
         ["pipeSensors"] = (new(-1.25, 126.25), new(-63.75, 63.75), new(-26.25, 101.25)),
         ["spiralPath"] = (new(-1, 1), new(-1, 1), new(-1, 1)),
+        ["greenSpiral"] = (new(-1, 1), new(-1, 1), new(-1, 1)),
+        ["landscape"] = (new(-1, 1), new(-1, 1), new(-1, 1)),
     };
 
     /// <summary>Gets the box the finished points or bubbles of a series fill, or <see langword="null"/> for other data.</summary>
@@ -171,7 +173,7 @@ internal static class ShowroomSamples3D
     /// <summary>Gets a value indicating whether the data of a series are the finished points or bubbles.</summary>
     /// <param name="series">The series.</param>
     /// <returns>Whether its sample makes the finished object.</returns>
-    public static bool IsReady(SeriesSpec series) => series.Data.Kind == DataKind.Sample && (_ready.Contains(series.Data.Sample) || ShowroomModels3D.Ready.Contains(series.Data.Sample));
+    public static bool IsReady(SeriesSpec series) => series.Data.Kind == DataKind.Sample && (_ready.Contains(series.Data.Sample) || ShowroomModels3D.Ready.Contains(series.Data.Sample) || ShowroomVolumes3D.Ready.Contains(series.Data.Sample));
 
     private static Points3D ThreeClouds(int count)
     {

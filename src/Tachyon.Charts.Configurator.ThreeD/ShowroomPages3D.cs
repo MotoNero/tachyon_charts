@@ -56,6 +56,24 @@ internal static class ShowroomPages3D
             return spec;
         }),
         new("Model of 1 million triangles", catalog => Scene(catalog, "Knot of tube, colored by height", "model3d", "tubeKnot", 4000, [("gloss", 0.4), ("sharpness", 48.0), ("colorBy", "Height"), ("colormap", "Viridis"), ("colorsFollow", false), ("scaleFrom", -1.4), ("scaleTo", 1.4), ("scaleTitle", "Height in m")], Box("-2.99531..3.630977", "x in m", "-3.313152..3.313136", "y in m", "-3.313141..3.313146", "z in m"))),
+        new("Volume slices 512³", catalog => Volume(catalog, "Slices through a body", 512, ("sliceThreshold", 0.04))),
+        new("Through a volume 512³", catalog => Volume(catalog, "Through a body", 512, ("transfer", "Tissue and spots"), ("slices", false))),
+        new("Maximum projection 512³", catalog => Volume(catalog, "Highest value along each ray", 512, ("mode", "Maximum"), ("slices", false), ("sliceThreshold", 0.05), ("colormap", "Inferno"))),
+        new("Surface of equal value 512³", catalog =>
+        {
+            var spec = Volume(catalog, "Surface of equal value", 512, ("mode", "Surface"), ("slices", false), ("isoAt", 0.45));
+            spec.Scene.Set("planes", "1 1 0 @ -0.1");
+            return spec;
+        }),
+        new("Objects inside a volume", catalog =>
+        {
+            var spec = Volume(catalog, "Objects inside a volume", 128, ("transfer", "Tissue and spots"), ("slices", false));
+            spec.Series.Add(Series(catalog, "line3d", "greenSpiral", 400, ("width", 3.0)));
+            spec.Series.Add(Series(catalog, "model3d", "saddleMesh", 96));
+            return spec;
+        }),
+        new("Cloud of 20 million points", catalog => Scene(catalog, "Scanned landscape", "cloud3d", "landscape", 20_000_000, [], _unitBox)),
+        new("Cloud of 100 million points", catalog => Scene(catalog, "Scanned landscape", "cloud3d", "landscape", 100_000_000, [], _unitBox)),
         new("Path of 200 000 points", catalog => Scene(catalog, "Path of a particle", "line3d", "particlePath", 200_000, [], Box("-25..25", "x", "-30..30", "y", "0..55", "z"))),
     ];
 
@@ -96,6 +114,10 @@ internal static class ShowroomPages3D
 
         return spec;
     }
+
+    // The body in the unit box, as the volume pages show it.
+    private static ChartSpec Volume(ChartCatalog catalog, string title, int side, params (string Name, object Value)[] options) =>
+        Scene(catalog, title, "volume3d", "layeredBody", side, [("start", -1.0), ("size", 2.0), .. options], _unitBox);
 
     // The hill of triangles in the unit box.
     private static ChartSpec Hill(ChartCatalog catalog) => Scene(catalog, "Surface", "model3d", "hillMesh", 96, [], _unitBox);

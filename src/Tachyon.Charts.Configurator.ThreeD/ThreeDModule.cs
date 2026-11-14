@@ -97,15 +97,44 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         Type("cloud3d", "Point cloud", DataShape.Points3D, "dust", typeof(PointCloud3D), nameof(Chart3DBuilder.AddCloud), (-1, 1),
             [Color(), new("pointSize", "Point size", ParameterKind.Number, 2.5) { Minimum = 1, Maximum = 20 }],
             [("color", nameof(PointCloud3D.Color)), ("pointSize", nameof(PointCloud3D.PointSize))],
-            data => Cloud(data), data => $"new PointCloud3D({data}.X, {data}.Y, {data}.Z)"),
+            data => Cloud(data), data => $"new PointCloud3D({data}.X, {data}.Y, {data}.Z)",
+            make: (data, _) => data is Func<IProgress<double>, PointCloudArrays> load ? new PointCloud3D(load) : Cloud(data),
+            write: (data, series) => ShowroomSamples3D.IsReady(series) ? $"new PointCloud3D({data})" : $"new PointCloud3D({data}.X, {data}.Y, {data}.Z)"),
         Type("map3d", "Map from measurements", DataShape.Points3D, "scattered", typeof(MeasuredMap3D), nameof(Chart3DBuilder.AddMap), (-1, 1),
             [Colormap("Viridis"), new("points", "Show the points", ParameterKind.Flag, true), Lit()],
             [("colormap", nameof(MeasuredMap3D.Colormap)), ("points", nameof(MeasuredMap3D.ShowsPoints)), ("lit", "Material.IsLit")],
             data => Map(data), data => $"new MeasuredMap3D({data}.X, {data}.Y, {data}.Z)"),
         Type("volume3d", "Volume", DataShape.Volume, "blobs", typeof(Volume3D), nameof(Chart3DBuilder.AddVolume), (0, 10),
-            [new("mode", "Show", ParameterKind.Choice, nameof(VolumeMode.Transfer)) { Choices = Enum.GetNames<VolumeMode>() }],
-            [("mode", nameof(Volume3D.Mode))],
-            data => new Volume3D((VolumeData)data, Box, Box, Box), data => $"new Volume3D({data}, new DoubleRange(0, 10), new DoubleRange(0, 10), new DoubleRange(0, 10))"),
+            [
+                new("mode", "Show", ParameterKind.Choice, nameof(VolumeMode.Transfer)) { Choices = Enum.GetNames<VolumeMode>() },
+                Colormap("Viridis"),
+                new("transfer", "Transfer", ParameterKind.Choice, "Colormap") { Choices = ["Colormap", "Tissue and spots"], Description = "How values turn into color and opacity when looking through: the colormap, or clear around a body, faint tissue and solid shell and spots." },
+                new("slices", "Slices", ParameterKind.Flag, true) { Description = "Three planes through the middle that show the values on them." },
+                new("sliceThreshold", "Slices leave out below", ParameterKind.Number, 0.0) { Minimum = 0, Maximum = 1, Description = "The share of the value range below which a slice stays clear." },
+                new("isoAt", "Surface at", ParameterKind.Number, 0.5) { Minimum = 0, Maximum = 1, Description = "For the surface of equal value: where between the lowest and the highest value it lies." },
+                Extent(),
+                new("start", "Start", ParameterKind.Number, 0.0) { Description = "Where the volume starts along each axis; it ends at the start plus the extent." },
+            ],
+            [("mode", nameof(Volume3D.Mode)), ("colormap", nameof(Volume3D.Colormap)), ("slices", nameof(Volume3D.ShowsSlices)), ("sliceThreshold", nameof(Volume3D.SliceThreshold))],
+            data => new Volume3D((VolumeData)data, Box, Box, Box), data => $"new Volume3D({data}, new DoubleRange(0, 10), new DoubleRange(0, 10), new DoubleRange(0, 10))",
+            make: (data, values) =>
+            {
+                var volumeData = (VolumeData)data;
+                var volume = values.GetText("transfer", "Colormap") == "Colormap"
+                    ? new Volume3D(volumeData, Span(values), Span(values), Span(values))
+                    : new Volume3D(volumeData, Span(values), Span(values), Span(values)) { Transfer = ShowroomVolumes3D.Tissue() };
+                var isoAt = values.GetNumber("isoAt", 0.5);
+                if (isoAt != 0.5)
+                {
+                    volume.IsoValue = volumeData.ValueRange.Min + (isoAt * (volumeData.ValueRange.Max - volumeData.ValueRange.Min));
+                }
+
+                return volume;
+            },
+            write: (data, series) => $"new Volume3D({data}, {SpanCode(series.Parameters)}, {SpanCode(series.Parameters)}, {SpanCode(series.Parameters)})",
+            dataInit: (data, series) => VolumeInit(data, series.Parameters),
+            usings: ["Tachyon.Charts.Rendering"],
+            helpers: ShowroomVolumes3D.TissueCode),
         Type("antenna3d", "Antenna pattern", DataShape.Pattern, "dipole", typeof(AntennaPattern3D), nameof(Chart3DBuilder.AddAntenna), null,
             [Colormap("Viridis"), new("range", "Dynamic range in dB", ParameterKind.Number, 40.0) { Minimum = 3, Maximum = 120 }, Lit()],
             [("colormap", nameof(AntennaPattern3D.Colormap)), ("range", nameof(AntennaPattern3D.DynamicRange)), ("lit", "Material.IsLit")],
@@ -118,7 +147,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
     ];
 
     /// <inheritdoc />
-    public IReadOnlyList<SampleInfo> Samples { get; } = [.. Samples3D.Create(), .. ShowroomSamples3D.Create(), .. ShowroomModels3D.Create()];
+    public IReadOnlyList<SampleInfo> Samples { get; } = [.. Samples3D.Create(), .. ShowroomSamples3D.Create(), .. ShowroomModels3D.Create(), .. ShowroomVolumes3D.Create()];
 
     /// <inheritdoc />
     public IReadOnlyList<PageInfo> Pages => ShowroomPages3D.All;
@@ -649,7 +678,9 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         Func<object, SpecValues, object>? make = null,
         Func<string, SeriesSpec, string>? write = null,
         Func<string, string>? readyInit = null,
-        IReadOnlyList<string>? usings = null)
+        IReadOnlyList<string>? usings = null,
+        Func<string, SeriesSpec, string?>? dataInit = null,
+        string helpers = "")
     {
         make ??= (data, _) => create(data);
         write ??= (data, _) => constructor(data);
@@ -667,10 +698,11 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             (series, data, axes) => (axes.InSharedBox ? string.Empty
                 : series.Data.Kind != DataKind.Sample && shape == DataShape.Points3D ? $".XAxis({data}.X.Min(), {data}.X.Max(), \"x\").YAxis({data}.Y.Min(), {data}.Y.Max(), \"y\").ZAxis({data}.Z.Min(), {data}.Z.Max(), \"z\")"
                 : ShowroomSamples3D.BoxOf(series) is { } box ? BoxCode(box)
-                : Axes(series.Parameters, height)) + $".{add}({WithExtra(WithExtra(recipe.Expression(write(data, series), series), extra?.InitCode(series.Parameters)), ShowroomSamples3D.IsReady(series) ? readyInit?.Invoke(data) : null)})" + (extra?.AfterCode(series.Parameters) ?? string.Empty))
+                : Axes(series.Parameters, height)) + $".{add}({WithExtra(WithExtra(WithExtra(recipe.Expression(write(data, series), series), extra?.InitCode(series.Parameters)), ShowroomSamples3D.IsReady(series) ? readyInit?.Invoke(data) : null), dataInit?.Invoke(data, series))})" + (extra?.AfterCode(series.Parameters) ?? string.Empty))
         {
             Usings = [.. recipe.Usings, .. usings ?? []],
             OwnsAxes = true,
+            Helpers = helpers,
             SceneApply = (builder, series, data) =>
             {
                 var scene = (Chart3DBuilder)builder;
@@ -689,7 +721,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
                 else if (height is not null)
                 {
                     var values = series.Parameters;
-                    scene.XAxis(0, values.GetNumber("size", 10), "x").YAxis(0, values.GetNumber("size", 10), "y").ZAxis(values.GetNumber("zFrom", height.Value.From), values.GetNumber("zTo", height.Value.To), "z");
+                    scene.XAxis(Span(values).Min, Span(values).Max, "x").YAxis(Span(values).Min, Span(values).Max, "y").ZAxis(values.GetNumber("zFrom", height.Value.From), values.GetNumber("zTo", height.Value.To), "z");
                 }
 
                 var created = make(data, series.Parameters);
@@ -704,8 +736,25 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
     private static string BoxCode((DoubleRange X, DoubleRange Y, DoubleRange Z) box) =>
         $".XAxis({CodeText.Number(box.X.Min)}, {CodeText.Number(box.X.Max)}, \"x\").YAxis({CodeText.Number(box.Y.Min)}, {CodeText.Number(box.Y.Max)}, \"y\").ZAxis({CodeText.Number(box.Z.Min)}, {CodeText.Number(box.Z.Max)}, \"z\")";
 
+    // What a volume sets beyond its properties: the transfer function and where the surface of equal value lies.
+    private static string? VolumeInit(string data, SpecValues values)
+    {
+        var parts = new List<string>();
+        if (values.GetText("transfer", "Colormap") != "Colormap")
+        {
+            parts.Add("Transfer = Tissue()");
+        }
+
+        if (values.GetNumber("isoAt", 0.5) is var isoAt && isoAt != 0.5)
+        {
+            parts.Add($"IsoValue = {data}.ValueRange.Min + ({CodeText.Number(isoAt)} * ({data}.ValueRange.Max - {data}.ValueRange.Min))");
+        }
+
+        return parts.Count > 0 ? string.Join(", ", parts) : null;
+    }
+
     private static string Axes(SpecValues values, (double From, double To)? height) => height is { } z
-        ? string.Create(CultureInfo.InvariantCulture, $".XAxis(0, {CodeText.Number(values.GetNumber("size", 10))}, \"x\").YAxis(0, {CodeText.Number(values.GetNumber("size", 10))}, \"y\").ZAxis({CodeText.Number(values.GetNumber("zFrom", z.From))}, {CodeText.Number(values.GetNumber("zTo", z.To))}, \"z\")")
+        ? string.Create(CultureInfo.InvariantCulture, $".XAxis({CodeText.Number(Span(values).Min)}, {CodeText.Number(Span(values).Max)}, \"x\").YAxis({CodeText.Number(Span(values).Min)}, {CodeText.Number(Span(values).Max)}, \"y\").ZAxis({CodeText.Number(values.GetNumber("zFrom", z.From))}, {CodeText.Number(values.GetNumber("zTo", z.To))}, \"z\")")
         : string.Empty;
 
     private static Points3D Points(object data)
