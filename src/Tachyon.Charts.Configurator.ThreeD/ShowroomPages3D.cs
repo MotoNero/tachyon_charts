@@ -91,6 +91,13 @@ internal static class ShowroomPages3D
             series.Parameters.Set("live", true);
             return spec;
         }),
+        new("Cut, live", catalog =>
+        {
+            // The 3D chart brings its own theme; the chart of the cut takes that of the application, as in the showroom.
+            var spec = catalog.CreateSpec("surfaceCut3d");
+            (spec.Series[0].Data.Sample, spec.Series[0].Data.Count) = ("hillAcross", 256);
+            return spec;
+        }),
     ];
 
     private const string ZRange = "zRange";

@@ -93,7 +93,7 @@ public static class ConfiguratorLink
         ["Surface of equal value 512³"] = "volume3d",
         ["Columns"] = "columns3d",
         ["1 million columns"] = "columns3d",
-        ["Cut, live"] = "excluded",
+        ["Cut, live"] = "surfaceCut3d",
         ["Pie 3D"] = "pie3d",
         ["Donut 3D"] = "donut3d",
         ["Planes and limits"] = "surface3d",
@@ -215,7 +215,6 @@ public static class ConfiguratorLink
         ["LayoutMultiAxis"] = "A test of the layout of several axes, drawn without a chart; several axes are configurable.",
         ["LayoutStackedPanes"] = "A test of the layout of stacked panes, drawn without a chart; panes are configurable.",
         ["Colormaps"] = "A catalog of all colormaps side by side, drawn without a chart; each type with colors offers the colormaps.",
-        ["Cut, live"] = "Needs a second chart that shows the cut as a curve; the configurator describes one chart, its cut plane is an option of the scene.",
     };
 
     // The type an option of a chart starts with: options of 3D scenes on a surface, the weekends on candles, the others on a line.

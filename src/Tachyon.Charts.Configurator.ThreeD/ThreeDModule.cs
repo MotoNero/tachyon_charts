@@ -146,6 +146,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         Model(),
         AxisBox(),
         SpectrumWaterfall(),
+        CutTypes3D.Create(),
     ];
 
     /// <inheritdoc />
@@ -214,7 +215,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             });
     }
 
-    private static Colormap ColormapOf(string name) => name switch
+    internal static Colormap ColormapOf(string name) => name switch
     {
         "Viridis" => Colormaps.Viridis,
         "Magma" => Colormaps.Magma,

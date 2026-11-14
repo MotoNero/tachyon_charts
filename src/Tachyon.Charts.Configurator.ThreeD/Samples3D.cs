@@ -12,6 +12,8 @@ internal static class Samples3D
 
     public static IReadOnlyList<SampleInfo> Create() =>
     [
+        // The surface of the page with a live cut: over -1 to 1, here as 0 to 10 like the other grids.
+        Grid("hillAcross", "Hill and valley across -1 to 1", 256, (x, y) => 0.7 * Math.Sin(((x / 5) - 1) * 3) * Math.Cos(((y / 5) - 1) * 2.5), "0.7 * Math.Sin(((x / 5) - 1) * 3) * Math.Cos(((y / 5) - 1) * 2.5)"),
         Grid("hill", "Hill and valley", 64, (x, y) => 0.7 * Math.Sin(x * 0.9) * Math.Cos(y * 0.7), "0.7 * Math.Sin(x * 0.9) * Math.Cos(y * 0.7)"),
         Grid("blocks", "Blocks", 12, (x, y) => 0.5 + (0.4 * Math.Sin(x * 0.7) * Math.Cos(y * 0.5)), "0.5 + (0.4 * Math.Sin(x * 0.7) * Math.Cos(y * 0.5))"),
         Helix(),

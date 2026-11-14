@@ -70,7 +70,7 @@ Chart.Configure(model.Configure);
 Chart2.Configure(new Chart2ViewModel().Configure);
 ```
 
-Linked views (medical planes, a waterfall beside its spectrum) and the overview below a chart belong to a single chart and stay without further charts.
+Linked views (medical planes, a waterfall beside its spectrum, a surface with its cut) and the overview below a chart belong to a single chart and stay without further charts.
 
 ## Instruments
 
@@ -93,6 +93,7 @@ Some types fill several charts from one display; a click, a window or a measurem
 - **Medical analysis:** the volume in 3D, a plane with a line and a region, the profile along the line and the histogram of the region; each chart can be left out.
 - **Medical oblique and curved:** 3D with the oblique plane in it, a plane, the oblique plane that follows its line and the curved section along its arc; each chart can be left out.
 - **Spectrum with 3D waterfall:** a spectrum analyzer and its waterfall in 3D, side by side, one above the other, or the waterfall above the spectrum; reference level, divisions, mask and marker hold for both, and live spectra run into both. *Axes with numbers* labels frequency and level on the spectrum analyzer, alone or linked.
+- **Surface with its cut:** a surface in 3D with a plane across it and, below, above or beside it, a chart of the height along the plane. Dragging the outline of the plane moves the curve; a click in 3D or a Ctrl+click on the curve sets a marker that shows in both. *Plane at* sets where it starts, from -1 to 1 across the box. The 3D chart keeps its own title and box.
 
 The generated window arranges the charts in the same way, and the view model sets the shared data up once.
 
