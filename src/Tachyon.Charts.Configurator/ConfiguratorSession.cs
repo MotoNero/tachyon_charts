@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using Tachyon.Charts.Core.Fluent;
+using Tachyon.Charts.Core.Themes;
 
 namespace Tachyon.Charts.Configurator;
 
@@ -204,6 +205,7 @@ public sealed class ConfiguratorSession
     {
         var added = Catalog.CreateSpec(typeId);
         added.Theme = _root.Theme;
+        added.OwnTheme = _root.OwnTheme?.Copy();
 
         // A new chart joins the group of the first one, if it has one.
         added.Group = _root.Group;
@@ -288,7 +290,8 @@ public sealed class ConfiguratorSession
             ]
             : Array.Empty<FieldModel>(),
         Field("Chart", new("title", "Title", ParameterKind.Text, string.Empty), () => _spec.Title, value => _spec.Title = (string)value),
-        Field("Chart", new("theme", "Theme", ParameterKind.Choice, "Application") { Choices = ["Application", .. ChartCatalog.Themes] }, () => _spec.Theme ?? "Application", value => _spec.Theme = (string)value == "Application" ? null : (string)value),
+        Field("Chart", new("theme", "Theme", ParameterKind.Choice, "Application") { Choices = ["Application", .. ChartCatalog.Themes, OwnTheme], Description = "Own: a built-in theme as the base, with own values under Own theme." }, () => _spec.OwnTheme is not null ? OwnTheme : _spec.Theme ?? "Application", value => ChooseTheme((string)value), structural: true),
+        .. OwnThemeFields(_spec.OwnTheme),
         Field("Chart", new("xDown", "X axis downwards", ParameterKind.Flag, false), () => _spec.XDown, value => _spec.XDown = (bool)value),
         Field("Chart", new("legend", "Legend", ParameterKind.Flag, false), () => _spec.Legend is not null, value => _spec.Legend = (bool)value ? _spec.Legend ?? new LegendSpec() : null, structural: true),
         .. LegendFields("Legend", _spec.Legend),
@@ -450,6 +453,7 @@ public sealed class ConfiguratorSession
         else
         {
             created.Theme = _root.Theme;
+            created.OwnTheme = _root.OwnTheme?.Copy();
             _root.Charts[_chart - 1] = created;
         }
 
@@ -785,6 +789,56 @@ public sealed class ConfiguratorSession
         }
 
         return fields;
+    }
+
+    // The choice of the theme that opens the fields of an own theme.
+    private const string OwnTheme = "Own";
+
+    // The keys of a theme whose values are colors, which get a field with a color picker.
+    private static readonly HashSet<string> _colorKeys = [.. ThemeResources.ToValues(BuiltInThemes.TachyonDark)
+        .Where(pair => pair.Value.StartsWith('#') && !pair.Value.Contains(',', StringComparison.Ordinal))
+        .Select(pair => pair.Key[ThemeResources.KeyPrefix.Length..])];
+
+    // An own theme starts from the chosen built-in one; any other choice drops it.
+    private void ChooseTheme(string choice)
+    {
+        if (choice == OwnTheme)
+        {
+            _spec.OwnTheme ??= new ThemeSpec { Base = _spec.Theme ?? ChartCatalog.Themes[0] };
+            _spec.Theme = null;
+        }
+        else
+        {
+            _spec.OwnTheme = null;
+            _spec.Theme = choice == "Application" ? null : choice;
+        }
+    }
+
+    // The name and base of an own theme, then a field per key of the theme; an empty field takes the value of the base.
+    private IEnumerable<FieldModel> OwnThemeFields(ThemeSpec? own)
+    {
+        if (own is null)
+        {
+            yield break;
+        }
+
+        yield return Field("Own theme", new("themeName", "Name", ParameterKind.Text, "Own"), () => own.Name, value => own.Name = (string)value);
+        yield return Field("Own theme", new("themeBase", "Base", ParameterKind.Choice, ChartCatalog.Themes[0]) { Choices = ChartCatalog.Themes, Description = "The values left empty come from this theme." }, () => own.Base, value => own.Base = (string)value);
+        foreach (var (key, meaning) in ThemeResources.Keys)
+        {
+            var kind = _colorKeys.Contains(key) ? ParameterKind.Color : ParameterKind.Text;
+            yield return Field("Own theme", new("theme." + key, key, kind, string.Empty) { Description = meaning + " Empty: from the base." }, () => own.Values.GetValueOrDefault(key, string.Empty), value =>
+            {
+                if (((string)value).Trim() is { Length: > 0 } text)
+                {
+                    own.Values[key] = text;
+                }
+                else
+                {
+                    own.Values.Remove(key);
+                }
+            });
+        }
     }
 
     private IEnumerable<FieldModel> LegendFields(string name, LegendSpec? legend) => legend is null ? [] :

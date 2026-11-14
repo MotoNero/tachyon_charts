@@ -1,4 +1,5 @@
 using Tachyon.Charts.Core.Fluent;
+using Tachyon.Charts.Core.Themes;
 using Tachyon.Charts.Samples.Shared.Examples.Instruments;
 
 namespace Tachyon.Charts.Samples.Shared.Scenes;
@@ -38,5 +39,10 @@ public static class InstrumentPages
 
         return false;
     }
+
+    /// <summary>Gets the theme a page brings itself, which it keeps while the showroom shows each page in its own theme.</summary>
+    /// <param name="name">The page, or <see langword="null"/>.</param>
+    /// <returns>The theme, or <see langword="null"/> for the theme of the showroom.</returns>
+    public static Theme? ThemeOf(string? name) => name == Examples.Themes.OwnThemePage.Name ? Examples.Themes.OwnThemePage.Harbor : null;
 
 }

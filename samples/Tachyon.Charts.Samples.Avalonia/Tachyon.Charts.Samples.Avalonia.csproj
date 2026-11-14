@@ -16,6 +16,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The XAML theme of the page "Own theme", compiled like a dictionary that App.axaml includes. -->
+    <AvaloniaResource Include="../Tachyon.Charts.Samples.Shared/Examples/Themes/meadow.axaml" Link="Themes/meadow.axaml" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />

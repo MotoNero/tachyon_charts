@@ -615,6 +615,25 @@ public sealed class ChartCatalog
             problems.Add($"The theme {theme} is unknown.");
         }
 
+        if (spec.OwnTheme is { } own)
+        {
+            if (!Themes.Contains(own.Base))
+            {
+                problems.Add($"The base {own.Base} of the own theme is unknown.");
+            }
+            else
+            {
+                try
+                {
+                    own.Create();
+                }
+                catch (FormatException exception)
+                {
+                    problems.Add("Own theme: " + exception.Message);
+                }
+            }
+        }
+
         // Further charts: each is checked on its own; linked views and the overview belong to a single chart.
         for (var i = 0; i < spec.Charts.Count; i++)
         {

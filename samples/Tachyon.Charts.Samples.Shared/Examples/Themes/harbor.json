@@ -1,0 +1,21 @@
+{
+  "name": "Harbor",
+  "base": "dark",
+  "surface": {
+    "background": "#0B0E16",
+    "plotArea": "linear(#202D42, #0C121F)",
+    "border": "#2C3A52"
+  },
+  "grid": {
+    "major": "#AABEDC48",
+    "minor": "#AABEDC1C",
+    "band": "#6EA0DC14"
+  },
+  "axis": {
+    "line": "#4A5A74",
+    "tick": "#4A5A74",
+    "label": "#A9B8CF",
+    "title": "#E3EAF5"
+  },
+  "palette": ["#5CC8FF", "#FFB454", "#7EE0A1", "#FF7A90"]
+}

@@ -73,6 +73,7 @@ sealed class Tachyon.Charts.Configurator.ChartSpec
   Tachyon.Charts.Configurator.LegendSpec Legend { get; set; }
   Tachyon.Charts.Configurator.LegendSpec SecondLegend { get; set; }
   Tachyon.Charts.Configurator.SpecValues Scene { get; set; }
+  Tachyon.Charts.Configurator.ThemeSpec OwnTheme { get; set; }
   static System.Int32 CurrentVersion
 static class Tachyon.Charts.Configurator.ChartSpecJson
   static System.String Write(Tachyon.Charts.Configurator.ChartSpec spec)
@@ -344,6 +345,12 @@ sealed class Tachyon.Charts.Configurator.TemplateInfo : System.IEquatable<Tachyo
   System.Func<Tachyon.Charts.Configurator.ChartCatalog, Tachyon.Charts.Configurator.ChartSpec> Create { get; set; }
   System.String Id { get; set; }
   System.String Name { get; set; }
+sealed class Tachyon.Charts.Configurator.ThemeSpec
+  .ctor()
+  System.Collections.Generic.Dictionary<System.String, System.String> Values { get; set; }
+  System.String Base { get; set; }
+  System.String Name { get; set; }
+  Tachyon.Charts.Core.Themes.Theme Create()
 enum Tachyon.Charts.Configurator.UiFramework : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Avalonia = 1
   Wpf = 0

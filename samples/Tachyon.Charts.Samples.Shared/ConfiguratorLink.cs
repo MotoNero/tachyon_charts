@@ -113,6 +113,7 @@ public static class ConfiguratorLink
         ["AxesInTheOrigin"] = "option:axes",
         ["Scale break"] = "option:axes",
         ["Several legends"] = "option:legend",
+        ["Own theme"] = "option:theme",
         ["Axes in the origin"] = "option:axes",
         ["Annotations"] = "option:annotations",
         ["Primitives"] = "excluded",

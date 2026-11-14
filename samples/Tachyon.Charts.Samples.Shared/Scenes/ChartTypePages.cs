@@ -30,6 +30,7 @@ public static class ChartTypePages
         (ScaleBreakPage.Name, ScaleBreakPage.Hint, ScaleBreakPage.Configure),
         (LastValuePage.Name, LastValuePage.Hint, LastValuePage.Configure),
         (SeveralLegendsPage.Name, SeveralLegendsPage.Hint, SeveralLegendsPage.Configure),
+        (Examples.Themes.OwnThemePage.Name, Examples.Themes.OwnThemePage.Hint, Examples.Themes.OwnThemePage.Configure),
         (AxesInTheOriginPage.Name, AxesInTheOriginPage.Hint, AxesInTheOriginPage.Configure),
         (DepthProfilePage.Name, DepthProfilePage.Hint, DepthProfilePage.Configure),
         (PolygonsPage.Name, PolygonsPage.Hint, PolygonsPage.Configure),

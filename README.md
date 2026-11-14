@@ -144,11 +144,11 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 
 ### Themes
 
-Seven built-in themes, plus your own from JSON or XAML resources. Themes apply to every chart type, including the instruments.
+Seven built-in themes, plus your own from JSON or XAML resources in WPF and Avalonia: write only what differs from a base theme, such as a plot gradient and grid bands ([custom themes](docs/guide/custom-themes.md)). Themes apply to every chart type, including the instruments.
 
-| Neon | Paper | Instrument |
-|---|---|---|
-| ![Neon theme](docs/images/theme-neon.png) | ![Paper theme](docs/images/theme-paper.png) | ![Instrument theme](docs/images/theme-instrument.png) |
+| Neon | Paper | Instrument | Own theme from JSON |
+|---|---|---|---|
+| ![Neon theme](docs/images/theme-neon.png) | ![Paper theme](docs/images/theme-paper.png) | ![Instrument theme](docs/images/theme-instrument.png) | ![An own dark theme with a plot gradient and grid bands](docs/images/theme-own.png) |
 
 ## Features
 
@@ -416,6 +416,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Gantt](docs/guide/gantt.md) | Rows, groups, dependencies, milestones |
 | [Sweep monitors](docs/guide/sweep.md) | Writing over the previous pass or page by page, channels in step |
 | [Polygons](docs/guide/polygons.md) | Polygons with holes, heatmaps inside an area |
+| [Your own theme](docs/guide/custom-themes.md) | Themes as JSON or XAML in WPF and Avalonia, where the files go, all keys |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
 | [Code signing policy](docs/guide/code-signing.md) | How the showroom apps are signed, who approves, privacy |
 | [Medical data and privacy](docs/guide/medical.md) | Reading, MPR, segmentations, measurements, oblique and curved sections, sample and real data, large series, data minimisation and regulatory scope |

@@ -5,9 +5,11 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Layout;
+using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 using Tachyon.Charts.Avalonia;
@@ -24,6 +26,7 @@ using Tachyon.Charts.Samples.Shared.Examples.Common;
 using Tachyon.Charts.Samples.Shared.Examples.Gallery;
 using Tachyon.Charts.Samples.Shared.Examples.Instruments;
 using Tachyon.Charts.Samples.Shared.Examples.Interactive;
+using Tachyon.Charts.Samples.Shared.Examples.Themes;
 using Tachyon.Charts.Samples.Shared.Examples.ThreeD;
 using Tachyon.Charts.Samples.Shared.Scenes;
 using AvaloniaPixelSize = Avalonia.PixelSize;
@@ -68,6 +71,10 @@ internal sealed class SampleWindow : Window
     private readonly TextBlock _hint = new() { FontSize = 12.5, Opacity = 0.65, Margin = new Thickness(0, 3, 12, 0), TextTrimming = TextTrimming.CharacterEllipsis };
     private readonly TextBlock _pageTitle = new() { FontSize = 24, FontWeight = FontWeight.SemiBold };
     private readonly ComboBox _theme = new() { Width = 170 };
+
+    // Own themes after the built-in ones: that of the page „Own theme“ from JSON, one from XAML and those loaded from files.
+    private readonly List<Theme> _ownThemes = [OwnThemePage.Harbor, LoadMeadow()];
+    private int _themeIndex;
     private readonly ComboBox _language = new() { Width = 120, Margin = new Thickness(8, 0, 0, 0) };
     private readonly ComboBox _trigger = new() { Width = 150, Margin = new Thickness(0, 0, 8, 0) };
     private readonly ComboBox _persistence = new() { Width = 150, Margin = new Thickness(0, 0, 8, 0) };
@@ -178,7 +185,17 @@ internal sealed class SampleWindow : Window
         _scopeControls.Children.Add(_trigger);
         _scopeControls.Children.Add(_persistence);
 
-        _theme.SelectionChanged += (_, _) => ApplyTheme();
+        _theme.SelectionChanged += async (_, _) =>
+        {
+            if (!_isSwitching && _theme.SelectedIndex == _theme.ItemCount - 1)
+            {
+                await LoadTheme();
+                return;
+            }
+
+            _themeIndex = Math.Max(0, _theme.SelectedIndex);
+            ApplyTheme();
+        };
         _language.ItemsSource = SampleText.Languages;
         _language.SelectedIndex = 0;
         _language.SelectionChanged += (_, _) => SelectLanguage();
@@ -244,7 +261,7 @@ internal sealed class SampleWindow : Window
             Opened += (_, _) => _ = RecordAtStart();
         }
 
-        if (ThemeAtStart is { } themeName && BuiltInThemes.All.ToList().FindIndex(item => item.Name.Equals(themeName, StringComparison.OrdinalIgnoreCase)) is >= 0 and var chosen)
+        if (ThemeAtStart is { } themeName && BuiltInThemes.All.Concat(_ownThemes).ToList().FindIndex(item => item.Name.Equals(themeName, StringComparison.OrdinalIgnoreCase)) is >= 0 and var chosen)
         {
             _theme.SelectedIndex = chosen + 1;
         }
@@ -274,7 +291,54 @@ internal sealed class SampleWindow : Window
 
     private string? SelectedId => _selected?.Id;
 
-    private Theme? SelectedTheme => _theme.SelectedIndex > 0 ? BuiltInThemes.All[_theme.SelectedIndex - 1] : null;
+    private Theme? SelectedTheme => _theme.SelectedIndex > 0 && _theme.SelectedIndex <= BuiltInThemes.All.Count + _ownThemes.Count
+        ? BuiltInThemes.All.Concat(_ownThemes).ElementAt(_theme.SelectedIndex - 1)
+        : null;
+
+    // A page with a theme of its own keeps it while the list says „Scene default“.
+    private Theme? PageTheme(Chart chart) => InstrumentPages.ThemeOf(_pages.FirstOrDefault(pair => pair.Value == chart).Key);
+
+    // The theme of meadow.axaml, compiled with the showroom: the dictionary as App.axaml would include it, read into a theme.
+    private static Theme LoadMeadow()
+    {
+        var resources = (ResourceDictionary)AvaloniaXamlLoader.Load(new Uri("avares://Tachyon.Charts.Samples.Avalonia/Themes/meadow.axaml"));
+        return ChartThemes.FromResources(resources, OwnThemePage.Meadow, OwnThemePage.MeadowBase);
+    }
+
+    // An own theme from a JSON file, which names its base itself. XAML is compiled with an application, so it is not read here.
+    private async Task LoadTheme()
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            AllowMultiple = false,
+            Title = SampleText.T("Load from file …"),
+            FileTypeFilter = [new FilePickerFileType(SampleText.T("Themes")) { Patterns = ["*.json"] }],
+        });
+        if (files.Count == 0 || files[0].TryGetLocalPath() is not { } path)
+        {
+            _theme.SelectedIndex = _themeIndex;
+            return;
+        }
+
+        try
+        {
+            var theme = ThemeJson.Deserialize(await File.ReadAllTextAsync(path)).Resolve();
+            _ownThemes.Add(theme);
+            _isSwitching = true;
+            Fill(_theme, ThemeNames());
+            _isSwitching = false;
+            _theme.SelectedIndex = BuiltInThemes.All.Count + _ownThemes.Count;
+            _hint.Text = SampleText.T("Theme loaded: ") + theme.Name;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or FormatException or InvalidOperationException or System.Text.Json.JsonException)
+        {
+            _theme.SelectedIndex = _themeIndex;
+            _hint.Text = SampleText.T("Theme not loaded: ") + exception.Message;
+        }
+    }
+
+    private IEnumerable<string> ThemeNames() =>
+        new[] { SampleText.T("Scene default") }.Concat(BuiltInThemes.All.Concat(_ownThemes).Select(theme => theme.Name)).Append(SampleText.T("Load from file …"));
 
     // Avalonia also builds the template without an item while the list changes.
     private static TextBlock CreateListText(SamplePage? page)
@@ -356,7 +420,7 @@ internal sealed class SampleWindow : Window
     private void ApplyLanguage()
     {
         _isSwitching = true;
-        Fill(_theme, new[] { SampleText.T("Scene default") }.Concat(BuiltInThemes.All.Select(theme => theme.Name)));
+        Fill(_theme, ThemeNames());
         Fill(_trigger, new[] { "Trigger Auto", "Trigger Normal", "Trigger Single" }.Select(SampleText.T));
         Fill(_persistence, new[] { "Persistence off", "Variable", "Infinite", "Color grade" }.Select(SampleText.T));
         _list.ItemsSource = null;
@@ -460,7 +524,7 @@ internal sealed class SampleWindow : Window
 
         foreach (var chart in _pages.Values.Concat(_companions.Values.SelectMany(charts => charts)).Append(_scope).Append(_spectrum).Append(_spectrumHistory))
         {
-            chart.ChartTheme = theme ?? BuiltInThemes.Instrument;
+            chart.ChartTheme = theme ?? PageTheme(chart) ?? BuiltInThemes.Instrument;
         }
 
         if (_selected is not null)
@@ -785,7 +849,7 @@ internal sealed class SampleWindow : Window
         if (!_pages.TryGetValue(name, out var chart))
         {
             chart = new Chart().Configure(page.Configure);
-            chart.ChartTheme = SelectedTheme ?? BuiltInThemes.Instrument;
+            chart.ChartTheme = SelectedTheme ?? InstrumentPages.ThemeOf(name) ?? BuiltInThemes.Instrument;
             chart.ContextMenu = CreateMenu();
             _pages[name] = chart;
             _content.Children.Add(chart);

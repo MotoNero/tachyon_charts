@@ -27,6 +27,7 @@ Tachyon Charts draws large amounts of data in real time, in WPF and Avalonia, on
 | Annotations | [annotations.md](annotations.md) |
 | Groups and several charts | [groups.md](groups.md) |
 | Themes and effects | [themes.md](themes.md) |
+| Your own theme: JSON, XAML, all keys | [custom-themes.md](custom-themes.md) |
 | Export, clipboard, printing | [export.md](export.md) |
 | Configurator: put a chart together, take its code | [configurator.md](configurator.md) |
 | GPU, fallback, diagnostics | [renderer.md](renderer.md) |

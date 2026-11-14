@@ -32,6 +32,7 @@ internal static class ShowroomPages
         new("Scale break", ScaleBreak),
         new("Last value at the axis", LastValue),
         new("Several legends", SeveralLegends),
+        new("Own theme", OwnTheme),
         new("Axes in the origin", AxesInTheOrigin),
         new("Depth profile", DepthProfile),
         new("Polygons", _ => Titled("Polygons with holes", Plain(0, 10, 0, 10, Series("polygons", string.Empty, "holedShapes", 3, ("thickness", 1.5))), "zoompan", "crosshair", "tooltip")),
@@ -404,6 +405,42 @@ internal static class ShowroomPages
 
         Interactions(spec, "zoompan", "crosshair");
         spec.Modifiers[^1].Parameters.Set("values", true);
+        return spec;
+    }
+
+    // Three lines in a theme of their own, that of harbor.json in the showroom: a dark base with a gradient, bands and its colors.
+    private static ChartSpec OwnTheme(ChartCatalog catalog)
+    {
+        var spec = new ChartSpec
+        {
+            Title = "Harbor, a theme from JSON",
+            OwnTheme = new ThemeSpec
+            {
+                Name = "Harbor",
+                Base = "TachyonDark",
+                Values =
+                {
+                    ["surface.background"] = "#0B0E16",
+                    ["surface.plotArea"] = "linear(#202D42, #0C121F)",
+                    ["surface.border"] = "#2C3A52",
+                    ["grid.major"] = "#AABEDC48",
+                    ["grid.minor"] = "#AABEDC1C",
+                    ["grid.band"] = "#6EA0DC14",
+                    ["axis.line"] = "#4A5A74",
+                    ["axis.tick"] = "#4A5A74",
+                    ["axis.label"] = "#A9B8CF",
+                    ["axis.title"] = "#E3EAF5",
+                    ["palette"] = "#5CC8FF, #FFB454, #7EE0A1, #FF7A90",
+                },
+            },
+            XAxes = { new AxisSpec { Id = "x", Title = "Time (s)", Minimum = 0, Maximum = 10 } },
+            YAxes = { new AxisSpec { Id = "y", Title = "Level", Minimum = -1.5, Maximum = 1.5 } },
+            Legend = new LegendSpec(),
+        };
+        spec.Series.Add(Series("line", "Tide", "tide", 300, ("thickness", 2.0), ("color", "#5CC8FF")));
+        spec.Series.Add(Series("line", "Swell", "swell", 300, ("thickness", 2.0), ("color", "#FFB454")));
+        spec.Series.Add(Series("line", "Ripple", "ripple", 300, ("thickness", 1.5), ("color", "#7EE0A1")));
+        Interactions(spec, "zoompan", "rubberband", "crosshair", "tooltip");
         return spec;
     }
 

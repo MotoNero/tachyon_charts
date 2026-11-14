@@ -1,3 +1,5 @@
+using Tachyon.Charts.Core.Themes;
+
 namespace Tachyon.Charts.Configurator;
 
 /// <summary>
@@ -17,6 +19,9 @@ public sealed class ChartSpec
 
     /// <summary>Gets or sets the name of a built-in theme, or <see langword="null"/> for the theme of the application.</summary>
     public string? Theme { get; set; }
+
+    /// <summary>Gets or sets an own theme, which takes the place of <see cref="Theme"/>, or <see langword="null"/> for none.</summary>
+    public ThemeSpec? OwnTheme { get; set; }
 
     /// <summary>Gets or sets a value indicating whether the X axis runs downwards.</summary>
     public bool XDown { get; set; }
@@ -66,6 +71,28 @@ public sealed class ChartSpec
 
     /// <summary>Gets or sets the number of columns the charts of the description are arranged in; 0 or 1 for one column.</summary>
     public int Columns { get; set; }
+}
+
+/// <summary>An own theme: a built-in theme as its base and the values that differ from it, by the keys of <see cref="ThemeResources"/>.</summary>
+public sealed class ThemeSpec
+{
+    /// <summary>Gets or sets the name of the theme.</summary>
+    public string Name { get; set; } = "Own";
+
+    /// <summary>Gets or sets the theme the values not given come from, one of <see cref="ChartCatalog.Themes"/>.</summary>
+    public string Base { get; set; } = "TachyonDark";
+
+    /// <summary>Gets the values by key without the prefix, such as <c>grid.band</c>, as text: colors as <c>#RRGGBB</c> or <c>#RRGGBBAA</c>.</summary>
+    public Dictionary<string, string> Values { get; init; } = new(StringComparer.Ordinal);
+
+    /// <summary>Copies the theme, for a further chart that takes it over.</summary>
+    /// <returns>The copy.</returns>
+    internal ThemeSpec Copy() => new() { Name = Name, Base = Base, Values = new(Values, StringComparer.Ordinal) };
+
+    /// <summary>Creates the theme.</summary>
+    /// <returns>The resolved theme.</returns>
+    /// <exception cref="FormatException">A key is unknown or a value cannot be read.</exception>
+    public Theme Create() => ThemeResources.Create(Name, SpecChartBuilder.Theme(Base).Name, Values.ToDictionary(pair => ThemeResources.KeyPrefix + pair.Key, pair => pair.Value, StringComparer.Ordinal));
 }
 
 /// <summary>An annotation of the chart.</summary>

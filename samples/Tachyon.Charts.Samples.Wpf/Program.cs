@@ -23,6 +23,7 @@ using Tachyon.Charts.Samples.Shared.Examples.Common;
 using Tachyon.Charts.Samples.Shared.Examples.Gallery;
 using Tachyon.Charts.Samples.Shared.Examples.Instruments;
 using Tachyon.Charts.Samples.Shared.Examples.Interactive;
+using Tachyon.Charts.Samples.Shared.Examples.Themes;
 using Tachyon.Charts.Samples.Shared.Examples.ThreeD;
 using Tachyon.Charts.Samples.Shared.Scenes;
 using Tachyon.Charts.Samples.Shared.Spikes;
@@ -106,6 +107,10 @@ internal sealed class SampleWindow : Window
     private readonly ScrollViewer _sceneView = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
     private readonly ListBox _list = new() { Margin = new Thickness(10, 0, 6, 10) };
     private readonly ComboBox _theme = new() { Width = 170 };
+
+    // Own themes after the built-in ones: that of the page „Own theme“ from JSON, one from XAML and those loaded from files.
+    private readonly List<Theme> _ownThemes = [OwnThemePage.Harbor, LoadMeadow()];
+    private int _themeIndex;
     private readonly ComboBox _colormap = new() { Width = 130, Margin = new Thickness(0, 0, 8, 0), Visibility = Visibility.Collapsed };
     private readonly ComboBox _data = new() { Width = 280, Margin = new Thickness(0, 0, 8, 0), Visibility = Visibility.Collapsed };
     private bool _isFillingData;
@@ -260,7 +265,17 @@ internal sealed class SampleWindow : Window
                 ShowSelection();
             }
         };
-        _theme.SelectionChanged += (_, _) => ApplyTheme();
+        _theme.SelectionChanged += (_, _) =>
+        {
+            if (!_isSwitching && _theme.SelectedIndex == _theme.Items.Count - 1)
+            {
+                LoadTheme();
+                return;
+            }
+
+            _themeIndex = Math.Max(0, _theme.SelectedIndex);
+            ApplyTheme();
+        };
         PreviewKeyDown += OnPreviewKey;
         Loaded += (_, _) =>
         {
@@ -275,7 +290,7 @@ internal sealed class SampleWindow : Window
                 _ = RecordAtStart();
             }
 
-            if (ThemeAtStart is { } themeName && BuiltInThemes.All.ToList().FindIndex(item => item.Name.Equals(themeName, StringComparison.OrdinalIgnoreCase)) is >= 0 and var chosen)
+            if (ThemeAtStart is { } themeName && BuiltInThemes.All.Concat(_ownThemes).ToList().FindIndex(item => item.Name.Equals(themeName, StringComparison.OrdinalIgnoreCase)) is >= 0 and var chosen)
             {
                 _theme.SelectedIndex = chosen + 1;
             }
@@ -367,7 +382,7 @@ internal sealed class SampleWindow : Window
     private void FillThemes()
     {
         var index = Math.Max(_theme.SelectedIndex, 0);
-        _theme.ItemsSource = new[] { SampleText.T("Scene default") }.Concat(BuiltInThemes.All.Select(theme => theme.Name)).ToArray();
+        _theme.ItemsSource = new[] { SampleText.T("Scene default") }.Concat(BuiltInThemes.All.Concat(_ownThemes).Select(theme => theme.Name)).Append(SampleText.T("Load from file …")).ToArray();
         _theme.SelectedIndex = index;
     }
 
@@ -748,7 +763,7 @@ internal sealed class SampleWindow : Window
         if (!_pages.TryGetValue(name, out var chart))
         {
             chart = new Chart().Configure(page.Configure);
-            chart.Theme = SelectedTheme ?? BuiltInThemes.Instrument;
+            chart.Theme = SelectedTheme ?? InstrumentPages.ThemeOf(name) ?? BuiltInThemes.Instrument;
             chart.ContextMenu = CreateMenu();
             _pages[name] = chart;
             _stage.Children.Add(chart);
@@ -757,7 +772,57 @@ internal sealed class SampleWindow : Window
         return chart;
     }
 
-    private Theme? SelectedTheme => _theme.SelectedIndex > 0 ? BuiltInThemes.All[_theme.SelectedIndex - 1] : null;
+    private Theme? SelectedTheme => _theme.SelectedIndex > 0 && _theme.SelectedIndex <= BuiltInThemes.All.Count + _ownThemes.Count
+        ? BuiltInThemes.All.Concat(_ownThemes).ElementAt(_theme.SelectedIndex - 1)
+        : null;
+
+    // A page with a theme of its own keeps it while the list says „Scene default“.
+    private Theme? PageTheme(Chart chart) => InstrumentPages.ThemeOf(_pages.FirstOrDefault(pair => pair.Value == chart).Key);
+
+    // The theme of meadow.xaml, compiled with the showroom: the dictionary as App.xaml would merge it, read into a theme.
+    private static Theme LoadMeadow()
+    {
+        var resources = new ResourceDictionary { Source = new Uri("/Tachyon.Charts.Samples.Wpf;component/Themes/meadow.xaml", UriKind.Relative) };
+        return ChartThemes.FromResources(resources, OwnThemePage.Meadow, OwnThemePage.MeadowBase);
+    }
+
+    // An own theme from a file: JSON names its base itself, a XAML resource dictionary starts from the dark theme.
+    private void LoadTheme()
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = SampleText.T("Themes") + "|*.json;*.xaml" };
+        if (dialog.ShowDialog(this) != true)
+        {
+            _theme.SelectedIndex = _themeIndex;
+            return;
+        }
+
+        try
+        {
+            Theme theme;
+            if (dialog.FileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                theme = ThemeJson.Deserialize(File.ReadAllText(dialog.FileName)).Resolve();
+            }
+            else
+            {
+                using var stream = File.OpenRead(dialog.FileName);
+                var resources = (ResourceDictionary)System.Windows.Markup.XamlReader.Load(stream);
+                theme = ChartThemes.FromResources(resources, Path.GetFileNameWithoutExtension(dialog.FileName));
+            }
+
+            _ownThemes.Add(theme);
+            _isSwitching = true;
+            FillThemes();
+            _isSwitching = false;
+            _theme.SelectedIndex = BuiltInThemes.All.Count + _ownThemes.Count;
+            _hint.Text = SampleText.T("Theme loaded: ") + theme.Name;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or FormatException or InvalidOperationException or System.Text.Json.JsonException or System.Windows.Markup.XamlParseException or InvalidCastException)
+        {
+            _theme.SelectedIndex = _themeIndex;
+            _hint.Text = SampleText.T("Theme not loaded: ") + exception.Message;
+        }
+    }
 
     protected override void OnClosed(EventArgs e)
     {
@@ -989,7 +1054,7 @@ internal sealed class SampleWindow : Window
 
         foreach (var chart in _pages.Values.Concat(_companions.Values.SelectMany(charts => charts)).Append(_scope).Append(_spectrum).Append(_spectrumHistory))
         {
-            chart.Theme = theme ?? BuiltInThemes.Instrument;
+            chart.Theme = theme ?? PageTheme(chart) ?? BuiltInThemes.Instrument;
         }
 
         ShowSelection();

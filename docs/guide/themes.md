@@ -11,10 +11,12 @@ To change it later, set `chart.Theme` in WPF and `chart.ChartTheme` in Avalonia,
 Your own themes come as JSON or from XAML resources, missing values come from a base theme:
 
 ```csharp
+chart.Theme = ThemeJson.Deserialize(File.ReadAllText("harbor.json"));
 chart.Theme = ChartThemes.FromResources(Resources, "My theme", "dark");
 ```
 
-The keys start with `Tachyon.`, for example `Tachyon.surface.background`.
+The keys start with `Tachyon.`, for example `Tachyon.surface.background`. [Your own theme](custom-themes.md) shows
+both ways step by step, where the files go and every key with its value in the base themes.
 
 With `ThemeTransition` a change fades over.
 

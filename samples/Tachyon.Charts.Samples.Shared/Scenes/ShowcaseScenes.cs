@@ -68,6 +68,7 @@ public static class ShowcaseScenes
         Theme("theme-neon", "Neon", BuiltInThemes.Neon),
         Theme("theme-paper", "Paper", BuiltInThemes.Paper),
         Theme("theme-instrument", "Instrument", BuiltInThemes.Instrument),
+        Type("theme-own", "Own theme", "Harbor, an own theme from JSON"),
     ];
 
     private static ShowcaseScene Type(string name, string page, string title) => new(name, c =>

@@ -50,9 +50,9 @@ public static class SpecChartBuilder
     internal static void ApplyView(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, int view, IReadOnlyList<object?> prepared)
     {
         var (views, _) = catalog.ViewsOf(spec) ?? throw new InvalidOperationException("The description has no linked charts.");
-        if (spec.Theme is { } theme)
+        if (ThemeOf(spec) is { } theme)
         {
-            chart.Theme(Theme(theme));
+            chart.Theme(theme);
         }
 
         views[view].Apply(chart, spec.Series[0], prepared[0]!);
@@ -90,9 +90,9 @@ public static class SpecChartBuilder
 
         // A scene sets its own theme, so the chosen one follows it.
         var scene = catalog.SceneOf(spec);
-        if (spec.Theme is { } theme && scene is null)
+        if (ThemeOf(spec) is { } theme && scene is null)
         {
-            chart.Theme(Theme(theme));
+            chart.Theme(theme);
         }
 
         if (spec.XDown)
@@ -133,9 +133,9 @@ public static class SpecChartBuilder
                     index++;
                 }
             });
-            if (spec.Theme is { } chosen)
+            if (ThemeOf(spec) is { } chosen)
             {
-                chart.Theme(Theme(chosen));
+                chart.Theme(chosen);
             }
         }
         else
@@ -207,6 +207,11 @@ public static class SpecChartBuilder
             chart.Group(group);
         }
     }
+
+    /// <summary>Gets the theme of a description: its own theme, else the chosen built-in one.</summary>
+    /// <param name="spec">The description.</param>
+    /// <returns>The theme, or <see langword="null"/> for the theme of the application.</returns>
+    internal static Theme? ThemeOf(ChartSpec spec) => spec.OwnTheme?.Create() ?? (spec.Theme is { } name ? Theme(name) : null);
 
     /// <summary>Gets a built-in theme by name.</summary>
     /// <param name="name">One of <see cref="ChartCatalog.Themes"/>.</param>

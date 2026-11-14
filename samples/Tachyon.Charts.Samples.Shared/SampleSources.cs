@@ -25,9 +25,9 @@ public static class SampleSources
     /// <summary>Gets all files by their path below <c>samples/</c>, such as <c>Tachyon.Charts.Samples.Shared/Examples/ThreeD/WaterfallLivePage.cs</c>.</summary>
     public static IReadOnlyDictionary<string, string> Files => _files.Value;
 
-    /// <summary>Gets the files of the examples, one per page or gallery scene, without the shared helpers.</summary>
+    /// <summary>Gets the files of the examples, one per page or gallery scene, without the shared helpers and the files they read.</summary>
     public static IEnumerable<string> Examples =>
-        Files.Keys.Where(name => name.StartsWith(ExampleFolder, StringComparison.Ordinal) && !name.StartsWith(CommonFolder, StringComparison.Ordinal));
+        Files.Keys.Where(name => name.StartsWith(ExampleFolder, StringComparison.Ordinal) && !name.StartsWith(CommonFolder, StringComparison.Ordinal) && name.EndsWith(".cs", StringComparison.Ordinal));
 
     /// <summary>Finds the files of a page: its example first, then the shared helpers it uses.</summary>
     /// <param name="pageId">The page.</param>
@@ -50,6 +50,17 @@ public static class SampleSources
         }
 
         var found = new List<SourceFile> { new(example, Files[example]) };
+
+        // The files an example reads, such as a theme as JSON or XAML, beside it in its folder.
+        var folder = example[..(example.LastIndexOf('/') + 1)];
+        foreach (var file in Files.Keys.Where(name => name.StartsWith(folder, StringComparison.Ordinal) && !name.EndsWith(".cs", StringComparison.Ordinal)).Order(StringComparer.Ordinal))
+        {
+            if (Files[example].Contains(file[folder.Length..], StringComparison.Ordinal))
+            {
+                found.Add(new SourceFile(file, Files[file]));
+            }
+        }
+
         AddHelpers(found, Files[example]);
         return found;
     }

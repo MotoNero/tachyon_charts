@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using Tachyon.Charts.Core.Themes;
 
 namespace Tachyon.Charts.Configurator;
 
@@ -168,6 +169,11 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             code.Append(helpers);
         }
 
+        if (spec.OwnTheme is { } own)
+        {
+            code.Append(OwnThemeHelper(own));
+        }
+
         // Shared parts of the data: the timers of live data, the numbers of HDF5 datasets and the points of columns.
         if (spec.Series.Exists(series => series.Data.Kind == DataKind.Hdf5))
         {
@@ -282,6 +288,29 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         code.AppendLine().Append("            .Modifiers(m => m.Overview(").Append(CodeText.String(spec.Group ?? OverviewGroup)).AppendLine("));").AppendLine("    }");
     }
 
+    // The theme a description sets: its own, made by a helper of the class, or a built-in one.
+    private static string? ThemeCall(ChartSpec spec) => spec.OwnTheme is not null ? "OwnTheme()" : spec.Theme is { } name ? "BuiltInThemes." + name : null;
+
+    // The helper that makes an own theme from its values, in the order of the keys.
+    private static string OwnThemeHelper(ThemeSpec own)
+    {
+        var code = new StringBuilder();
+        code.AppendLine();
+        code.AppendLine("    /// <summary>Creates the own theme: the values that differ from its base; see ThemeResources.Keys for all keys.</summary>");
+        code.AppendLine("    /// <returns>The theme.</returns>");
+        code.AppendLine("    private static Theme OwnTheme() => ThemeResources.Create(");
+        code.Append("        ").Append(CodeText.String(own.Name)).AppendLine(",");
+        code.Append("        ").Append(CodeText.String(SpecChartBuilder.Theme(own.Base).Name)).AppendLine(",");
+        code.AppendLine("        new Dictionary<string, string>");
+        code.AppendLine("        {");
+        foreach (var key in ThemeResources.Keys.Keys.Where(own.Values.ContainsKey))
+        {
+            code.Append("            [").Append(CodeText.String(ThemeResources.KeyPrefix + key)).Append("] = ").Append(CodeText.String(own.Values[key])).AppendLine(",");
+        }
+
+        return code.AppendLine("        });").ToString();
+    }
+
     /// <summary>Gets the names of the linked charts of a description, or empty for one chart.</summary>
     /// <param name="spec">The description.</param>
     /// <returns>The names.</returns>
@@ -292,7 +321,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     {
         var (series, data) = (spec.Series[0], plan.Data[0]);
         var code = new StringBuilder();
-        WriteUsings(code, spec.Theme is null ? plan.Usings : [.. plan.Usings, "Tachyon.Charts.Core.Themes"]);
+        WriteUsings(code, ThemeCall(spec) is null ? plan.Usings : [.. plan.Usings, "Tachyon.Charts.Core.Themes"]);
         code.Append("namespace ").Append(options.Namespace).AppendLine(";").AppendLine();
         code.AppendLine("/// <summary>").Append("/// ").Append(Describe(spec)).AppendLine(", linked charts made with the Tachyon Charts configurator.").AppendLine("/// </summary>");
         code.AppendLine("public static class ChartSetup").AppendLine("{");
@@ -312,9 +341,9 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             code.AppendLine("    /// <param name=\"chart\">The chart description.</param>");
             code.Append("    /// <param name=\"").Append(data.Variable).AppendLine("\">The data, the same for all charts.</param>");
             code.Append("    public static void Configure").Append(view.Name).Append("(ChartBuilder chart, ").Append(data.Type).Append(' ').Append(data.Variable).AppendLine(")").AppendLine("    {");
-            if (spec.Theme is { } theme)
+            if (ThemeCall(spec) is { } theme)
             {
-                code.Append("        chart.Theme(BuiltInThemes.").Append(theme).AppendLine(");");
+                code.Append("        chart.Theme(").Append(theme).AppendLine(");");
             }
 
             foreach (var line in view.Code(series, data.Variable).Split('\n'))
@@ -330,6 +359,11 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         if (_catalog.FindType(series.Type)!.Helpers is { Length: > 0 } helpers)
         {
             code.Append(helpers);
+        }
+
+        if (spec.OwnTheme is { } own)
+        {
+            code.Append(OwnThemeHelper(own));
         }
 
         return code.AppendLine("}").ToString();
@@ -890,10 +924,10 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         }
 
         var scene = _catalog.SceneOf(spec);
-        if (spec.Theme is { } theme && scene is null)
+        if (ThemeCall(spec) is { } theme && scene is null)
         {
             usings.Add("Tachyon.Charts.Core.Themes");
-            calls.Add($".Theme(BuiltInThemes.{theme})");
+            calls.Add($".Theme({theme})");
         }
 
         if (spec.XDown)
@@ -942,10 +976,10 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             usings.AddRange(scene.Usings);
             var (start, end) = scene.Code(spec);
             calls.Add(start + string.Concat(inScene) + end);
-            if (spec.Theme is { } chosen)
+            if (ThemeCall(spec) is { } chosen)
             {
                 usings.Add("Tachyon.Charts.Core.Themes");
-                calls.Add($".Theme(BuiltInThemes.{chosen})");
+                calls.Add($".Theme({chosen})");
             }
         }
 

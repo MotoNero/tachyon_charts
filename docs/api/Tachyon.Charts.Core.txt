@@ -2455,5 +2455,7 @@ static class Tachyon.Charts.Core.Themes.ThemeJson
   static System.String Serialize(Tachyon.Charts.Core.Themes.Theme theme)
   static Tachyon.Charts.Core.Themes.Theme Deserialize(System.String json)
 static class Tachyon.Charts.Core.Themes.ThemeResources
+  static System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Keys { get; }
+  static System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<System.String, System.String>> ToValues(Tachyon.Charts.Core.Themes.Theme theme)
   static System.String KeyPrefix
   static Tachyon.Charts.Core.Themes.Theme Create(System.String name, System.String baseName, System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> values)

@@ -12,6 +12,10 @@ internal static class ShowroomSamples
     public static IReadOnlyList<SampleInfo> Create() =>
     [
         Curve("pureSine", "Sine", 300, 10, Math.Sin, "Math.Sin(x)"),
+        // The three lines of the page with an own theme.
+        Curve("tide", "Tide", 300, 10, x => Math.Sin(x * 0.9), "Math.Sin(x * 0.9)"),
+        Curve("swell", "Swell", 300, 10, x => 0.6 * Math.Cos(x * 1.7), "0.6 * Math.Cos(x * 1.7)"),
+        Curve("ripple", "Ripple", 300, 10, x => (0.35 * Math.Sin(x * 3.1)) - 0.8, "(0.35 * Math.Sin(x * 3.1)) - 0.8"),
         // The charts of a group: one curve at three very different heights, and three curves stacked.
         Curve("groupSmall", "Sine of 2x, height 1", 2000, 19.99, x => Math.Sin(x * 2), "Math.Sin(x * 2)"),
         Curve("groupMedium", "Sine of 2x, height 25", 2000, 19.99, x => 25 * Math.Sin(x * 2), "25 * Math.Sin(x * 2)"),

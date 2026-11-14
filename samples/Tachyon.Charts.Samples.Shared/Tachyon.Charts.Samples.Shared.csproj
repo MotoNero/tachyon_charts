@@ -7,6 +7,8 @@
   <!-- The showroom shows the code of each page: the sources of this project travel along. -->
   <ItemGroup>
     <EmbeddedResource Include="**/*.cs" Exclude="bin/**;obj/**;Spikes/**" LogicalName="Source/Shared/%(RecursiveDir)%(Filename)%(Extension)" />
+    <!-- Files an example reads, such as the themes of the page "Own theme"; the XAML files are compiled by the apps. -->
+    <EmbeddedResource Include="Examples/**/*.json;Examples/**/*.xaml;Examples/**/*.axaml" LogicalName="Source/Shared/Examples/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

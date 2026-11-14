@@ -24,7 +24,7 @@ public static class ThemeJson
     /// </summary>
     /// <param name="json">JSON text.</param>
     /// <returns>The theme.</returns>
-    /// <exception cref="JsonException">The document is invalid or null.</exception>
+    /// <exception cref="JsonException">The document is invalid or null, or names a property that themes do not have; the message gives the path.</exception>
     public static Theme Deserialize(string json)
     {
         ArgumentNullException.ThrowIfNull(json);
@@ -36,6 +36,7 @@ public static class ThemeJson
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    WriteIndented = true)]
+    WriteIndented = true,
+    UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow)]
 [JsonSerializable(typeof(Theme))]
 internal sealed partial class ThemeJsonContext : JsonSerializerContext;
