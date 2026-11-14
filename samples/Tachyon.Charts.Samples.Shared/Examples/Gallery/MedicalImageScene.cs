@@ -21,12 +21,19 @@ public sealed class MedicalImageScene(string name, Func<MedicalImageDisplay> cre
     /// <inheritdoc />
     public PixelSize Size { get; } = new(900, 620);
 
+    /// <summary>Builds the chart: the image on the dark theme.</summary>
+    /// <param name="chart">The chart.</param>
+    public void Configure(ChartBuilder chart)
+    {
+        ArgumentNullException.ThrowIfNull(chart);
+        create().Configure(chart.Theme(BuiltInThemes.TachyonDark));
+    }
+
     /// <inheritdoc />
     public void Render(IRenderDevice device, IRenderTarget target)
     {
-        var display = create();
-        var builder = new ChartBuilder().Theme(BuiltInThemes.TachyonDark);
-        display.Configure(builder);
+        var builder = new ChartBuilder();
+        Configure(builder);
         var built = builder.ToDefinition().Build(SkiaTextEngine.Default);
         var chart = built.Surface;
         chart.Render(device, target);

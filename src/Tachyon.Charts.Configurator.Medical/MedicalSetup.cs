@@ -31,15 +31,19 @@ internal static class MedicalSetup
 
     private static void Made(MedicalMeasurement measurement) => _made.AddOrUpdate(measurement, _made);
 
-    /// <summary>Adds a distance, an angle and a round region, placed by the size of the image in millimetres.</summary>
+    /// <summary>
+    /// Adds a distance, an angle, a round region and a drawn region, placed by the size of the image in millimetres; on
+    /// the head phantom, 192 mm wide, they lie across the skull, on the ventricles and on the focus.
+    /// </summary>
     /// <param name="layer">The measurements.</param>
     /// <param name="width">The width of the image.</param>
     /// <param name="height">The height of the image.</param>
     public static void ExampleMeasurements(MedicalMeasurementLayer layer, double width, double height)
     {
-        Made(layer.Add(MedicalMeasurementKind.Distance, [new(0.17 * width, 0.73 * height), new(0.83 * width, 0.73 * height)], name: "Width"));
-        Made(layer.Add(MedicalMeasurementKind.Angle, [new(0.45 * width, 0.38 * height), new(0.5 * width, 0.64 * height), new(0.55 * width, 0.38 * height)]));
-        Made(layer.Add(MedicalMeasurementKind.Circle, [new(0.33 * width, 0.43 * height), new(0.36 * width, 0.43 * height)], name: "Region"));
+        Made(layer.Add(MedicalMeasurementKind.Distance, [new(33 / 192.0 * width, 140 / 192.0 * height), new(159 / 192.0 * width, 140 / 192.0 * height)], name: "Width"));
+        Made(layer.Add(MedicalMeasurementKind.Angle, [new(87 / 192.0 * width, 72 / 192.0 * height), new(96 / 192.0 * width, 122 / 192.0 * height), new(105 / 192.0 * width, 72 / 192.0 * height)]));
+        Made(layer.Add(MedicalMeasurementKind.Circle, [new(62.5 / 192 * width, 82 / 192.0 * height), new(68.5 / 192 * width, 82 / 192.0 * height)], name: "Focus"));
+        Made(layer.Add(MedicalMeasurementKind.Freehand, [new(100 / 192.0 * width, 70 / 192.0 * height), new(110 / 192.0 * width, 72 / 192.0 * height), new(112 / 192.0 * width, 95 / 192.0 * height), new(110 / 192.0 * width, 120 / 192.0 * height), new(101 / 192.0 * width, 121 / 192.0 * height), new(99 / 192.0 * width, 95 / 192.0 * height)], name: "Ventricle"));
     }
 
     /// <summary>
@@ -274,12 +278,13 @@ internal static class MedicalSetup
     /// <summary>Gets <see cref="ExampleMeasurements"/> as C#.</summary>
     public const string ExampleMeasurementsCode = """
 
-            // Adds a distance, an angle and a round region, placed by the size of the image in millimetres.
+            // Adds a distance, an angle, a round region and a drawn region, placed by the size of the image in millimetres.
             private static void ExampleMeasurements(MedicalMeasurementLayer layer, double width, double height)
             {
-                layer.Add(MedicalMeasurementKind.Distance, [new(0.17 * width, 0.73 * height), new(0.83 * width, 0.73 * height)], name: "Width");
-                layer.Add(MedicalMeasurementKind.Angle, [new(0.45 * width, 0.38 * height), new(0.5 * width, 0.64 * height), new(0.55 * width, 0.38 * height)]);
-                layer.Add(MedicalMeasurementKind.Circle, [new(0.33 * width, 0.43 * height), new(0.36 * width, 0.43 * height)], name: "Region");
+                layer.Add(MedicalMeasurementKind.Distance, [new(33 / 192.0 * width, 140 / 192.0 * height), new(159 / 192.0 * width, 140 / 192.0 * height)], name: "Width");
+                layer.Add(MedicalMeasurementKind.Angle, [new(87 / 192.0 * width, 72 / 192.0 * height), new(96 / 192.0 * width, 122 / 192.0 * height), new(105 / 192.0 * width, 72 / 192.0 * height)]);
+                layer.Add(MedicalMeasurementKind.Circle, [new(62.5 / 192 * width, 82 / 192.0 * height), new(68.5 / 192 * width, 82 / 192.0 * height)], name: "Focus");
+                layer.Add(MedicalMeasurementKind.Freehand, [new(100 / 192.0 * width, 70 / 192.0 * height), new(110 / 192.0 * width, 72 / 192.0 * height), new(112 / 192.0 * width, 95 / 192.0 * height), new(110 / 192.0 * width, 120 / 192.0 * height), new(101 / 192.0 * width, 121 / 192.0 * height), new(99 / 192.0 * width, 95 / 192.0 * height)], name: "Ventricle");
             }
 
         """;

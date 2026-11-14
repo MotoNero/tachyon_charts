@@ -26,6 +26,9 @@ public sealed partial class MedicalModule
         new("analysis", "Analysis with profile and histogram", catalog => catalog.CreateSpec("medicalAnalysis")),
     ];
 
+    /// <inheritdoc />
+    public IReadOnlyList<PageInfo> Pages => MedicalPages.All;
+
     private static ParameterInfo Layout(string standard) => new("layout", "Arrangement", ParameterKind.Choice, standard) { Choices = _layouts, Description = "How the linked charts stand in the window." };
 
     private static int Columns(SeriesSpec series, int views, string standard) => series.Parameters.GetText("layout", standard) switch
@@ -39,6 +42,22 @@ public sealed partial class MedicalModule
         plane.ToString(),
         (chart, _, data) => chart.MedicalSlice(PlaneOf((MedicalMprDisplay)data, plane)),
         (_, data) => $"chart.MedicalSlice({data}.{plane});");
+
+    private static ViewInfo Volume() => new("Volume", (chart, _, data) => chart.MedicalVolume3D((MedicalMprDisplay)data), (_, data) => $"chart.MedicalVolume3D({data});");
+
+    private static ParameterInfo Title3D() => new("title3d", "Title of the 3D chart", ParameterKind.Text, string.Empty) { Description = "Empty for the title the volume brings." };
+
+    // The 3D chart with the title chosen for it, set after the volume has set its own.
+    private static ViewInfo Titled(ViewInfo view, SeriesSpec series) => series.Parameters.GetText("title3d", string.Empty) is { Length: > 0 } title
+        ? new(
+            view.Name,
+            (chart, shown, data) =>
+            {
+                view.Apply(chart, shown, data);
+                chart.Title(title);
+            },
+            (shown, data) => view.Code(shown, data) + "\nchart.Title(" + CodeText.String(title) + ");")
+        : view;
 
     private static MedicalMprSlice PlaneOf(MedicalMprDisplay display, MedicalMprPlane plane) => plane switch
     {
@@ -55,6 +74,7 @@ public sealed partial class MedicalModule
             new("coronal", "Coronal", ParameterKind.Flag, true),
             new("sagittal", "Sagittal", ParameterKind.Flag, true),
             new("volume", "Volume in 3D", ParameterKind.Flag, true),
+            Title3D(),
             Memory(),
             new("measurements3d", "Measurements in 3D", ParameterKind.Flag, true) { Description = "Every measurement also as a line in the 3D chart, on the slice it was drawn on." },
             new("x", "Sagittal position in %", ParameterKind.Number, 50.0) { Minimum = 0, Maximum = 100 },
@@ -82,19 +102,20 @@ public sealed partial class MedicalModule
 
     private static IReadOnlyList<ViewInfo> MprViews(SeriesSpec series)
     {
+        // The volume first, at the upper left; the planes after it.
         var values = series.Parameters;
         var views = new List<ViewInfo>();
+        if (values.GetFlag("volume", true))
+        {
+            views.Add(Titled(Volume(), series));
+        }
+
         foreach (var plane in Enum.GetValues<MedicalMprPlane>())
         {
             if (values.GetFlag(plane.ToString().ToLowerInvariant(), true))
             {
                 views.Add(Slice(plane));
             }
-        }
-
-        if (values.GetFlag("volume", true))
-        {
-            views.Add(new ViewInfo("Volume", (chart, _, data) => chart.MedicalVolume3D((MedicalMprDisplay)data), (_, data) => $"chart.MedicalVolume3D({data});"));
         }
 
         // Without any chart chosen the axial plane stays.
@@ -150,6 +171,12 @@ public sealed partial class MedicalModule
     private static ChartTypeInfo Analysis() => new("medicalAnalysis", "Medical analysis (profile, histogram)", ChartCategory.Medical, DataShape.MedicalVolume, "headPhantom",
         [
             Layout("2 × 2"),
+            new("volume", "Volume in 3D", ParameterKind.Flag, true),
+            Title3D(),
+            Memory(),
+            new("slice", "Axial plane", ParameterKind.Flag, true),
+            new("profile", "Profile", ParameterKind.Flag, true),
+            new("histogram", "Histogram", ParameterKind.Flag, true),
             .. Window(),
             .. Segmentation(threeD: false),
             new("bins", "Histogram bins", ParameterKind.Integer, 512.0) { Minimum = 8, Maximum = 4096 },
@@ -163,7 +190,7 @@ public sealed partial class MedicalModule
         Packages = _packages,
         TakeOver = TakeOverDrawings,
         Views = AnalysisViews,
-        Columns = series => Columns(series, 3, "2 × 2"),
+        Columns = series => Columns(series, AnalysisViews(series).Count, "2 × 2"),
         Prepare = (series, data) =>
         {
             var display = (MedicalMprDisplay)data;
@@ -177,15 +204,36 @@ public sealed partial class MedicalModule
         Helpers = Note + MedicalSetup.PhantomSegmentationCode + MedicalSetup.AnalysisMeasurementsCode,
     };
 
-    private static IReadOnlyList<ViewInfo> AnalysisViews(SeriesSpec series) =>
-    [
-        Slice(MedicalMprPlane.Axial),
-        new("Profile", (chart, _, data) => new MedicalProfile(((MedicalMprDisplay)data).Axial).Configure(chart), (_, data) => $"new MedicalProfile({data}.Axial).Configure(chart);"),
-        new(
-            "Histogram",
-            (chart, _, data) => new MedicalHistogram(((MedicalMprDisplay)data).Axial, Bins(series)) { Region = MedicalSetup.Named(((MedicalMprDisplay)data).Axial, "Focus") }.Configure(chart),
-            (_, data) => $"new MedicalHistogram({data}.Axial, {Bins(series)}) {{ Region = Named({data}.Axial, \"Focus\") }}.Configure(chart);"),
-    ];
+    // The volume, the plane, its profile and its histogram, each where chosen; without any the plane stays.
+    private static IReadOnlyList<ViewInfo> AnalysisViews(SeriesSpec series)
+    {
+        var values = series.Parameters;
+        var views = new List<ViewInfo>();
+        if (values.GetFlag("volume", true))
+        {
+            views.Add(Titled(Volume(), series));
+        }
+
+        if (values.GetFlag("slice", true))
+        {
+            views.Add(Slice(MedicalMprPlane.Axial));
+        }
+
+        if (values.GetFlag("profile", true))
+        {
+            views.Add(new("Profile", (chart, _, data) => new MedicalProfile(((MedicalMprDisplay)data).Axial).Configure(chart), (_, data) => $"new MedicalProfile({data}.Axial).Configure(chart);"));
+        }
+
+        if (values.GetFlag("histogram", true))
+        {
+            views.Add(new(
+                "Histogram",
+                (chart, _, data) => new MedicalHistogram(((MedicalMprDisplay)data).Axial, Bins(series)) { Region = MedicalSetup.Named(((MedicalMprDisplay)data).Axial, "Focus") }.Configure(chart),
+                (_, data) => $"new MedicalHistogram({data}.Axial, {Bins(series)}) {{ Region = Named({data}.Axial, \"Focus\") }}.Configure(chart);"));
+        }
+
+        return views.Count > 0 ? views : [Slice(MedicalMprPlane.Axial)];
+    }
 
     private static int Bins(SeriesSpec series) => (int)series.Parameters.GetNumber("bins", 512);
 
@@ -194,7 +242,11 @@ public sealed partial class MedicalModule
         [
             Layout("2 × 2"),
             new("volume", "Volume in 3D", ParameterKind.Flag, true) { Description = "With the oblique plane in it; the key V on the oblique plane turns it to face the 3D view." },
+            Title3D(),
             Memory(),
+            new("axial", "Axial plane", ParameterKind.Flag, true),
+            new("oblique", "Oblique plane", ParameterKind.Flag, true),
+            new("curved", "Curved section", ParameterKind.Flag, true),
             new("measurements3d", "Measurements in 3D", ParameterKind.Flag, true) { Description = "Every measurement also as a line in the 3D chart, on the slice it was drawn on." },
             .. Window(),
             .. Tools(),
@@ -222,26 +274,38 @@ public sealed partial class MedicalModule
         Helpers = Note + MedicalSetup.ReformatCode,
     };
 
+    // The volume with the oblique plane, the axial plane, the oblique plane and the curved section, each where chosen.
     private static IReadOnlyList<ViewInfo> ReformatViews(SeriesSpec series)
     {
-        var views = new List<ViewInfo>
+        var values = series.Parameters;
+        var views = new List<ViewInfo>();
+        if (values.GetFlag("volume", true))
         {
-            Slice(MedicalMprPlane.Axial),
-            new("Oblique", (chart, _, data) => MedicalSetup.Oblique((MedicalMprDisplay)data).Configure(chart), (_, data) => $"Oblique({data}).Configure(chart);"),
-            new(
-                "Curved",
-                (chart, _, data) => new MedicalCurvedSlice(((MedicalMprDisplay)data).Axial) { Path = MedicalSetup.Named(((MedicalMprDisplay)data).Axial, "Arc") }.Configure(chart),
-                (_, data) => $"new MedicalCurvedSlice({data}.Axial) {{ Path = Named({data}.Axial, \"Arc\") }}.Configure(chart);"),
-        };
-        if (series.Parameters.GetFlag("volume", true))
-        {
-            views.Add(new ViewInfo(
+            views.Add(Titled(new ViewInfo(
                 "Volume",
                 (chart, _, data) => chart.Scene3D(scene => MedicalSetup.WithOblique((MedicalMprDisplay)data, scene)),
-                (_, data) => $"chart.Scene3D(scene => WithOblique({data}, scene));"));
+                (_, data) => $"chart.Scene3D(scene => WithOblique({data}, scene));"), series));
         }
 
-        return views;
+        if (values.GetFlag("axial", true))
+        {
+            views.Add(Slice(MedicalMprPlane.Axial));
+        }
+
+        if (values.GetFlag("oblique", true))
+        {
+            views.Add(new("Oblique", (chart, _, data) => MedicalSetup.Oblique((MedicalMprDisplay)data).Configure(chart), (_, data) => $"Oblique({data}).Configure(chart);"));
+        }
+
+        if (values.GetFlag("curved", true))
+        {
+            views.Add(new(
+                "Curved",
+                (chart, _, data) => new MedicalCurvedSlice(((MedicalMprDisplay)data).Axial) { Path = MedicalSetup.Named(((MedicalMprDisplay)data).Axial, "Arc") }.Configure(chart),
+                (_, data) => $"new MedicalCurvedSlice({data}.Axial) {{ Path = Named({data}.Axial, \"Arc\") }}.Configure(chart);"));
+        }
+
+        return views.Count > 0 ? views : [Slice(MedicalMprPlane.Axial)];
     }
 
     private static void AddSegmentation(SeriesSpec series, MedicalMprDisplay display)

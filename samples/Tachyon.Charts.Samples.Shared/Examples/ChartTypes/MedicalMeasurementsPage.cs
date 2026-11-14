@@ -21,7 +21,7 @@ public static class MedicalMeasurementsPage
         var layer = display.Measurements;
 
         // Across the skull low down, the angle of two ventricle tips, the round region on the left and the right ventricle.
-        layer.Add(MedicalMeasurementKind.Distance, [new(33, 140), new(159, 140)], name: "Width at 140 mm");
+        layer.Add(MedicalMeasurementKind.Distance, [new(33, 140), new(159, 140)], name: "Width");
         layer.Add(MedicalMeasurementKind.Angle, [new(87, 72), new(96, 122), new(105, 72)]);
         layer.Add(MedicalMeasurementKind.Circle, [new(62.5, 82), new(68.5, 82)], name: "Focus");
         layer.Add(MedicalMeasurementKind.Freehand, [new(100, 70), new(110, 72), new(112, 95), new(110, 120), new(101, 121), new(99, 95)], name: "Ventricle");

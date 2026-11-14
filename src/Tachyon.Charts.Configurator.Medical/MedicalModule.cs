@@ -81,9 +81,10 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
     [
         Phantom("headPhantom", "Head phantom", nameof(MedicalPhantoms.Head)),
         Phantom("thoraxPhantom", "Thorax phantom", nameof(MedicalPhantoms.Thorax)),
-        Image("headAxial", "Head phantom, axial image", nameof(MedicalPhantoms.Head), MedicalMprPlane.Axial),
-        Image("headCoronal", "Head phantom, coronal image", nameof(MedicalPhantoms.Head), MedicalMprPlane.Coronal),
-        Image("headSagittal", "Head phantom, sagittal image", nameof(MedicalPhantoms.Head), MedicalMprPlane.Sagittal),
+        // The planes of the head through the ventricles and the focus, in millimetres.
+        Image("headAxial", "Head phantom, axial image", nameof(MedicalPhantoms.Head), MedicalMprPlane.Axial, 97),
+        Image("headCoronal", "Head phantom, coronal image", nameof(MedicalPhantoms.Head), MedicalMprPlane.Coronal, 81.5),
+        Image("headSagittal", "Head phantom, sagittal image", nameof(MedicalPhantoms.Head), MedicalMprPlane.Sagittal, 86.5),
         Image("thoraxAxial", "Thorax phantom, axial image", nameof(MedicalPhantoms.Thorax), MedicalMprPlane.Axial),
     ];
 
@@ -401,17 +402,17 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
             """)
     { MinimumCount = 1, HasCount = false };
 
-    private static SampleInfo Image(string id, string name, string phantom, MedicalMprPlane plane) => new(
+    private static SampleInfo Image(string id, string name, string phantom, MedicalMprPlane plane, double? at = null) => new(
         id,
         name,
         DataShape.MedicalImage,
         1,
-        _ => Cut(_phantoms[phantom].Value, plane),
+        _ => Cut(_phantoms[phantom].Value, plane, at),
         nameof(MedicalImageDisplay),
         method => SampleCatalog.Header("the " + name.ToLowerInvariant() + ", one plane of a synthetic CT volume as a single image", method, nameof(MedicalImageDisplay), "Not used; the phantom has a size of its own.") + $$"""
                 {
                     var volume = MedicalPhantoms.{{phantom}}();
-                    var display = new MedicalMprDisplay(volume);
+                    var display = new MedicalMprDisplay(volume);{{PositionCode(plane, at)}}
                     var slice = display.{{plane}};
                     var values = new float[slice.Width * slice.Height];
                     slice.CopyValues(values);
@@ -423,10 +424,15 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
             """)
     { MinimumCount = 1, HasCount = false };
 
-    // One plane of a volume as a single image, the way a scanner would store it.
-    private static MedicalImageDisplay Cut(MedicalVolume volume, MedicalMprPlane plane)
+    // One plane of a volume as a single image, the way a scanner would store it; at the middle or where given.
+    private static MedicalImageDisplay Cut(MedicalVolume volume, MedicalMprPlane plane, double? at)
     {
         var display = new MedicalMprDisplay(volume);
+        if (at is { } place)
+        {
+            display.SetPosition(Position(plane, place));
+        }
+
         var slice = plane switch
         {
             MedicalMprPlane.Axial => display.Axial,
@@ -438,5 +444,23 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
         var image = new MedicalImageDisplay(values, slice.Width, slice.Height, slice.Spacing, slice.Orientation, display.Unit);
         image.SetWindow(display.Window.Center, display.Window.Width);
         return image;
+    }
+
+    private static Tachyon.Charts.ThreeD.Scene.Point3D Position(MedicalMprPlane plane, double at) => plane switch
+    {
+        MedicalMprPlane.Axial => new(0, 0, at),
+        MedicalMprPlane.Coronal => new(0, at, 0),
+        _ => new(at, 0, 0),
+    };
+
+    private static string PositionCode(MedicalMprPlane plane, double? at)
+    {
+        if (at is not { } place)
+        {
+            return string.Empty;
+        }
+
+        var point = Position(plane, place);
+        return $"\n        display.SetPosition(new Tachyon.Charts.ThreeD.Scene.Point3D({CodeText.Number(point.X)}, {CodeText.Number(point.Y)}, {CodeText.Number(point.Z)}));";
     }
 }
