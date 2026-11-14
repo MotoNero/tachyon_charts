@@ -205,7 +205,7 @@ internal static class DataSources
 
     private static readonly string[] _columnColors = ["#F5A623", "#7ED321", "#E94B6A", "#B37FEB", "#50E3C2", "#F8E71C"];
 
-    private static SpecValues Copy(SpecValues values)
+    internal static SpecValues Copy(SpecValues values)
     {
         var copy = new SpecValues();
         foreach (var name in values.Names)

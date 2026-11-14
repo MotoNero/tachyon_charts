@@ -184,12 +184,29 @@ public sealed class ConfiguratorSession
         }
     }
 
+    // Whether all charts of the description are in the same group.
+    private bool AllInOneGroup => _root.Group is { Length: > 0 } group && _root.Charts.TrueForAll(chart => chart.Group == group);
+
+    // Puts all charts into the group of the first one, or a new group; or takes all of them out.
+    private void LinkAll(bool linked)
+    {
+        var group = linked ? _root.Group is { Length: > 0 } first ? first : "charts" : null;
+        _root.Group = group;
+        foreach (var chart in _root.Charts)
+        {
+            chart.Group = group;
+        }
+    }
+
     /// <summary>Adds a chart with one series of a type after the others and selects it; it takes the theme of the first chart.</summary>
     /// <param name="typeId">The type.</param>
     public void AddChart(string typeId)
     {
         var added = Catalog.CreateSpec(typeId);
         added.Theme = _root.Theme;
+
+        // A new chart joins the group of the first one, if it has one.
+        added.Group = _root.Group;
         _root.Charts.Add(added);
         (_chart, _spec, _selected) = (_root.Charts.Count, added, 0);
         Structure();
@@ -264,7 +281,11 @@ public sealed class ConfiguratorSession
     private IReadOnlyList<FieldModel> ChartOptionFields =>
     [
         .. _root.Charts.Count > 0
-            ? [Field("Charts", new("columns", "Columns", ParameterKind.Integer, 1.0) { Minimum = 1, Maximum = 6, Description = "The charts of the description fill the rows from left to right." }, () => (double)Math.Max(1, _root.Columns), value => _root.Columns = (int)(double)value, structural: true)]
+            ?
+            [
+                Field("Charts", new("columns", "Columns", ParameterKind.Integer, 1.0) { Minimum = 1, Maximum = 6, Description = "The charts of the description fill the rows from left to right." }, () => (double)Math.Max(1, _root.Columns), value => _root.Columns = (int)(double)value, structural: true),
+                Field("Charts", new("linked", "Linked: zoom and crosshair", ParameterKind.Flag, false) { Description = "All charts in one group: zooming one moves the others, and the crosshair shows in all. The group of each chart stays under Chart." }, () => AllInOneGroup, value => LinkAll((bool)value), structural: true),
+            ]
             : Array.Empty<FieldModel>(),
         Field("Chart", new("title", "Title", ParameterKind.Text, string.Empty), () => _spec.Title, value => _spec.Title = (string)value),
         Field("Chart", new("theme", "Theme", ParameterKind.Choice, "Application") { Choices = ["Application", .. ChartCatalog.Themes] }, () => _spec.Theme ?? "Application", value => _spec.Theme = (string)value == "Application" ? null : (string)value),
@@ -406,8 +427,20 @@ public sealed class ConfiguratorSession
     /// <param name="typeId">The type.</param>
     public void NewChart(string typeId)
     {
-        // With several charts only the edited one starts anew; the others stay.
+        // With several charts only the edited one starts anew; the others stay, and the new one keeps its place in the
+        // group and the interactions, so that zoom and crosshair still reach it. A type with interactions of its own
+        // brings those instead.
         var created = Catalog.CreateSpec(typeId);
+        if (_root.Charts.Count > 0)
+        {
+            created.Group = _spec.Group;
+            if (!Catalog.OwnsAxes(created) && !Catalog.OwnsAxes(_spec))
+            {
+                created.Modifiers.Clear();
+                created.Modifiers.AddRange(_spec.Modifiers.Select(modifier => new ModifierSpec { Type = modifier.Type, Parameters = DataSources.Copy(modifier.Parameters) }));
+            }
+        }
+
         if (_chart == 0)
         {
             created.Charts.AddRange(_root.Charts);

@@ -61,7 +61,7 @@ The scene of a 3D chart has the camera, a cut plane across an axis (**Cut at** i
 
 ## Several charts
 
-A description can hold several charts. **+ Chart** adds one with the type chosen beside it, **− Chart** removes the chosen one, and the list under **Charts** picks the chart whose fields show. Each chart has its own series, axes, annotations, legend and interactions; charts with the same **Group** share range and cursor. **Columns** arranges them: the charts fill the rows from left to right.
+A description can hold several charts. **+ Chart** adds one with the type chosen beside it, **− Chart** removes the chosen one, and the list under **Charts** picks the chart whose fields show. Each chart has its own series, axes, annotations, legend and interactions; **Linked: zoom and crosshair** puts all charts into one group, so that zooming one moves the others and the crosshair shows in all; **Group** under *Chart* sets the group of a single chart, for two groups side by side. A chart that changes its type keeps its group and interactions, and a new chart joins the group of the first. **Columns** arranges them: the charts fill the rows from left to right.
 
 The code gets one pair of files per chart, `ChartSetup.cs` and `ChartViewModel.cs` for the first, `Chart2Setup.cs` and `Chart2ViewModel.cs` for the second and so on, and a window with the charts in a grid:
 
