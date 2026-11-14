@@ -33,6 +33,10 @@ public enum CameraView
 public sealed class Camera3D
 {
     private const double FieldOfView = Math.PI / 4;
+
+    // The width to height at and above which the box with its labels fits across. A narrower picture keeps that width of
+    // view and sees more above and below, so that the box does not reach out at the sides.
+    private const double FittingAspect = 1.2;
     private const double MaximumElevation = 89.5;
     private const double MinimumDistance = 0.5;
     private const double MaximumDistance = 20;
@@ -165,9 +169,10 @@ public sealed class Camera3D
         var view = Matrix3D.LookAt(eye, state.Target, new Point3D(0, 0, 1));
         var near = Math.Max(state.Distance - BoxRadius - state.Target.Length, state.Distance * 0.01);
         var far = state.Distance + BoxRadius + state.Target.Length;
+        var widen = Math.Max(1, FittingAspect / safeAspect);
         var projection = state.Projection == CameraProjection.Perspective
-            ? Matrix3D.Perspective(FieldOfView, safeAspect, near, far)
-            : Matrix3D.Orthographic(2 * state.Distance * Math.Tan(FieldOfView / 2), safeAspect, near, far);
+            ? Matrix3D.Perspective(2 * Math.Atan(Math.Tan(FieldOfView / 2) * widen), safeAspect, near, far)
+            : Matrix3D.Orthographic(2 * state.Distance * Math.Tan(FieldOfView / 2) * widen, safeAspect, near, far);
         return projection * view;
     }
 
