@@ -125,7 +125,7 @@ public static class ConfiguratorLink
         ["ZoomPreview"] = "rubberband",
         ["Selection"] = "selection",
         ["GroupStacked"] = "option:group",
-        ["Overview"] = "excluded",
+        ["Overview"] = "option:overview",
         ["CategoryAxis"] = "option:axes",
         ["CategoryThinning"] = "option:axes",
         ["ScaleBreak"] = "option:axes",
@@ -133,7 +133,7 @@ public static class ConfiguratorLink
         ["GlowNeon"] = "line",
         ["Gradients"] = "area",
         ["ScatterPerPointColor"] = "bubbles",
-        ["GridBands"] = "excluded",
+        ["GridBands"] = "option:theme",
         ["Live-Chart (interaktiv)"] = "option:live",
         ["LineFifoWrap"] = "option:live",
         ["Medical image"] = "medicalImage",
@@ -215,9 +215,7 @@ public static class ConfiguratorLink
         ["LayoutMultiAxis"] = "A test of the layout of several axes, drawn without a chart; several axes are configurable.",
         ["LayoutStackedPanes"] = "A test of the layout of stacked panes, drawn without a chart; panes are configurable.",
         ["Colormaps"] = "A catalog of all colormaps side by side, drawn without a chart; each type with colors offers the colormaps.",
-        ["Overview"] = "Needs a second chart whose window it marks; the configurator describes one chart.",
         ["Cut, live"] = "Needs a second chart that shows the cut as a curve; the configurator describes one chart, its cut plane is an option of the scene.",
-        ["GridBands"] = "Grid bands and plot gradients belong to themes; the built-in themes have none, own themes are not part of the configurator yet.",
     };
 
     // The type an option of a chart starts with: options of 3D scenes on a surface, the weekends on candles, the others on a line.

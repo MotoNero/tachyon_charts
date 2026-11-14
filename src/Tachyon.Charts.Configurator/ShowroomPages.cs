@@ -218,6 +218,35 @@ internal static class ShowroomPages
             spec.XAxes[0].LabelRotation = -45;
             return spec;
         }),
+        new("Overview", _ => new ChartSpec
+        {
+            Title = "Overview",
+            Theme = "TachyonDark",
+            Overview = true,
+            XAxes = { new AxisSpec { Id = "x", Title = "Time", Minimum = 3, Maximum = 6 } },
+            YAxes = { new AxisSpec { Id = "y", Minimum = -1.5, Maximum = 1.5 } },
+            Series = { Series("line", "Signal", "overviewSignal", 240, ("thickness", 2.0), ("color", "#50AAF0")) },
+        }),
+        new("GridBands", _ => new ChartSpec
+        {
+            Title = "GridBands",
+            OwnTheme = new ThemeSpec
+            {
+                Name = "Grid bands",
+                Base = "TachyonDark",
+                Values =
+                {
+                    ["surface.background"] = "#0B0E16",
+                    ["surface.plotArea"] = "linear(#202D42, #0C121F)",
+                    ["grid.major"] = "#AABEDC48",
+                    ["grid.minor"] = "#AABEDC1C",
+                    ["grid.band"] = "#6EA0DC14",
+                },
+            },
+            XAxes = { new AxisSpec { Id = "x", Title = "Major and minor grid", Minimum = 0, Maximum = 12 } },
+            YAxes = { new AxisSpec { Id = "y", Minimum = 0, Maximum = 8 } },
+            Series = { Series("line", "Wave", "bandsWave", 300, ("thickness", 2.0), ("color", "#5CC8FF")) },
+        }),
         new("CrosshairValues", catalog =>
         {
             var spec = Pages(catalog, "Several legends");

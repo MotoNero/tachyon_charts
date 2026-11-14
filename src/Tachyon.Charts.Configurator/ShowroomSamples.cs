@@ -12,6 +12,9 @@ internal static class ShowroomSamples
     public static IReadOnlyList<SampleInfo> Create() =>
     [
         Curve("pureSine", "Sine", 300, 10, Math.Sin, "Math.Sin(x)"),
+        // The signal of the overview and the wave over grid bands of the gallery.
+        Curve("overviewSignal", "Slow sine", 240, 10, x => 0.9 * Math.Sin(x * 1.3), "0.9 * Math.Sin(x * 1.3)"),
+        Curve("bandsWave", "Wave over grid bands", 300, 12, x => 4 + (2.5 * Math.Sin(x * 0.8)), "4 + (2.5 * Math.Sin(x * 0.8))"),
         // The three lines of the page with an own theme.
         Curve("tide", "Tide", 300, 10, x => Math.Sin(x * 0.9), "Math.Sin(x * 0.9)"),
         Curve("swell", "Swell", 300, 10, x => 0.6 * Math.Cos(x * 1.7), "0.6 * Math.Cos(x * 1.7)"),
