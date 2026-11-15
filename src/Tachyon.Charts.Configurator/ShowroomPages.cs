@@ -60,6 +60,7 @@ internal static class ShowroomPages
         }),
         new("OHLC bars", _ => Prices("Share price as OHLC bars", Series("candles", string.Empty, "dailyWalk3", 120, ("style", "Ohlc"), ("rising", "#0072B2"), ("falling", "#E69F00"), ("volume", false)))),
         new("1 million candles", _ => Prices("1 million minute candles", Series("candles", string.Empty, "minuteWalk", 1_000_000, ("hollow", true), ("volumeShare", 0.25)))),
+        new("Large file", _ => LargeFile()),
         new("Candles without weekends", _ =>
         {
             var spec = Prices("Working days only, the weekends take no room", Series("candles", string.Empty, "workdayWalk", 60, ("volume", false)));
@@ -654,6 +655,20 @@ internal static class ShowroomPages
             Series = { series },
         };
         Interactions(spec, "zoompan", "crosshair");
+        return spec;
+    }
+
+    // A billion values from a test file of 4 GB, coarse at once and refining while the pyramid grows.
+    private static ChartSpec LargeFile()
+    {
+        var spec = new ChartSpec
+        {
+            Title = "1 billion values from a 4 GB file",
+            XAxes = { new AxisSpec { Id = "x", Title = "Time in s" } },
+            YAxes = { new AxisSpec { Id = "y", Title = "Value" } },
+            Series = { Series(LargeFileType.Id, "Measurement", LargeFileType.SampleId, 1_000_000_000, ("thickness", 1.0), ("color", "#50AAF0")) },
+        };
+        Interactions(spec, "zoompan", "rubberband");
         return spec;
     }
 

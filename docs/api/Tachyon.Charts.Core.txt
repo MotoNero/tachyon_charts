@@ -1661,6 +1661,12 @@ sealed class Tachyon.Charts.Core.Overlays.OverlayCanvas
   Tachyon.Charts.Rendering.Rgba8 CrosshairLabelFill { get; }
   Tachyon.Charts.Rendering.Rgba8 CrosshairLabelText { get; }
   Tachyon.Charts.Rendering.Rgba8 TextColor { get; }
+sealed class Tachyon.Charts.Core.Overlays.RefiningOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
+  .ctor(Tachyon.Charts.Core.Pipeline.ChartSurface chart)
+  System.Double Progress { get; }
+  System.String Format { get; set; }
+  protected virtual System.Int64 ExternalVersion { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
 sealed class Tachyon.Charts.Core.Overlays.RolloverOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
   .ctor()
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.HitTesting.HitResult> Hits { get; }
@@ -1988,6 +1994,7 @@ enum Tachyon.Charts.Core.Series.CandleStyle : System.IComparable, System.IConver
   Ohlc = 1
 sealed class Tachyon.Charts.Core.Series.ColumnLineSeries<T> : Tachyon.Charts.Core.Pipeline.ChartSeries, System.IDisposable
   .ctor(Tachyon.Charts.Core.Data.IColumnSource<T> source, Tachyon.Charts.Core.Resampling.ColumnPyramid<T> pyramid, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  System.Double Progress { get; }
   System.Double Thickness { get; set; }
   System.Void Dispose()
   Tachyon.Charts.Rendering.Rgba8 Color { get; set; }

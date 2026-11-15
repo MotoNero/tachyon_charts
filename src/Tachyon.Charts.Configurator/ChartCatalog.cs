@@ -202,6 +202,9 @@ public enum DataShape
 
     /// <summary>Channels of a sweeping monitor.</summary>
     Sweep,
+
+    /// <summary>A column of a file larger than memory, read through the pyramid of its extremes.</summary>
+    LargeFile,
 }
 
 /// <summary>One of several linked charts a type fills, such as a plane of a volume; all of them share the data.</summary>

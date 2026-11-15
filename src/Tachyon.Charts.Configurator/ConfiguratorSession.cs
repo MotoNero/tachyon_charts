@@ -764,7 +764,7 @@ public sealed class ConfiguratorSession
 
                 break;
             case DataKind.File:
-                fields.Add(Field(group, new("file", "File", ParameterKind.File, string.Empty) { Description = "Points: XYZ, PLY or LAS; volumes: NIfTI or raw; models: STL or OBJ." }, () => data.Path ?? string.Empty, value =>
+                fields.Add(Field(group, new("file", "File", ParameterKind.File, string.Empty) { Description = "Points: XYZ, PLY or LAS; volumes: NIfTI or raw; models: STL or OBJ; large files: column files (.tcol)." }, () => data.Path ?? string.Empty, value =>
                 {
                     data.Path = (string)value;
                     TakeNewData(series);
@@ -786,7 +786,7 @@ public sealed class ConfiguratorSession
                     break;
                 }
 
-                fields.Add(Field(group, new("count", "Number of values", ParameterKind.Integer, 1000.0) { Minimum = Catalog.FindSample(data.Sample)?.MinimumCount ?? 2, Maximum = 10_000_000 }, () => (double)data.Count, value => data.Count = (int)(double)value));
+                fields.Add(Field(group, new("count", "Number of values", ParameterKind.Integer, 1000.0) { Minimum = Catalog.FindSample(data.Sample)?.MinimumCount ?? 2, Maximum = Catalog.FindSample(data.Sample)?.MaximumCount ?? 10_000_000 }, () => (double)data.Count, value => data.Count = (int)(double)value));
                 break;
         }
 

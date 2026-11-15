@@ -199,6 +199,7 @@ enum Tachyon.Charts.Configurator.DataShape : System.IComparable, System.IConvert
   Gantt = 22
   Grid = 2
   Groups = 7
+  LargeFile = 30
   Layers = 5
   MaskedGrid = 16
   MedicalImage = 24
@@ -304,6 +305,7 @@ sealed class Tachyon.Charts.Configurator.SampleInfo : System.IEquatable<Tachyon.
   System.Func<System.Int32, System.Object> Create { get; set; }
   System.Func<System.String, System.String> Method { get; set; }
   System.Int32 DefaultCount { get; set; }
+  System.Int32 MaximumCount { get; set; }
   System.Int32 MinimumCount { get; set; }
   System.String CurveCode { get; set; }
   System.String Id { get; set; }

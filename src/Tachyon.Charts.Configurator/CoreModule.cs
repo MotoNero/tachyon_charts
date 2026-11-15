@@ -9,7 +9,7 @@ using Tachyon.Charts.Rendering;
 namespace Tachyon.Charts.Configurator;
 
 /// <summary>The 2D types of the core and the interactions; more types follow over the same metadata.</summary>
-internal sealed class CoreModule : IChartModule
+internal sealed class CoreModule : IChartModule, IDataLoaders
 {
     // The dash patterns by name: lengths of dash and gap in device independent units.
     private static readonly Dictionary<string, float[]> _dashes = new()
@@ -31,7 +31,7 @@ internal sealed class CoreModule : IChartModule
     /// <summary>Gets the names of the colormaps of heatmaps.</summary>
     public static IReadOnlyList<string> Colormaps { get; } = ["Viridis", "Inferno", "Magma", "Plasma", "Turbo", "Grayscale"];
 
-    public IReadOnlyList<ChartTypeInfo> Types { get; } = [.. Basic(), .. ScienceTypes.Create(), .. FinanceTypes.Create(), .. InstrumentTypes.Create()];
+    public IReadOnlyList<ChartTypeInfo> Types { get; } = [.. Basic(), LargeFileType.Type, .. ScienceTypes.Create(), .. FinanceTypes.Create(), .. InstrumentTypes.Create()];
 
     private static IReadOnlyList<ChartTypeInfo> Basic() =>
     [
@@ -105,7 +105,10 @@ internal sealed class CoreModule : IChartModule
         ], ApplyHeatmap, HeatmapCode) { Usings = ["Tachyon.Charts.Core.Colors"] },
     ];
 
-    public IReadOnlyList<SampleInfo> Samples { get; } = [.. SampleCatalog.Create(), .. ScienceSamples.Create(), .. FinanceTypes.Samples(), .. InstrumentTypes.Samples(), .. ShowroomSamples.Create(), .. ShowroomShapes.Create(), .. ShowroomPrices.Create(), .. ShowroomPlans.Create(), .. ShowroomGallery.Create(), .. ShowroomChecks.Create()];
+    public IReadOnlyList<SampleInfo> Samples { get; } = [.. SampleCatalog.Create(), .. ScienceSamples.Create(), .. FinanceTypes.Samples(), .. InstrumentTypes.Samples(), .. ShowroomSamples.Create(), .. ShowroomShapes.Create(), .. ShowroomPrices.Create(), .. ShowroomPlans.Create(), .. ShowroomGallery.Create(), .. ShowroomChecks.Create(), LargeFileType.Sample];
+
+    /// <inheritdoc />
+    IReadOnlyList<DataLoader> IDataLoaders.Loaders { get; } = [LargeFileType.Loader];
 
     /// <inheritdoc />
     public IReadOnlyList<PageInfo> Pages => ShowroomPages.Core;

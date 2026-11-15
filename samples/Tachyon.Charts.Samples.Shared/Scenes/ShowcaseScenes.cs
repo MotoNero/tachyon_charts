@@ -65,6 +65,7 @@ public static class ShowcaseScenes
         Type("candles", "OHLC bars", "Share price as OHLC bars"),
         Type("ternary", "Ternary", "Ternary plot"),
         Type("error-bars", "Error bars", "Measurements with error bars"),
+        Type("large-file", "Large file", "1 billion values from a 4 GB file"),
         Theme("theme-neon", "Neon", BuiltInThemes.Neon),
         Theme("theme-paper", "Paper", BuiltInThemes.Paper),
         Theme("theme-instrument", "Instrument", BuiltInThemes.Instrument),

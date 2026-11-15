@@ -20,6 +20,9 @@ public sealed record SampleInfo(string Id, string Name, DataShape Shape, int Def
     /// <summary>Gets the smallest count that makes sense for the shape.</summary>
     public int MinimumCount { get; init; } = 2;
 
+    /// <summary>Gets the highest count the configurator offers.</summary>
+    public int MaximumCount { get; init; } = 10_000_000;
+
     /// <summary>Gets a value indicating whether the count changes the data; a phantom of fixed size has none to choose.</summary>
     public bool HasCount { get; init; } = true;
 

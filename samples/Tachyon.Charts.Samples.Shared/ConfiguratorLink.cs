@@ -179,6 +179,7 @@ public static class ConfiguratorLink
         ["Candles"] = "candles",
         ["OHLC bars"] = "candles",
         ["1 million candles"] = "candles",
+        ["Large file"] = "fileLine",
         ["Candles without weekends"] = "option:weekends",
         ["Market profile"] = "candles",
         ["Drawing tools"] = "candles",

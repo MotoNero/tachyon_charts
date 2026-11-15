@@ -24,10 +24,13 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 | Volume 512³, turning, full-screen window | **up to 118 FPS** |
 | CT series 1024 × 1024 × 1000 (2 GB): slices, windowing and 3D | **62 FPS** at 60 steps per second |
 | Nearest of 100 million points under the pointer | **0.4 ms** |
+| File of 21 GB (2.7 billion values): first picture, complete picture | **0.24 s**, **4.2 s** |
+| CSV of 5 GB into a column file | **about 4 s** |
 | Chart at rest | **no frames, 0.02 % CPU** |
 
 ## Highlights
 
+- **Files larger than memory:** billions of values straight from the disk, a first picture within a quarter of a second, no outlier lost; CSV and HDF5 converted in seconds
 - **Fast:** 100 million points per line, 10 million scatter points, 4096 × 4096 spectrograms, all at interactive rates; every 3D type above 60 frames per second in a full-screen window
 - **Live:** stream from any thread without blocking the display; the newest value of each series as a mark at the axis
 - **Instruments included:** oscilloscope with trigger and persistence, spectrum analyzer with spectrogram and masks, network analyzer, sweep and stepping monitors
@@ -63,6 +66,10 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 | Labelled contour lines | Heatmap inside an area |
 |---|---|
 | ![Filled contours with the value of each line written along the line](docs/images/contour-labels.png) | ![A measurement shown only inside a region, not on its lake](docs/images/heatmap-area.png) |
+
+| A billion values from a file of 4 GB |
+|---|
+| ![A billion values read from a column file: a slow and a fast wave with ten single spikes, every one of them kept](docs/images/large-file.png) |
 
 ### Chart types
 
@@ -168,6 +175,7 @@ Labels of annotations show symbols of the icon package, sharp at every size and 
 - Numeric, time, logarithmic and category axes, stacked panes, linked charts, scale breaks and hidden times such as weekends, axes that cross in the origin, charts turned with the X axis down for depth profiles
 - Zoom, pan, crosshair with the values of all series at the pointer, tooltip, lasso selection, measuring cursors, annotations with styled labels (place, size, font, plate, frame, turn along the line, signs and more than 4 000 Material Symbols from the package `Tachyon.Charts.Icons`) and dashed lines, one undo chain for navigation and drawings
 - Several legends per chart, inside or outside the plot, each with its own series; a click switches a series off and on
+- Files larger than memory: column files mapped into memory, a pyramid of extremes built on all cores and kept beside the file, a coarse picture at once with a „Refining“ plate, pages read ahead while panning; CSV (over 1 GB per second) and HDF5 converted once ([large data](docs/guide/large-data.md))
 - Signal tools without dependencies: FFT, FIR and biquad filters, generators
 - Fonts for title, axes and labels: Roboto in four cuts and Roboto Slab embedded, installed families too, all in one glyph atlas ([fonts](docs/guide/themes.md#fonts))
 - English and German texts, numbers and month names, switchable at runtime
@@ -401,6 +409,15 @@ To measure a window on your own machine, set `TACHYON_FRAME_LOG` to a file and s
 
 In real windows with 8 live charts: 56 FPS on the GPU, 21.6 FPS on the CPU.
 
+Files larger than memory, on the internal SSD of the same laptop:
+
+| Scenario | Result |
+|---|---:|
+| 21 GB, 2.7 billion values: first picture | 0.24 s |
+| 21 GB: pyramid complete, the next opening | 4.2 s, 0.11 s |
+| 21 GB: dragging, slowest of 100 frames | 10–16 ms |
+| CSV of 5 GB into a column file | 3.7–4.2 s |
+
 Known gaps: a stress test of 50 charts that all change per frame reaches about 21 FPS in a real window instead of the targeted 60, and the CPU fallback misses its targets for streaming (23 instead of 30 FPS at full HD) and for large scatter plots (9 instead of 10 FPS). Both are planned.
 
 ## Build
@@ -424,6 +441,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Drawing tools](docs/guide/drawings.md) | Fibonacci, channels, pitchfork, patterns, saving as JSON |
 | [Gantt](docs/guide/gantt.md) | Rows, groups, dependencies, milestones |
 | [Sweep monitors](docs/guide/sweep.md) | Writing over the previous pass or page by page, channels in step |
+| [Large data](docs/guide/large-data.md) | Files larger than memory, column files, CSV and HDF5 |
 | [Polygons](docs/guide/polygons.md) | Polygons with holes, heatmaps inside an area |
 | [Your own theme](docs/guide/custom-themes.md) | Themes as JSON or XAML in WPF and Avalonia, where the files go, all keys |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |

@@ -49,6 +49,7 @@ public static class ChartTypePages
         (CandlesPage.Name, CandlesPage.Hint, CandlesPage.Configure),
         (OhlcBarsPage.Name, OhlcBarsPage.Hint, OhlcBarsPage.Configure),
         (MillionCandlesPage.Name, MillionCandlesPage.Hint, MillionCandlesPage.Configure),
+        (LargeFilePage.Name, LargeFilePage.Hint, LargeFilePage.Configure),
         (CandlesWithoutWeekendsPage.Name, CandlesWithoutWeekendsPage.Hint, CandlesWithoutWeekendsPage.Configure),
         (MarketProfilePage.Name, MarketProfilePage.Hint, MarketProfilePage.Configure),
         (DrawingToolsPage.Name, DrawingToolsPage.Hint, DrawingToolsPage.Configure),

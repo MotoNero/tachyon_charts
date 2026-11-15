@@ -41,6 +41,20 @@ chart.AddSeries(new ColumnLineSeries<double>(column, pyramid, xAxis, yAxis) { Co
   view is.
 - Narrow views draw the values themselves; the parts beside them are read ahead while panning.
 - A pyramid file of other or changed data is not taken: it carries a fingerprint of the values.
+- While the pyramid grows, the automatic range of the value axis widens with each piece read.
+
+A plate in the lower left corner of the plot tells that the picture still refines, and goes when it is complete:
+
+```csharp
+chart.AddOverlay(new RefiningOverlay(chart) { Format = "Refining {0:P0}" });
+```
+
+With the fluent API: `.AddOverlay(surface => new RefiningOverlay(surface))`.
+
+The showroom page „Large file“ shows a billion floats from a file of 4 GB. Its first visit writes the file once beside
+the local data of Tachyon Charts (`%LOCALAPPDATA%\Tachyon\Samples` on Windows), in a few seconds; later visits only
+open it. The configurator offers the same as the type „Line from a large file“, with the test file or a column file of
+your own.
 
 ## From CSV
 

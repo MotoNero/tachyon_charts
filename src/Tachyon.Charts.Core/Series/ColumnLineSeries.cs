@@ -15,7 +15,7 @@ namespace Tachyon.Charts.Core.Series;
 /// </summary>
 /// <typeparam name="T">The value type.</typeparam>
 /// <remarks>Until the pyramid is complete, wide ranges stay empty and narrow ones read the column.</remarks>
-public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable
+public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable, Overlays.IRefiningSeries
     where T : unmanaged, INumber<T>, IMinMaxValue<T>
 {
     // Without the pyramid a frame reads at most this many values.
@@ -52,6 +52,9 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable
         _pyramid = pyramid ?? throw new ArgumentNullException(nameof(pyramid));
         _prefetcher = new ColumnPrefetcher<T>(source);
     }
+
+    /// <summary>Gets how far the pyramid is built, from 0 to 1; until 1 wide views show a coarse picture and the range of the values grows.</summary>
+    public double Progress => _pyramid.IsComplete ? 1 : Math.Min(_pyramid.Progress, 0.99);
 
     /// <summary>Gets or sets the color.</summary>
     public Rgba8 Color
@@ -113,7 +116,8 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable
     {
         var origin = Origin();
         x = _source.Count == 0 ? DoubleRange.Empty : new DoubleRange(_source.XStart - origin, _source.XStart + ((_source.Count - 1) * _source.XStep) - origin);
-        var total = _pyramid.Total;
+        // While the pyramid grows, the extremes of what is read so far; the range widens with each piece.
+        var total = _pyramid.IsComplete ? _pyramid.Total : _pyramid.QueryAvailable(0, _source.Count);
         y = total.Min > total.Max ? DoubleRange.Empty : new DoubleRange(double.CreateTruncating(total.Min), double.CreateTruncating(total.Max));
         return _source.Count > 0;
     }
