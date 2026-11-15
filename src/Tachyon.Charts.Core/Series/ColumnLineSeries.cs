@@ -21,11 +21,15 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable
     // Without the pyramid a frame reads at most this many values.
     private const long DirectLimit = 1 << 22;
 
+    // Views up to this size read ahead beside them.
+    private const long PrefetchBytes = 256L << 20;
+
     // From this many values a pixel column is drawn from whole blocks of the pyramid.
     private const long WholeBlocks = 16L * ColumnPyramid<double>.BlockSize;
 
     private readonly IColumnSource<T> _source;
     private readonly ColumnPyramid<T> _pyramid;
+    private readonly ColumnPrefetcher<T> _prefetcher;
     private Vector2[] _vertices = new Vector2[4096];
     private IGpuBuffer? _buffer;
     private int _count;
@@ -38,7 +42,7 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable
 
     /// <summary>Initializes a new instance of the <see cref="ColumnLineSeries{T}"/> class.</summary>
     /// <param name="source">The column.</param>
-    /// <param name="pyramid">Its pyramid, see <see cref="ColumnPyramid{T}.Build"/>.</param>
+    /// <param name="pyramid">Its pyramid, see <see cref="ColumnPyramid{T}.Build(IColumnSource{T}, string?, CancellationToken)"/>.</param>
     /// <param name="xAxis">The X axis.</param>
     /// <param name="yAxis">The Y axis.</param>
     public ColumnLineSeries(IColumnSource<T> source, ColumnPyramid<T> pyramid, AxisBase xAxis, AxisBase yAxis)
@@ -46,6 +50,7 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable
     {
         _source = source ?? throw new ArgumentNullException(nameof(source));
         _pyramid = pyramid ?? throw new ArgumentNullException(nameof(pyramid));
+        _prefetcher = new ColumnPrefetcher<T>(source);
     }
 
     /// <summary>Gets or sets the color.</summary>
@@ -80,7 +85,8 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable
     public override Rgba8 AccentColor => _color;
 
     /// <inheritdoc />
-    protected internal override long Version => _source.Version + Volatile.Read(ref _appearanceVersion) + (_pyramid.IsComplete ? 1L << 40 : 0);
+    // While the pyramid grows, each piece read gives a finer picture, so it counts as a change.
+    protected internal override long Version => _source.Version + Volatile.Read(ref _appearanceVersion) + (_pyramid.IsComplete ? 1L << 40 : _pyramid.BuiltPieces);
 
     /// <inheritdoc />
     protected internal override int DrawnPointCount => _count;
@@ -144,9 +150,17 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable
             {
                 AddValues(frame, first, last, origin);
             }
-            else if (_pyramid.IsComplete || last - first <= DirectLimit)
+            else
             {
-                AddColumns(frame, first, last, columns);
+                // Wide and the pyramid still growing: the coarse picture of what is read so far.
+                AddColumns(frame, first, last, columns, coarse: !_pyramid.IsComplete && last - first > DirectLimit);
+            }
+
+            // Where values are read from the column, the parts beside the view come next: their pages are read ahead.
+            var width = last - first;
+            if (width < WholeBlocks * columns && width * System.Runtime.CompilerServices.Unsafe.SizeOf<T>() <= PrefetchBytes)
+            {
+                _prefetcher.Request(first - width, last + width);
             }
         }
 
@@ -198,7 +212,7 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable
     }
 
     // Each pixel column holds its lowest and highest value, the one nearer to where the line comes from first.
-    private void AddColumns(in SeriesFrame frame, long first, long last, int columns)
+    private void AddColumns(in SeriesFrame frame, long first, long last, int columns, bool coarse)
     {
         var span = last - first;
         var previous = float.NaN;
@@ -209,7 +223,7 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable
             var end = first + (span * (column + 1) / columns);
             // A column of many blocks takes whole blocks: no value of the file is read, which keeps panning smooth when
             // the file is far larger than the cache; the outer blocks shift an extreme by less than a pixel.
-            var extremes = end - start >= WholeBlocks ? _pyramid.QueryBlocks(start, end) : _pyramid.Query(start, end);
+            var extremes = coarse ? _pyramid.QueryAvailable(start, end) : end - start >= WholeBlocks ? _pyramid.QueryBlocks(start, end) : _pyramid.Query(start, end);
             if (extremes.Min > extremes.Max)
             {
                 AddGap();

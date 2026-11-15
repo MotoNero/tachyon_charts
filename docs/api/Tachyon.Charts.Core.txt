@@ -1834,13 +1834,16 @@ sealed class Tachyon.Charts.Core.Resampling.ColumnPyramid<T>
   System.Boolean IsComplete { get; }
   System.Boolean IsFromFile { get; }
   System.Double Progress { get; }
+  System.Int32 BuiltPieces { get; }
   System.Int64 ByteCount { get; }
   System.Threading.Tasks.Task Completion { get; }
   Tachyon.Charts.Core.Resampling.MinMax<T> Query(System.Int64 start, System.Int64 end)
+  Tachyon.Charts.Core.Resampling.MinMax<T> QueryAvailable(System.Int64 start, System.Int64 end)
   Tachyon.Charts.Core.Resampling.MinMax<T> QueryBlocks(System.Int64 start, System.Int64 end)
   Tachyon.Charts.Core.Resampling.MinMax<T> Total { get; }
   static System.Int32 BlockSize
   static System.Int32 Factor
+  static System.Int64 PieceSize { get; }
   static Tachyon.Charts.Core.Resampling.ColumnPyramid<T> Build(Tachyon.Charts.Core.Data.IColumnSource<T> source, System.String filePath = null, System.Threading.CancellationToken cancellation = null)
 sealed class Tachyon.Charts.Core.Resampling.LodPyramid<T>
   .ctor(System.Int32 factor = 4)

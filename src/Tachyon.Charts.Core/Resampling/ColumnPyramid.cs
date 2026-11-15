@@ -34,6 +34,14 @@ public sealed class ColumnPyramid<T>
     private long _builtBlocks;
     private volatile bool _isComplete;
 
+    // While building: the lowest level as far as read, which pieces of the column are done, and the extremes of each.
+    private T[] _baseMin = [];
+    private T[] _baseMax = [];
+    private int[] _pieceDone = [];
+    private T[] _pieceMin = [];
+    private T[] _pieceMax = [];
+    private int _builtPieces;
+
     private ColumnPyramid(IColumnSource<T> source)
     {
         _source = source;
@@ -42,6 +50,12 @@ public sealed class ColumnPyramid<T>
 
     /// <summary>Gets the share of the column covered so far, from 0 to 1.</summary>
     public double Progress => _isComplete ? 1 : _blocks == 0 ? 1 : (double)Interlocked.Read(ref _builtBlocks) / _blocks;
+
+    /// <summary>Gets the number of pieces of <see cref="PieceSize"/> values read so far; it grows while the pyramid is built.</summary>
+    public int BuiltPieces => Volatile.Read(ref _builtPieces);
+
+    /// <summary>Gets the number of values the pyramid reads at once while it is built.</summary>
+    public static long PieceSize => (long)ChunkBlocks * BlockSize;
 
     /// <summary>Gets a value indicating whether the pyramid is complete; before that, queries read the column.</summary>
     public bool IsComplete => _isComplete;
@@ -78,11 +92,15 @@ public sealed class ColumnPyramid<T>
     /// <param name="filePath">The file to keep it in, such as the path of the data with <c>.tpyr</c>; <see langword="null"/> to keep it in memory only.</param>
     /// <param name="cancellation">Stops the building.</param>
     /// <returns>The pyramid, complete once <see cref="Completion"/> is.</returns>
-    public static ColumnPyramid<T> Build(IColumnSource<T> source, string? filePath = null, CancellationToken cancellation = default)
+    public static ColumnPyramid<T> Build(IColumnSource<T> source, string? filePath = null, CancellationToken cancellation = default) =>
+        Build(source, filePath, Environment.ProcessorCount, cancellation);
+
+    /// <summary>Starts building with a number of workers, for tests that look at a pyramid half built.</summary>
+    internal static ColumnPyramid<T> Build(IColumnSource<T> source, string? filePath, int workers, CancellationToken cancellation)
     {
         ArgumentNullException.ThrowIfNull(source);
         var pyramid = new ColumnPyramid<T>(source);
-        pyramid.Completion = Task.Run(() => pyramid.Make(filePath, cancellation), cancellation);
+        pyramid.Completion = Task.Run(() => pyramid.Make(filePath, workers, cancellation), cancellation);
         return pyramid;
     }
 
@@ -172,6 +190,86 @@ public sealed class ColumnPyramid<T>
         return start >= end ? MinMax<T>.Empty : Query(start / BlockSize * BlockSize, Math.Min(_source.Count, (end + BlockSize - 1) / BlockSize * BlockSize));
     }
 
+    /// <summary>
+    /// Finds the extremes of a range from what is read so far: before the pyramid is complete, from the pieces of the
+    /// column already done, spread over the whole column from the start; after it, as <see cref="QueryBlocks"/>. A
+    /// chart draws a coarse picture with it at once and refines it while the pyramid grows; an outlier in a piece not
+    /// yet read shows once it is.
+    /// </summary>
+    /// <param name="start">The first index.</param>
+    /// <param name="end">The index behind the last one.</param>
+    /// <returns>The extremes; empty ones (min above max) when nothing of the range is read yet.</returns>
+    public MinMax<T> QueryAvailable(long start, long end)
+    {
+        if (_isComplete)
+        {
+            return QueryBlocks(start, end);
+        }
+
+        start = Math.Max(0, start);
+        end = Math.Min(end, _source.Count);
+        var min = T.MaxValue;
+        var max = T.MinValue;
+        var done = _pieceDone;
+        if (start >= end || done.Length == 0)
+        {
+            return new MinMax<T>(min, max);
+        }
+
+        var size = PieceSize;
+        for (var piece = start / size; piece <= (end - 1) / size; piece++)
+        {
+            if (Volatile.Read(ref done[piece]) == 0)
+            {
+                continue;
+            }
+
+            var (first, last) = (piece * size, Math.Min((piece + 1) * size, _source.Count));
+            if (start <= first && last <= end)
+            {
+                (min, max) = (T.Min(min, _pieceMin[piece]), T.Max(max, _pieceMax[piece]));
+                continue;
+            }
+
+            // Part of a piece: its blocks there, whole.
+            for (long block = Math.Max(start, first) / BlockSize, lastBlock = (Math.Min(end, last) + BlockSize - 1) / BlockSize; block < lastBlock; block++)
+            {
+                (min, max) = (T.Min(min, _baseMin[block]), T.Max(max, _baseMax[block]));
+            }
+        }
+
+        return new MinMax<T>(min, max);
+    }
+
+    // The order of the pieces: bit-reversed, so that the first pieces read lie spread over the whole column and a
+    // coarse picture of all of it shows after a fraction of the time.
+    internal static int[] SpreadOrder(int pieces)
+    {
+        var bits = 0;
+        while ((1L << bits) < pieces)
+        {
+            bits++;
+        }
+
+        var order = new int[pieces];
+        var next = 0;
+        for (var i = 0L; i < (1L << bits) && next < pieces; i++)
+        {
+            var reversed = 0L;
+            for (var b = 0; b < bits; b++)
+            {
+                reversed |= ((i >> b) & 1) << (bits - 1 - b);
+            }
+
+            if (reversed < pieces)
+            {
+                order[next++] = (int)reversed;
+            }
+        }
+
+        return order;
+    }
+
     private void Accumulate(int level, long first, long last, ref T min, ref T max)
     {
         var mins = _min[level];
@@ -205,7 +303,7 @@ public sealed class ColumnPyramid<T>
         }
     }
 
-    private void Make(string? filePath, CancellationToken cancellation)
+    private void Make(string? filePath, int workers, CancellationToken cancellation)
     {
         if (filePath is not null && TryLoad(filePath))
         {
@@ -216,20 +314,41 @@ public sealed class ColumnPyramid<T>
 
         var baseMin = new T[_blocks];
         var baseMax = new T[_blocks];
-        var chunks = (_blocks + ChunkBlocks - 1) / ChunkBlocks;
-        Parallel.For(0L, chunks, new ParallelOptions { CancellationToken = cancellation }, chunk =>
-        {
-            var last = Math.Min(_blocks, (chunk + 1) * ChunkBlocks);
-            for (var block = chunk * ChunkBlocks; block < last; block++)
-            {
-                var min = T.MaxValue;
-                var max = T.MinValue;
-                ReadExtremes(block * BlockSize, Math.Min((block + 1) * BlockSize, _source.Count), ref min, ref max);
-                baseMin[block] = min;
-                baseMax[block] = max;
-            }
+        var chunks = (int)((_blocks + ChunkBlocks - 1) / ChunkBlocks);
+        (_baseMin, _baseMax, _pieceMin, _pieceMax) = (baseMin, baseMax, new T[chunks], new T[chunks]);
+        _pieceDone = new int[chunks];
+        var order = SpreadOrder(chunks);
+        var next = -1;
 
-            Interlocked.Add(ref _builtBlocks, last - (chunk * ChunkBlocks));
+        // Each worker takes the next piece in the spread order, so the pieces done stay spread at any moment.
+        Parallel.For(0, Math.Min(workers, Math.Max(1, chunks)), new ParallelOptions { CancellationToken = cancellation }, _ =>
+        {
+            for (var taken = Interlocked.Increment(ref next); taken < chunks; taken = Interlocked.Increment(ref next))
+            {
+                cancellation.ThrowIfCancellationRequested();
+                long chunk = order[taken];
+                var last = Math.Min(_blocks, (chunk + 1) * ChunkBlocks);
+                var (pieceMin, pieceMax) = (T.MaxValue, T.MinValue);
+                for (var block = chunk * ChunkBlocks; block < last; block++)
+                {
+                    if ((block & 1023) == 0)
+                    {
+                        cancellation.ThrowIfCancellationRequested();
+                    }
+
+                    var min = T.MaxValue;
+                    var max = T.MinValue;
+                    ReadExtremes(block * BlockSize, Math.Min((block + 1) * BlockSize, _source.Count), ref min, ref max);
+                    baseMin[block] = min;
+                    baseMax[block] = max;
+                    (pieceMin, pieceMax) = (T.Min(pieceMin, min), T.Max(pieceMax, max));
+                }
+
+                (_pieceMin[chunk], _pieceMax[chunk]) = (pieceMin, pieceMax);
+                Volatile.Write(ref _pieceDone[chunk], 1);
+                Interlocked.Increment(ref _builtPieces);
+                Interlocked.Add(ref _builtBlocks, last - (chunk * ChunkBlocks));
+            }
         });
 
         var mins = new List<T[]> { baseMin };
