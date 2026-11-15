@@ -894,6 +894,43 @@ public sealed class HeatmapSeries : RasterSeriesElement
 }
 
 /// <summary>
+/// A scatter far larger than memory as a density, from points sorted into tiles beside their file. The data source is
+/// a <see cref="Core.Data.PointTiles"/>.
+/// </summary>
+public sealed class PointDensitySeries : RasterSeriesElement
+{
+    /// <summary>Identifies the <see cref="PointBudget"/> property.</summary>
+    public static readonly DependencyProperty PointBudgetProperty = DependencyProperty.Register(
+        nameof(PointBudget), typeof(int), typeof(PointDensitySeries), new PropertyMetadata(4_000_000, OnChanged));
+
+    /// <summary>Gets or sets the most points read from the tiles per frame; more make narrow views finer and slower.</summary>
+    public int PointBudget
+    {
+        get => (int)GetValue(PointBudgetProperty);
+        set => SetValue(PointBudgetProperty, value);
+    }
+
+    /// <inheritdoc />
+    internal override ChartSeries? Build(AxisBase x, AxisBase y)
+    {
+        if (DataSource is null)
+        {
+            return null;
+        }
+
+        if (DataSource is not Core.Data.PointTiles tiles)
+        {
+            throw new InvalidOperationException($"{DataSource.GetType().Name} is no set of point tiles.");
+        }
+
+        // Pixels without a point show the plot.
+        var axis = GetColorAxis(string.Empty);
+        axis.BelowColor = default;
+        return new Core.Series.PointDensitySeries(tiles, x, y, axis) { Name = SeriesName, PointBudget = PointBudget };
+    }
+}
+
+/// <summary>
 /// Markers at the points of a data source.
 /// </summary>
 public sealed class ScatterSeries : ChartSeriesElement
@@ -1379,6 +1416,13 @@ internal static class ChartElementFactory
                 YStart = heatmap.YStart,
                 YStep = heatmap.YStep,
                 IsInterpolated = heatmap.IsInterpolated,
+            },
+            PointDensityDefinition density => new PointDensitySeries
+            {
+                Colormap = density.ColorAxis.Colormap,
+                IsLogarithmic = density.ColorAxis.IsLogarithmic,
+                ColorRange = density.ColorAxis.Range,
+                PointBudget = density.PointBudget,
             },
             _ => throw new NotSupportedException($"{definition.GetType().Name} has no element."),
         };

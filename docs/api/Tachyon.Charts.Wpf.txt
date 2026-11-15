@@ -232,6 +232,10 @@ sealed class Tachyon.Charts.Wpf.OverviewModifier : Tachyon.Charts.Wpf.ChartModif
   .ctor()
   Tachyon.Charts.Wpf.Chart Target { get; set; }
   static System.Windows.DependencyProperty TargetProperty
+sealed class Tachyon.Charts.Wpf.PointDensitySeries : Tachyon.Charts.Wpf.RasterSeriesElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Int32 PointBudget { get; set; }
+  static System.Windows.DependencyProperty PointBudgetProperty
 abstract class Tachyon.Charts.Wpf.RasterSeriesElement : Tachyon.Charts.Wpf.ChartSeriesElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
   System.Boolean IsLogarithmic { get; set; }
   System.Nullable<Tachyon.Charts.Core.Numerics.DoubleRange> ColorRange { get; set; }

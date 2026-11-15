@@ -786,6 +786,30 @@ public sealed class HeatmapSeries : RasterSeriesElement
     };
 }
 
+/// <summary>
+/// A scatter far larger than memory as a density, from points sorted into tiles beside their file. The data source is
+/// a <see cref="Core.Data.PointTiles"/>.
+/// </summary>
+public sealed class PointDensitySeries : RasterSeriesElement
+{
+    /// <summary>Gets or sets the most points read from the tiles per frame; more make narrow views finer and slower.</summary>
+    public int PointBudget { get; set; } = 4_000_000;
+
+    /// <inheritdoc />
+    internal override ChartSeries? Build(AxisBase x, AxisBase y)
+    {
+        if (DataSource is null)
+        {
+            return null;
+        }
+
+        // Pixels without a point show the plot.
+        var axis = GetColorAxis(string.Empty);
+        axis.BelowColor = default;
+        return new Core.Series.PointDensitySeries(Source<Core.Data.PointTiles>(), x, y, axis) { Name = SeriesName, PointBudget = PointBudget };
+    }
+}
+
 /// <summary>A waterfall of rows, fed by <see cref="SpectrogramData.AppendRow"/>.</summary>
 public sealed class SpectrogramSeries : RasterSeriesElement
 {
@@ -1190,6 +1214,7 @@ internal static class ChartElementFactory
                 YStep = heatmap.YStep,
                 IsInterpolated = heatmap.IsInterpolated,
             }, heatmap),
+            PointDensityDefinition density => Raster(new PointDensitySeries { PointBudget = density.PointBudget }, density),
             _ => throw new NotSupportedException($"{definition.GetType().Name} has no element."),
         };
 
