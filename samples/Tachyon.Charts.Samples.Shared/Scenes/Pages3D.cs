@@ -54,6 +54,7 @@ public static class Pages3D
         new(CloudLivePage.Name, CloudLivePage.Hint, CloudLivePage.Configure, CloudLivePage.Run),
         new(CloudOf20MillionPointsPage.Name, CloudOf20MillionPointsPage.Hint, CloudOf20MillionPointsPage.Configure),
         new(CloudOf100MillionPointsPage.Name, CloudOf100MillionPointsPage.Hint, CloudOf100MillionPointsPage.Configure),
+        new(CloudFromAFilePage.Name, CloudFromAFilePage.Hint, CloudFromAFilePage.Configure),
         new(VolumeSlices512Page.Name, VolumeSlices512Page.Hint, VolumeSlices512Page.Configure),
         new(MedicalMprPage.Name, MedicalMprPage.Hint, MedicalMprPage.Configure, GridCompanions: MedicalMprPage.Slices),
         new(MedicalAnalysisPage.Name, MedicalAnalysisPage.Hint, MedicalAnalysisPage.Configure, GridCompanions: MedicalAnalysisPage.Charts, Data: MedicalAnalysisPage.Data),

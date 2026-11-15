@@ -19,7 +19,7 @@ internal sealed unsafe partial class Renderer3D
     {
         if (!_clouds.TryGetValue(cloud, out var buffer))
         {
-            buffer = new CloudBuffer(this, PointCloud3D.EstimateMemory(cloud.Count).Gpu);
+            buffer = new CloudBuffer(this, cloud.Pages is null ? PointCloud3D.EstimateMemory(cloud.Count).Gpu : PagedCloudLoader.BufferBytes(cloud));
             _clouds[cloud] = buffer;
         }
 

@@ -44,6 +44,27 @@ public sealed class PointCloud3D
     private double _progress;
     private volatile bool _isLoaded;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PointCloud3D"/> class with points far larger than memory, sorted
+    /// into pages beside their file: a view loads the pages it sees onto the GPU, as many points of each as its size on
+    /// screen asks for, and shows a coarse sample of the rest meanwhile.
+    /// </summary>
+    /// <param name="pages">The pages.</param>
+    public PointCloud3D(CloudPages pages)
+    {
+        Pages = pages ?? throw new ArgumentNullException(nameof(pages));
+        _isLoaded = true;
+    }
+
+    /// <summary>Gets the pages of a cloud from a file, or <see langword="null"/> for points in memory.</summary>
+    public CloudPages? Pages { get; }
+
+    /// <summary>Gets the colors by height of a cloud from pages, or <see langword="null"/> for <see cref="Color"/>.</summary>
+    public Core.Colors.Colormap? HeightColors { get; init; }
+
+    /// <summary>Gets the most bytes of the GPU a cloud from pages keeps its pages in; 1 GB holds 64 million points.</summary>
+    public long PageMemory { get; init; } = 1L << 30;
+
     /// <summary>Initializes a new instance of the <see cref="PointCloud3D"/> class with points that exist already.</summary>
     /// <param name="x">The first coordinates. The cloud keeps the arrays instead of a copy.</param>
     /// <param name="y">The second coordinates.</param>
@@ -96,7 +117,7 @@ public sealed class PointCloud3D
     public double Progress => IsReady ? 1 : Volatile.Read(ref _progress);
 
     /// <summary>Gets a value indicating whether the chart shows how far the cloud has come. A small cloud shows whole at once.</summary>
-    internal bool ShowsProgress => !IsReady && (!IsLoaded || Count > PreviewPoints);
+    internal bool ShowsProgress => !IsReady && (Pages is not null || !IsLoaded || Count > PreviewPoints);
 
     /// <summary>Gets a value indicating whether the points exist.</summary>
     internal bool IsLoaded => _isLoaded;
@@ -392,8 +413,16 @@ internal sealed class CloudSelection
     private const double MostDensity = 1e6;
     private const int CornerCount = 8;
 
+    // From this many leaves the measuring runs on all cores, as for clouds from pages.
+    private const int ParallelFrom = 16_384;
+    private const int Parts = 16;
+
     private float[] _areas = [];
+    private float[] _allAreas = [];
     private int[] _indices = [];
+    private long[] _partTotals = new long[Parts];
+    private CloudLeaf[]? _leafArray;
+    private Point3D[]? _boxArray;
 
     /// <summary>Gets the runs to draw.</summary>
     public CloudDraw[] Draws { get; private set; } = [];
@@ -403,6 +432,26 @@ internal sealed class CloudSelection
 
     /// <summary>Gets the number of points in all runs.</summary>
     public long Total { get; private set; }
+
+    /// <summary>Chooses as <see cref="Select(ReadOnlySpan{CloudLeaf}, ReadOnlySpan{Point3D}, in Matrix3D, Vector2, int, IReadOnlyList{ClipPlane3D})"/> does, over arrays that the parts on all cores read without a copy.</summary>
+    /// <param name="leaves">The leaves.</param>
+    /// <param name="boxes">The boxes of the leaves, two corners each.</param>
+    /// <param name="matrix">The camera.</param>
+    /// <param name="size">The size of the picture in pixels.</param>
+    /// <param name="budget">The most points.</param>
+    /// <param name="planes">The cut planes.</param>
+    public void Select(CloudLeaf[] leaves, Point3D[] boxes, in Matrix3D matrix, Vector2 size, int budget, IReadOnlyList<ClipPlane3D> planes)
+    {
+        (_leafArray, _boxArray) = (leaves, boxes);
+        try
+        {
+            Select(leaves.AsSpan(), boxes.AsSpan(), matrix, size, budget, planes);
+        }
+        finally
+        {
+            (_leafArray, _boxArray) = (null, null);
+        }
+    }
 
     /// <summary>
     /// Shares the budget out by the area of the leaves on the screen: all get the same density, and a leaf that holds
@@ -475,6 +524,11 @@ internal sealed class CloudSelection
 
     private int Measure(ReadOnlySpan<CloudLeaf> leaves, ReadOnlySpan<Point3D> boxes, in Matrix3D matrix, Vector2 size, IReadOnlyList<ClipPlane3D> planes)
     {
+        if (leaves.Length >= ParallelFrom)
+        {
+            return MeasureInParts(boxes, matrix, size, planes, leaves.Length);
+        }
+
         var visible = 0;
         for (var i = 0; i < leaves.Length; i++)
         {
@@ -490,8 +544,43 @@ internal sealed class CloudSelection
         return visible;
     }
 
+    // Each part measures its leaves into an array of all of them; the visible ones are gathered after.
+    private int MeasureInParts(ReadOnlySpan<Point3D> boxes, Matrix3D matrix, Vector2 size, IReadOnlyList<ClipPlane3D> planes, int count)
+    {
+        if (_allAreas.Length < count)
+        {
+            _allAreas = new float[count];
+        }
+
+        var (all, boxArray) = (_allAreas, _boxArray ?? boxes.ToArray());
+        Parallel.For(0, Parts, part =>
+        {
+            for (var i = count * part / Parts; i < count * (part + 1) / Parts; i++)
+            {
+                var (low, high) = (boxArray[2 * i], boxArray[(2 * i) + 1]);
+                all[i] = IsCut(low, high, planes) ? 0 : MeasureArea(low, high, matrix, size);
+            }
+        });
+        var visible = 0;
+        for (var i = 0; i < count; i++)
+        {
+            if (all[i] > 0)
+            {
+                (_areas[visible], _indices[visible]) = (all[i], i);
+                visible++;
+            }
+        }
+
+        return visible;
+    }
+
     private double FindDensity(ReadOnlySpan<CloudLeaf> leaves, int visible, int budget)
     {
+        if (visible >= ParallelFrom)
+        {
+            return FindDensityInParts(_leafArray ?? leaves.ToArray(), visible, budget);
+        }
+
         var (low, high) = (LeastDensity, MostDensity);
         for (var step = 0; step < Steps; step++)
         {
@@ -501,6 +590,43 @@ internal sealed class CloudSelection
             for (var i = 0; i < visible; i++)
             {
                 total += Share(leaves[_indices[i]].Count, _areas[i], middle);
+            }
+
+            if (total > budget)
+            {
+                high = middle;
+            }
+            else
+            {
+                low = middle;
+            }
+        }
+
+        return low;
+    }
+
+    // The same search, each step summing its parts on all cores.
+    private double FindDensityInParts(CloudLeaf[] leaves, int visible, int budget)
+    {
+        var (low, high) = (LeastDensity, MostDensity);
+        var (areas, indices, totals) = (_areas, _indices, _partTotals);
+        for (var step = 0; step < Steps; step++)
+        {
+            var middle = Math.Sqrt(low * high);
+            Parallel.For(0, Parts, part =>
+            {
+                long sum = 0;
+                for (var i = visible * part / Parts; i < visible * (part + 1) / Parts; i++)
+                {
+                    sum += Share(leaves[indices[i]].Count, areas[i], middle);
+                }
+
+                totals[part] = sum;
+            });
+            long total = 0;
+            foreach (var part in totals)
+            {
+                total += part;
             }
 
             if (total > budget)

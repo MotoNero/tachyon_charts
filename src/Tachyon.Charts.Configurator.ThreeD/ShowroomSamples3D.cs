@@ -164,6 +164,7 @@ internal static class ShowroomSamples3D
         ["spiralPath"] = (new(-1, 1), new(-1, 1), new(-1, 1)),
         ["greenSpiral"] = (new(-1, 1), new(-1, 1), new(-1, 1)),
         ["landscape"] = (new(-1, 1), new(-1, 1), new(-1, 1)),
+        ["landscapeFile"] = (new(-1, 1), new(-1, 1), new(-1, 1)),
     };
 
     /// <summary>Gets the box the finished points or bubbles of a series fill, or <see langword="null"/> for other data.</summary>

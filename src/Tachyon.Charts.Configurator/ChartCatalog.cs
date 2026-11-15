@@ -214,6 +214,9 @@ public enum DataShape
 
     /// <summary>A raster file, read through its stages.</summary>
     RasterFile,
+
+    /// <summary>A 3D point cloud of a file, sorted into pages.</summary>
+    CloudPages,
 }
 
 /// <summary>One of several linked charts a type fills, such as a plane of a volume; all of them share the data.</summary>

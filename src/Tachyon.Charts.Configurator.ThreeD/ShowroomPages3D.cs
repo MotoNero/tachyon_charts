@@ -74,6 +74,7 @@ internal static class ShowroomPages3D
         }),
         new("Cloud of 20 million points", catalog => Scene(catalog, "Scanned landscape", "cloud3d", "landscape", 20_000_000, [], _unitBox)),
         new("Cloud of 100 million points", catalog => Scene(catalog, "Scanned landscape", "cloud3d", "landscape", 100_000_000, [], _unitBox)),
+        new("Cloud from a file", catalog => Scene(catalog, "200 million points from a file", "cloudFile3d", CloudFileSamples3D.Id, 200_000_000, [("colormap", "Viridis"), ("pointSize", 2.0)], _unitBox)),
         new("Path of 200 000 points", catalog => Scene(catalog, "Path of a particle", "line3d", "particlePath", 200_000, [], Box("-25..25", "x", "-30..30", "y", "0..55", "z"))),
 
         // The live pages: points that keep coming, and the waterfall of a running spectrum above it.

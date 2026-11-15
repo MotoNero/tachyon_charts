@@ -146,6 +146,27 @@ the rows as little-endian floats.
 The showroom page „Heatmap from a file“ shows 16384 × 16384 cells; the configurator offers the type „Heatmap from a
 file“, with the test raster or a raster file of your own.
 
+## 3D point clouds from files
+
+A point cloud of a billion points does not fit onto a graphics card. Its points come from three columns of a column
+file, X, Y and Z, and are sorted once into pages beside it, about 12 bytes per point: each page a small cube of space
+of at most 32,768 points, in a random order.
+
+```csharp
+using var file = ColumnFile.Open("scan.tcol");    // X, Y and Z in the first three columns
+var pages = CloudPages.Build(file.Column<float>(0), file.Column<float>(1), file.Column<float>(2), "scan.tcol.tcld");
+
+chart3D.AddCloud(new PointCloud3D(pages) { HeightColors = Colormaps.Viridis, PointSize = 2 });
+```
+
+- A sample of 64 points of every page stays on the GPU, so the whole cloud shows at once; the pages a view needs finer
+  come into a cache on the GPU (`PageMemory`, 1 GB by default for 64 million points), the ones longest unused leave first.
+- Each frame takes as many points of each page as its size on screen asks for, within `PointBudget`.
+- `HeightColors` colors the points by their height; without it they take `Color`.
+
+The showroom page „Cloud from a file“ shows 200 million points; the configurator offers the type „Point cloud from a
+file“.
+
 ## From CSV
 
 ```csharp

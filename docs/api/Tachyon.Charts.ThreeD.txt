@@ -129,6 +129,18 @@ struct Tachyon.Charts.ThreeD.Scene.CloudMemory : System.IEquatable<Tachyon.Chart
   .ctor(System.Int64 Gpu, System.Int64 Cpu)
   System.Int64 Cpu { get; set; }
   System.Int64 Gpu { get; set; }
+sealed class Tachyon.Charts.ThreeD.Scene.CloudPages : System.IDisposable
+  System.Boolean IsComplete { get; }
+  System.Boolean IsFromFile { get; }
+  System.Double Progress { get; }
+  System.Int32 PageCount { get; }
+  System.Int64 Count { get; }
+  System.Threading.Tasks.Task Completion { get; }
+  System.Void Dispose()
+  Tachyon.Charts.ThreeD.Scene.Point3D High { get; }
+  Tachyon.Charts.ThreeD.Scene.Point3D Low { get; }
+  static System.Int32 PageSize
+  static Tachyon.Charts.ThreeD.Scene.CloudPages Build<T>(Tachyon.Charts.Core.Data.IColumnSource<T> x, Tachyon.Charts.Core.Data.IColumnSource<T> y, Tachyon.Charts.Core.Data.IColumnSource<T> z, System.String path, System.Threading.CancellationToken cancellation = null)
 sealed class Tachyon.Charts.ThreeD.Scene.ColorScale3D : System.IEquatable<Tachyon.Charts.ThreeD.Scene.ColorScale3D>
   .ctor(Tachyon.Charts.Core.Colors.Colormap Colormap, Tachyon.Charts.Core.Numerics.DoubleRange Range, System.String Title = null)
   System.String Title { get; set; }
@@ -236,6 +248,7 @@ struct Tachyon.Charts.ThreeD.Scene.Point3D : System.IEquatable<Tachyon.Charts.Th
 sealed class Tachyon.Charts.ThreeD.Scene.PointCloud3D
   .ctor(System.Double[] x, System.Double[] y, System.Double[] z, Tachyon.Charts.Rendering.Rgba8[] colors = null)
   .ctor(System.Func<System.IProgress<System.Double>, Tachyon.Charts.ThreeD.Scene.PointCloudArrays> load)
+  .ctor(Tachyon.Charts.ThreeD.Scene.CloudPages pages)
   System.Boolean IsReady { get; }
   System.Boolean ShowsValues { get; set; }
   System.Double PointSize { get; set; }
@@ -245,8 +258,11 @@ sealed class Tachyon.Charts.ThreeD.Scene.PointCloud3D
   System.Double[] Z { get; }
   System.Int32 Count { get; }
   System.Int32 PointBudget { get; set; }
+  System.Int64 PageMemory { get; set; }
+  Tachyon.Charts.Core.Colors.Colormap HeightColors { get; set; }
   Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
   Tachyon.Charts.Rendering.Rgba8[] Colors { get; }
+  Tachyon.Charts.ThreeD.Scene.CloudPages Pages { get; }
   static System.Int32 PreviewLimit { get; }
   static Tachyon.Charts.ThreeD.Scene.CloudMemory EstimateMemory(System.Int32 count)
 sealed class Tachyon.Charts.ThreeD.Scene.PointCloudArrays : System.IEquatable<Tachyon.Charts.ThreeD.Scene.PointCloudArrays>

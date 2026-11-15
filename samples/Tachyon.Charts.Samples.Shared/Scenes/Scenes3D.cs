@@ -92,5 +92,5 @@ public static class Scenes3D
     ];
 
     /// <summary>Gets the pictures with real data, made only on request because the data must be downloaded first.</summary>
-    public static IReadOnlyList<IScene> OnRequest => MedicalRealDataScene.All;
+    public static IReadOnlyList<IScene> OnRequest => [.. MedicalRealDataScene.All, new Examples.Gallery3D.CloudFromAFilePicture()];
 }

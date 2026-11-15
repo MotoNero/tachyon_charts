@@ -96,6 +96,10 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             make: (data, _) => data is Bubbles3D ready ? new Bubbles3D(ready.X, ready.Y, ready.Z, ready.Diameters) { Colors = ready.Colors, Values = ready.Values } : Balls(data),
             readyInit: data => $"Colors = {data}.Colors, Values = {data}.Values",
             usings: ["Tachyon.Charts.Core.Colors", "Tachyon.Charts.Rendering"]),
+        Type("cloudFile3d", "Point cloud from a file", DataShape.CloudPages, CloudFileSamples3D.Id, typeof(PointCloud3D), nameof(Chart3DBuilder.AddCloud), (-1, 1),
+            [Colormap("Viridis"), new("pointSize", "Point size", ParameterKind.Number, 2.0) { Minimum = 1, Maximum = 20 }],
+            [("colormap", nameof(PointCloud3D.HeightColors)), ("pointSize", nameof(PointCloud3D.PointSize))],
+            data => new PointCloud3D((CloudPages)data), data => $"new PointCloud3D({data})"),
         Type("cloud3d", "Point cloud", DataShape.Points3D, "dust", typeof(PointCloud3D), nameof(Chart3DBuilder.AddCloud), (-1, 1),
             [Color(), new("pointSize", "Point size", ParameterKind.Number, 2.5) { Minimum = 1, Maximum = 20 }],
             [("color", nameof(PointCloud3D.Color)), ("pointSize", nameof(PointCloud3D.PointSize))],
@@ -150,7 +154,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
     ];
 
     /// <inheritdoc />
-    public IReadOnlyList<SampleInfo> Samples { get; } = [.. Samples3D.Create(), .. ShowroomSamples3D.Create(), .. LiveSamples3D.Create(), .. ShowroomModels3D.Create(), .. ShowroomVolumes3D.Create()];
+    public IReadOnlyList<SampleInfo> Samples { get; } = [.. Samples3D.Create(), .. ShowroomSamples3D.Create(), .. LiveSamples3D.Create(), .. ShowroomModels3D.Create(), .. ShowroomVolumes3D.Create(), CloudFileSamples3D.Sample];
 
     /// <inheritdoc />
     public IReadOnlyList<PageInfo> Pages => ShowroomPages3D.All;

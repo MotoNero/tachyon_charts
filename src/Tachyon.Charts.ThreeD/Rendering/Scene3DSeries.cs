@@ -26,6 +26,7 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
     private readonly Dictionary<Scatter3D, LineState> _scatterStates = [];
     private readonly Dictionary<Bars3D, long> _barVersions = [];
     private readonly Dictionary<PointCloud3D, CloudLoader> _cloudLoaders = [];
+    private readonly Dictionary<PointCloud3D, PagedCloudLoader> _pagedLoaders = [];
     private readonly Dictionary<PointCloud3D, CloudBudget> _cloudBudgets = [];
     private long _lastCamera = -1;
     private ChartGroup? _group;
@@ -283,6 +284,7 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
         _scatterStates.Clear();
         _barVersions.Clear();
         _cloudLoaders.Clear();
+        _pagedLoaders.Clear();
         _cloudBudgets.Clear();
         _volumeLoaders.Clear();
         _volumeAppearances.Clear();
@@ -390,6 +392,11 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
             {
                 text.Add("Loading", scene.Clouds[i].Progress * 100, "F0", "%");
             }
+
+            if (_pagedLoaders.TryGetValue(scene.Clouds[i], out var paged))
+            {
+                text.Add("Pages on the GPU", paged.LoadedPages, "N0", string.Empty);
+            }
         }
 
         foreach (var volume in scene.Volumes)
@@ -405,6 +412,12 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
 
     private void UpdateCloud(PointCloud3D cloud, PixelSize size, double aspect)
     {
+        if (cloud.Pages is { } pages)
+        {
+            UpdatePagedCloud(cloud, pages, size, aspect);
+            return;
+        }
+
         cloud.Start();
         if (!cloud.IsLoaded)
         {
@@ -416,6 +429,26 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
             loader = new CloudLoader(cloud);
             _cloudLoaders[cloud] = loader;
             _cloudBudgets[cloud] = new CloudBudget(cloud.PointBudget);
+        }
+
+        loader.Load(scene, _renderer!.GetCloud(cloud));
+        loader.Select(scene, scene.Camera.CreateMatrix(aspect), size, _renderer, _cloudBudgets[cloud].Current);
+    }
+
+    // A cloud from pages: once they are built, its samples and the pages in view come onto the GPU.
+    private void UpdatePagedCloud(PointCloud3D cloud, CloudPages pages, PixelSize size, double aspect)
+    {
+        if (!_pagedLoaders.TryGetValue(cloud, out var loader))
+        {
+            loader = new PagedCloudLoader(cloud);
+            _pagedLoaders[cloud] = loader;
+            _cloudBudgets[cloud] = new CloudBudget(cloud.PointBudget);
+        }
+
+        if (!pages.IsComplete)
+        {
+            loader.Load(scene, NoTarget.Instance);
+            return;
         }
 
         loader.Load(scene, _renderer!.GetCloud(cloud));
@@ -965,5 +998,17 @@ internal sealed class Scene3DSeries(Scene3D scene, ScenePicker picker, AxisBase 
                 scene.ZAxis.VisibleRange = levels;
             }
         }
+    }
+}
+
+/// <summary>Takes no points: a cloud whose pages are still being built has nothing to write yet.</summary>
+internal sealed class NoTarget : ITraceTarget
+{
+    /// <summary>Gets the one instance.</summary>
+    public static NoTarget Instance { get; } = new();
+
+    /// <inheritdoc />
+    public void Write(int place, ReadOnlySpan<LineVertex> points)
+    {
     }
 }

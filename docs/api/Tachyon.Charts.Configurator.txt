@@ -195,6 +195,7 @@ enum Tachyon.Charts.Configurator.DataShape : System.IComparable, System.IConvert
   Bubbles = 3
   Bubbles3D = 11
   Candles = 21
+  CloudPages = 34
   Digital = 31
   Errors = 6
   Gantt = 22

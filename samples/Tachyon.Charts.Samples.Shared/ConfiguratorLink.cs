@@ -86,6 +86,7 @@ public static class ConfiguratorLink
         ["Cloud, live"] = "scatter3d",
         ["Cloud of 20 million points"] = "cloud3d",
         ["Cloud of 100 million points"] = "cloud3d",
+        ["Cloud from a file"] = "cloudFile3d",
         ["Volume slices 512³"] = "volume3d",
         ["Through a volume 512³"] = "volume3d",
         ["Objects inside a volume"] = "volume3d",
