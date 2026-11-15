@@ -123,6 +123,123 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable, Overlays.IRe
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Near the pointer each pixel column offers its lowest and highest value, from the pyramid when it covers many
+    /// values; the nearest of them is then looked up in its column. So an outlier is found where it is drawn.
+    /// </remarks>
+    protected internal override bool TryFindPoint(in SeriesFrame frame, System.Numerics.Vector2 pixel, double maximumDistance, HitTesting.HitTestMode mode, out long index, out double x, out double y)
+    {
+        (index, x, y) = (-1, 0, 0);
+        var count = _source.Count;
+        if (count == 0 || !(_source.XStep > 0) || !(maximumDistance >= 0))
+        {
+            return false;
+        }
+
+        var origin = Origin();
+        var (left, right) = (frame.X.ToData(pixel.X - maximumDistance) + origin, frame.X.ToData(pixel.X + maximumDistance) + origin);
+        if (left > right)
+        {
+            (left, right) = (right, left);
+        }
+
+        var first = (long)Math.Clamp(Math.Ceiling((left - _source.XStart) / _source.XStep), 0, count);
+        var last = (long)Math.Clamp(Math.Floor((right - _source.XStart) / _source.XStep), -1, count - 1);
+        if (first > last)
+        {
+            return false;
+        }
+
+        if (mode == HitTesting.HitTestMode.NearestX)
+        {
+            var nearest = Math.Clamp((long)Math.Round((frame.X.ToData(pixel.X) + origin - _source.XStart) / _source.XStep), first, last);
+            return TryTake(nearest, out index, out x, out y);
+        }
+
+        var columns = (int)Math.Ceiling(2 * maximumDistance) + 1;
+        var perColumn = Math.Max(1, (last - first + columns) / columns);
+        var best = maximumDistance * maximumDistance;
+        var (bestStart, bestEnd, bestValue) = (-1L, -1L, double.NaN);
+        for (var start = first; start <= last; start += perColumn)
+        {
+            var end = Math.Min(start + perColumn, last + 1);
+            if (end - start <= 64)
+            {
+                // Few values: each one counts.
+                for (var i = start; i < end; i++)
+                {
+                    if (TryTake(i, out _, out var valueX, out var valueY))
+                    {
+                        var distance = Distance(frame, pixel, valueX, valueY);
+                        if (distance < best)
+                        {
+                            (best, bestStart, bestEnd, bestValue) = (distance, i, i + 1, valueY);
+                        }
+                    }
+                }
+
+                continue;
+            }
+
+            var extremes = _pyramid.IsComplete ? _pyramid.Query(start, end) : _pyramid.QueryAvailable(start, end);
+            if (extremes.Min > extremes.Max)
+            {
+                continue;
+            }
+
+            var middle = _source.XStart + ((start + ((end - start) / 2)) * _source.XStep) - origin;
+            foreach (var value in (ReadOnlySpan<double>)[double.CreateTruncating(extremes.Min), double.CreateTruncating(extremes.Max)])
+            {
+                var distance = Distance(frame, pixel, middle, value);
+                if (distance < best)
+                {
+                    (best, bestStart, bestEnd, bestValue) = (distance, start, end, value);
+                }
+            }
+        }
+
+        return bestStart >= 0 && TryTake(Find(bestStart, bestEnd, bestValue), out index, out x, out y);
+    }
+
+    private static double Distance(in SeriesFrame frame, System.Numerics.Vector2 pixel, double valueX, double valueY)
+    {
+        var (dx, dy) = (frame.X.ToPixel(valueX) - pixel.X, frame.Y.ToPixel(valueY) - pixel.Y);
+        var distance = (dx * dx) + (dy * dy);
+        return double.IsFinite(distance) ? distance : double.PositiveInfinity;
+    }
+
+    // The first index of a range that holds a value, read in the pieces the column gives.
+    private long Find(long start, long end, double value)
+    {
+        for (var at = start; at < end;)
+        {
+            var values = _source.Read(at, (int)Math.Min(end - at, 1 << 20));
+            if (values.IsEmpty)
+            {
+                break;
+            }
+
+            for (var i = 0; i < values.Length; i++)
+            {
+                if (double.CreateTruncating(values[i]) == value)
+                {
+                    return at + i;
+                }
+            }
+
+            at += values.Length;
+        }
+
+        return start;
+    }
+
+    private bool TryTake(long at, out long index, out double x, out double y)
+    {
+        index = at;
+        return TryReadPoint(at, out x, out y) && double.IsFinite(y);
+    }
+
+    /// <inheritdoc />
     protected internal override bool TryReadPoint(long index, out double x, out double y)
     {
         var values = _source.Read(index, 1);

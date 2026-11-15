@@ -1998,6 +1998,7 @@ sealed class Tachyon.Charts.Core.Series.ColumnLineSeries<T> : Tachyon.Charts.Cor
   System.Double Thickness { get; set; }
   System.Void Dispose()
   Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+  protected virtual System.Boolean TryFindPoint(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Numerics.Vector2 pixel, System.Double maximumDistance, Tachyon.Charts.Core.HitTesting.HitTestMode mode, out System.Int64 index, out System.Double x, out System.Double y)
   protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
   protected virtual System.Boolean TryReadPoint(System.Int64 index, out System.Double x, out System.Double y)
   protected virtual System.Int32 DrawnPointCount { get; }
