@@ -31,7 +31,7 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
     /// <summary>Gets the names of the colormaps of heatmaps.</summary>
     public static IReadOnlyList<string> Colormaps { get; } = ["Viridis", "Inferno", "Magma", "Plasma", "Turbo", "Grayscale"];
 
-    public IReadOnlyList<ChartTypeInfo> Types { get; } = [.. Basic(), LargeFileType.Type, DigitalType.Type, .. ScienceTypes.Create(), .. FinanceTypes.Create(), .. InstrumentTypes.Create()];
+    public IReadOnlyList<ChartTypeInfo> Types { get; } = [.. Basic(), LargeFileType.Type, DigitalType.Type, PointDensityType.Type, .. ScienceTypes.Create(), .. FinanceTypes.Create(), .. InstrumentTypes.Create()];
 
     private static IReadOnlyList<ChartTypeInfo> Basic() =>
     [
@@ -105,10 +105,10 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         ], ApplyHeatmap, HeatmapCode) { Usings = ["Tachyon.Charts.Core.Colors"] },
     ];
 
-    public IReadOnlyList<SampleInfo> Samples { get; } = [.. SampleCatalog.Create(), .. ScienceSamples.Create(), .. FinanceTypes.Samples(), .. InstrumentTypes.Samples(), .. ShowroomSamples.Create(), .. ShowroomShapes.Create(), .. ShowroomPrices.Create(), .. ShowroomPlans.Create(), .. ShowroomGallery.Create(), .. ShowroomChecks.Create(), LargeFileType.Sample, DigitalType.Sample];
+    public IReadOnlyList<SampleInfo> Samples { get; } = [.. SampleCatalog.Create(), .. ScienceSamples.Create(), .. FinanceTypes.Samples(), .. InstrumentTypes.Samples(), .. ShowroomSamples.Create(), .. ShowroomShapes.Create(), .. ShowroomPrices.Create(), .. ShowroomPlans.Create(), .. ShowroomGallery.Create(), .. ShowroomChecks.Create(), LargeFileType.Sample, DigitalType.Sample, PointDensityType.Sample];
 
     /// <inheritdoc />
-    IReadOnlyList<DataLoader> IDataLoaders.Loaders { get; } = [LargeFileType.Loader];
+    IReadOnlyList<DataLoader> IDataLoaders.Loaders { get; } = [LargeFileType.Loader, PointDensityType.Loader];
 
     /// <inheritdoc />
     public IReadOnlyList<PageInfo> Pages => ShowroomPages.Core;

@@ -62,6 +62,7 @@ internal static class ShowroomPages
         new("1 million candles", _ => Prices("1 million minute candles", Series("candles", string.Empty, "minuteWalk", 1_000_000, ("hollow", true), ("volumeShare", 0.25)))),
         new("Large file", _ => LargeFile()),
         new("Digital channels", _ => DigitalChannels()),
+        new("Scatter from a file", _ => ScatterFromAFile()),
         new("Candles without weekends", _ =>
         {
             var spec = Prices("Working days only, the weekends take no room", Series("candles", string.Empty, "workdayWalk", 60, ("volume", false)));
@@ -690,6 +691,20 @@ internal static class ShowroomPages
         }
 
         Interactions(spec, "zoompan", "rubberband", "tooltip");
+        return spec;
+    }
+
+    // 200 million points from a test file as a density, refining while the tiles are sorted.
+    private static ChartSpec ScatterFromAFile()
+    {
+        var spec = new ChartSpec
+        {
+            Title = "200 million points from a file",
+            XAxes = { new AxisSpec { Id = "x", Title = "X" } },
+            YAxes = { new AxisSpec { Id = "y", Title = "Y" } },
+            Series = { Series(PointDensityType.Id, "Points", PointDensityType.SampleId, 200_000_000, ("colormap", "Inferno"), ("log", true)) },
+        };
+        Interactions(spec, "zoompan", "rubberband");
         return spec;
     }
 

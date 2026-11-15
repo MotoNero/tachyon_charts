@@ -204,6 +204,21 @@ public sealed record HeatmapDefinition : RasterDefinition
     };
 }
 
+/// <summary>A described density of points sorted into tiles.</summary>
+public sealed record PointDensityDefinition : RasterDefinition
+{
+    /// <summary>Gets the most points read from the tiles per frame.</summary>
+    public int PointBudget { get; init; } = 4_000_000;
+
+    /// <inheritdoc />
+    internal override ChartSeries Create(AxisBase x, AxisBase y, ColorAxis? colorAxis)
+    {
+        // Pixels without a point show the plot.
+        colorAxis!.BelowColor = default(Rgba8);
+        return new PointDensitySeries((PointTiles)Source, x, y, colorAxis) { PointBudget = PointBudget };
+    }
+}
+
 /// <summary>A described spectrogram.</summary>
 public sealed record SpectrogramDefinition : RasterDefinition
 {
@@ -742,6 +757,48 @@ public sealed class ColorAxisBuilder
     public ColorAxisBuilder Title(string title) => Change(Definition with { Title = title });
 
     private ColorAxisBuilder Change(ColorAxisDefinition definition)
+    {
+        Definition = definition;
+        return this;
+    }
+}
+
+/// <summary>Describes a density of points sorted into tiles.</summary>
+public sealed class PointDensityBuilder
+{
+    internal PointDensityBuilder(PointTiles tiles)
+    {
+        Definition = new PointDensityDefinition { Source = tiles };
+    }
+
+    internal PointDensityDefinition Definition { get; private set; }
+
+    /// <summary>Sets the name shown in rollovers and legends.</summary>
+    /// <param name="name">The name.</param>
+    /// <returns>This builder.</returns>
+    public PointDensityBuilder Name(string name) => Change(Definition with { Name = name });
+
+    /// <summary>Sets the most points read from the tiles per frame; more make narrow views finer and slower.</summary>
+    /// <param name="points">The points per frame.</param>
+    /// <returns>This builder.</returns>
+    public PointDensityBuilder PointBudget(int points)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(points, 1000);
+        return Change(Definition with { PointBudget = points });
+    }
+
+    /// <summary>Describes the scale of the counts.</summary>
+    /// <param name="configure">Describes the scale.</param>
+    /// <returns>This builder.</returns>
+    public PointDensityBuilder ColorAxis(Action<ColorAxisBuilder> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        var builder = new ColorAxisBuilder();
+        configure(builder);
+        return Change(Definition with { ColorAxis = builder.Definition });
+    }
+
+    private PointDensityBuilder Change(PointDensityDefinition definition)
     {
         Definition = definition;
         return this;
@@ -1445,6 +1502,19 @@ public sealed class ChartBuilder
     {
         ArgumentNullException.ThrowIfNull(factory);
         _series.Add(new CustomSeriesDefinition { Source = factory, Factory = factory, XAxisId = xAxis, YAxisId = yAxis });
+        return this;
+    }
+
+    /// <summary>Adds a density of points sorted into tiles, such as a scatter of a billion points from a file.</summary>
+    /// <param name="tiles">The points.</param>
+    /// <param name="configure">Describes the density.</param>
+    /// <returns>This builder.</returns>
+    public ChartBuilder AddPointDensity(PointTiles tiles, Action<PointDensityBuilder>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(tiles);
+        var builder = new PointDensityBuilder(tiles);
+        configure?.Invoke(builder);
+        _series.Add(builder.Definition);
         return this;
     }
 

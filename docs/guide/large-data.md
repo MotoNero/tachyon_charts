@@ -93,6 +93,29 @@ wide views show what is indexed so far, with the `RefiningOverlay`.
 The showroom page „Digital channels“ shows sixteen channels of a logic analyzer, a billion points each; the
 configurator offers the type „Digital channels“.
 
+## Scatter from files
+
+A scatter of a billion points shows as a density: each pixel tells how many points fall into it. The points come from
+two columns of a column file, X and Y, and are sorted once into tiles beside it, about 8 bytes per point.
+
+```csharp
+using var file = ColumnFile.Open("cloud.tcol");    // X in the first column, Y in the second
+var tiles = PointTiles.Build(file.Column<float>(0), file.Column<float>(1), "cloud.tcol.tpts");
+
+chart.AddPointDensity(tiles, s => s.Name("Points").ColorAxis(a => a.Colormap(Colormaps.Inferno).Log()))
+     .AddOverlay(surface => new RefiningOverlay(surface));
+```
+
+- The tiles are built on all cores in the background (a billion points in about 16 seconds) and taken again next time
+  when they belong to the same points.
+- Wide views add up a grid of 4096 × 4096 counts, each cell shared out over the pixels it covers.
+- Narrow views count the points of the visible tiles, at most `PointBudget` per frame (4 million by default): a dense
+  tile gives a fair share of its points, weighted to its full count, a sparse one all of them, so that a single point
+  far out stays visible. Deep views read every point and are exact.
+
+The showroom page „Scatter from a file“ shows 200 million points; the configurator offers the type „Scatter from a file“,
+with the test file or a column file of your own.
+
 ## From CSV
 
 ```csharp

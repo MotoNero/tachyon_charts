@@ -208,6 +208,9 @@ public enum DataShape
 
     /// <summary>Channels of two levels, kept as their changes.</summary>
     Digital,
+
+    /// <summary>Points of a file with X and Y, sorted into tiles.</summary>
+    PointTiles,
 }
 
 /// <summary>One of several linked charts a type fills, such as a plane of a volume; all of them share the data.</summary>

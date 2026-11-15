@@ -208,6 +208,7 @@ enum Tachyon.Charts.Configurator.DataShape : System.IComparable, System.IConvert
   Model = 23
   Network = 28
   Pattern = 14
+  PointTiles = 32
   Points = 0
   Points3D = 10
   Polar = 17

@@ -181,6 +181,7 @@ public static class ConfiguratorLink
         ["1 million candles"] = "candles",
         ["Large file"] = "fileLine",
         ["Digital channels"] = "digital",
+        ["Scatter from a file"] = "pointDensity",
         ["Candles without weekends"] = "option:weekends",
         ["Market profile"] = "candles",
         ["Drawing tools"] = "candles",
