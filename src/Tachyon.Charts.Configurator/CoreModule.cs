@@ -105,7 +105,7 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         ], ApplyHeatmap, HeatmapCode) { Usings = ["Tachyon.Charts.Core.Colors"] },
     ];
 
-    public IReadOnlyList<SampleInfo> Samples { get; } = [.. SampleCatalog.Create(), .. ScienceSamples.Create(), .. FinanceTypes.Samples(), .. InstrumentTypes.Samples(), .. ShowroomSamples.Create(), .. ShowroomShapes.Create(), .. ShowroomPrices.Create(), .. ShowroomPlans.Create(), .. ShowroomGallery.Create(), .. ShowroomChecks.Create(), LargeFileType.Sample, DigitalType.Sample, PointDensityType.Sample, FileRasterType.Sample];
+    public IReadOnlyList<SampleInfo> Samples { get; } = [.. SampleCatalog.Create(), .. ScienceSamples.Create(), .. FinanceTypes.Samples(), .. InstrumentTypes.Samples(), .. ShowroomSamples.Create(), .. ShowroomShapes.Create(), .. ShowroomPrices.Create(), .. ShowroomPlans.Create(), .. ShowroomGallery.Create(), .. ShowroomChecks.Create(), LargeFileType.Sample, RecordingSample.Sample, DigitalType.Sample, PointDensityType.Sample, FileRasterType.Sample];
 
     /// <inheritdoc />
     IReadOnlyList<DataLoader> IDataLoaders.Loaders { get; } = [LargeFileType.Loader, PointDensityType.Loader, FileRasterType.Loader];

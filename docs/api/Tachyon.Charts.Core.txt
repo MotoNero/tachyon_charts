@@ -393,6 +393,26 @@ sealed class Tachyon.Charts.Core.Data.ColumnFileWriter<T> : System.IDisposable
   System.Void Dispose()
   System.Void SetX(System.Double xStart, System.Double xStep)
   static System.Int32 DefaultBlockRows
+sealed class Tachyon.Charts.Core.Data.ColumnRecorder<T> : System.IDisposable, Tachyon.Charts.Core.Data.IColumnSource<T>, Tachyon.Charts.Core.Resampling.IColumnPyramid<T>
+  .ctor(System.String folder, System.String name, System.Double xStart = 0, System.Double xStep = 1, System.Int32 maxFiles = 0, System.Int64 fileValues = 67108864)
+  System.Boolean IsComplete { get; }
+  System.Double Progress { get; }
+  System.Double XStart { get; }
+  System.Double XStep { get; }
+  System.Int32 BuiltPieces { get; }
+  System.Int32 FileCount { get; }
+  System.Int64 Count { get; }
+  System.Int64 Recorded { get; }
+  System.Int64 Version { get; }
+  System.ReadOnlySpan<T> Read(System.Int64 start, System.Int32 maxLength)
+  System.Void Append(System.ReadOnlySpan<T> values)
+  System.Void Append(T value)
+  System.Void Dispose()
+  Tachyon.Charts.Core.Resampling.MinMax<T> Query(System.Int64 start, System.Int64 end)
+  Tachyon.Charts.Core.Resampling.MinMax<T> QueryAvailable(System.Int64 start, System.Int64 end)
+  Tachyon.Charts.Core.Resampling.MinMax<T> QueryBlocks(System.Int64 start, System.Int64 end)
+  Tachyon.Charts.Core.Resampling.MinMax<T> Total { get; }
+  static System.Int64 DefaultFileValues
 enum Tachyon.Charts.Core.Data.ColumnType : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Bit = 5
   Double = 1
@@ -1945,7 +1965,7 @@ enum Tachyon.Charts.Core.Pipeline.ValueLabelPlace : System.IComparable, System.I
   Above = 0
   Center = 1
   Right = 2
-sealed class Tachyon.Charts.Core.Resampling.ColumnPyramid<T>
+sealed class Tachyon.Charts.Core.Resampling.ColumnPyramid<T> : Tachyon.Charts.Core.Resampling.IColumnPyramid<T>
   System.Boolean IsComplete { get; }
   System.Boolean IsFromFile { get; }
   System.Double Progress { get; }
@@ -1960,6 +1980,14 @@ sealed class Tachyon.Charts.Core.Resampling.ColumnPyramid<T>
   static System.Int32 Factor
   static System.Int64 PieceSize { get; }
   static Tachyon.Charts.Core.Resampling.ColumnPyramid<T> Build(Tachyon.Charts.Core.Data.IColumnSource<T> source, System.String filePath = null, System.Threading.CancellationToken cancellation = null)
+interface Tachyon.Charts.Core.Resampling.IColumnPyramid<T>
+  abstract System.Boolean IsComplete { get; }
+  abstract System.Double Progress { get; }
+  abstract System.Int32 BuiltPieces { get; }
+  abstract Tachyon.Charts.Core.Resampling.MinMax<T> Query(System.Int64 start, System.Int64 end)
+  abstract Tachyon.Charts.Core.Resampling.MinMax<T> QueryAvailable(System.Int64 start, System.Int64 end)
+  abstract Tachyon.Charts.Core.Resampling.MinMax<T> QueryBlocks(System.Int64 start, System.Int64 end)
+  abstract Tachyon.Charts.Core.Resampling.MinMax<T> Total { get; }
 sealed class Tachyon.Charts.Core.Resampling.LodPyramid<T>
   .ctor(System.Int32 factor = 4)
   System.Int64 ByteCount { get; }
@@ -2086,7 +2114,7 @@ enum Tachyon.Charts.Core.Series.CandleStyle : System.IComparable, System.IConver
   Candles = 0
   Ohlc = 1
 sealed class Tachyon.Charts.Core.Series.ColumnLineSeries<T> : Tachyon.Charts.Core.Pipeline.ChartSeries, System.IDisposable
-  .ctor(Tachyon.Charts.Core.Data.IColumnSource<T> source, Tachyon.Charts.Core.Resampling.ColumnPyramid<T> pyramid, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  .ctor(Tachyon.Charts.Core.Data.IColumnSource<T> source, Tachyon.Charts.Core.Resampling.IColumnPyramid<T> pyramid, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   System.Double Progress { get; }
   System.Double Thickness { get; set; }
   System.Void Dispose()

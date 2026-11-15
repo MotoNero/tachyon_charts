@@ -61,6 +61,7 @@ internal static class ShowroomPages
         new("OHLC bars", _ => Prices("Share price as OHLC bars", Series("candles", string.Empty, "dailyWalk3", 120, ("style", "Ohlc"), ("rising", "#0072B2"), ("falling", "#E69F00"), ("volume", false)))),
         new("1 million candles", _ => Prices("1 million minute candles", Series("candles", string.Empty, "minuteWalk", 1_000_000, ("hollow", true), ("volumeShare", 0.25)))),
         new("Large file", _ => LargeFile()),
+        new("Recording", _ => Recording()),
         new("Digital channels", _ => DigitalChannels()),
         new("Scatter from a file", _ => ScatterFromAFile()),
         new("Heatmap from a file", _ => HeatmapFromAFile()),
@@ -670,6 +671,20 @@ internal static class ShowroomPages
             XAxes = { new AxisSpec { Id = "x", Title = "Time in s" } },
             YAxes = { new AxisSpec { Id = "y", Title = "Value" } },
             Series = { Series(LargeFileType.Id, "Measurement", LargeFileType.SampleId, 1_000_000_000, ("thickness", 1.0), ("color", "#50AAF0")) },
+        };
+        Interactions(spec, "zoompan", "rubberband");
+        return spec;
+    }
+
+    // Ten million values per second recorded into a ring of files on the disk, the view rolling over the whole ring.
+    private static ChartSpec Recording()
+    {
+        var spec = new ChartSpec
+        {
+            Title = "10 million values per second, recorded on the disk",
+            XAxes = { new AxisSpec { Id = "x", Title = "Time in s" } },
+            YAxes = { new AxisSpec { Id = "y", Title = "Value" } },
+            Series = { Series(LargeFileType.Id, "Measurement", RecordingSample.Id, RecordingSample.Sample.DefaultCount, ("thickness", 1.0), ("color", "#50AAF0"), ("refining", false)) },
         };
         Interactions(spec, "zoompan", "rubberband");
         return spec;

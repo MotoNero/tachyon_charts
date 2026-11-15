@@ -56,6 +56,39 @@ the local data of Tachyon Charts (`%LOCALAPPDATA%\Tachyon\Samples` on Windows), 
 open it. The configurator offers the same as the type „Line from a large file“, with the test file or a column file of
 your own.
 
+## Recording for hours
+
+`ColumnRecorder<T>` writes live values into column files on the disk as they arrive, one file after another. With a
+limit of files it is a ring: the oldest file leaves as a new one comes, and the disk holds a fixed share of the latest
+values. Without a limit the record grows and every file stays. Each file is a column file of its own that opens later
+with `ColumnFile.Open`.
+
+```csharp
+using var recorder = new ColumnRecorder<float>(
+    folder, "pressure",
+    xStart: 0, xStep: 1e-7,         // ten million values per second
+    maxFiles: 20,                   // a ring of 20 files; 0 keeps all
+    fileValues: 1 << 26);           // 64 million values per file
+chart.AddSeries(new ColumnLineSeries<float>(recorder, recorder, xAxis, yAxis));
+
+// On the thread of the measurement:
+recorder.Append(chunk);
+```
+
+- The recorder is the column and its pyramid at once: the extremes of each block of 256 values, and of ever larger
+  blocks, grow as the values come, so the line draws its whole span at once, also looking back over hours.
+- One thread appends, any thread reads. Appending in chunks of thousands of values is much cheaper than single values.
+- The memory stays the same for hours: the values live in the files, the process keeps only the extremes of the blocks,
+  about 1 % of the size of the values.
+- In a ring, `XStart` moves on as old values leave; an axis with an automatic range rolls with the record. `Recorded`
+  counts all values since the start, `Count` those still on the disk.
+- `Dispose` writes the number of values into the last file; all files stay on the disk.
+
+The showroom page „Recording“ records ten million values per second into a ring of 17 files, about 1.1 billion values
+and 4.6 GB beside the local data of Tachyon Charts, and pauses while the page is not shown. The configurator offers it
+as the sample „A recording of 10 million values per second into a ring on the disk“ of the type „Line from a large
+file“.
+
 ## Digital channels
 
 Signals of two levels, such as logic channels, switches or bus lines, need far less than numbers. `DigitalSeries` draws

@@ -30,6 +30,7 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 | Scatter of 1 billion points from a file, zoom and pan | **90–240 FPS** |
 | Heatmap of 64k × 64k cells (16 GB) from a file, zoom and pan | **over 190 FPS** |
 | 3D point cloud of 1 billion points from a file, turning | **76–95 FPS** |
+| Recording 10 million values per second for an hour, rolling view over 1.3 billion | **over 570 FPS**, memory flat |
 | Chart at rest | **no frames, 0.02 % CPU** |
 
 ## Highlights
@@ -74,6 +75,10 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 | A billion values from a file of 4 GB | 16 digital channels of a billion points each |
 |---|---|
 | ![A billion values read from a column file: a slow and a fast wave with ten single spikes, every one of them kept](docs/images/large-file.png) | ![Sixteen channels of a logic analyzer: clock, chip select, data lines in bursts and interrupts of a single nanosecond, each still visible](docs/images/digital-channels.png) |
+
+| Recording 10 million values per second on the disk | |
+|---|---|
+| ![A live recording of ten million values per second: a slow wave with noise and a peak each second, every peak kept](docs/images/recording.png) | |
 
 | 200 million points from a file as a density | 268 million cells from a file |
 |---|---|
@@ -193,7 +198,7 @@ Labels of annotations show symbols of the icon package, sharp at every size and 
 - Numeric, time, logarithmic and category axes, stacked panes, linked charts, scale breaks and hidden times such as weekends, axes that cross in the origin, charts turned with the X axis down for depth profiles
 - Zoom, pan, crosshair with the values of all series at the pointer, tooltip, lasso selection, measuring cursors, annotations with styled labels (place, size, font, plate, frame, turn along the line, signs and more than 4 000 Material Symbols from the package `Tachyon.Charts.Icons`) and dashed lines, one undo chain for navigation and drawings
 - Several legends per chart, inside or outside the plot, each with its own series; a click switches a series off and on
-- Files larger than memory: column files mapped into memory, a pyramid of extremes built on all cores and kept beside the file, a coarse picture at once with a „Refining“ plate, pages read ahead while panning; CSV (over 1 GB per second) and HDF5 converted once ([large data](docs/guide/large-data.md))
+- Files larger than memory: column files mapped into memory, a pyramid of extremes built on all cores and kept beside the file, a coarse picture at once with a „Refining“ plate, pages read ahead while panning; recording live values for hours into a ring of files on the disk, the view rolling over billions; CSV (over 1 GB per second) and HDF5 converted once ([large data](docs/guide/large-data.md))
 - Scatter from files: a billion points and more as a density, sorted once into tiles beside the file; wide views from a count grid, narrow ones from the points themselves, a single point far out never lost
 - Maps without the internet: the countries of the world in three levels of detail, Equal Earth, Web Mercator and plain projections, layers of data on top, a reader of ESRI shapefiles, and tiles from a server the application names, with a cache and the notice of their source (package `Tachyon.Charts.Geo`)
 - 3D point clouds from files: a billion points and more, sorted once into pages beside the file; a sample of every page at once, the pages in view onto the GPU as the view needs them
@@ -447,6 +452,7 @@ Files larger than memory, on the internal SSD of the same laptop:
 | Heatmap of 64k × 64k cells (16 GB): stages, frames | 15 s once, 190–840 FPS |
 | Spectrogram of 2048 bins × 2 million rows (16 GB): frames | 170–840 FPS |
 | 3D cloud of 1 billion points (12 GB): first whole picture, turning | 0.8 s, 76–95 FPS |
+| Recording 1 h at 10 million values/s into a ring of 5.4 GB (36 billion values): rolling view of 1.3 billion, memory | 580–770 FPS, 330–380 MB throughout |
 
 Known gaps: a stress test of 50 charts that all change per frame reaches about 21 FPS in a real window instead of the targeted 60, and the CPU fallback misses its targets for streaming (23 instead of 30 FPS at full HD) and for large scatter plots (9 instead of 10 FPS). Both are planned.
 
@@ -472,7 +478,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Gantt](docs/guide/gantt.md) | Rows, groups, dependencies, milestones |
 | [Sweep monitors](docs/guide/sweep.md) | Writing over the previous pass or page by page, channels in step |
 | [Maps](docs/guide/geo.md) | Countries of the world, projections, layers of data, tiles from a server, shapefiles |
-| [Large data](docs/guide/large-data.md) | Files larger than memory, column files, CSV and HDF5, digital channels, scatter, heatmaps, spectrograms and 3D clouds from files |
+| [Large data](docs/guide/large-data.md) | Files larger than memory, column files, recording for hours, CSV and HDF5, digital channels, scatter, heatmaps, spectrograms and 3D clouds from files |
 | [Polygons](docs/guide/polygons.md) | Polygons with holes, heatmaps inside an area |
 | [Your own theme](docs/guide/custom-themes.md) | Themes as JSON or XAML in WPF and Avalonia, where the files go, all keys |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |

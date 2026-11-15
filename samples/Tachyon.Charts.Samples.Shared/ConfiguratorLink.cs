@@ -181,6 +181,7 @@ public static class ConfiguratorLink
         ["OHLC bars"] = "candles",
         ["1 million candles"] = "candles",
         ["Large file"] = "fileLine",
+        ["Recording"] = "fileLine",
         ["Digital channels"] = "digital",
         ["Scatter from a file"] = "pointDensity",
         ["Heatmap from a file"] = "fileRaster",

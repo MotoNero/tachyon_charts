@@ -50,6 +50,7 @@ public static class ChartTypePages
         (OhlcBarsPage.Name, OhlcBarsPage.Hint, OhlcBarsPage.Configure),
         (MillionCandlesPage.Name, MillionCandlesPage.Hint, MillionCandlesPage.Configure),
         (LargeFilePage.Name, LargeFilePage.Hint, LargeFilePage.Configure),
+        (RecordingPage.Name, RecordingPage.Hint, RecordingPage.Configure),
         (DigitalChannelsPage.Name, DigitalChannelsPage.Hint, DigitalChannelsPage.Configure),
         (ScatterFromAFilePage.Name, ScatterFromAFilePage.Hint, ScatterFromAFilePage.Configure),
         (HeatmapFromAFilePage.Name, HeatmapFromAFilePage.Hint, HeatmapFromAFilePage.Configure),

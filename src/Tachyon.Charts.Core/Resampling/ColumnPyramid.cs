@@ -13,7 +13,7 @@ namespace Tachyon.Charts.Core.Resampling;
 /// </summary>
 /// <typeparam name="T">The value type.</typeparam>
 /// <remarks>Members are safe to use from any thread. The values must not change while the pyramid lives.</remarks>
-public sealed class ColumnPyramid<T>
+public sealed class ColumnPyramid<T> : IColumnPyramid<T>
     where T : unmanaged, INumber<T>, IMinMaxValue<T>
 {
     /// <summary>The number of values of a block of the lowest level.</summary>

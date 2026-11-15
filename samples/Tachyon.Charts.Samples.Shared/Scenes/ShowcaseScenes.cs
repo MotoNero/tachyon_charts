@@ -11,7 +11,8 @@ namespace Tachyon.Charts.Samples.Shared.Scenes;
 /// <summary>A clean picture for the documentation. Scenes for tests show gaps and failures on purpose, these do not.</summary>
 /// <param name="name">The file name.</param>
 /// <param name="configure">Describes the chart.</param>
-public sealed class ShowcaseScene(string name, Action<ChartBuilder> configure) : IScene
+/// <param name="liveSeconds">How long live data arrive before the picture, drawn all the while as a window would.</param>
+public sealed class ShowcaseScene(string name, Action<ChartBuilder> configure, double liveSeconds = 0) : IScene
 {
     /// <inheritdoc />
     public string Name => name;
@@ -27,6 +28,11 @@ public sealed class ShowcaseScene(string name, Action<ChartBuilder> configure) :
         var chart = builder.ToDefinition().Build(SkiaTextEngine.Default).Surface;
         chart.Render(device, target);
         chart.Render(device, target);
+        for (var clock = System.Diagnostics.Stopwatch.StartNew(); clock.Elapsed.TotalSeconds < liveSeconds;)
+        {
+            Thread.Sleep(16);
+            chart.Render(device, target);
+        }
 
         // Tiles come in the background: drawn again until their number stays, for three seconds at most.
         if (chart.Series.OfType<Geo.TileLayerSeries>().FirstOrDefault() is { } tiles)
@@ -82,6 +88,7 @@ public static class ShowcaseScenes
         Type("digital-channels", "Digital channels", "16 channels of 1 billion points each"),
         Type("scatter-file", "Scatter from a file", "200 million points from a file"),
         Type("heatmap-file", "Heatmap from a file", "268 million cells from a file"),
+        Type("recording", "Recording", "10 million values per second, the first 8 seconds of a recording", liveSeconds: 8),
         Type("world-map", "World map", "Countries by distance from the equator"),
         Type("tile-map", "Tile map", "Tiles over the countries of the world"),
         Theme("theme-neon", "Neon", BuiltInThemes.Neon),
@@ -90,11 +97,11 @@ public static class ShowcaseScenes
         Type("theme-own", "Own theme", "Harbor, an own theme from JSON"),
     ];
 
-    private static ShowcaseScene Type(string name, string page, string title) => new(name, c =>
+    private static ShowcaseScene Type(string name, string page, string title, double liveSeconds = 0) => new(name, c =>
     {
         ChartTypePages.All.First(type => type.Name == page).Configure(c);
         c.Title(title);
-    });
+    }, liveSeconds);
 
     private static ShowcaseScene Theme(string name, string title, Theme theme) => new(name, c => c.Title(title).Theme(theme)
         .XAxis(a => a.Numeric("x").Title("Time in s").Range(0, 10))

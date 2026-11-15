@@ -28,7 +28,7 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable, Overlays.IRe
     private const long WholeBlocks = 16L * ColumnPyramid<double>.BlockSize;
 
     private readonly IColumnSource<T> _source;
-    private readonly ColumnPyramid<T> _pyramid;
+    private readonly IColumnPyramid<T> _pyramid;
     private readonly ColumnPrefetcher<T> _prefetcher;
     private Vector2[] _vertices = new Vector2[4096];
     private IGpuBuffer? _buffer;
@@ -42,10 +42,10 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable, Overlays.IRe
 
     /// <summary>Initializes a new instance of the <see cref="ColumnLineSeries{T}"/> class.</summary>
     /// <param name="source">The column.</param>
-    /// <param name="pyramid">Its pyramid, see <see cref="ColumnPyramid{T}.Build(IColumnSource{T}, string?, CancellationToken)"/>.</param>
+    /// <param name="pyramid">Its extremes: a pyramid, see <see cref="ColumnPyramid{T}.Build(IColumnSource{T}, string?, CancellationToken)"/>, or a <see cref="ColumnRecorder{T}"/> that is also the source.</param>
     /// <param name="xAxis">The X axis.</param>
     /// <param name="yAxis">The Y axis.</param>
-    public ColumnLineSeries(IColumnSource<T> source, ColumnPyramid<T> pyramid, AxisBase xAxis, AxisBase yAxis)
+    public ColumnLineSeries(IColumnSource<T> source, IColumnPyramid<T> pyramid, AxisBase xAxis, AxisBase yAxis)
         : base(xAxis, yAxis)
     {
         _source = source ?? throw new ArgumentNullException(nameof(source));
