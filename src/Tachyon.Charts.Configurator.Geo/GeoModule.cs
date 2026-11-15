@@ -44,6 +44,15 @@ public sealed class GeoModule : IChartModule, IDataLoaders
             Usings = ["Tachyon.Charts.Geo", "Tachyon.Charts.Core.Colors", "Tachyon.Charts.Rendering"],
             Packages = [("Tachyon.Charts.Geo", PackageVersion)],
         },
+        new("tileMap", "Tile map", ChartCategory.TwoD, DataShape.GeoMap, "world",
+            [
+                new("url", "Tile address", ParameterKind.Text, string.Empty) { Description = "The address of a tile with {z}, {x} and {y}. Tachyon Charts sets no server: the application names it and answers for its licence and terms. Empty for a grid drawn locally." },
+                new("attribution", "Source notice", ParameterKind.Text, string.Empty) { Description = "The notice the server asks for; the map shows it in the corner." },
+            ], ApplyTiles, TilesCode)
+        {
+            Usings = ["Tachyon.Charts.Geo"],
+            Packages = [("Tachyon.Charts.Geo", PackageVersion)],
+        },
     ];
 
     /// <inheritdoc />
@@ -54,7 +63,7 @@ public sealed class GeoModule : IChartModule, IDataLoaders
     ];
 
     /// <inheritdoc />
-    public IReadOnlyList<PageInfo> Pages { get; } = [new("World map", WorldPage)];
+    public IReadOnlyList<PageInfo> Pages { get; } = [new("World map", WorldPage), new("Tile map", TilePage)];
 
     /// <inheritdoc />
     IReadOnlyList<DataLoader> IDataLoaders.Loaders { get; } =
@@ -169,6 +178,48 @@ public sealed class GeoModule : IChartModule, IDataLoaders
 
         settings.Add($"map.BorderThickness = {CodeText.Number(values.GetNumber("borderThickness", 0.6))};");
         return $".AddSeries((x, y) => {{ var map = new GeoMapSeries({data}, GeoProjection.{values.GetText("projection", "EqualEarth")}, x, y); {string.Join(" ", settings)} return map; }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
+    }
+
+    // A server with its notice when both are given, else the grid drawn locally.
+    private static TileSource SourceOf(SpecValues values)
+    {
+        var (url, attribution) = (values.GetText("url", string.Empty), values.GetText("attribution", string.Empty));
+        return url.Contains("{z}", StringComparison.Ordinal) && url.Contains("{x}", StringComparison.Ordinal) && url.Contains("{y}", StringComparison.Ordinal) && !string.IsNullOrWhiteSpace(attribution)
+            ? new TileSource(url, attribution)
+            : TileSource.Grid();
+    }
+
+    private static string SourceCode(SpecValues values) => SourceOf(values).UrlTemplate.Length > 0
+        ? $"new TileSource({CodeText.String(values.GetText("url", string.Empty))}, {CodeText.String(values.GetText("attribution", string.Empty))})"
+        : "TileSource.Grid()";
+
+    private static void ApplyTiles(ChartBuilder chart, SeriesSpec series, object data, SeriesAxes axes)
+    {
+        var levels = (IReadOnlyList<GeoMap>)data;
+        var source = SourceOf(series.Parameters);
+        chart.AddSeries((x, y) => new GeoMapSeries(levels, GeoProjection.WebMercator, x, y), axes.X, axes.Y)
+            .AddSeries((x, y) => new TileLayerSeries(source, x, y), axes.X, axes.Y)
+            .AddOverlay(_ => new AttributionOverlay(source.Attribution));
+    }
+
+    private static string TilesCode(SeriesSpec series, string data, SeriesAxes axes) =>
+        $".AddSeries((x, y) => new GeoMapSeries({data}, GeoProjection.WebMercator, x, y), {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})" +
+        $".AddSeries((x, y) => new TileLayerSeries({SourceCode(series.Parameters)}, x, y), {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})" +
+        $".AddOverlay(_ => new AttributionOverlay({CodeText.String(SourceOf(series.Parameters).Attribution)}))";
+
+    // The tile page of the showroom: the grid drawn locally over the countries; a server comes from the environment there.
+    private static ChartSpec TilePage(ChartCatalog catalog)
+    {
+        var spec = catalog.CreateSpec("tileMap");
+        spec.Title = "Tiles from a server of your choice";
+        var (west, south, east, north) = GeoProjection.WebMercator.WorldBounds;
+        (spec.XAxes[0].IsHidden, spec.XAxes[0].Minimum, spec.XAxes[0].Maximum, spec.XAxes[0].Title) = (true, west, east, string.Empty);
+        (spec.YAxes[0].IsHidden, spec.YAxes[0].Minimum, spec.YAxes[0].Maximum, spec.YAxes[0].Title) = (true, south, north, string.Empty);
+        spec.Series[0].Name = string.Empty;
+        spec.Modifiers.Clear();
+        spec.Modifiers.Add(new ModifierSpec { Type = "zoompan" });
+        spec.Modifiers.Add(new ModifierSpec { Type = "rubberband" });
+        return spec;
     }
 
     // The page of the showroom: the countries by their distance from the equator and the capitals.

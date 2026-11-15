@@ -81,9 +81,9 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 
 ### Maps
 
-| World map without the internet |
-|---|
-| ![The countries of the world on the Equal Earth projection, colored by their distance from the equator, with twenty capitals as points](docs/images/world-map.png) |
+| World map without the internet | Tiles of a server over the countries |
+|---|---|
+| ![The countries of the world on the Equal Earth projection, colored by their distance from the equator, with twenty capitals as points](docs/images/world-map.png) | ![A grid of tiles drawn locally over the countries on the Web Mercator projection, with the notice of the source in the corner](docs/images/tile-map.png) |
 
 ### Chart types
 
@@ -195,7 +195,7 @@ Labels of annotations show symbols of the icon package, sharp at every size and 
 - Several legends per chart, inside or outside the plot, each with its own series; a click switches a series off and on
 - Files larger than memory: column files mapped into memory, a pyramid of extremes built on all cores and kept beside the file, a coarse picture at once with a „Refining“ plate, pages read ahead while panning; CSV (over 1 GB per second) and HDF5 converted once ([large data](docs/guide/large-data.md))
 - Scatter from files: a billion points and more as a density, sorted once into tiles beside the file; wide views from a count grid, narrow ones from the points themselves, a single point far out never lost
-- Maps without the internet: the countries of the world in three levels of detail, Equal Earth, Web Mercator and plain projections, layers of data on top, and a reader of ESRI shapefiles (package `Tachyon.Charts.Geo`)
+- Maps without the internet: the countries of the world in three levels of detail, Equal Earth, Web Mercator and plain projections, layers of data on top, a reader of ESRI shapefiles, and tiles from a server the application names, with a cache and the notice of their source (package `Tachyon.Charts.Geo`)
 - 3D point clouds from files: a billion points and more, sorted once into pages beside the file; a sample of every page at once, the pages in view onto the GPU as the view needs them
 - Heatmaps and spectrograms from files: rasters of 64k × 64k cells or millions of rows, read through stages built once beside the file that keep the mean or the peaks
 - Digital channels: signals of two levels kept as their changes or as one bit per point, a hundred billion points in a channel, many channels one above the other, no edge lost even of a single point
@@ -471,7 +471,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Drawing tools](docs/guide/drawings.md) | Fibonacci, channels, pitchfork, patterns, saving as JSON |
 | [Gantt](docs/guide/gantt.md) | Rows, groups, dependencies, milestones |
 | [Sweep monitors](docs/guide/sweep.md) | Writing over the previous pass or page by page, channels in step |
-| [Maps](docs/guide/geo.md) | Countries of the world, projections, layers of data, shapefiles |
+| [Maps](docs/guide/geo.md) | Countries of the world, projections, layers of data, tiles from a server, shapefiles |
 | [Large data](docs/guide/large-data.md) | Files larger than memory, column files, CSV and HDF5, digital channels, scatter, heatmaps, spectrograms and 3D clouds from files |
 | [Polygons](docs/guide/polygons.md) | Polygons with holes, heatmaps inside an area |
 | [Your own theme](docs/guide/custom-themes.md) | Themes as JSON or XAML in WPF and Avalonia, where the files go, all keys |

@@ -27,6 +27,19 @@ public sealed class ShowcaseScene(string name, Action<ChartBuilder> configure) :
         var chart = builder.ToDefinition().Build(SkiaTextEngine.Default).Surface;
         chart.Render(device, target);
         chart.Render(device, target);
+
+        // Tiles come in the background: drawn again until their number stays, for three seconds at most.
+        if (chart.Series.OfType<Geo.TileLayerSeries>().FirstOrDefault() is { } tiles)
+        {
+            var (last, still) = (-1, 0);
+            for (var wait = 0; wait < 60 && still < 4; wait++)
+            {
+                Thread.Sleep(50);
+                chart.Render(device, target);
+                (last, still) = (tiles.TileCount, tiles.TileCount == last ? still + 1 : 0);
+            }
+        }
+
         device.WaitForIdle();
         foreach (var series in chart.Series)
         {
@@ -70,6 +83,7 @@ public static class ShowcaseScenes
         Type("scatter-file", "Scatter from a file", "200 million points from a file"),
         Type("heatmap-file", "Heatmap from a file", "268 million cells from a file"),
         Type("world-map", "World map", "Countries by distance from the equator"),
+        Type("tile-map", "Tile map", "Tiles over the countries of the world"),
         Theme("theme-neon", "Neon", BuiltInThemes.Neon),
         Theme("theme-paper", "Paper", BuiltInThemes.Paper),
         Theme("theme-instrument", "Instrument", BuiltInThemes.Instrument),

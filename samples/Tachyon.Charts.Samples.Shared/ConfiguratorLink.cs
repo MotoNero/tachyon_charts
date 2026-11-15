@@ -185,6 +185,7 @@ public static class ConfiguratorLink
         ["Scatter from a file"] = "pointDensity",
         ["Heatmap from a file"] = "fileRaster",
         ["World map"] = "geoMap",
+        ["Tile map"] = "tileMap",
         ["Candles without weekends"] = "option:weekends",
         ["Market profile"] = "candles",
         ["Drawing tools"] = "candles",

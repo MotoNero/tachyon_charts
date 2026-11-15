@@ -49,6 +49,31 @@ chart.Configure(c => c
 
 Countries colored by a value are a map with `SetColors`; areas of your own are polygons of projected corners.
 
+## Tiles from a server
+
+Street maps or satellite pictures come as tiles from a server the application names. Tachyon Charts sets no server and
+no key: the application answers for the licence and the terms of use of its server, and the map shows the notice of
+its source in the corner.
+
+```csharp
+var tiles = new TileSource("https://tiles.example.org/{z}/{x}/{y}.png", "© Example contributors")
+{
+    UserAgent = "MyApp/1.0 (contact@example.org)",   // many servers ask for it
+    CacheFolder = Path.Combine(dataFolder, "Tiles"), // tiles kept between runs
+};
+chart.Configure(c => c
+    .Map(GeoProjection.WebMercator)                   // the countries below, also without a network
+    .Tiles(tiles)
+    .Modifiers(m => m.ZoomPan()));
+```
+
+- Tiles load in the background, six at a time, the tiles of the current view first; the map stays usable meanwhile.
+- Until a tile arrives, a coarser one that is there stands in for it; where none is, the countries below show, such as
+  without a network. A tile that failed is asked for again after half a minute.
+- PNG tiles are read by the package itself. For JPEG tiles, such as satellite pictures, set `Decode` to a decoder of the
+  application; `Fetch` replaces the download, for a key or another client.
+- `TileSource.Grid()` draws a grid of tiles locally, to see how tiles load without a server.
+
 ## Shapefiles
 
 ```csharp

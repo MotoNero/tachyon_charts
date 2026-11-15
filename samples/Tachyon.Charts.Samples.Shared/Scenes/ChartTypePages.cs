@@ -54,6 +54,7 @@ public static class ChartTypePages
         (ScatterFromAFilePage.Name, ScatterFromAFilePage.Hint, ScatterFromAFilePage.Configure),
         (HeatmapFromAFilePage.Name, HeatmapFromAFilePage.Hint, HeatmapFromAFilePage.Configure),
         (WorldMapPage.Name, WorldMapPage.Hint, WorldMapPage.Configure),
+        (TileMapPage.Name, TileMapPage.Hint, TileMapPage.Configure),
         (CandlesWithoutWeekendsPage.Name, CandlesWithoutWeekendsPage.Hint, CandlesWithoutWeekendsPage.Configure),
         (MarketProfilePage.Name, MarketProfilePage.Hint, MarketProfilePage.Configure),
         (DrawingToolsPage.Name, DrawingToolsPage.Hint, DrawingToolsPage.Configure),

@@ -30,4 +30,21 @@ public static class GeoCharts
                 return map;
             }, "x", "y");
     }
+
+    /// <summary>
+    /// Adds tiles of a server over a map of <see cref="GeoProjection.WebMercator"/>, with the notice of their source in
+    /// the corner. Put a <see cref="Map"/> of the same projection below it: where no tile is, without a network for
+    /// instance, its countries show.
+    /// </summary>
+    /// <param name="builder">The chart.</param>
+    /// <param name="source">Where the tiles come from.</param>
+    /// <returns>The chart.</returns>
+    public static ChartBuilder Tiles(this ChartBuilder builder, TileSource source)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(source);
+        return builder
+            .AddSeries((x, y) => new TileLayerSeries(source, x, y), "x", "y")
+            .AddOverlay(_ => new AttributionOverlay(source.Attribution));
+    }
 }
