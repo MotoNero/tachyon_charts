@@ -38,6 +38,9 @@ public sealed class ChartSurface
     private readonly AxisBase[] _axes;
     private readonly ITextEngine _textEngine;
     private TextFont _titleFont;
+    private TextFont _axisFont;
+    private string? _themeFamily;
+    private (Rgba8 Line, Rgba8 Fill, Rgba8 Text)? _crosshair;
     private readonly TextEngineMeasurer _measurer;
     private ChartLayoutOptions _options;
 
@@ -169,12 +172,13 @@ public sealed class ChartSurface
     /// <summary>Gets or sets the font of the labels and titles of the axes; the default is the font of the text engine.</summary>
     public TextFont AxisFont
     {
-        get => _measurer.Font;
+        get => _axisFont;
         set
         {
-            if (_measurer.Font != value)
+            if (_axisFont != value)
             {
-                _measurer.Font = value;
+                _axisFont = value;
+                _measurer.Font = WithThemeFamily(value);
                 _structureVersion++;
             }
         }
@@ -248,8 +252,16 @@ public sealed class ChartSurface
         }
 
         Style = from;
-        Animator.Animate(_transitionTarget, duration, Easing.CubicOut, progress => Style = progress >= 1 ? to : ChartSurfaceStyle.Blend(from, to, progress));
+        Animator.Animate(_transitionTarget, duration, EasingOf(theme), progress => Style = progress >= 1 ? to : ChartSurfaceStyle.Blend(from, to, progress));
     }
+
+    // The easing of the theme for its transitions: cubicOut, cubicInOut or linear; others ease out.
+    private static Easing EasingOf(Theme? theme) => theme?.Resolve().Animation?.Easing?.ToUpperInvariant() switch
+    {
+        "LINEAR" => Easing.Linear,
+        "CUBICINOUT" => Easing.CubicInOut,
+        _ => Easing.CubicOut,
+    };
 
     /// <summary>
     /// Gets or sets a value indicating whether effects of the theme are drawn. Off is the profile
@@ -926,7 +938,7 @@ public sealed class ChartSurface
             return;
         }
 
-        _canvas.Begin(device, frame, layout, scale, chartWidth, _tickColor, _labelColor, _style.BackgroundColor, _labelSize);
+        _canvas.Begin(device, frame, layout, scale, chartWidth, _tickColor, _labelColor, _style.BackgroundColor, _labelSize, _crosshair ?? (_tickColor, _tickColor, _style.BackgroundColor));
         _canvas.ChartHeight = _renderedSize.Height / scale;
         _usedCanvas = true;
         if (hasBreaks)
@@ -1033,6 +1045,11 @@ public sealed class ChartSurface
             _labelColor = theme.Axis?.Label?.Value ?? _defaultText;
             _titleColor = theme.Axis?.Title?.Value ?? _defaultText;
         }
+
+        // The crosshair in the colors of the theme, where it has them; the first family of the theme for text without a font of its own.
+        _crosshair = theme?.Crosshair is { } crosshair ? (crosshair.Line ?? _tickColor, crosshair.LabelBackground ?? _tickColor, crosshair.LabelText ?? _style.BackgroundColor) : null;
+        _themeFamily = FirstFamily(theme?.Text?.FontFamily);
+        _measurer.Font = WithThemeFamily(_axisFont);
 
         _theme = theme;
         var glow = theme?.Effects?.Glow;
@@ -1146,8 +1163,8 @@ public sealed class ChartSurface
 
         if (!string.IsNullOrEmpty(_title))
         {
-            var left = layout.Title.X + ((layout.Title.Width - _textEngine.MeasureWidth(_title, _titleSize, _titleFont)) / 2);
-            AddText(_title, left, layout.Title.Bottom - 2, _titleSize, _titleColor, scale, _titleFont);
+            var left = layout.Title.X + ((layout.Title.Width - _textEngine.MeasureWidth(_title, _titleSize, WithThemeFamily(_titleFont))) / 2);
+            AddText(_title, left, layout.Title.Bottom - 2, _titleSize, _titleColor, scale, WithThemeFamily(_titleFont));
         }
 
         foreach (var placement in layout.Axes)
@@ -1484,6 +1501,13 @@ public sealed class ChartSurface
             _glyphs[i] = _glyphs[i] with { Rotation = radians, Pivot = pivot };
         }
     }
+
+    // The first family a theme names; the embedded Roboto is the font of the engine.
+    private static string? FirstFamily(string? families) =>
+        families?.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() is { } first && !first.Equals("Roboto", StringComparison.OrdinalIgnoreCase) ? first : null;
+
+    // A font without a family of its own takes that of the theme.
+    private TextFont WithThemeFamily(TextFont font) => font.Family is null && _themeFamily is not null ? font with { Family = _themeFamily } : font;
 
     private void AddText(string text, double x, double baseline, float size, Rgba8 color, double scale, TextFont font)
     {

@@ -190,8 +190,8 @@ public sealed class CrosshairOverlay : ChartOverlay
             var (x, y) = Place(axis, bounds, along, width, height, canvas.GetLineHeight(canvas.LabelSize) + 4);
             var label = Free(new DipRect(x, y, width, height), axis.IsHorizontal, bounds);
             _axisLabels.Add((label, axis.Position, text));
-            var color = curve is { } series && SharesSide(placements, placement) ? series.AccentColor : canvas.AccentColor;
-            canvas.DrawLabel(text, label.X, label.Y, color, canvas.BackgroundColor);
+            var (color, ink) = curve is { } series && SharesSide(placements, placement) ? (series.AccentColor, canvas.BackgroundColor) : (canvas.CrosshairLabelFill, canvas.CrosshairLabelText);
+            canvas.DrawLabel(text, label.X, label.Y, color, ink);
         }
     }
 
@@ -323,7 +323,7 @@ public sealed class CrosshairOverlay : ChartOverlay
         var line = axis.IsHorizontal
             ? (new Vector2((float)at, (float)pane.Y), new Vector2((float)at, (float)pane.Bottom))
             : (new Vector2((float)pane.X, (float)at), new Vector2((float)pane.Right, (float)at));
-        canvas.DrawLine(line.Item1, line.Item2, 1, canvas.AccentColor);
+        canvas.DrawLine(line.Item1, line.Item2, 1, canvas.CrosshairColor);
     }
 
     private void DrawCross(OverlayCanvas canvas, Vector2 position)
@@ -335,8 +335,8 @@ public sealed class CrosshairOverlay : ChartOverlay
         }
 
         canvas.Clip = pane;
-        canvas.DrawLine(new Vector2(center.X, (float)pane.Y), new Vector2(center.X, (float)pane.Bottom), 1, canvas.AccentColor);
-        canvas.DrawLine(new Vector2((float)pane.X, center.Y), new Vector2((float)pane.Right, center.Y), 1, canvas.AccentColor);
+        canvas.DrawLine(new Vector2(center.X, (float)pane.Y), new Vector2(center.X, (float)pane.Bottom), 1, canvas.CrosshairColor);
+        canvas.DrawLine(new Vector2((float)pane.X, center.Y), new Vector2((float)pane.Right, center.Y), 1, canvas.CrosshairColor);
         canvas.Clip = null;
 
         if (_snapped is not null)

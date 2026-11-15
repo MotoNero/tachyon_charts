@@ -69,7 +69,7 @@ Appearance = new AnnotationAppearance
 takes the height of the label. A symbol read from a file needs `MaterialSymbols.Register()` once before the chart draws.
 The configurator offers every symbol under *Label symbol*, with a box to search and a picture of each.
 
-![Labels with a thermometer, a lightning bolt and a wrench, each in its own color and size](../images/annotation-symbols.png)
+![Labels with a thermometer, a bolt and a wrench, each in its own color and size](../images/annotation-symbols.png)
 
 ## Editing by mouse
 

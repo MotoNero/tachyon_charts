@@ -156,7 +156,7 @@ Title, axes and labels take their own font: family, bold and italic.
 
 Labels of annotations show symbols of the icon package, sharp at every size and in any color ([symbols](docs/guide/annotations.md#symbols)).
 
-![Labels with a thermometer, a lightning bolt and a wrench, each in its own color and size](docs/images/annotation-symbols.png)
+![Labels with a thermometer, a bolt and a wrench, each in its own color and size](docs/images/annotation-symbols.png)
 
 ## Features
 

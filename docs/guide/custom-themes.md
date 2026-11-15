@@ -260,8 +260,8 @@ In Avalonia, `window.GetVisualDescendants().OfType<Chart>()` from `Avalonia.Visu
 ## All keys
 
 The keys of XAML; in JSON the part after `Tachyon.` is the group and the name. The last two columns are the values of
-`Tachyon Dark` and `Tachyon Light`, the bases `dark` and `light`. A few values are kept in a theme but not used for
-drawing yet; the table says so.
+`Tachyon Dark` and `Tachyon Light`, the bases `dark` and `light`. Three values are kept in a theme only, as each series
+or chart control sets them itself; the table says so.
 
 | Key | What it sets | Dark | Light |
 | --- | --- | --- | --- |
@@ -275,18 +275,18 @@ drawing yet; the table says so.
 | `Tachyon.axis.tick` | Tick marks. | `#3A4352` | `#7B8798` |
 | `Tachyon.axis.label` | Tick labels. | `#9AA4B2` | `#526071` |
 | `Tachyon.axis.title` | Axis titles and the chart title. | `#C9D1D9` | `#202936` |
-| `Tachyon.text.fontFamily` | Preferred fonts, separated by commas; not used for drawing yet. | `Roboto, Segoe UI, SF Pro, sans-serif` | `Roboto, Segoe UI, SF Pro, sans-serif` |
+| `Tachyon.text.fontFamily` | Fonts separated by commas; the first gives title and axes their family where they have no font of their own, Roboto being the font of the engine. | `Roboto, Segoe UI, SF Pro, sans-serif` | `Roboto, Segoe UI, SF Pro, sans-serif` |
 | `Tachyon.text.size` | Size of tick labels in device-independent pixels; titles are 3 larger. | `12` | `12` |
 | `Tachyon.palette` | Colors of instrument traces, of the series of parallel coordinates, ternary and Smith charts and of 3D series without a color of their own, separated by commas. | `#4CC9F0, #F72585, #7CFC9A, #FFB703, #B388FF, #FF6B6B` | `#0077B6, #D81B60, #218739, #C77D00, #7048B8, #D64545` |
-| `Tachyon.colormap` | Name of a colormap; not used for drawing yet, each series sets its own. | `turbo` | `turbo` |
-| `Tachyon.crosshair.line` | Crosshair lines; not used for drawing yet, the crosshair has its own colors. | `#FFFFFF66` | `#20293666` |
-| `Tachyon.crosshair.labelBackground` | Background of the crosshair labels; not used for drawing yet. | `#4CC9F0` | `#0077B6` |
-| `Tachyon.crosshair.labelText` | Text of the crosshair labels; not used for drawing yet. | `#0E1117` | `#FFFFFF` |
+| `Tachyon.colormap` | Name of a colormap; kept in the theme only, each series sets its own colormap. | `turbo` | `turbo` |
+| `Tachyon.crosshair.line` | Crosshair lines. | `#FFFFFF66` | `#20293666` |
+| `Tachyon.crosshair.labelBackground` | Background of the crosshair labels at the axes. | `#4CC9F0` | `#0077B6` |
+| `Tachyon.crosshair.labelText` | Text of the crosshair labels at the axes. | `#0E1117` | `#FFFFFF` |
 | `Tachyon.glow.enabled` | Whether lines glow: true or false. | `false` | `false` |
 | `Tachyon.glow.radius` | Radius of the glow in pixels. | `6` | `6` |
 | `Tachyon.glow.intensity` | Strength of the glow, 0 to 1. | `0.6` | `0.4` |
-| `Tachyon.effects.seriesOpacity` | Opacity of all series, 0 to 1; not used for drawing yet. | `1` | `1` |
-| `Tachyon.animation.durationMs` | Duration of animations in milliseconds; not used yet, each animation sets its own. | `250` | `250` |
-| `Tachyon.animation.easing` | Easing of animations, such as cubicOut or linear; not used yet. | `cubicOut` | `cubicOut` |
+| `Tachyon.effects.seriesOpacity` | Opacity of all series, 0 to 1; kept in the theme only. | `1` | `1` |
+| `Tachyon.animation.durationMs` | Duration of animations in milliseconds; kept in the theme only, the chart controls set the duration of theme changes. | `250` | `250` |
+| `Tachyon.animation.easing` | Easing of theme changes: cubicOut, cubicInOut or linear. | `cubicOut` | `cubicOut` |
 
 `ThemeResources.Keys` lists the same keys with their meaning, for tools of your own.

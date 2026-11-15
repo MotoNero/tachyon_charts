@@ -48,6 +48,7 @@ Annotations take `LabelFont` in their `Appearance`.
   in the same cut, so a chart never loses its text.
 - A family without an italic cut, such as Roboto Slab, leans its upright letters.
 
-All fonts share one glyph atlas; a font used again costs nothing per frame.
+A theme can name the family too: the first family of `text.fontFamily` goes to title and axes that have no family of
+their own. All fonts share one glyph atlas; a font used again costs nothing per frame.
 
 ![The title in Roboto Slab bold, the axes in italic, labels in bold, italic and Roboto Slab bold italic](../images/text-fonts.png)

@@ -1606,6 +1606,9 @@ sealed class Tachyon.Charts.Core.Overlays.OverlayCanvas
   Tachyon.Charts.Core.Layout.DipRect DrawLabel(System.String text, System.Double x, System.Double y, Tachyon.Charts.Rendering.Rgba8 background, Tachyon.Charts.Rendering.Rgba8 foreground)
   Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
   Tachyon.Charts.Rendering.Rgba8 BackgroundColor { get; }
+  Tachyon.Charts.Rendering.Rgba8 CrosshairColor { get; }
+  Tachyon.Charts.Rendering.Rgba8 CrosshairLabelFill { get; }
+  Tachyon.Charts.Rendering.Rgba8 CrosshairLabelText { get; }
   Tachyon.Charts.Rendering.Rgba8 TextColor { get; }
 sealed class Tachyon.Charts.Core.Overlays.RolloverOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
   .ctor()

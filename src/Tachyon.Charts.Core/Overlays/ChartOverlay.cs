@@ -64,6 +64,15 @@ public sealed class OverlayCanvas
     /// <summary>Gets the background of the chart in the current theme.</summary>
     public Rgba8 BackgroundColor { get; private set; }
 
+    /// <summary>Gets the color of crosshair lines, from the theme or else the accent color.</summary>
+    public Rgba8 CrosshairColor { get; private set; }
+
+    /// <summary>Gets the plate of crosshair labels at the axes, from the theme or else the accent color.</summary>
+    public Rgba8 CrosshairLabelFill { get; private set; }
+
+    /// <summary>Gets the text of crosshair labels at the axes, from the theme or else the background color.</summary>
+    public Rgba8 CrosshairLabelText { get; private set; }
+
     /// <summary>Gets the font size of labels.</summary>
     public float LabelSize { get; private set; }
 
@@ -441,7 +450,7 @@ public sealed class OverlayCanvas
     /// <summary>Gets or sets the height of the chart in device-independent units.</summary>
     internal double ChartHeight { get; set; }
 
-    internal void Begin(IRenderDevice device, ICommandList commands, ChartLayoutResult layout, double scale, double chartWidth, Rgba8 accent, Rgba8 text, Rgba8 background, float labelSize)
+    internal void Begin(IRenderDevice device, ICommandList commands, ChartLayoutResult layout, double scale, double chartWidth, Rgba8 accent, Rgba8 text, Rgba8 background, float labelSize, (Rgba8 Line, Rgba8 Fill, Rgba8 Text) crosshair)
     {
         if (_device != device)
         {
@@ -457,6 +466,7 @@ public sealed class OverlayCanvas
         AccentColor = accent;
         TextColor = text;
         BackgroundColor = background;
+        (CrosshairColor, CrosshairLabelFill, CrosshairLabelText) = crosshair;
         LabelSize = labelSize;
         Clip = null;
     }
