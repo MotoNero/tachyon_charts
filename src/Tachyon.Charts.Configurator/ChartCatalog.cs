@@ -216,6 +216,15 @@ public sealed record ViewInfo(string Name, Action<ChartBuilder, SeriesSpec, obje
 /// <param name="Create">Makes a new description.</param>
 public sealed record TemplateInfo(string Id, string Name, Func<ChartCatalog, ChartSpec> Create);
 
+/// <summary>What a module adds to the look of every annotation, such as a symbol of a package before the label.</summary>
+/// <param name="Parameters">The fields it adds.</param>
+/// <param name="Apply">Sets the look from the values of an annotation.</param>
+/// <param name="Code">Writes the same as members of an <c>AnnotationAppearance</c> initializer; empty when the values add nothing.</param>
+/// <param name="Usings">The namespaces the code needs.</param>
+/// <param name="Package">The package the code needs.</param>
+/// <param name="PackageVersion">Its version.</param>
+public sealed record AnnotationLookInfo(IReadOnlyList<ParameterInfo> Parameters, Action<SpecValues, Core.Annotations.AnnotationAppearance> Apply, Func<SpecValues, IReadOnlyList<string>> Code, IReadOnlyList<string> Usings, string Package, string PackageVersion);
+
 /// <summary>A page of the showroom as a description: the same charts, series, axes, interactions and data.</summary>
 /// <param name="Page">The identifier of the page in the showroom.</param>
 /// <param name="Create">Makes the description.</param>
@@ -397,6 +406,9 @@ public interface IChartModule
 
     /// <summary>Gets the pages of the showroom this module describes completely.</summary>
     IReadOnlyList<PageInfo> Pages => [];
+
+    /// <summary>Gets what the module adds to the look of every annotation, such as symbols.</summary>
+    IReadOnlyList<AnnotationLookInfo> AnnotationLooks => [];
 }
 
 /// <summary>
@@ -426,10 +438,13 @@ public sealed class ChartCatalog
     private readonly List<PageInfo> _pages = [];
 
     // The modules of the add-ons by type and assembly; loaded only when the assembly is there.
+    private readonly List<AnnotationLookInfo> _looks = [];
+
     private static readonly string[] _addOns =
     [
         "Tachyon.Charts.Configurator.ThreeD.ThreeDModule, Tachyon.Charts.Configurator.ThreeD",
         "Tachyon.Charts.Configurator.Medical.MedicalModule, Tachyon.Charts.Configurator.Medical",
+        "Tachyon.Charts.Configurator.Icons.IconsModule, Tachyon.Charts.Configurator.Icons",
     ];
 
     /// <summary>Initializes a catalog with the 2D types of the core.</summary>
@@ -486,6 +501,7 @@ public sealed class ChartCatalog
     public void Add(IChartModule module)
     {
         ArgumentNullException.ThrowIfNull(module);
+        _looks.AddRange(module.AnnotationLooks);
         foreach (var type in module.Types)
         {
             if (_types.Any(known => known.Id == type.Id))
@@ -538,6 +554,14 @@ public sealed class ChartCatalog
     /// <param name="id">The identifier.</param>
     /// <returns>The kind, or <see langword="null"/>.</returns>
     internal static AnnotationInfo? FindAnnotation(string id) => AnnotationCatalog.All.FirstOrDefault(info => info.Id == id);
+
+    /// <summary>Gets what the modules add to the look of annotations.</summary>
+    public IReadOnlyList<AnnotationLookInfo> AnnotationLooks => _looks;
+
+    /// <summary>Gets the parameters of a kind of annotation with those the modules add.</summary>
+    /// <param name="info">The kind.</param>
+    /// <returns>The parameters.</returns>
+    internal IReadOnlyList<ParameterInfo> AnnotationParameters(AnnotationInfo info) => [.. info.Parameters, .. _looks.SelectMany(look => look.Parameters)];
 
     /// <summary>Gets the scene the series of a description go into, or <see langword="null"/> when they go into the chart itself.</summary>
     /// <param name="spec">The description.</param>
@@ -679,7 +703,7 @@ public sealed class ChartCatalog
             }
             else
             {
-                CheckValues(info.Name, info.Parameters, annotation.Parameters, problems);
+                CheckValues(info.Name, AnnotationParameters(info), annotation.Parameters, problems);
             }
         }
 

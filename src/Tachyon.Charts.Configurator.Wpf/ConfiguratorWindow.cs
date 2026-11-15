@@ -391,6 +391,9 @@ internal sealed class ConfiguratorWindow : Window
                 var check = new CheckBox { Content = field.Info.Label, IsChecked = (bool)field.Value, Foreground = (Brush)FindResource("Ink") };
                 check.Click += (_, _) => Report(field.Set(check.IsChecked == true));
                 return check;
+            case ParameterKind.Choice when field.Info.Choices.Count > LongList:
+                editor = SearchableChoice(field, Report);
+                break;
             case ParameterKind.Choice:
                 var choice = new ComboBox { ItemsSource = field.Info.Choices, SelectedItem = field.Value, HorizontalAlignment = HorizontalAlignment.Stretch };
                 if (field.Info.ChoicePictures.Count > 0)
@@ -597,6 +600,62 @@ internal sealed class ConfiguratorWindow : Window
     }
 
     // A choice with its picture before the name, in the color of the text.
+    // A list longer than this, such as thousands of symbols, gets a box to search and shows the matches.
+    private const int LongList = 100;
+
+    // The box to search above a list of the matches with their pictures; the value stays among them.
+    private StackPanel SearchableChoice(FieldModel field, Action<string?> report)
+    {
+        var search = new TextBox { Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2), ToolTip = "Type to search" };
+        var list = new ListBox { MaxHeight = 180, Margin = new Thickness(0, 3, 0, 0), Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line") };
+        VirtualizingPanel.SetIsVirtualizing(list, true);
+        if (field.Info.ChoicePictures.Count > 0)
+        {
+            list.ItemTemplate = ChoiceWithPicture(field.Info.ChoicePictures, (Brush)FindResource("Ink"));
+        }
+
+        var isFilling = false;
+        void Show()
+        {
+            isFilling = true;
+            var current = (string)field.Value;
+            var matches = SearchChoices(field.Info.Choices, search.Text, current);
+            list.ItemsSource = matches;
+            list.SelectedItem = current;
+            isFilling = false;
+        }
+
+        search.TextChanged += (_, _) => Show();
+        list.SelectionChanged += (_, _) =>
+        {
+            if (!isFilling && list.SelectedItem is string text)
+            {
+                report(field.Set(text));
+            }
+        };
+        Show();
+        var panel = new StackPanel();
+        panel.Children.Add(search);
+        panel.Children.Add(list);
+        return panel;
+    }
+
+    /// <summary>Finds the choices that contain a text, the current one first when it is not among them.</summary>
+    /// <param name="choices">The choices.</param>
+    /// <param name="text">The text to search.</param>
+    /// <param name="current">The current choice.</param>
+    /// <returns>At most 300 matches.</returns>
+    internal static List<string> SearchChoices(IReadOnlyList<string> choices, string text, string current)
+    {
+        var matches = choices.Where(choice => choice.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase)).Take(300).ToList();
+        if (!matches.Contains(current))
+        {
+            matches.Insert(0, current);
+        }
+
+        return matches;
+    }
+
     internal static DataTemplate ChoiceWithPicture(IReadOnlyDictionary<string, string> pictures, Brush ink)
     {
         var picture = new FrameworkElementFactory(typeof(System.Windows.Shapes.Path));

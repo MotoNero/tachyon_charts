@@ -1,3 +1,11 @@
+sealed class Tachyon.Charts.Configurator.AnnotationLookInfo : System.IEquatable<Tachyon.Charts.Configurator.AnnotationLookInfo>
+  .ctor(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> Parameters, System.Action<Tachyon.Charts.Configurator.SpecValues, Tachyon.Charts.Core.Annotations.AnnotationAppearance> Apply, System.Func<Tachyon.Charts.Configurator.SpecValues, System.Collections.Generic.IReadOnlyList<System.String>> Code, System.Collections.Generic.IReadOnlyList<System.String> Usings, System.String Package, System.String PackageVersion)
+  System.Action<Tachyon.Charts.Configurator.SpecValues, Tachyon.Charts.Core.Annotations.AnnotationAppearance> Apply { get; set; }
+  System.Collections.Generic.IReadOnlyList<System.String> Usings { get; set; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ParameterInfo> Parameters { get; set; }
+  System.Func<Tachyon.Charts.Configurator.SpecValues, System.Collections.Generic.IReadOnlyList<System.String>> Code { get; set; }
+  System.String Package { get; set; }
+  System.String PackageVersion { get; set; }
 sealed class Tachyon.Charts.Configurator.AnnotationSpec
   .ctor()
   System.String Type { get; set; }
@@ -34,6 +42,7 @@ sealed class Tachyon.Charts.Configurator.ChartCatalog
   .ctor()
   System.Boolean OwnsAxes(Tachyon.Charts.Configurator.ChartSpec spec)
   System.Collections.Generic.IReadOnlyList<System.String> Check(Tachyon.Charts.Configurator.ChartSpec spec)
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.AnnotationLookInfo> AnnotationLooks { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ChartTypeInfo> Types { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.ModifierInfo> Modifiers { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.PageInfo> Pages { get; }
@@ -236,6 +245,7 @@ sealed class Tachyon.Charts.Configurator.FontSpec
   static System.Collections.Generic.IReadOnlyList<System.String> Families { get; }
   static System.String DefaultFamily
 interface Tachyon.Charts.Configurator.IChartModule
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.AnnotationLookInfo> AnnotationLooks { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.PageInfo> Pages { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.SceneInfo> Scenes { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Configurator.TemplateInfo> Templates { get; }

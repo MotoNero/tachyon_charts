@@ -325,6 +325,52 @@ internal sealed class ConfiguratorWindow : Window
         }
     }
 
+    // A list longer than this, such as thousands of symbols, gets a box to search and shows the matches.
+    private const int LongList = 100;
+
+    // The box to search above a list of the matches with their pictures; the value stays among them.
+    private static StackPanel SearchableChoice(FieldModel field, Action<string?> report)
+    {
+        var search = new TextBox { PlaceholderText = "Type to search" };
+        var list = new ListBox { MaxHeight = 180, Margin = new Thickness(0, 3, 0, 0) };
+        var pictures = field.Info.ChoicePictures;
+        list.ItemTemplate = new global::Avalonia.Controls.Templates.FuncDataTemplate<string>((item, _) => new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Children =
+            {
+                new global::Avalonia.Controls.Shapes.Path { Data = item is not null && pictures.TryGetValue(item, out var data) ? Geometry.Parse(data) : null, Fill = _ink, Stretch = Stretch.Uniform, Width = 14, Height = 14, Margin = new Thickness(0, 0, 6, 0) },
+                new TextBlock { Text = item },
+            },
+        });
+        var isFilling = false;
+        void Show()
+        {
+            isFilling = true;
+            var current = (string)field.Value;
+            var matches = field.Info.Choices.Where(choice => choice.Contains((search.Text ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase)).Take(300).ToList();
+            if (!matches.Contains(current))
+            {
+                matches.Insert(0, current);
+            }
+
+            list.ItemsSource = matches;
+            list.SelectedItem = current;
+            isFilling = false;
+        }
+
+        search.TextChanged += (_, _) => Show();
+        list.SelectionChanged += (_, _) =>
+        {
+            if (!isFilling && list.SelectedItem is string text)
+            {
+                report(field.Set(text));
+            }
+        };
+        Show();
+        return new StackPanel { Children = { search, list } };
+    }
+
     private static Control Editor(FieldModel field)
     {
         var problem = new TextBlock { Foreground = _problem, TextWrapping = TextWrapping.Wrap, IsVisible = false };
@@ -336,6 +382,9 @@ internal sealed class ConfiguratorWindow : Window
                 var check = new CheckBox { Content = field.Info.Label, IsChecked = (bool)field.Value };
                 check.IsCheckedChanged += (_, _) => Report(field.Set(check.IsChecked == true));
                 return check;
+            case ParameterKind.Choice when field.Info.Choices.Count > LongList:
+                editor = SearchableChoice(field, Report);
+                break;
             case ParameterKind.Choice:
                 var choice = new ComboBox { ItemsSource = field.Info.Choices, SelectedItem = field.Value, HorizontalAlignment = HorizontalAlignment.Stretch };
                 if (field.Info.ChoicePictures.Count > 0)

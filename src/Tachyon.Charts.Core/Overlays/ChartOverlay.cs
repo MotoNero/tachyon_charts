@@ -372,11 +372,12 @@ public sealed class OverlayCanvas
     /// <param name="size">The font size.</param>
     /// <param name="color">The color.</param>
     /// <param name="font">The font.</param>
-    internal void DrawTurnedText(string text, Vector2 center, float angle, float size, Rgba8 color, TextFont font = default)
+    /// <param name="baselineBelow">How far the baseline lies below the middle, or <see langword="null"/> for that of text; a symbol that fills its em takes half its size.</param>
+    internal void DrawTurnedText(string text, Vector2 center, float angle, float size, Rgba8 color, TextFont font = default, float? baselineBelow = null)
     {
         var first = _glyphCount;
         var width = MeasureWidth(text, size, font);
-        DrawText(text, center.X - (width / 2), center.Y + (GetLineHeight(size, font) * 0.3), size, color, font);
+        DrawText(text, center.X - (width / 2), center.Y + (baselineBelow ?? (GetLineHeight(size, font) * 0.3f)), size, color, font);
         var pivot = center * (float)_scale;
         for (var i = first; i < _glyphCount; i++)
         {

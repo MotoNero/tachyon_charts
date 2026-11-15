@@ -123,6 +123,7 @@ public static class ConfiguratorLink
         ["LineDash"] = "line",
         ["AnnotationStyles"] = "option:annotations",
         ["TextFonts"] = "option:annotations",
+        ["AnnotationSymbols"] = "option:annotations",
         ["ZoomPreview"] = "rubberband",
         ["Selection"] = "selection",
         ["GroupStacked"] = "option:group",

@@ -21,4 +21,10 @@
     <InformationalVersion>$(MedicalVersion)</InformationalVersion>
   </PropertyGroup>
 
+  <!-- The icon add-on has a version of its own; tools/release/release.sh sets it with -p:IconsVersion. -->
+  <PropertyGroup Condition="'$(IconsVersion)' != '' and $(MSBuildProjectName.StartsWith('Tachyon.Charts.Icons'))">
+    <PackageVersion>$(IconsVersion)</PackageVersion>
+    <InformationalVersion>$(IconsVersion)</InformationalVersion>
+  </PropertyGroup>
+
 </Project>

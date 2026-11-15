@@ -26,6 +26,7 @@ Every annotation has an `Appearance` that sets how its label and its lines look.
 | `LabelBorder`, `LabelBorderThickness` | A frame around the plate |
 | `LabelTurn`, `LabelAngle` | `Level`, `AlongLine` (upright at a vertical line, reading upward, or following a sloped line) or a free `Angle` in degrees |
 | `LabelIcon`, `LabelIconColor` | A sign before the text: warning, information, arrow or marker, in the color of the text or its own |
+| `LabelSymbol` | One of more than 4 000 Material Symbols before the text, from the package `Tachyon.Charts.Icons`, in place of the sign; its color is `LabelIconColor` |
 | `Dash`, `Thickness` | Solid, dashed or dotted lines and their width; a band draws its edges only with a width |
 
 ```csharp
@@ -50,6 +51,25 @@ In XAML colors take the form `#RRGGBB` or `#AARRGGBB`:
 Here `core` is `clr-namespace:Tachyon.Charts.Core.Annotations;assembly=Tachyon.Charts.Core`. Bands and boxes take a `Label` too. The configurator offers all of these settings for each annotation; its list of signs shows each sign before its name.
 
 ![Annotations with a label at the end of a dashed limit, a label upright along a vertical line, a framed label of a band, a box with an information sign, a label following a sloped line and a turned note](../images/annotation-styles.png)
+
+## Symbols
+
+The package `Tachyon.Charts.Icons` brings Material Symbols (Outlined, Apache-2.0). Each symbol is a glyph of a font and
+goes through the glyph atlas of the chart: sharp at every size, in any color.
+
+```csharp
+Appearance = new AnnotationAppearance
+{
+    LabelSymbol = MaterialSymbols.Symbol("thermostat", 18),
+    LabelIconColor = new Rgba8(240, 90, 90, 255),
+}
+```
+
+`MaterialSymbols.Names` lists the names, as on the Material Symbols site. The size is optional; without it the symbol
+takes the height of the label. A symbol read from a file needs `MaterialSymbols.Register()` once before the chart draws.
+The configurator offers every symbol under *Label symbol*, with a box to search and a picture of each.
+
+![Labels with a thermometer, a lightning bolt and a wrench, each in its own color and size](../images/annotation-symbols.png)
 
 ## Editing by mouse
 

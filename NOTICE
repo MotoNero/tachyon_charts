@@ -1,2 +1,8 @@
 Tachyon Charts
 Copyright 2026 Mario Espinosa
+
+This product includes the fonts Roboto and Roboto Slab, Copyright Google Inc. and The Roboto Slab Project Authors,
+licensed under the Apache License 2.0 (src/Tachyon.Charts.Rendering.Skia/Fonts).
+
+This product includes Material Symbols (Outlined), Copyright Google LLC, licensed under the Apache License 2.0
+(src/Tachyon.Charts.Icons/Fonts/LICENSE-MaterialSymbols.txt).

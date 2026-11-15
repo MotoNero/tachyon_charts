@@ -12,7 +12,7 @@ namespace Tachyon.Charts.Rendering.Skia;
 /// Text for all backends: HarfBuzz shapes, the font file provides the outlines, and a C# generator turns them
 /// into a distance field atlas. The default font is the embedded Roboto, so that text looks the same
 /// on every system. Further fonts (<see cref="TextFont"/>) share the atlas: Roboto bold and italic and Roboto Slab
-/// are embedded too, other families come from the fonts installed.
+/// are embedded too, packages register fonts in <see cref="FontRegistry"/>, other families come from the fonts installed.
 /// </summary>
 /// <remarks>Members are safe to use from any thread.</remarks>
 public sealed class SkiaTextEngine : ITextEngine, IDisposable
@@ -366,6 +366,11 @@ public sealed class SkiaTextEngine : ITextEngine, IDisposable
         if (file is not null && Embedded(file) is { } embedded)
         {
             return Own(new FontFace(embedded, leans ? SyntheticSlant : 0));
+        }
+
+        if (family is { Length: > 0 } && FontRegistry.TryGet(family, out var registered))
+        {
+            return Own(new FontFace(registered, font.Italic ? SyntheticSlant : 0));
         }
 
         var style = new SKFontStyle(font.Bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal, SKFontStyleWidth.Normal, font.Italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright);

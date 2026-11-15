@@ -23,6 +23,9 @@ struct Tachyon.Charts.Rendering.DipSize : System.IEquatable<Tachyon.Charts.Rende
   System.Double Height { get; set; }
   System.Double Width { get; set; }
   Tachyon.Charts.Rendering.PixelSize ToPixels(System.Double dpiScale)
+static class Tachyon.Charts.Rendering.FontRegistry
+  static System.Boolean TryGet(System.String family, out System.Byte[] fontData)
+  static System.Void Register(System.String family, System.Func<System.Byte[]> fontData)
 struct Tachyon.Charts.Rendering.GlyphInstance : System.IEquatable<Tachyon.Charts.Rendering.GlyphInstance>
   .ctor(System.Numerics.Vector2 Position, System.Numerics.Vector2 Size, System.Numerics.Vector2 UvMin, System.Numerics.Vector2 UvMax, Tachyon.Charts.Rendering.Rgba8 Color, System.Single DistanceScale, System.Single Rotation = 0, System.Numerics.Vector2 Pivot = null)
   System.Numerics.Vector2 Pivot { get; set; }

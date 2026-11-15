@@ -42,6 +42,7 @@ public static class SceneCatalog
         new AnnotationsScene(),
         new AnnotationStylesScene(),
         new TextFontsScene(),
+        new AnnotationSymbolsScene(),
         new SelectionScene(),
         new MeasureCursorsScene(),
         new LegendScene(),

@@ -681,7 +681,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
                 charts.Select(_catalog.SceneOf).FirstOrDefault(scene => scene is not null),
                 charts.Any(chart => chart.Series.Exists(series => series.Data.Kind == DataKind.Hdf5)),
                 [.. charts.SelectMany(Packages).Distinct()],
-                [.. charts.SelectMany(chart => chart.Series).SelectMany(series => _catalog.FindType(series.Type)!.Packages).Distinct()]),
+                [.. charts.SelectMany(chart => chart.Series).SelectMany(series => _catalog.FindType(series.Type)!.Packages).Concat(charts.SelectMany(LooksUsed).Select(look => (look.Package, look.PackageVersion))).Distinct()]),
         };
         if (Several(spec))
         {
@@ -745,6 +745,10 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     }
 
     // The packages the readers of the data need, each once.
+    // What modules add to the look of annotations and a description uses, such as symbols with their package.
+    private IEnumerable<AnnotationLookInfo> LooksUsed(ChartSpec spec) =>
+        _catalog.AnnotationLooks.Where(look => spec.Annotations.Exists(annotation => look.Code(annotation.Parameters).Count > 0));
+
     private IReadOnlyList<string> Packages(ChartSpec spec) =>
         [.. spec.Series.Select(series => DataSources.Loader(series, _catalog.FindType(series.Type)!, _catalog)).OfType<DataLoader>().SelectMany(loader => loader.Packages).Where(package => package.IsOwn).Select(package => package.Name).Distinct()];
 
@@ -1004,7 +1008,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         foreach (var annotation in spec.Annotations)
         {
             usings.Add("Tachyon.Charts.Core.Annotations");
-            calls.Add($".AddOverlay(c => {AnnotationCatalog.Expression(ChartCatalog.FindAnnotation(annotation.Type)!, annotation.Parameters, isEditable)})");
+            calls.Add($".AddOverlay(c => {AnnotationCatalog.Expression(ChartCatalog.FindAnnotation(annotation.Type)!, annotation.Parameters, isEditable, _catalog.AnnotationLooks)})");
         }
 
         foreach (var legend in new[] { spec.Legend, spec.SecondLegend })
@@ -1033,6 +1037,11 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         if (calls.Any(call => call.Contains("new Rgba8(", StringComparison.Ordinal)) || spec.Annotations.Exists(annotation => annotation.Type is "band" or "box" or "text" or "line"))
         {
             usings.Add("Tachyon.Charts.Rendering");
+        }
+
+        foreach (var look in LooksUsed(spec))
+        {
+            usings.AddRange(look.Usings);
         }
 
         return new CodePlan(usings, calls, data, setup);

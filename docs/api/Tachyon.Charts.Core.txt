@@ -34,12 +34,18 @@ sealed class Tachyon.Charts.Core.Annotations.AnnotationAppearance
   System.Nullable<Tachyon.Charts.Rendering.Rgba8> LabelFill { get; set; }
   System.Nullable<Tachyon.Charts.Rendering.Rgba8> LabelIconColor { get; set; }
   System.Single LabelBorderThickness { get; set; }
+  Tachyon.Charts.Core.Annotations.AnnotationSymbol LabelSymbol { get; set; }
   Tachyon.Charts.Core.Annotations.LabelIcon LabelIcon { get; set; }
   Tachyon.Charts.Core.Annotations.LabelPlace LabelPlace { get; set; }
   Tachyon.Charts.Core.Annotations.LabelSide LabelSide { get; set; }
   Tachyon.Charts.Core.Annotations.LabelTurn LabelTurn { get; set; }
   Tachyon.Charts.Core.Annotations.LineDash Dash { get; set; }
   Tachyon.Charts.Rendering.TextFont LabelFont { get; set; }
+sealed class Tachyon.Charts.Core.Annotations.AnnotationSymbol : System.IEquatable<Tachyon.Charts.Core.Annotations.AnnotationSymbol>
+  .ctor(System.String Glyph, Tachyon.Charts.Rendering.TextFont Font, System.Nullable<System.Single> Size = null)
+  System.Nullable<System.Single> Size { get; set; }
+  System.String Glyph { get; set; }
+  Tachyon.Charts.Rendering.TextFont Font { get; set; }
 sealed class Tachyon.Charts.Core.Annotations.ArrowAnnotation : Tachyon.Charts.Core.Annotations.Annotation
   .ctor(Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   System.Single Thickness { get; set; }

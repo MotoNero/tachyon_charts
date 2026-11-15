@@ -191,6 +191,13 @@ public static class SpecChartBuilder
             chart.AddOverlay(surface =>
             {
                 var overlay = info.Create(surface, values);
+                if (overlay is Annotation looked)
+                {
+                    foreach (var look in catalog.AnnotationLooks)
+                    {
+                        look.Apply(values, looked.Appearance);
+                    }
+                }
                 if (overlay is Annotation annotation && (isEditable || edited is not null))
                 {
                     annotation.IsEditable = true;

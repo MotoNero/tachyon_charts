@@ -668,7 +668,7 @@ public sealed class ConfiguratorSession
                 var annotation = _spec.Annotations[i];
                 var info = ChartCatalog.FindAnnotation(annotation.Type)!;
                 var group = $"Annotation {i + 1} · {info.Name}";
-                foreach (var parameter in info.Parameters)
+                foreach (var parameter in Catalog.AnnotationParameters(info))
                 {
                     fields.Add(Field(group, parameter, () => annotation.Parameters.Get(parameter.Name) ?? parameter.Default, value => SetValue(annotation.Parameters, parameter.Name, value)));
                 }

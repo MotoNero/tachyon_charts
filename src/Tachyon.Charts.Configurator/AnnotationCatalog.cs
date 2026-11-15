@@ -262,8 +262,8 @@ internal static class AnnotationCatalog
         Thickness = Positive(values, "thickness"),
     };
 
-    // The same as code: only what differs from an appearance left as it is, or nothing.
-    private static string LookCode(SpecValues values)
+    // The same as code: only what differs from an appearance left as it is, and what modules add, or nothing.
+    private static string LookCode(SpecValues values, IEnumerable<string> added)
     {
         var look = Look(values);
         var parts = new List<string>();
@@ -290,6 +290,7 @@ internal static class AnnotationCatalog
         Add(look.LabelIconColor is not null, $"LabelIconColor = {CodeText.Color(look.LabelIconColor ?? default)}");
         Add(look.Dash != LineDash.Solid, $"Dash = LineDash.{look.Dash}");
         Add(look.Thickness is not null, $"Thickness = {CodeText.Number(look.Thickness ?? 0)}f");
+        parts.AddRange(added);
         return parts.Count == 0 ? string.Empty : $"Appearance = new AnnotationAppearance {{ {string.Join(", ", parts)} }}";
     }
 
@@ -314,10 +315,11 @@ internal static class AnnotationCatalog
     /// <param name="info">The kind.</param>
     /// <param name="values">Its values.</param>
     /// <param name="isEditable">Whether the annotation can be edited with the mouse.</param>
+    /// <param name="looks">What modules add to the look, such as symbols.</param>
     /// <returns>The expression.</returns>
-    public static string Expression(AnnotationInfo info, SpecValues values, bool isEditable)
+    public static string Expression(AnnotationInfo info, SpecValues values, bool isEditable, IReadOnlyList<AnnotationLookInfo> looks)
     {
-        var more = string.Join(", ", new[] { isEditable ? "IsEditable = true" : string.Empty, LookCode(values) }.Where(member => member.Length > 0));
+        var more = string.Join(", ", new[] { isEditable ? "IsEditable = true" : string.Empty, LookCode(values, looks.SelectMany(look => look.Code(values))) }.Where(member => member.Length > 0));
         var code = info.Code(values, more);
         var standard = (string)info.Parameters.First(parameter => parameter.Name == "color").Default;
         return info.Id is "band" or "box" or "text" && SpecColor.TryParse(values.GetText("color", standard), out var color)

@@ -65,6 +65,15 @@ public enum LabelIcon
     Marker,
 }
 
+/// <summary>
+/// A symbol from a font of symbols, drawn before the text of a label in place of a <see cref="LabelIcon"/>, such as one
+/// of the icon package.
+/// </summary>
+/// <param name="Glyph">The character of the symbol in its font.</param>
+/// <param name="Font">The font that holds it.</param>
+/// <param name="Size">The size in device-independent units, or <see langword="null"/> for the height of the label.</param>
+public sealed record AnnotationSymbol(string Glyph, TextFont Font, float? Size = null);
+
 /// <summary>How a line is drawn.</summary>
 public enum LineDash
 {
@@ -120,7 +129,10 @@ public sealed class AnnotationAppearance
     /// <summary>Gets or sets a sign before the text.</summary>
     public LabelIcon LabelIcon { get; set; }
 
-    /// <summary>Gets or sets the color of the sign, or <see langword="null"/> for that of the text.</summary>
+    /// <summary>Gets or sets a symbol before the text in place of <see cref="LabelIcon"/>, or <see langword="null"/> for none.</summary>
+    public AnnotationSymbol? LabelSymbol { get; set; }
+
+    /// <summary>Gets or sets the color of the sign or symbol, or <see langword="null"/> for that of the text.</summary>
     public Rgba8? LabelIconColor { get; set; }
 
     /// <summary>Gets or sets how the lines of the annotation are drawn.</summary>
@@ -134,7 +146,7 @@ public sealed class AnnotationAppearance
 
     /// <summary>Gets a value indicating whether the label draws as it always did.</summary>
     internal bool IsPlainLabel => LabelPlace == LabelPlace.Auto && LabelSide == LabelSide.Auto && LabelOffset == 0 && LabelSize is null && LabelFont.IsDefault && LabelColor is null
-        && LabelFill is null && LabelBorder is null && LabelTurn == LabelTurn.Level && LabelIcon == LabelIcon.None;
+        && LabelFill is null && LabelBorder is null && LabelTurn == LabelTurn.Level && LabelIcon == LabelIcon.None && LabelSymbol is null;
 }
 
 /// <summary>Draws labels and lines of annotations as their appearance asks; allocates nothing.</summary>
@@ -207,7 +219,9 @@ internal static class AnnotationPainter
         };
         var (u, v) = (new Vector2(MathF.Cos(angle), MathF.Sin(angle)), new Vector2(-MathF.Sin(angle), MathF.Cos(angle)));
         var height = canvas.GetLineHeight(size, look.LabelFont) + 2;
-        var icon = look.LabelIcon == LabelIcon.None ? 0 : height * 0.8f;
+        var symbolSize = look.LabelSymbol is { } symbol ? symbol.Size ?? height * 0.9f : 0;
+        height = Math.Max(height, symbolSize + 2);
+        var icon = look.LabelSymbol is not null ? symbolSize + 2 : look.LabelIcon == LabelIcon.None ? 0 : height * 0.8f;
         var width = canvas.MeasureWidth(text, size, look.LabelFont) + (Padding * 2) + icon;
         var (halfWidth, halfHeight) = (width / 2, height / 2);
 
@@ -235,7 +249,12 @@ internal static class AnnotationPainter
         }
 
         var ink = look.LabelColor ?? (fill.A > 0 ? canvas.BackgroundColor : color);
-        if (icon > 0)
+        if (look.LabelSymbol is { } shown)
+        {
+            // A symbol fills its em above the baseline, centered on its middle.
+            canvas.DrawTurnedText(shown.Glyph, Corner(-halfWidth + Padding + (icon / 2), 0), angle, symbolSize, look.LabelIconColor ?? ink, shown.Font, symbolSize / 2);
+        }
+        else if (icon > 0)
         {
             DrawIcon(canvas, look.LabelIcon, Corner(-halfWidth + Padding + (icon / 2), 0), icon * 0.8f, u, v, look.LabelIconColor ?? ink, fill.A > 0 ? fill with { A = 255 } : canvas.BackgroundColor);
         }
