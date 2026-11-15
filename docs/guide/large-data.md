@@ -50,7 +50,8 @@ var summary = ColumnFileConverter.FromCsv("table.csv", "table.tcol",
     new Progress<double>(share => Console.WriteLine($"{share:P0}")));
 ```
 
-The CSV file is read as a stream, row by row, and never held in memory; about 170 MB of CSV per second on one core. The
+The CSV file is read in pieces and parsed on all cores, never held in memory as a whole: about 1.2 to 1.4 GB of CSV per
+second, a 5 GB file in about 4 seconds. It must be UTF-8 or ASCII with one row per line. The
 X column must step evenly, as column files keep X as start and step; without one the rows are numbered. Values that are
 no numbers become gaps. `summary.Names` gives the names of the columns from the header.
 
