@@ -1830,6 +1830,18 @@ enum Tachyon.Charts.Core.Pipeline.ValueLabelPlace : System.IComparable, System.I
   Above = 0
   Center = 1
   Right = 2
+sealed class Tachyon.Charts.Core.Resampling.ColumnPyramid<T>
+  System.Boolean IsComplete { get; }
+  System.Boolean IsFromFile { get; }
+  System.Double Progress { get; }
+  System.Int64 ByteCount { get; }
+  System.Threading.Tasks.Task Completion { get; }
+  Tachyon.Charts.Core.Resampling.MinMax<T> Query(System.Int64 start, System.Int64 end)
+  Tachyon.Charts.Core.Resampling.MinMax<T> QueryBlocks(System.Int64 start, System.Int64 end)
+  Tachyon.Charts.Core.Resampling.MinMax<T> Total { get; }
+  static System.Int32 BlockSize
+  static System.Int32 Factor
+  static Tachyon.Charts.Core.Resampling.ColumnPyramid<T> Build(Tachyon.Charts.Core.Data.IColumnSource<T> source, System.String filePath = null, System.Threading.CancellationToken cancellation = null)
 sealed class Tachyon.Charts.Core.Resampling.LodPyramid<T>
   .ctor(System.Int32 factor = 4)
   System.Int64 ByteCount { get; }
@@ -1955,6 +1967,20 @@ sealed class Tachyon.Charts.Core.Series.CandleSeries : Tachyon.Charts.Core.Pipel
 enum Tachyon.Charts.Core.Series.CandleStyle : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Candles = 0
   Ohlc = 1
+sealed class Tachyon.Charts.Core.Series.ColumnLineSeries<T> : Tachyon.Charts.Core.Pipeline.ChartSeries, System.IDisposable
+  .ctor(Tachyon.Charts.Core.Data.IColumnSource<T> source, Tachyon.Charts.Core.Resampling.ColumnPyramid<T> pyramid, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  System.Double Thickness { get; set; }
+  System.Void Dispose()
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+  protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Boolean TryReadPoint(System.Int64 index, out System.Double x, out System.Double y)
+  protected virtual System.Int32 DrawnPointCount { get; }
+  protected virtual System.Int64 SourcePointCount { get; }
+  protected virtual System.Int64 Version { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void ReleaseResources()
+  virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
 sealed class Tachyon.Charts.Core.Series.ContourSeries : Tachyon.Charts.Core.Series.RasterSeries, System.IDisposable
   .ctor(Tachyon.Charts.Core.Data.HeatmapData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis, Tachyon.Charts.Core.Axes.ColorAxis colorAxis)
   System.Boolean IsFilled { get; set; }
