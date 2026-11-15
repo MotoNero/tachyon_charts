@@ -894,6 +894,40 @@ public sealed class HeatmapSeries : RasterSeriesElement
 }
 
 /// <summary>
+/// A heatmap or spectrogram of a raster file far larger than memory, read through its stages. The data source is a
+/// <see cref="Core.Data.RasterPyramid"/>.
+/// </summary>
+public sealed class FileRasterSeries : RasterSeriesElement
+{
+    /// <summary>Identifies the <see cref="RowsAlongX"/> property.</summary>
+    public static readonly DependencyProperty RowsAlongXProperty = DependencyProperty.Register(
+        nameof(RowsAlongX), typeof(bool), typeof(FileRasterSeries), new PropertyMetadata(false, OnChanged));
+
+    /// <summary>Gets or sets a value indicating whether the rows of the file run along the X axis, as in a spectrogram.</summary>
+    public bool RowsAlongX
+    {
+        get => (bool)GetValue(RowsAlongXProperty);
+        set => SetValue(RowsAlongXProperty, value);
+    }
+
+    /// <inheritdoc />
+    internal override ChartSeries? Build(AxisBase x, AxisBase y)
+    {
+        if (DataSource is null)
+        {
+            return null;
+        }
+
+        if (DataSource is not Core.Data.RasterPyramid pyramid)
+        {
+            throw new InvalidOperationException($"{DataSource.GetType().Name} is no raster pyramid.");
+        }
+
+        return new Core.Series.FileRasterSeries(pyramid, x, y, GetColorAxis(string.Empty)) { Name = SeriesName, RowsAlongX = RowsAlongX };
+    }
+}
+
+/// <summary>
 /// A scatter far larger than memory as a density, from points sorted into tiles beside their file. The data source is
 /// a <see cref="Core.Data.PointTiles"/>.
 /// </summary>
@@ -1416,6 +1450,13 @@ internal static class ChartElementFactory
                 YStart = heatmap.YStart,
                 YStep = heatmap.YStep,
                 IsInterpolated = heatmap.IsInterpolated,
+            },
+            FileRasterDefinition raster => new FileRasterSeries
+            {
+                Colormap = raster.ColorAxis.Colormap,
+                IsLogarithmic = raster.ColorAxis.IsLogarithmic,
+                ColorRange = raster.ColorAxis.Range,
+                RowsAlongX = raster.RowsAlongX,
             },
             PointDensityDefinition density => new PointDensitySeries
             {

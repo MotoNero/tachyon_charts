@@ -52,6 +52,7 @@ public static class ChartTypePages
         (LargeFilePage.Name, LargeFilePage.Hint, LargeFilePage.Configure),
         (DigitalChannelsPage.Name, DigitalChannelsPage.Hint, DigitalChannelsPage.Configure),
         (ScatterFromAFilePage.Name, ScatterFromAFilePage.Hint, ScatterFromAFilePage.Configure),
+        (HeatmapFromAFilePage.Name, HeatmapFromAFilePage.Hint, HeatmapFromAFilePage.Configure),
         (CandlesWithoutWeekendsPage.Name, CandlesWithoutWeekendsPage.Hint, CandlesWithoutWeekendsPage.Configure),
         (MarketProfilePage.Name, MarketProfilePage.Hint, MarketProfilePage.Configure),
         (DrawingToolsPage.Name, DrawingToolsPage.Hint, DrawingToolsPage.Configure),

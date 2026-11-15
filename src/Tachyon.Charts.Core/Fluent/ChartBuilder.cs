@@ -204,6 +204,17 @@ public sealed record HeatmapDefinition : RasterDefinition
     };
 }
 
+/// <summary>A described raster from a file, read through its stages.</summary>
+public sealed record FileRasterDefinition : RasterDefinition
+{
+    /// <summary>Gets a value indicating whether the rows of the file run along the X axis, as in a spectrogram.</summary>
+    public bool RowsAlongX { get; init; }
+
+    /// <inheritdoc />
+    internal override ChartSeries Create(AxisBase x, AxisBase y, ColorAxis? colorAxis) =>
+        new FileRasterSeries((RasterPyramid)Source, x, y, colorAxis!) { RowsAlongX = RowsAlongX };
+}
+
 /// <summary>A described density of points sorted into tiles.</summary>
 public sealed record PointDensityDefinition : RasterDefinition
 {
@@ -757,6 +768,44 @@ public sealed class ColorAxisBuilder
     public ColorAxisBuilder Title(string title) => Change(Definition with { Title = title });
 
     private ColorAxisBuilder Change(ColorAxisDefinition definition)
+    {
+        Definition = definition;
+        return this;
+    }
+}
+
+/// <summary>Describes a raster from a file.</summary>
+public sealed class FileRasterBuilder
+{
+    internal FileRasterBuilder(RasterPyramid pyramid)
+    {
+        Definition = new FileRasterDefinition { Source = pyramid };
+    }
+
+    internal FileRasterDefinition Definition { get; private set; }
+
+    /// <summary>Sets the name shown in rollovers and legends.</summary>
+    /// <param name="name">The name.</param>
+    /// <returns>This builder.</returns>
+    public FileRasterBuilder Name(string name) => Change(Definition with { Name = name });
+
+    /// <summary>Lets the rows of the file run along the X axis, as the rows of a spectrogram written over time do.</summary>
+    /// <param name="alongX">Whether the rows run along X.</param>
+    /// <returns>This builder.</returns>
+    public FileRasterBuilder RowsAlongX(bool alongX = true) => Change(Definition with { RowsAlongX = alongX });
+
+    /// <summary>Describes the scale of the values.</summary>
+    /// <param name="configure">Describes the scale.</param>
+    /// <returns>This builder.</returns>
+    public FileRasterBuilder ColorAxis(Action<ColorAxisBuilder> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        var builder = new ColorAxisBuilder();
+        configure(builder);
+        return Change(Definition with { ColorAxis = builder.Definition });
+    }
+
+    private FileRasterBuilder Change(FileRasterDefinition definition)
     {
         Definition = definition;
         return this;
@@ -1502,6 +1551,19 @@ public sealed class ChartBuilder
     {
         ArgumentNullException.ThrowIfNull(factory);
         _series.Add(new CustomSeriesDefinition { Source = factory, Factory = factory, XAxisId = xAxis, YAxisId = yAxis });
+        return this;
+    }
+
+    /// <summary>Adds a heatmap or spectrogram of a raster file far larger than memory, read through its stages.</summary>
+    /// <param name="pyramid">The raster and its stages.</param>
+    /// <param name="configure">Describes the raster.</param>
+    /// <returns>This builder.</returns>
+    public ChartBuilder AddFileRaster(RasterPyramid pyramid, Action<FileRasterBuilder>? configure = null)
+    {
+        ArgumentNullException.ThrowIfNull(pyramid);
+        var builder = new FileRasterBuilder(pyramid);
+        configure?.Invoke(builder);
+        _series.Add(builder.Definition);
         return this;
     }
 

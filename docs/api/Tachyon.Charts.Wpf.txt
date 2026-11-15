@@ -171,6 +171,10 @@ sealed class Tachyon.Charts.Wpf.DateTimeAxis : Tachyon.Charts.Wpf.ChartAxis, Sys
   .ctor()
 sealed class Tachyon.Charts.Wpf.DiagnosticsModifier : Tachyon.Charts.Wpf.ChartModifierElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
   .ctor()
+sealed class Tachyon.Charts.Wpf.FileRasterSeries : Tachyon.Charts.Wpf.RasterSeriesElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
+  .ctor()
+  System.Boolean RowsAlongX { get; set; }
+  static System.Windows.DependencyProperty RowsAlongXProperty
 sealed class Tachyon.Charts.Wpf.HeatmapSeries : Tachyon.Charts.Wpf.RasterSeriesElement, System.ComponentModel.ISupportInitialize, System.Windows.IFrameworkInputElement, System.Windows.IInputElement, System.Windows.Markup.IQueryAmbient, System.Windows.Media.Animation.IAnimatable
   .ctor()
   System.Boolean IsInterpolated { get; set; }

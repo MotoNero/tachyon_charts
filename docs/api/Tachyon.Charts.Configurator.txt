@@ -213,6 +213,7 @@ enum Tachyon.Charts.Configurator.DataShape : System.IComparable, System.IConvert
   Points3D = 10
   Polar = 17
   Polygons = 20
+  RasterFile = 33
   Rows = 1
   Scope = 26
   Slices = 9

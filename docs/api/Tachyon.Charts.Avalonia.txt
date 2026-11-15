@@ -132,6 +132,9 @@ sealed class Tachyon.Charts.Avalonia.DateTimeAxis : Tachyon.Charts.Avalonia.Char
   .ctor()
 sealed class Tachyon.Charts.Avalonia.DiagnosticsModifier : Tachyon.Charts.Avalonia.ChartModifierElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
   .ctor()
+sealed class Tachyon.Charts.Avalonia.FileRasterSeries : Tachyon.Charts.Avalonia.RasterSeriesElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
+  .ctor()
+  System.Boolean RowsAlongX { get; set; }
 sealed class Tachyon.Charts.Avalonia.HeatmapSeries : Tachyon.Charts.Avalonia.RasterSeriesElement, Avalonia.Controls.IResourceHost, Avalonia.Controls.IResourceNode, Avalonia.Controls.ISetInheritanceParent, Avalonia.Controls.ISetLogicalParent, Avalonia.IDataContextProvider, Avalonia.INamed, Avalonia.LogicalTree.ILogical, Avalonia.Styling.IStyleHost, Avalonia.Styling.IThemeVariantHost, System.ComponentModel.INotifyPropertyChanged, System.ComponentModel.ISupportInitialize
   .ctor()
   System.Boolean IsInterpolated { get; set; }

@@ -598,6 +598,33 @@ sealed class Tachyon.Charts.Core.Data.PolygonRing
   System.Double[] X { get; }
   System.Double[] Y { get; }
   System.Int32 Count { get; }
+sealed class Tachyon.Charts.Core.Data.RasterFile : System.IDisposable
+  System.Double XStart { get; }
+  System.Double XStep { get; }
+  System.Double YStart { get; }
+  System.Double YStep { get; }
+  System.Int32 Width { get; }
+  System.Int64 Height { get; }
+  System.ReadOnlySpan<System.Single> Row(System.Int64 row)
+  System.String Path { get; }
+  System.Void Dispose()
+  static System.Int32 HeaderSize
+  static Tachyon.Charts.Core.Data.RasterFile Open(System.String path)
+sealed class Tachyon.Charts.Core.Data.RasterFileWriter : System.IDisposable
+  .ctor(System.String path, System.Int32 width, System.Double xStart = 0, System.Double xStep = 1, System.Double yStart = 0, System.Double yStep = 1)
+  System.Int64 Height { get; }
+  System.Void Append(System.ReadOnlySpan<System.Single> rows)
+  System.Void Dispose()
+sealed class Tachyon.Charts.Core.Data.RasterPyramid : System.IDisposable
+  System.Boolean IsComplete { get; }
+  System.Boolean IsFromFile { get; }
+  System.Double Progress { get; }
+  System.Threading.Tasks.Task Completion { get; }
+  System.Void Dispose()
+  Tachyon.Charts.Core.Data.RasterFile Source { get; }
+  Tachyon.Charts.Core.Numerics.DoubleRange Range { get; }
+  Tachyon.Charts.Rendering.RasterReduction Reduction { get; }
+  static Tachyon.Charts.Core.Data.RasterPyramid Build(Tachyon.Charts.Core.Data.RasterFile source, System.String path, Tachyon.Charts.Rendering.RasterReduction reduction = Mean, System.Threading.CancellationToken cancellation = null)
 struct Tachyon.Charts.Core.Data.RingSegment : System.IEquatable<Tachyon.Charts.Core.Data.RingSegment>
   .ctor(System.Int32 Start, System.Int32 Length)
   System.Int32 Length { get; set; }
@@ -682,6 +709,7 @@ sealed class Tachyon.Charts.Core.Fluent.BuiltChart : System.IEquatable<Tachyon.C
 sealed class Tachyon.Charts.Core.Fluent.ChartBuilder
   .ctor()
   Tachyon.Charts.Core.Fluent.ChartBuilder AddContour(Tachyon.Charts.Core.Data.HeatmapData data, System.Action<Tachyon.Charts.Core.Fluent.ContourBuilder> configure = null)
+  Tachyon.Charts.Core.Fluent.ChartBuilder AddFileRaster(Tachyon.Charts.Core.Data.RasterPyramid pyramid, System.Action<Tachyon.Charts.Core.Fluent.FileRasterBuilder> configure = null)
   Tachyon.Charts.Core.Fluent.ChartBuilder AddHeatmap(Tachyon.Charts.Core.Data.HeatmapData data, System.Action<Tachyon.Charts.Core.Fluent.HeatmapBuilder> configure = null)
   Tachyon.Charts.Core.Fluent.ChartBuilder AddLine<TX, TY>(Tachyon.Charts.Core.Data.IDataSource<TX, TY> source, System.Action<Tachyon.Charts.Core.Fluent.LineBuilder<TX, TY>> configure = null)
   Tachyon.Charts.Core.Fluent.ChartBuilder AddOverlay(System.Func<Tachyon.Charts.Core.Pipeline.ChartSurface, Tachyon.Charts.Core.Overlays.ChartOverlay> factory)
@@ -761,6 +789,13 @@ sealed class Tachyon.Charts.Core.Fluent.CustomSeriesDefinition : Tachyon.Charts.
 sealed class Tachyon.Charts.Core.Fluent.DiagnosticsDefinition : Tachyon.Charts.Core.Fluent.ModifierDefinition, System.IEquatable<Tachyon.Charts.Core.Fluent.DiagnosticsDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.ModifierDefinition>
   .ctor()
   virtual Tachyon.Charts.Core.Input.ChartModifier Create()
+sealed class Tachyon.Charts.Core.Fluent.FileRasterBuilder
+  Tachyon.Charts.Core.Fluent.FileRasterBuilder ColorAxis(System.Action<Tachyon.Charts.Core.Fluent.ColorAxisBuilder> configure)
+  Tachyon.Charts.Core.Fluent.FileRasterBuilder Name(System.String name)
+  Tachyon.Charts.Core.Fluent.FileRasterBuilder RowsAlongX(System.Boolean alongX = True)
+sealed class Tachyon.Charts.Core.Fluent.FileRasterDefinition : Tachyon.Charts.Core.Fluent.RasterDefinition, System.IEquatable<Tachyon.Charts.Core.Fluent.FileRasterDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.RasterDefinition>, System.IEquatable<Tachyon.Charts.Core.Fluent.SeriesDefinition>
+  .ctor()
+  System.Boolean RowsAlongX { get; set; }
 sealed class Tachyon.Charts.Core.Fluent.HeatmapBuilder
   Tachyon.Charts.Core.Fluent.HeatmapBuilder Cells(System.Double xStart, System.Double xStep, System.Double yStart, System.Double yStep)
   Tachyon.Charts.Core.Fluent.HeatmapBuilder ColorAxis(System.Action<Tachyon.Charts.Core.Fluent.ColorAxisBuilder> configure)
@@ -2112,6 +2147,20 @@ sealed class Tachyon.Charts.Core.Series.ErrorBarSeries : Tachyon.Charts.Core.Ser
   System.Void SetErrors(System.ReadOnlyMemory<System.Double> lower, System.ReadOnlyMemory<System.Double> upper)
   protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
   protected virtual System.Void Build(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh)
+sealed class Tachyon.Charts.Core.Series.FileRasterSeries : Tachyon.Charts.Core.Pipeline.ChartSeries, System.IDisposable
+  .ctor(Tachyon.Charts.Core.Data.RasterPyramid pyramid, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis, Tachyon.Charts.Core.Axes.ColorAxis colorAxis)
+  System.Boolean RowsAlongX { get; set; }
+  System.Double Progress { get; }
+  System.Int32 Level { get; }
+  System.Void Dispose()
+  protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Boolean TryGetValueRange(out Tachyon.Charts.Core.Numerics.DoubleRange range)
+  protected virtual System.Int64 SourcePointCount { get; }
+  protected virtual System.Int64 Version { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void ReleaseResources()
+  virtual Tachyon.Charts.Core.Axes.ColorAxis ColorAxis { get; }
 static class Tachyon.Charts.Core.Series.FinanceCharts
   static Tachyon.Charts.Core.Fluent.ChartBuilder Candles(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Data.CandleData data, System.Action<Tachyon.Charts.Core.Series.CandleSeries> configure = null, System.String yAxis = null)
   static Tachyon.Charts.Core.Fluent.ChartBuilder Volume(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Data.CandleData data, System.String yAxis = null)

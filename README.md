@@ -28,6 +28,7 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 | CSV of 5 GB into a column file | **about 4 s** |
 | Digital channel of 100 billion points, zoom and pan | **over 290 FPS** |
 | Scatter of 1 billion points from a file, zoom and pan | **90–240 FPS** |
+| Heatmap of 64k × 64k cells (16 GB) from a file, zoom and pan | **over 190 FPS** |
 | Chart at rest | **no frames, 0.02 % CPU** |
 
 ## Highlights
@@ -73,9 +74,9 @@ Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance
 |---|---|
 | ![A billion values read from a column file: a slow and a fast wave with ten single spikes, every one of them kept](docs/images/large-file.png) | ![Sixteen channels of a logic analyzer: clock, chip select, data lines in bursts and interrupts of a single nanosecond, each still visible](docs/images/digital-channels.png) |
 
-| 200 million points from a file as a density |
-|---|
-| ![Three clusters and a ring of 200 million points, colored by how many fall into each pixel on a logarithmic scale](docs/images/scatter-file.png) |
+| 200 million points from a file as a density | 268 million cells from a file |
+|---|---|
+| ![Three clusters and a ring of 200 million points, colored by how many fall into each pixel on a logarithmic scale](docs/images/scatter-file.png) | ![A heatmap of 16384 by 16384 cells with slanted waves and single hot cells, read through its stages](docs/images/heatmap-file.png) |
 
 ### Chart types
 
@@ -183,6 +184,7 @@ Labels of annotations show symbols of the icon package, sharp at every size and 
 - Several legends per chart, inside or outside the plot, each with its own series; a click switches a series off and on
 - Files larger than memory: column files mapped into memory, a pyramid of extremes built on all cores and kept beside the file, a coarse picture at once with a „Refining“ plate, pages read ahead while panning; CSV (over 1 GB per second) and HDF5 converted once ([large data](docs/guide/large-data.md))
 - Scatter from files: a billion points and more as a density, sorted once into tiles beside the file; wide views from a count grid, narrow ones from the points themselves, a single point far out never lost
+- Heatmaps and spectrograms from files: rasters of 64k × 64k cells or millions of rows, read through stages built once beside the file that keep the mean or the peaks
 - Digital channels: signals of two levels kept as their changes or as one bit per point, a hundred billion points in a channel, many channels one above the other, no edge lost even of a single point
 - Signal tools without dependencies: FFT, FIR and biquad filters, generators
 - Fonts for title, axes and labels: Roboto in four cuts and Roboto Slab embedded, installed families too, all in one glyph atlas ([fonts](docs/guide/themes.md#fonts))
@@ -429,6 +431,8 @@ Files larger than memory, on the internal SSD of the same laptop:
 | The same as packed bits, a file of 12.5 GB: index, frames | 1.6 s, 240–500 FPS |
 | 64 digital channels, 100 billion points together | 81–530 FPS |
 | Scatter of 1 billion points from a file (8 GB): tiles, frames | 16 s once, 90–240 FPS |
+| Heatmap of 64k × 64k cells (16 GB): stages, frames | 15 s once, 190–840 FPS |
+| Spectrogram of 2048 bins × 2 million rows (16 GB): frames | 170–840 FPS |
 
 Known gaps: a stress test of 50 charts that all change per frame reaches about 21 FPS in a real window instead of the targeted 60, and the CPU fallback misses its targets for streaming (23 instead of 30 FPS at full HD) and for large scatter plots (9 instead of 10 FPS). Both are planned.
 
@@ -453,7 +457,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Drawing tools](docs/guide/drawings.md) | Fibonacci, channels, pitchfork, patterns, saving as JSON |
 | [Gantt](docs/guide/gantt.md) | Rows, groups, dependencies, milestones |
 | [Sweep monitors](docs/guide/sweep.md) | Writing over the previous pass or page by page, channels in step |
-| [Large data](docs/guide/large-data.md) | Files larger than memory, column files, CSV and HDF5, digital channels, scatter from files |
+| [Large data](docs/guide/large-data.md) | Files larger than memory, column files, CSV and HDF5, digital channels, scatter, heatmaps and spectrograms from files |
 | [Polygons](docs/guide/polygons.md) | Polygons with holes, heatmaps inside an area |
 | [Your own theme](docs/guide/custom-themes.md) | Themes as JSON or XAML in WPF and Avalonia, where the files go, all keys |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |

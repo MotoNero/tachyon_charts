@@ -232,8 +232,18 @@ public sealed unsafe class PointTiles : IDisposable
             }
         }
 
-        File.Move(part, path, overwrite: true);
-        if (!TryOpen(path, x.Count, fingerprint))
+        // A kept file still open elsewhere cannot be replaced; the new tiles are then read from where they were built.
+        var built = path;
+        try
+        {
+            File.Move(part, path, overwrite: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            built = part;
+        }
+
+        if (!TryOpen(built, x.Count, fingerprint))
         {
             throw new IOException($"The tiles written to {path} cannot be read back.");
         }

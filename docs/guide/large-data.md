@@ -116,6 +116,36 @@ chart.AddPointDensity(tiles, s => s.Name("Points").ColorAxis(a => a.Colormap(Col
 The showroom page „Scatter from a file“ shows 200 million points; the configurator offers the type „Scatter from a file“,
 with the test file or a column file of your own.
 
+## Heatmaps and spectrograms from files
+
+A raster file holds a grid of floats row by row, far larger than memory: a heatmap of 64k × 64k cells, or a spectrogram
+of millions of rows. Its stages are built once beside it; each halves the directions longer than 1024 cells that are
+not far shorter than the other, so a long spectrogram keeps all its bins.
+
+```csharp
+using (var writer = new RasterFileWriter("field.tras", width: 65_536, xStart: 0, xStep: 1, yStart: 0, yStep: 1))
+{
+    writer.Append(row);              // a whole number of rows at a time
+}
+
+var raster = RasterFile.Open("field.tras");
+var stages = RasterPyramid.Build(raster, "field.tras.tmip", RasterReduction.Maximum);
+chart.AddFileRaster(stages, s => s.ColorAxis(a => a.Colormap(Colormaps.Turbo)));
+```
+
+- `RasterReduction.Mean` shows smooth fields; `Maximum` keeps a single hot cell or a narrow peak of a spectrogram
+  visible however far out the view is.
+- Each frame reads the stage with half a cell or more per pixel, and of it only the cells in view.
+- `RowsAlongX()` lets the rows of the file run along the X axis, as the rows of a spectrogram written over time.
+- The stages hold about a third of a square raster, about as much again for a long spectrogram.
+
+The format: a header of 64 bytes (`TRAS`, version 1, the width as int32 at offset 8, the height as int64 at offset 16,
+then the left edge and width of a column and the lower edge and height of a row as doubles at 24, 32, 40 and 48), then
+the rows as little-endian floats.
+
+The showroom page „Heatmap from a file“ shows 16384 × 16384 cells; the configurator offers the type „Heatmap from a
+file“, with the test raster or a raster file of your own.
+
 ## From CSV
 
 ```csharp

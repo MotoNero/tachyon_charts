@@ -182,6 +182,7 @@ public static class ConfiguratorLink
         ["Large file"] = "fileLine",
         ["Digital channels"] = "digital",
         ["Scatter from a file"] = "pointDensity",
+        ["Heatmap from a file"] = "fileRaster",
         ["Candles without weekends"] = "option:weekends",
         ["Market profile"] = "candles",
         ["Drawing tools"] = "candles",

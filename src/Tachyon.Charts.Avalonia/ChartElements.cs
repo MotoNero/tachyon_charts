@@ -787,6 +787,20 @@ public sealed class HeatmapSeries : RasterSeriesElement
 }
 
 /// <summary>
+/// A heatmap or spectrogram of a raster file far larger than memory, read through its stages. The data source is a
+/// <see cref="Core.Data.RasterPyramid"/>.
+/// </summary>
+public sealed class FileRasterSeries : RasterSeriesElement
+{
+    /// <summary>Gets or sets a value indicating whether the rows of the file run along the X axis, as in a spectrogram.</summary>
+    public bool RowsAlongX { get; set; }
+
+    /// <inheritdoc />
+    internal override ChartSeries? Build(AxisBase x, AxisBase y) =>
+        DataSource is null ? null : new Core.Series.FileRasterSeries(Source<Core.Data.RasterPyramid>(), x, y, GetColorAxis(string.Empty)) { Name = SeriesName, RowsAlongX = RowsAlongX };
+}
+
+/// <summary>
 /// A scatter far larger than memory as a density, from points sorted into tiles beside their file. The data source is
 /// a <see cref="Core.Data.PointTiles"/>.
 /// </summary>
@@ -1214,6 +1228,7 @@ internal static class ChartElementFactory
                 YStep = heatmap.YStep,
                 IsInterpolated = heatmap.IsInterpolated,
             }, heatmap),
+            FileRasterDefinition raster => Raster(new FileRasterSeries { RowsAlongX = raster.RowsAlongX }, raster),
             PointDensityDefinition density => Raster(new PointDensitySeries { PointBudget = density.PointBudget }, density),
             _ => throw new NotSupportedException($"{definition.GetType().Name} has no element."),
         };

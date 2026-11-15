@@ -63,6 +63,7 @@ internal static class ShowroomPages
         new("Large file", _ => LargeFile()),
         new("Digital channels", _ => DigitalChannels()),
         new("Scatter from a file", _ => ScatterFromAFile()),
+        new("Heatmap from a file", _ => HeatmapFromAFile()),
         new("Candles without weekends", _ =>
         {
             var spec = Prices("Working days only, the weekends take no room", Series("candles", string.Empty, "workdayWalk", 60, ("volume", false)));
@@ -703,6 +704,20 @@ internal static class ShowroomPages
             XAxes = { new AxisSpec { Id = "x", Title = "X" } },
             YAxes = { new AxisSpec { Id = "y", Title = "Y" } },
             Series = { Series(PointDensityType.Id, "Points", PointDensityType.SampleId, 200_000_000, ("colormap", "Inferno"), ("log", true)) },
+        };
+        Interactions(spec, "zoompan", "rubberband");
+        return spec;
+    }
+
+    // 268 million cells from a test raster, read through stages that keep the highest value.
+    private static ChartSpec HeatmapFromAFile()
+    {
+        var spec = new ChartSpec
+        {
+            Title = "268 million cells from a file",
+            XAxes = { new AxisSpec { Id = "x", Title = "Column" } },
+            YAxes = { new AxisSpec { Id = "y", Title = "Row" } },
+            Series = { Series(FileRasterType.Id, "Value", FileRasterType.SampleId, 16_384, ("colormap", "Turbo"), ("reduction", "Maximum")) },
         };
         Interactions(spec, "zoompan", "rubberband");
         return spec;

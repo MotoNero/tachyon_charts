@@ -211,6 +211,9 @@ public enum DataShape
 
     /// <summary>Points of a file with X and Y, sorted into tiles.</summary>
     PointTiles,
+
+    /// <summary>A raster file, read through its stages.</summary>
+    RasterFile,
 }
 
 /// <summary>One of several linked charts a type fills, such as a plane of a volume; all of them share the data.</summary>
