@@ -180,6 +180,7 @@ public static class ConfiguratorLink
         ["OHLC bars"] = "candles",
         ["1 million candles"] = "candles",
         ["Large file"] = "fileLine",
+        ["Digital channels"] = "digital",
         ["Candles without weekends"] = "option:weekends",
         ["Market profile"] = "candles",
         ["Drawing tools"] = "candles",

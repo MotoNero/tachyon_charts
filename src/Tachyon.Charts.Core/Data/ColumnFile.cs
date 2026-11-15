@@ -19,6 +19,9 @@ public enum ColumnType
 
     /// <summary>32-bit integer.</summary>
     Int32 = 4,
+
+    /// <summary>One bit per row, 64 rows to a little-endian word, the first row in bit 0; one column only. See <see cref="PackedBits"/>.</summary>
+    Bit = 5,
 }
 
 /// <summary>
@@ -130,7 +133,9 @@ public sealed unsafe class ColumnFile : IDisposable
         var size = SizeOf(type);
         var block = blockRows == 0 ? rows : blockRows;
         var blocks = block == 0 ? 0 : (rows + block - 1) / block;
-        var needed = HeaderSize + (blocks == 0 ? 0 : ((blocks - 1) * block * columns * size) + ((rows - ((blocks - 1) * block)) * columns * size));
+        var needed = type == ColumnType.Bit
+            ? HeaderSize + ((rows + 63) / 64 * 8)
+            : HeaderSize + (blocks == 0 ? 0 : ((blocks - 1) * block * columns * size) + ((rows - ((blocks - 1) * block)) * columns * size));
         if (length < needed)
         {
             throw new InvalidDataException($"{path} has {length:N0} bytes, its header needs {needed:N0}.");
@@ -188,6 +193,7 @@ public sealed unsafe class ColumnFile : IDisposable
     {
         ColumnType.Double => 8,
         ColumnType.Single or ColumnType.Int32 => 4,
+        ColumnType.Bit => 0,
         _ => 2,
     };
 
@@ -224,6 +230,23 @@ public sealed unsafe class ColumnFile : IDisposable
         return new ReadOnlySpan<T>(_data + offset, length);
     }
 
+    /// <summary>Reads words of a file of bits without copying them.</summary>
+    /// <param name="first">The first word.</param>
+    /// <param name="maxLength">The most words to read.</param>
+    /// <returns>The words, fewer at the end of the file.</returns>
+    internal ReadOnlySpan<ulong> ReadWords(long first, int maxLength)
+    {
+        var words = (RowCount + 63) / 64;
+        if (first < 0 || maxLength <= 0 || first >= words)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(first);
+            return [];
+        }
+
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+        return new ReadOnlySpan<ulong>(_data + HeaderSize + (first * 8), (int)Math.Min(maxLength, words - first));
+    }
+
     private static (ColumnType Type, int Columns, long Rows, double XStart, double XStep, long BlockRows) ReadHeader(ReadOnlySpan<byte> header, string path)
     {
         if (BinaryPrimitives.ReadUInt32LittleEndian(header) != Magic)
@@ -241,7 +264,7 @@ public sealed unsafe class ColumnFile : IDisposable
         var columns = BinaryPrimitives.ReadInt32LittleEndian(header[12..]);
         var rows = BinaryPrimitives.ReadInt64LittleEndian(header[16..]);
         var blockRows = BinaryPrimitives.ReadInt64LittleEndian(header[40..]);
-        if (!Enum.IsDefined(type) || columns < 1 || rows < 0 || blockRows < 0 || (blockRows == 0 && columns > 1))
+        if (!Enum.IsDefined(type) || columns < 1 || rows < 0 || blockRows < 0 || (blockRows == 0 && columns > 1) || (type == ColumnType.Bit && (columns != 1 || blockRows != 0)))
         {
             throw new InvalidDataException($"{path} has a header that cannot be read: type {(int)type}, {columns} columns, {rows} rows, {blockRows} rows per block.");
         }

@@ -50,6 +50,7 @@ public static class ChartTypePages
         (OhlcBarsPage.Name, OhlcBarsPage.Hint, OhlcBarsPage.Configure),
         (MillionCandlesPage.Name, MillionCandlesPage.Hint, MillionCandlesPage.Configure),
         (LargeFilePage.Name, LargeFilePage.Hint, LargeFilePage.Configure),
+        (DigitalChannelsPage.Name, DigitalChannelsPage.Hint, DigitalChannelsPage.Configure),
         (CandlesWithoutWeekendsPage.Name, CandlesWithoutWeekendsPage.Hint, CandlesWithoutWeekendsPage.Configure),
         (MarketProfilePage.Name, MarketProfilePage.Hint, MarketProfilePage.Configure),
         (DrawingToolsPage.Name, DrawingToolsPage.Hint, DrawingToolsPage.Configure),

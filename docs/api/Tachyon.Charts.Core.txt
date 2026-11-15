@@ -341,6 +341,12 @@ static class Tachyon.Charts.Core.Colors.Colormaps
   static Tachyon.Charts.Core.Colors.Colormap Plasma { get; }
   static Tachyon.Charts.Core.Colors.Colormap Turbo { get; }
   static Tachyon.Charts.Core.Colors.Colormap Viridis { get; }
+sealed class Tachyon.Charts.Core.Data.BitFileWriter : System.IDisposable
+  .ctor(System.String path, System.Double xStart = 0, System.Double xStep = 1)
+  System.Int64 RowCount { get; }
+  System.Void Append(System.Boolean level, System.Int64 points = 1)
+  System.Void AppendBits(System.ReadOnlySpan<System.UInt64> words, System.Int64 points)
+  System.Void Dispose()
 struct Tachyon.Charts.Core.Data.Candle : System.IEquatable<Tachyon.Charts.Core.Data.Candle>
   .ctor(System.Double Time, System.Double Open, System.Double High, System.Double Low, System.Double Close, System.Double Volume)
   System.Boolean IsRising { get; }
@@ -388,6 +394,7 @@ sealed class Tachyon.Charts.Core.Data.ColumnFileWriter<T> : System.IDisposable
   System.Void SetX(System.Double xStart, System.Double xStep)
   static System.Int32 DefaultBlockRows
 enum Tachyon.Charts.Core.Data.ColumnType : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Bit = 5
   Double = 1
   Int16 = 3
   Int32 = 4
@@ -444,6 +451,17 @@ struct Tachyon.Charts.Core.Data.DataWriter<TX, TY>
 static class Tachyon.Charts.Core.Data.DateTimeDataExtensions
   static System.Void Append<TY>(Tachyon.Charts.Core.Data.DataSource<System.Int64, TY> source, System.DateTime x, TY y)
   static System.Void Append<TY>(Tachyon.Charts.Core.Data.DataSource<System.Int64, TY> source, System.ReadOnlySpan<System.DateTime> x, System.ReadOnlySpan<TY> y)
+sealed class Tachyon.Charts.Core.Data.DigitalTransitions : Tachyon.Charts.Core.Data.IDigitalSource
+  .ctor(System.Double xStart = 0, System.Double xStep = 1)
+  System.Boolean LevelAt(System.Int64 index)
+  System.Double XStart { get; }
+  System.Double XStep { get; }
+  System.Int32 ChangeCount { get; }
+  System.Int64 Count { get; }
+  System.Int64 NextChange(System.Int64 from, System.Int64 to)
+  System.Int64 Version { get; }
+  System.Void Append(System.Boolean level, System.Int64 points = 1)
+  System.Void AppendBits(System.ReadOnlySpan<System.UInt64> words, System.Int64 points)
 static class Tachyon.Charts.Core.Data.ExternalDataSource
   static Tachyon.Charts.Core.Data.ExternalDataSource<TX, TY> Create<TX, TY>(System.ReadOnlyMemory<TX> x, System.ReadOnlyMemory<TY> y, System.Nullable<System.Boolean> isSortedX = null)
   static Tachyon.Charts.Core.Data.ExternalDataSource<TX, TY> Create<TX, TY>(TX[] x, TY[] y, System.Nullable<System.Boolean> isSortedX = null)
@@ -528,6 +546,13 @@ interface Tachyon.Charts.Core.Data.IDataSource
 interface Tachyon.Charts.Core.Data.IDataSource<TX, TY> : Tachyon.Charts.Core.Data.IDataSource
   System.Boolean TryGetLatest(out TY y)
   abstract Tachyon.Charts.Core.Data.DataSnapshot<TX, TY> GetSnapshot()
+interface Tachyon.Charts.Core.Data.IDigitalSource
+  abstract System.Boolean LevelAt(System.Int64 index)
+  abstract System.Double XStart { get; }
+  abstract System.Double XStep { get; }
+  abstract System.Int64 Count { get; }
+  abstract System.Int64 NextChange(System.Int64 from, System.Int64 to)
+  abstract System.Int64 Version { get; }
 sealed class Tachyon.Charts.Core.Data.ItemsDataSource : System.IDisposable
   .ctor(System.Collections.IEnumerable items, System.String xPath, System.String yPath)
   System.Int32 Count { get; }
@@ -535,6 +560,19 @@ sealed class Tachyon.Charts.Core.Data.ItemsDataSource : System.IDisposable
   System.Void Dispose()
   Tachyon.Charts.Core.Data.DataSource<System.Double, System.Double> Source { get; }
   static System.Int32 RecommendedLimit
+sealed class Tachyon.Charts.Core.Data.PackedBits : Tachyon.Charts.Core.Data.IDigitalSource
+  System.Boolean IsComplete { get; }
+  System.Boolean LevelAt(System.Int64 index)
+  System.Double Progress { get; }
+  System.Double XStart { get; }
+  System.Double XStep { get; }
+  System.Int64 Count { get; }
+  System.Int64 NextChange(System.Int64 from, System.Int64 to)
+  System.Int64 Version { get; }
+  System.Threading.Tasks.Task Completion { get; }
+  static System.Int32 BlockSize
+  static Tachyon.Charts.Core.Data.PackedBits FromWords(System.ReadOnlyMemory<System.UInt64> words, System.Int64 count, System.Double xStart = 0, System.Double xStep = 1, System.Threading.CancellationToken cancellation = null)
+  static Tachyon.Charts.Core.Data.PackedBits Open(Tachyon.Charts.Core.Data.ColumnFile file, System.Threading.CancellationToken cancellation = null)
 sealed class Tachyon.Charts.Core.Data.Polygon
   .ctor(Tachyon.Charts.Core.Data.PolygonRing outer, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.PolygonRing> holes = null)
   System.Boolean Contains(System.Double x, System.Double y)
@@ -2028,6 +2066,25 @@ sealed class Tachyon.Charts.Core.Series.ContourSeries : Tachyon.Charts.Core.Seri
   protected virtual System.Void DisposeCore()
   protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
   protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+sealed class Tachyon.Charts.Core.Series.DigitalSeries : Tachyon.Charts.Core.Pipeline.ChartSeries, System.IDisposable
+  .ctor(Tachyon.Charts.Core.Data.IDigitalSource source, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  System.Double High { get; set; }
+  System.Double Low { get; set; }
+  System.Double Progress { get; }
+  System.Double Thickness { get; set; }
+  System.Void Dispose()
+  Tachyon.Charts.Core.Data.IDigitalSource Source { get; }
+  Tachyon.Charts.Rendering.Rgba8 Color { get; set; }
+  protected virtual System.Boolean TryFindPoint(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Numerics.Vector2 pixel, System.Double maximumDistance, Tachyon.Charts.Core.HitTesting.HitTestMode mode, out System.Int64 index, out System.Double x, out System.Double y)
+  protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Boolean TryReadPoint(System.Int64 index, out System.Double x, out System.Double y)
+  protected virtual System.Int32 DrawnPointCount { get; }
+  protected virtual System.Int64 SourcePointCount { get; }
+  protected virtual System.Int64 Version { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void ReleaseResources()
+  virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
 sealed class Tachyon.Charts.Core.Series.ErrorBarSeries : Tachyon.Charts.Core.Series.MarkSeries, System.IDisposable
   .ctor(Tachyon.Charts.Core.Data.IDataSource<System.Double, System.Double> source, System.ReadOnlyMemory<System.Double> lower, System.ReadOnlyMemory<System.Double> upper, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   System.Double CapWidth { get; set; }

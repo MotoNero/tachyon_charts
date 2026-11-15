@@ -100,6 +100,8 @@ public static class SampleText
         ["OHLC bars"] = "OHLC-Balken",
         ["1 million candles"] = "1 Mio. Kerzen",
         ["Large file"] = "Große Datei",
+        ["Digital channels"] = "Digitale Kanäle",
+        ["16 channels of 1 billion points each"] = "16 Kanäle mit je 1 Mrd. Punkten",
         ["1 billion values from a 4 GB file"] = "1 Mrd. Werte aus einer Datei von 4 GB",
         ["Measurement"] = "Messung",
         ["Refining {0:P0}"] = "Wird verfeinert: {0:P0}",

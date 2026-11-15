@@ -205,6 +205,9 @@ public enum DataShape
 
     /// <summary>A column of a file larger than memory, read through the pyramid of its extremes.</summary>
     LargeFile,
+
+    /// <summary>Channels of two levels, kept as their changes.</summary>
+    Digital,
 }
 
 /// <summary>One of several linked charts a type fills, such as a plane of a volume; all of them share the data.</summary>

@@ -56,6 +56,43 @@ the local data of Tachyon Charts (`%LOCALAPPDATA%\Tachyon\Samples` on Windows), 
 open it. The configurator offers the same as the type „Line from a large file“, with the test file or a column file of
 your own.
 
+## Digital channels
+
+Signals of two levels, such as logic channels, switches or bus lines, need far less than numbers. `DigitalSeries` draws
+levels and edges: each pixel column asks only for its level and whether the level changes inside it, so no edge is lost,
+not even of a single point, and narrow views draw every change.
+
+```csharp
+// Kept as the places where the level changes: a billion points with a thousand changes take a few kilobytes.
+var clock = new DigitalTransitions(xStart: 0, xStep: 1e-9);
+clock.Append(false, 500);            // points of one level
+clock.AppendBits(words, bitCount);   // or packed bits, bit 0 first; safe while other threads draw
+
+// Many channels one above the other: low and high at two values of the Y axis.
+chart.AddSeries(new DigitalSeries(clock, xAxis, yAxis) { Low = 15 - 0.3, High = 15 + 0.3, Name = "CLK" });
+```
+
+Signals that change at almost every point keep one bit per point instead, in memory or in a column file of the type
+`Bit`, which `BitFileWriter` writes:
+
+```csharp
+using (var writer = new BitFileWriter("bus.tcol", xStart: 0, xStep: 1e-9))
+{
+    writer.Append(true, 1000);
+    writer.AppendBits(words, bitCount);
+}
+
+using var file = ColumnFile.Open("bus.tcol");
+var bits = PackedBits.Open(file);    // or PackedBits.FromWords(words, count) for bits in memory
+```
+
+An index of one bit per 4096 points tells where the level changes; it is built on all cores in the background (a file of
+12.5 GB, a hundred billion points, in under two seconds from the cache). Until it is complete, narrow views are exact and
+wide views show what is indexed so far, with the `RefiningOverlay`.
+
+The showroom page „Digital channels“ shows sixteen channels of a logic analyzer, a billion points each; the
+configurator offers the type „Digital channels“.
+
 ## From CSV
 
 ```csharp

@@ -61,6 +61,7 @@ internal static class ShowroomPages
         new("OHLC bars", _ => Prices("Share price as OHLC bars", Series("candles", string.Empty, "dailyWalk3", 120, ("style", "Ohlc"), ("rising", "#0072B2"), ("falling", "#E69F00"), ("volume", false)))),
         new("1 million candles", _ => Prices("1 million minute candles", Series("candles", string.Empty, "minuteWalk", 1_000_000, ("hollow", true), ("volumeShare", 0.25)))),
         new("Large file", _ => LargeFile()),
+        new("Digital channels", _ => DigitalChannels()),
         new("Candles without weekends", _ =>
         {
             var spec = Prices("Working days only, the weekends take no room", Series("candles", string.Empty, "workdayWalk", 60, ("volume", false)));
@@ -669,6 +670,26 @@ internal static class ShowroomPages
             Series = { Series(LargeFileType.Id, "Measurement", LargeFileType.SampleId, 1_000_000_000, ("thickness", 1.0), ("color", "#50AAF0")) },
         };
         Interactions(spec, "zoompan", "rubberband");
+        return spec;
+    }
+
+    // Sixteen channels of a logic analyzer, a billion points each, one above the other with their names at the axis.
+    private static ChartSpec DigitalChannels()
+    {
+        var spec = new ChartSpec
+        {
+            Title = "16 channels of 1 billion points each",
+            XAxes = { new AxisSpec { Id = "x", Title = "Time in s" } },
+            YAxes = { new AxisSpec { Id = "y", Kind = AxisKind.Category, Categories = string.Join(", ", DigitalType.Names.Reverse()) } },
+        };
+        string[] colors = ["#F0C850", "#F09646", "#F09646", .. Enumerable.Repeat("#5AC878", 8), "#F05A5A", "#F05A5A", "#5AA0F0", "#5AA0F0", "#5AA0F0"];
+        for (var channel = 0; channel < DigitalType.Names.Length; channel++)
+        {
+            var lane = DigitalType.Names.Length - 1 - channel;
+            spec.Series.Add(Series(DigitalType.Id, DigitalType.Names[channel], DigitalType.SampleId, 1_000_000_000, ("channel", (double)channel), ("low", lane - 0.3), ("high", lane + 0.3), ("thickness", 1.0), ("color", colors[channel])));
+        }
+
+        Interactions(spec, "zoompan", "rubberband", "tooltip");
         return spec;
     }
 
