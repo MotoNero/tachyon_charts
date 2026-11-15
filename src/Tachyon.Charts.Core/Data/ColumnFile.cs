@@ -291,8 +291,8 @@ public sealed class ColumnFileWriter<T> : IDisposable
     private readonly FileStream _stream;
     private readonly ColumnType _type;
     private readonly int _columns;
-    private readonly double _xStart;
-    private readonly double _xStep;
+    private double _xStart;
+    private double _xStep;
     private readonly int _blockRows;
     private readonly T[]? _block;
     private int _rowsInBlock;
@@ -352,6 +352,15 @@ public sealed class ColumnFileWriter<T> : IDisposable
                 FlushBlock();
             }
         }
+    }
+
+    /// <summary>Sets the X of the first row and the X step, when they are known only after the rows, as from an X column.</summary>
+    /// <param name="xStart">The X of the first row.</param>
+    /// <param name="xStep">The X distance between two rows.</param>
+    public void SetX(double xStart, double xStep)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        (_xStart, _xStep) = (xStart, xStep);
     }
 
     /// <summary>Completes the file: the last block and the header.</summary>

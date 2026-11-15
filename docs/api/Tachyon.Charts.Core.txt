@@ -372,17 +372,33 @@ sealed class Tachyon.Charts.Core.Data.ColumnFile : System.IDisposable
   Tachyon.Charts.Core.Data.FileColumn<T> Column<T>(System.Int32 index = 0)
   static System.Int32 HeaderSize
   static Tachyon.Charts.Core.Data.ColumnFile Open(System.String path)
+static class Tachyon.Charts.Core.Data.ColumnFileConverter
+  static Tachyon.Charts.Core.Data.ColumnFileSummary FromCsv(System.String csvPath, System.String columnPath, Tachyon.Charts.Core.Data.CsvColumns columns = null, System.IProgress<System.Double> progress = null, System.Threading.CancellationToken cancellation = null)
+sealed class Tachyon.Charts.Core.Data.ColumnFileSummary : System.IEquatable<Tachyon.Charts.Core.Data.ColumnFileSummary>
+  .ctor(System.Int64 Rows, System.Collections.Generic.IReadOnlyList<System.String> Names, System.Double XStart, System.Double XStep)
+  System.Collections.Generic.IReadOnlyList<System.String> Names { get; set; }
+  System.Double XStart { get; set; }
+  System.Double XStep { get; set; }
+  System.Int64 Rows { get; set; }
 sealed class Tachyon.Charts.Core.Data.ColumnFileWriter<T> : System.IDisposable
   .ctor(System.String path, System.Int32 columns = 1, System.Double xStart = 0, System.Double xStep = 1, System.Int32 blockRows = 1048576)
   System.Int64 RowCount { get; }
   System.Void Append(System.ReadOnlySpan<T> rows)
   System.Void Dispose()
+  System.Void SetX(System.Double xStart, System.Double xStep)
   static System.Int32 DefaultBlockRows
 enum Tachyon.Charts.Core.Data.ColumnType : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Double = 1
   Int16 = 3
   Int32 = 4
   Single = 2
+sealed class Tachyon.Charts.Core.Data.CsvColumns : System.IEquatable<Tachyon.Charts.Core.Data.CsvColumns>
+  .ctor(Tachyon.Charts.Core.Data.CsvFormat Format = null, System.Nullable<System.Int32> XColumn = null, System.Collections.Generic.IReadOnlyList<System.Int32> Columns = null, System.Double XStart = 0, System.Double XStep = 1)
+  System.Collections.Generic.IReadOnlyList<System.Int32> Columns { get; set; }
+  System.Double XStart { get; set; }
+  System.Double XStep { get; set; }
+  System.Nullable<System.Int32> XColumn { get; set; }
+  Tachyon.Charts.Core.Data.CsvFormat Format { get; set; }
 sealed class Tachyon.Charts.Core.Data.CsvFormat : System.IEquatable<Tachyon.Charts.Core.Data.CsvFormat>
   .ctor(System.Char Delimiter = ,, System.Boolean HasHeader = True, System.Boolean DecimalComma = False)
   System.Boolean DecimalComma { get; set; }
