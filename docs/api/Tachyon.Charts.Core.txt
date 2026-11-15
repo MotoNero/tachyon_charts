@@ -360,6 +360,29 @@ sealed class Tachyon.Charts.Core.Data.CandleData
   System.Void Clear()
   System.Void UpdateLast(in Tachyon.Charts.Core.Data.Candle candle)
   Tachyon.Charts.Core.Data.Candle Item[System.Int32] { get; }
+sealed class Tachyon.Charts.Core.Data.ColumnFile : System.IDisposable
+  System.Double XStart { get; }
+  System.Double XStep { get; }
+  System.Int32 ColumnCount { get; }
+  System.Int64 BlockRows { get; }
+  System.Int64 RowCount { get; }
+  System.String Path { get; }
+  System.Void Dispose()
+  Tachyon.Charts.Core.Data.ColumnType Type { get; }
+  Tachyon.Charts.Core.Data.FileColumn<T> Column<T>(System.Int32 index = 0)
+  static System.Int32 HeaderSize
+  static Tachyon.Charts.Core.Data.ColumnFile Open(System.String path)
+sealed class Tachyon.Charts.Core.Data.ColumnFileWriter<T> : System.IDisposable
+  .ctor(System.String path, System.Int32 columns = 1, System.Double xStart = 0, System.Double xStep = 1, System.Int32 blockRows = 1048576)
+  System.Int64 RowCount { get; }
+  System.Void Append(System.ReadOnlySpan<T> rows)
+  System.Void Dispose()
+  static System.Int32 DefaultBlockRows
+enum Tachyon.Charts.Core.Data.ColumnType : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Double = 1
+  Int16 = 3
+  Int32 = 4
+  Single = 2
 sealed class Tachyon.Charts.Core.Data.CsvFormat : System.IEquatable<Tachyon.Charts.Core.Data.CsvFormat>
   .ctor(System.Char Delimiter = ,, System.Boolean HasHeader = True, System.Boolean DecimalComma = False)
   System.Boolean DecimalComma { get; set; }
@@ -436,6 +459,12 @@ sealed class Tachyon.Charts.Core.Data.FifoDataSource<TX, TY> : Tachyon.Charts.Co
   Tachyon.Charts.Core.Data.DataMetadata Metadata { get; }
   Tachyon.Charts.Core.Data.DataSnapshot<TX, TY> GetSnapshot()
   Tachyon.Charts.Core.Data.FifoChanges GetChangesSince(System.Int64 version)
+sealed class Tachyon.Charts.Core.Data.FileColumn<T> : Tachyon.Charts.Core.Data.IColumnSource<T>
+  System.Double XStart { get; }
+  System.Double XStep { get; }
+  System.Int64 Count { get; }
+  System.Int64 Version { get; }
+  System.ReadOnlySpan<T> Read(System.Int64 start, System.Int32 maxLength)
 sealed class Tachyon.Charts.Core.Data.GanttData
   .ctor()
   System.Boolean IsCollapsed(System.String group)
@@ -471,6 +500,12 @@ sealed class Tachyon.Charts.Core.Data.HeatmapData
   System.Single Item[System.Int32, System.Int32] { get; }
   System.Void SetValues(System.ReadOnlySpan<System.Single> values)
   Tachyon.Charts.Core.Numerics.DoubleRange ValueRange { get; }
+interface Tachyon.Charts.Core.Data.IColumnSource<T>
+  abstract System.Double XStart { get; }
+  abstract System.Double XStep { get; }
+  abstract System.Int64 Count { get; }
+  abstract System.Int64 Version { get; }
+  abstract System.ReadOnlySpan<T> Read(System.Int64 start, System.Int32 maxLength)
 interface Tachyon.Charts.Core.Data.IDataSource
   abstract System.Int64 Version { get; }
   abstract Tachyon.Charts.Core.Data.DataMetadata Metadata { get; }
