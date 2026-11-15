@@ -6,3 +6,6 @@ licensed under the Apache License 2.0 (src/Tachyon.Charts.Rendering.Skia/Fonts).
 
 This product includes Material Symbols (Outlined), Copyright Google LLC, licensed under the Apache License 2.0
 (src/Tachyon.Charts.Icons/Fonts/LICENSE-MaterialSymbols.txt).
+
+This product includes the countries of Natural Earth 5.1.1 (https://www.naturalearthdata.com), which are in the public
+domain; made with Natural Earth (src/Tachyon.Charts.Geo/Data).

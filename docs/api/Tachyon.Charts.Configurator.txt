@@ -199,6 +199,7 @@ enum Tachyon.Charts.Configurator.DataShape : System.IComparable, System.IConvert
   Digital = 31
   Errors = 6
   Gantt = 22
+  GeoMap = 35
   Grid = 2
   Groups = 7
   LargeFile = 30

@@ -28,6 +28,7 @@ Tachyon Charts draws large amounts of data in real time, in WPF and Avalonia, on
 | Groups and several charts | [groups.md](groups.md) |
 | Themes and effects | [themes.md](themes.md) |
 | Large data: files larger than memory, CSV and HDF5 | [large-data.md](large-data.md) |
+| Maps: countries of the world, projections, shapefiles | [geo.md](geo.md) |
 | Your own theme: JSON, XAML, all keys | [custom-themes.md](custom-themes.md) |
 | Export, clipboard, printing | [export.md](export.md) |
 | Configurator: put a chart together, take its code | [configurator.md](configurator.md) |

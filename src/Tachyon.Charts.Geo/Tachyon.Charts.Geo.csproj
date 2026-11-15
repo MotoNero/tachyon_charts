@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Description>Maps for Tachyon Charts without the internet: the countries of the world from Natural Earth in three levels of detail, map projections, and a reader of ESRI shapefiles.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>charts;maps;geo;shapefile</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Tachyon.Charts.Core/Tachyon.Charts.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The countries of Natural Earth 5.1.1 (public domain), packed by tools/geo/make-world.cs. -->
+    <EmbeddedResource Include="Data/*.tgeo.gz" LogicalName="%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="/" />
+    <InternalsVisibleTo Include="Tachyon.Charts.Geo.Tests" />
+  </ItemGroup>
+
+</Project>

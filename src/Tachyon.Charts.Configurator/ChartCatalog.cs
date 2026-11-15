@@ -217,6 +217,9 @@ public enum DataShape
 
     /// <summary>A 3D point cloud of a file, sorted into pages.</summary>
     CloudPages,
+
+    /// <summary>The levels of detail of a map of regions.</summary>
+    GeoMap,
 }
 
 /// <summary>One of several linked charts a type fills, such as a plane of a volume; all of them share the data.</summary>
@@ -460,6 +463,7 @@ public sealed class ChartCatalog
         "Tachyon.Charts.Configurator.ThreeD.ThreeDModule, Tachyon.Charts.Configurator.ThreeD",
         "Tachyon.Charts.Configurator.Medical.MedicalModule, Tachyon.Charts.Configurator.Medical",
         "Tachyon.Charts.Configurator.Icons.IconsModule, Tachyon.Charts.Configurator.Icons",
+        "Tachyon.Charts.Configurator.Geo.GeoModule, Tachyon.Charts.Configurator.Geo",
     ];
 
     /// <summary>Initializes a catalog with the 2D types of the core.</summary>

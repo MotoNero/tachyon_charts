@@ -69,6 +69,7 @@ public static class ShowcaseScenes
         Type("digital-channels", "Digital channels", "16 channels of 1 billion points each"),
         Type("scatter-file", "Scatter from a file", "200 million points from a file"),
         Type("heatmap-file", "Heatmap from a file", "268 million cells from a file"),
+        Type("world-map", "World map", "Countries by distance from the equator"),
         Theme("theme-neon", "Neon", BuiltInThemes.Neon),
         Theme("theme-paper", "Paper", BuiltInThemes.Paper),
         Theme("theme-instrument", "Instrument", BuiltInThemes.Instrument),

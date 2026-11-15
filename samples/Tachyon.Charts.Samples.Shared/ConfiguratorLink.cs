@@ -184,6 +184,7 @@ public static class ConfiguratorLink
         ["Digital channels"] = "digital",
         ["Scatter from a file"] = "pointDensity",
         ["Heatmap from a file"] = "fileRaster",
+        ["World map"] = "geoMap",
         ["Candles without weekends"] = "option:weekends",
         ["Market profile"] = "candles",
         ["Drawing tools"] = "candles",

@@ -39,6 +39,7 @@
     <ProjectReference Include="../Tachyon.Charts.Configurator.ThreeD/Tachyon.Charts.Configurator.ThreeD.csproj" />
     <ProjectReference Include="../Tachyon.Charts.Configurator.Medical/Tachyon.Charts.Configurator.Medical.csproj" />
     <ProjectReference Include="../Tachyon.Charts.Configurator.Icons/Tachyon.Charts.Configurator.Icons.csproj" />
+    <ProjectReference Include="../Tachyon.Charts.Configurator.Geo/Tachyon.Charts.Configurator.Geo.csproj" />
     <ProjectReference Include="../Tachyon.Charts.Avalonia/Tachyon.Charts.Avalonia.csproj" />
   </ItemGroup>
 

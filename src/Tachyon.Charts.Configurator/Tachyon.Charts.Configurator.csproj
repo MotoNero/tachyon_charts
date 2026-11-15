@@ -16,6 +16,7 @@
     <InternalsVisibleTo Include="Tachyon.Charts.Configurator.Tests" />
     <InternalsVisibleTo Include="Tachyon.Charts.Configurator.ThreeD" />
     <InternalsVisibleTo Include="Tachyon.Charts.Configurator.Medical" />
+    <InternalsVisibleTo Include="Tachyon.Charts.Configurator.Geo" />
   </ItemGroup>
 
 </Project>
