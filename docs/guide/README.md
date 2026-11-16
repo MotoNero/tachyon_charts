@@ -27,8 +27,8 @@ Tachyon Charts draws large amounts of data in real time, in WPF and Avalonia, on
 | Annotations | [annotations.md](annotations.md) |
 | Groups and several charts | [groups.md](groups.md) |
 | Themes and effects | [themes.md](themes.md) |
-| Large data: files larger than memory, CSV and HDF5 | [large-data.md](large-data.md) |
-| Maps: countries of the world, projections, shapefiles | [geo.md](geo.md) |
+| Large data: files larger than memory, recording for hours, digital channels, CSV and HDF5 | [large-data.md](large-data.md) |
+| Maps: countries of the world, projections, tiles from a server, shapefiles | [geo.md](geo.md) |
 | Your own theme: JSON, XAML, all keys | [custom-themes.md](custom-themes.md) |
 | Export, clipboard, printing | [export.md](export.md) |
 | Configurator: put a chart together, take its code | [configurator.md](configurator.md) |
@@ -37,5 +37,6 @@ Tachyon Charts draws large amounts of data in real time, in WPF and Avalonia, on
 | 3D charts: types, operation, themes | [3d.md](3d.md) |
 | Medical images, privacy, regulatory scope | [medical.md](medical.md) |
 | Moving from OxyPlot | [migration-oxyplot.md](migration-oxyplot.md) |
+| Code signing policy | [code-signing.md](code-signing.md) |
 
 The complete public API is listed in [`docs/api/`](../api/).
