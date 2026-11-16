@@ -11,6 +11,8 @@ GPU-accelerated 2D and 3D charts for .NET 10, built for test and measurement, la
 
 > **Status:** preview, see [Releases](../../releases). The API can still change.
 
+[![A tour of the showroom and the configurator, 3 min 44 s](docs/images/demo-video.png)](../../releases/tag/demo)
+
 ## At a glance
 
 Measured on a laptop with an RTX 4070 Laptop GPU, see [Performance](#performance):

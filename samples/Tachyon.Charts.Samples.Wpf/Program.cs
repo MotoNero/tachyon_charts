@@ -68,7 +68,7 @@ internal sealed class SampleModel : INotifyPropertyChanged, IDisposable
 /// <summary>
 /// The showroom: a live chart with all interactions, and all scenes of the catalog.
 /// </summary>
-internal sealed class SampleWindow : Window
+internal sealed partial class SampleWindow : Window
 {
     private const string LiveEntry = "Live-Chart (interaktiv)";
     private const string GroupEntry = "Gruppe (3 Charts)";
@@ -298,6 +298,11 @@ internal sealed class SampleWindow : Window
         if (RecordsAtStart)
         {
             _ = RecordAtStart();
+        }
+
+        if (RunsDemo)
+        {
+            _ = RunDemo();
         }
 
         if (ThemeAtStart is { } themeName && BuiltInThemes.All.Concat(_ownThemes).ToList().FindIndex(item => item.Name.Equals(themeName, StringComparison.OrdinalIgnoreCase)) is >= 0 and var chosen)
@@ -1238,8 +1243,17 @@ internal static class Program
         SampleWindow.ShowsDiagnosticsAtStart = args.Contains("--diagnostics");
         SampleWindow.ShowsSourceAtStart = args.Contains("--source");
         SampleWindow.RecordsAtStart = args.Contains("--record");
+        SampleWindow.RunsDemo = args.Contains("--demo");
         var theme = Array.IndexOf(args, "--theme");
         SampleWindow.ThemeAtStart = theme >= 0 && theme + 1 < args.Length ? args[theme + 1] : null;
-        application.Run(new SampleWindow(args.FirstOrDefault()));
+        var window = new SampleWindow(args.FirstOrDefault());
+        if (SampleWindow.RunsDemo)
+        {
+            // The size of the demo video, fixed before the window shows.
+            (window.Width, window.Height, window.Left, window.Top) = (1600, 960, 0, 0);
+            window.WindowStartupLocation = WindowStartupLocation.Manual;
+        }
+
+        application.Run(window);
     }
 }

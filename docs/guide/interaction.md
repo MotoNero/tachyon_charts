@@ -23,6 +23,19 @@ Interactions are building blocks:
 | `Overview(group)` | Makes this chart the overview of the chart that joined `group` with `.Group(group)`: dragging its window moves that chart, dragging an edge scales it |
 | `Custom` | Your own `ChartModifier` |
 
+## Input from code
+
+`Chart.SendInput` gives the chart a pointer, wheel or key event as if it came from the device, such as for a guided
+demo or a test of an application. The pointer of the system does not move; positions are in device-independent units
+of the chart.
+
+```csharp
+chart.SendInput(new PointerInputEvent(PointerEventKind.Moved, 1, new Vector2(300, 200)));   // crosshair and tooltip
+chart.SendInput(new WheelInputEvent(new Vector2(300, 200), new Vector2(0, 1)));             // zoom in one notch
+```
+
+The showroom uses it for its guided tour: `--demo` walks through the pages on its own.
+
 ## Selecting points
 
 Selecting picks measured points from a chart so that you can work with exactly those: export them, or analyze them in your application. Hold Shift and drag around the points. Esc removes the selection.

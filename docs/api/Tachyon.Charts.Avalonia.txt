@@ -11,6 +11,9 @@ sealed class Tachyon.Charts.Avalonia.Chart : Avalonia.Controls.Control, Avalonia
   .ctor()
   System.Boolean IsReadback { get; }
   System.Boolean IsRecording { get; }
+  System.Boolean SendInput(in Tachyon.Charts.Core.Input.KeyInputEvent input)
+  System.Boolean SendInput(in Tachyon.Charts.Core.Input.PointerInputEvent input)
+  System.Boolean SendInput(in Tachyon.Charts.Core.Input.WheelInputEvent input)
   System.Boolean ShowsDiagnostics { get; set; }
   System.String GroupName { get; set; }
   System.String Title { get; set; }

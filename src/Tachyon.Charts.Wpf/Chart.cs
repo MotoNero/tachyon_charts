@@ -181,6 +181,24 @@ public sealed class Chart : FrameworkElement, IRecordableChart
     /// <summary>Gets the connection to the running chart. Safe from any thread.</summary>
     internal ChartInteraction? Interaction => _controller?.Pipeline.Interaction;
 
+    /// <summary>
+    /// Gives the chart a pointer event as if it came from the mouse, such as for a guided demo or a test of an
+    /// application; the pointer of the system does not move. Positions are in device-independent units of the chart.
+    /// </summary>
+    /// <param name="input">The event.</param>
+    /// <returns>Whether an interaction took it.</returns>
+    public bool SendInput(in Tachyon.Charts.Core.Input.PointerInputEvent input) => _controller?.Pipeline.Process(input) == true;
+
+    /// <summary>Gives the chart a wheel event as if it came from the mouse.</summary>
+    /// <param name="input">The event.</param>
+    /// <returns>Whether an interaction took it.</returns>
+    public bool SendInput(in Tachyon.Charts.Core.Input.WheelInputEvent input) => _controller?.Pipeline.Process(input) == true;
+
+    /// <summary>Gives the chart a key event as if it came from the keyboard.</summary>
+    /// <param name="input">The event.</param>
+    /// <returns>Whether an interaction took it.</returns>
+    public bool SendInput(in Tachyon.Charts.Core.Input.KeyInputEvent input) => _controller?.Pipeline.Process(input) == true;
+
     /// <summary>Gets the shared device and render thread while the chart runs.</summary>
     internal ChartRuntime? Runtime => _runtime;
 

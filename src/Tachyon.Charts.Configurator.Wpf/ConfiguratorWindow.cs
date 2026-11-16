@@ -18,7 +18,7 @@ namespace Tachyon.Charts.Configurator.Wpf;
 /// The configurator: settings on the left, the chart in the middle, the code on the right. Every change shows at once in
 /// both, since preview and code come from the same description.
 /// </summary>
-internal sealed class ConfiguratorWindow : Window
+internal sealed partial class ConfiguratorWindow : Window
 {
     private const string RaisedName = "Raised";
 
@@ -125,6 +125,12 @@ internal sealed class ConfiguratorWindow : Window
     {
         base.OnContentRendered(e);
         SelectStartType();
+        if (RunsDemo)
+        {
+            (Left, Top) = (0, 0);
+            _ = RunDemo();
+        }
+
         if (StartSpec is { } saved)
         {
             _session.Load(ChartSpecJson.Read(await File.ReadAllTextAsync(saved)));
@@ -707,7 +713,7 @@ internal static class Program
 
         var application = new Application { ShutdownMode = ShutdownMode.OnMainWindowClose };
         SampleStyle.Apply(application);
-        application.Run(new ConfiguratorWindow { ScreenshotPath = path, StartType = type >= 0 && type + 1 < args.Length ? args[type + 1] : null, StartSpec = spec >= 0 && spec + 1 < args.Length ? args[spec + 1] : null, StartModifier = modifier >= 0 && modifier + 1 < args.Length ? args[modifier + 1] : null, StartPage = page >= 0 && page + 1 < args.Length ? args[page + 1] : null, OpenColorPicker = color >= 0 && color + 1 < args.Length && int.TryParse(args[color + 1], out var number) ? number : null });
+        application.Run(new ConfiguratorWindow { RunsDemo = args.Contains("--demo"), ScreenshotPath = path, StartType = type >= 0 && type + 1 < args.Length ? args[type + 1] : null, StartSpec = spec >= 0 && spec + 1 < args.Length ? args[spec + 1] : null, StartModifier = modifier >= 0 && modifier + 1 < args.Length ? args[modifier + 1] : null, StartPage = page >= 0 && page + 1 < args.Length ? args[page + 1] : null, OpenColorPicker = color >= 0 && color + 1 < args.Length && int.TryParse(args[color + 1], out var number) ? number : null });
     }
 
 }
