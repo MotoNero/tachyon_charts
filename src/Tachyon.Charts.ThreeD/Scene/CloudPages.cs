@@ -202,7 +202,7 @@ public sealed unsafe class CloudPages : IDisposable
                 });
 
                 // Each page in a random order, and its box.
-                var table = (byte*)(data + HeaderSize);
+                var table = data + HeaderSize;
                 Parallel.For(0, pages.Count, options, () => 0L, (index, _, done) =>
                 {
                     var (first, count) = pages[index];

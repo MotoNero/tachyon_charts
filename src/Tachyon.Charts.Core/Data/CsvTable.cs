@@ -65,19 +65,11 @@ public sealed class CsvTable
 
         var count = Math.Max(header?.Length ?? 0, rows.Count == 0 ? 0 : rows.Max(row => row.Length));
         var columns = new double[count][];
-        for (var c = 0; c < count; c++)
-        {
-            columns[c] = new double[rows.Count];
-            for (var r = 0; r < rows.Count; r++)
-            {
-                columns[c][r] = c < rows[r].Length && double.TryParse(rows[r][c].Trim(), NumberStyles.Float | NumberStyles.AllowThousands, numbers, out var value) ? value : double.NaN;
-            }
-        }
-
         var names = new string[count];
         for (var c = 0; c < count; c++)
         {
-            names[c] = header is not null && c < header.Length && header[c].Trim().Length > 0 ? header[c].Trim() : "Column " + (c + 1).ToString(CultureInfo.InvariantCulture);
+            columns[c] = Values(rows, c, numbers);
+            names[c] = NameOf(header, c);
         }
 
         return new CsvTable(names, columns);
@@ -111,18 +103,33 @@ public sealed class CsvTable
         throw new KeyNotFoundException($"The table has no column {name}.");
     }
 
+    private static double[] Values(List<string[]> rows, int column, NumberFormatInfo numbers)
+    {
+        var values = new double[rows.Count];
+        for (var r = 0; r < rows.Count; r++)
+        {
+            values[r] = column < rows[r].Length && double.TryParse(rows[r][column].Trim(), NumberStyles.Float | NumberStyles.AllowThousands, numbers, out var value) ? value : double.NaN;
+        }
+
+        return values;
+    }
+
+    private static string NameOf(string[]? header, int column) =>
+        header is not null && column < header.Length && header[column].Trim().Length > 0 ? header[column].Trim() : "Column " + (column + 1).ToString(CultureInfo.InvariantCulture);
+
     // Splits a line at the delimiter; a value in quotes keeps delimiters, and two quotes in it stand for one.
     private static string[] Split(string line, char delimiter)
     {
         var fields = new List<string>();
         var field = new StringBuilder();
         var quoted = false;
-        for (var i = 0; i < line.Length; i++)
+        var i = 0;
+        while (i < line.Length)
         {
-            var c = line[i];
+            var c = line[i++];
             if (quoted)
             {
-                if (c == '"' && i + 1 < line.Length && line[i + 1] == '"')
+                if (c == '"' && i < line.Length && line[i] == '"')
                 {
                     field.Append('"');
                     i++;

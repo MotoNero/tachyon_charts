@@ -11,6 +11,7 @@ namespace Tachyon.Charts.Configurator.ThreeD;
 /// </summary>
 internal static class LiveSamples3D
 {
+    private const string Points3DName = "Points3D";
     private const int PathStep = 200;
     private const int SweepStep = 30_000;
 
@@ -19,7 +20,7 @@ internal static class LiveSamples3D
 
     public static IReadOnlyList<SampleInfo> Create() =>
     [
-        new("particlePathLive", "Path of a particle, live", DataShape.Points3D, 100_000, count => new Points3D(count), "Points3D", method => SampleCatalog.Header("the path of a particle, 200 steps every 30 ms; the oldest fall out", method, "Points3D", "How many points stay.") + """
+        new("particlePathLive", "Path of a particle, live", DataShape.Points3D, 100_000, count => new Points3D(count), Points3DName, method => SampleCatalog.Header("the path of a particle, 200 steps every 30 ms; the oldest fall out", method, Points3DName, "How many points stay.") + """
                 {
                     var points = new Points3D(count);
                     var (x, y, z) = (1.0, 1.0, 20.0);
@@ -45,7 +46,7 @@ internal static class LiveSamples3D
                 private static Timer? _pathFeed;
 
             """) { MinimumCount = 1000 },
-        new("sweepLive", "Sweep of a surface, a million points per second", DataShape.Points3D, 5_000_000, count => new Points3D(count), "Points3D", method => SampleCatalog.Header("a sweep along the first axis, 30 000 points every 30 ms; the oldest fall out", method, "Points3D", "How many points stay.") + """
+        new("sweepLive", "Sweep of a surface, a million points per second", DataShape.Points3D, 5_000_000, count => new Points3D(count), Points3DName, method => SampleCatalog.Header("a sweep along the first axis, 30 000 points every 30 ms; the oldest fall out", method, Points3DName, "How many points stay.") + """
                 {
                     var points = new Points3D(count);
                     var random = new Random(2);

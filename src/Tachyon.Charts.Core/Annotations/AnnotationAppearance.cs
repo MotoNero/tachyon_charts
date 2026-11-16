@@ -201,7 +201,8 @@ internal static class AnnotationPainter
         var along = to - from;
         var direction = along.LengthSquared() > 0 ? Vector2.Normalize(along) : Vector2.UnitX;
         var before = new Vector2(direction.Y, -direction.X);
-        var normal = (look.LabelSide == LabelSide.Auto ? side : look.LabelSide) == LabelSide.Before ? before : -before;
+        var chosenSide = look.LabelSide == LabelSide.Auto ? side : look.LabelSide;
+        var normal = chosenSide == LabelSide.Before ? before : -before;
         var t = (look.LabelPlace == LabelPlace.Auto ? place : look.LabelPlace) switch
         {
             LabelPlace.Start => 0f,
@@ -221,32 +222,20 @@ internal static class AnnotationPainter
         var height = canvas.GetLineHeight(size, look.LabelFont) + 2;
         var symbolSize = look.LabelSymbol is { } symbol ? symbol.Size ?? height * 0.9f : 0;
         height = Math.Max(height, symbolSize + 2);
-        var icon = look.LabelSymbol is not null ? symbolSize + 2 : look.LabelIcon == LabelIcon.None ? 0 : height * 0.8f;
+        var icon = IconWidth(look, symbolSize, height);
         var width = canvas.MeasureWidth(text, size, look.LabelFont) + (Padding * 2) + icon;
         var (halfWidth, halfHeight) = (width / 2, height / 2);
 
         // The middle of the plate: beside the line by half its extent across it, and along it from the chosen end.
         float Reach(Vector2 towards) => (Math.Abs(Vector2.Dot(towards, u)) * halfWidth) + (Math.Abs(Vector2.Dot(towards, v)) * halfHeight);
-        var center = anchor + (normal * (Gap + (float)look.LabelOffset + Reach(normal))) + (direction * (t == 0 ? Reach(direction) + Gap : t == 1 ? -(Reach(direction) + Gap) : 0));
+        var center = anchor + (normal * (Gap + (float)look.LabelOffset + Reach(normal))) + (direction * AlongFromEnd(t, Reach(direction) + Gap));
         center = KeepInside(canvas, center, Reach(Vector2.UnitX), Reach(Vector2.UnitY));
 
         Vector2 Corner(float x, float y) => center + (u * x) + (v * y);
         var fill = look.LabelFill ?? defaultFill ?? color;
         var clip = canvas.Clip;
         canvas.Clip = null;
-        if (fill.A > 0)
-        {
-            canvas.FillPolygon([Corner(-halfWidth, -halfHeight), Corner(halfWidth, -halfHeight), Corner(halfWidth, halfHeight), Corner(-halfWidth, halfHeight)], fill);
-        }
-
-        if (look.LabelBorder is { } border)
-        {
-            var corners = (Corner(-halfWidth, -halfHeight), Corner(halfWidth, -halfHeight), Corner(halfWidth, halfHeight), Corner(-halfWidth, halfHeight));
-            canvas.DrawLine(corners.Item1, corners.Item2, look.LabelBorderThickness, border);
-            canvas.DrawLine(corners.Item2, corners.Item3, look.LabelBorderThickness, border);
-            canvas.DrawLine(corners.Item3, corners.Item4, look.LabelBorderThickness, border);
-            canvas.DrawLine(corners.Item4, corners.Item1, look.LabelBorderThickness, border);
-        }
+        DrawPlate(canvas, [Corner(-halfWidth, -halfHeight), Corner(halfWidth, -halfHeight), Corner(halfWidth, halfHeight), Corner(-halfWidth, halfHeight)], fill, look);
 
         var ink = look.LabelColor ?? (fill.A > 0 ? canvas.BackgroundColor : color);
         if (look.LabelSymbol is { } shown)
@@ -275,7 +264,54 @@ internal static class AnnotationPainter
 
     // Text turned by more than a quarter would stand on its head; it turns the other way round.
     // Text stays upright and reads upward along an upright line.
-    private static float Readable(float angle) => angle > (MathF.PI / 2) - 0.001f ? angle - MathF.PI : angle < -(MathF.PI / 2) - 0.001f ? angle + MathF.PI : angle;
+    private static float Readable(float angle)
+    {
+        if (angle > (MathF.PI / 2) - 0.001f)
+        {
+            return angle - MathF.PI;
+        }
+
+        return angle < -(MathF.PI / 2) - 0.001f ? angle + MathF.PI : angle;
+    }
+
+    // The room for a symbol or an icon before the text.
+    private static float IconWidth(AnnotationAppearance look, float symbolSize, float height)
+    {
+        if (look.LabelSymbol is not null)
+        {
+            return symbolSize + 2;
+        }
+
+        return look.LabelIcon == LabelIcon.None ? 0 : height * 0.8f;
+    }
+
+    // At the start the plate reaches forward from the end, at the end backward, in the middle not at all.
+    private static float AlongFromEnd(float t, float reach)
+    {
+        if (t == 0)
+        {
+            return reach;
+        }
+
+        return t == 1 ? -reach : 0;
+    }
+
+    // The plate: its fill and its frame.
+    private static void DrawPlate(OverlayCanvas canvas, ReadOnlySpan<Vector2> corners, Rgba8 fill, AnnotationAppearance look)
+    {
+        if (fill.A > 0)
+        {
+            canvas.FillPolygon(corners, fill);
+        }
+
+        if (look.LabelBorder is { } border)
+        {
+            for (var i = 0; i < corners.Length; i++)
+            {
+                canvas.DrawLine(corners[i], corners[(i + 1) % corners.Length], look.LabelBorderThickness, border);
+            }
+        }
+    }
 
     private static Vector2 KeepInside(OverlayCanvas canvas, Vector2 center, float halfWidth, float halfHeight)
     {

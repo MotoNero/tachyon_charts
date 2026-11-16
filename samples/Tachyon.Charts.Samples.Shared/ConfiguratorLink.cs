@@ -9,6 +9,20 @@ namespace Tachyon.Charts.Samples.Shared;
 /// </summary>
 public static class ConfiguratorLink
 {
+    private const string OptionAnnotations = "option:annotations";
+    private const string OptionTheme = "option:theme";
+    private const string ExcludedKey = "excluded";
+    private const string CrosshairKey = "crosshair";
+    private const string OptionScene = "option:scene";
+    private const string Volume3d = "volume3d";
+    private const string Surface3d = "surface3d";
+    private const string OptionAxes = "option:axes";
+    private const string MedicalImage = "medicalImage";
+    private const string MedicalAnalysis = "medicalAnalysis";
+    private const string MedicalReformat = "medicalReformat";
+    private const string CandlesKey = "candles";
+    private const string Monitor = "monitor";
+
     /// <summary>
     /// Gets what shows each page in the configurator: a type, <c>option:…</c> for an option of a chart, or
     /// <c>excluded</c> for a page with nothing to configure (see <see cref="Excluded"/>).
@@ -19,11 +33,11 @@ public static class ConfiguratorLink
         ["Step line"] = "line",
         ["Spline"] = "line",
         ["Last value at the axis"] = "line",
-        ["LineSpike1M"] = "excluded",
-        ["LineSpike100M"] = "excluded",
-        ["LineThin"] = "excluded",
-        ["LinePrecision"] = "excluded",
-        ["LayoutMultiAxis"] = "excluded",
+        ["LineSpike1M"] = ExcludedKey,
+        ["LineSpike100M"] = ExcludedKey,
+        ["LineThin"] = ExcludedKey,
+        ["LinePrecision"] = ExcludedKey,
+        ["LayoutMultiAxis"] = ExcludedKey,
         ["LineBasic"] = "line",
         ["LineStep"] = "line",
         ["LineGaps"] = "line",
@@ -55,12 +69,12 @@ public static class ConfiguratorLink
         ["Pie"] = "pie",
         ["Donut"] = "donut",
         ["DonutLight"] = "donut",
-        ["Colormaps"] = "excluded",
+        ["Colormaps"] = ExcludedKey,
         ["Heatmap4k"] = "heatmap",
-        ["Crosshair"] = "crosshair",
-        ["CrosshairSnap"] = "crosshair",
-        ["CrosshairValues"] = "crosshair",
-        ["CrosshairValuesTurned"] = "crosshair",
+        ["Crosshair"] = CrosshairKey,
+        ["CrosshairSnap"] = CrosshairKey,
+        ["CrosshairValues"] = CrosshairKey,
+        ["CrosshairValuesTurned"] = CrosshairKey,
         ["Rollover"] = "rollover",
         ["MeasureCursors"] = "measure",
         ["Legend"] = "option:legend",
@@ -69,94 +83,94 @@ public static class ConfiguratorLink
         ["LogAxis"] = "option:axis-kind",
         ["Depth profile"] = "option:x-down",
         ["DepthProfile"] = "option:x-down",
-        ["ThemeHighContrast"] = "option:theme",
-        ["ThemeNeon"] = "option:theme",
-        ["ThemePaper"] = "option:theme",
-        ["ThemeInstrument"] = "option:theme",
-        ["ThemeSignal"] = "option:theme",
-        ["ThemeDark"] = "option:theme",
-        ["ThemeLight"] = "option:theme",
+        ["ThemeHighContrast"] = OptionTheme,
+        ["ThemeNeon"] = OptionTheme,
+        ["ThemePaper"] = OptionTheme,
+        ["ThemeInstrument"] = OptionTheme,
+        ["ThemeSignal"] = OptionTheme,
+        ["ThemeDark"] = OptionTheme,
+        ["ThemeLight"] = OptionTheme,
         ["Waterfall, live"] = "spectrumWaterfall",
         ["Path, live"] = "line3d",
         ["Path of 200 000 points"] = "line3d",
         ["Scatter of 3000 points"] = "scatter3d",
         ["Scatter of 10 million points"] = "scatter3d",
-        ["Cut planes"] = "option:scene",
-        ["One plane, all kinds"] = "option:scene",
+        ["Cut planes"] = OptionScene,
+        ["One plane, all kinds"] = OptionScene,
         ["Cloud, live"] = "scatter3d",
         ["Cloud of 20 million points"] = "cloud3d",
         ["Cloud of 100 million points"] = "cloud3d",
         ["Cloud from a file"] = "cloudFile3d",
-        ["Volume slices 512³"] = "volume3d",
-        ["Through a volume 512³"] = "volume3d",
-        ["Objects inside a volume"] = "volume3d",
-        ["Maximum projection 512³"] = "volume3d",
-        ["Surface of equal value 512³"] = "volume3d",
+        ["Volume slices 512³"] = Volume3d,
+        ["Through a volume 512³"] = Volume3d,
+        ["Objects inside a volume"] = Volume3d,
+        ["Maximum projection 512³"] = Volume3d,
+        ["Surface of equal value 512³"] = Volume3d,
         ["Columns"] = "columns3d",
         ["1 million columns"] = "columns3d",
         ["Cut, live"] = "surfaceCut3d",
         ["Pie 3D"] = "pie3d",
         ["Donut 3D"] = "donut3d",
-        ["Planes and limits"] = "surface3d",
+        ["Planes and limits"] = Surface3d,
         ["Bubbles"] = "bubbles3d",
         ["1 million bubbles"] = "bubbles3d",
         ["Model with measuring points"] = "model3d",
         ["Model of 1 million triangles"] = "model3d",
         ["Antenna pattern"] = "antenna3d",
         ["Map from measurements"] = "map3d",
-        ["Height lines"] = "surface3d",
-        ["Surface 4096 × 4096"] = "surface3d",
-        ["Surface with light"] = "surface3d",
-        ["Axis box"] = "option:scene",
+        ["Height lines"] = Surface3d,
+        ["Surface 4096 × 4096"] = Surface3d,
+        ["Surface with light"] = Surface3d,
+        ["Axis box"] = OptionScene,
         ["Video recording"] = "option:export",
-        ["Smoke"] = "excluded",
-        ["Categories"] = "option:axes",
-        ["AxesInTheOrigin"] = "option:axes",
-        ["Scale break"] = "option:axes",
+        ["Smoke"] = ExcludedKey,
+        ["Categories"] = OptionAxes,
+        ["AxesInTheOrigin"] = OptionAxes,
+        ["Scale break"] = OptionAxes,
         ["Several legends"] = "option:legend",
-        ["Own theme"] = "option:theme",
-        ["Axes in the origin"] = "option:axes",
-        ["Annotations"] = "option:annotations",
-        ["Primitives"] = "excluded",
-        ["LayoutStackedPanes"] = "excluded",
-        ["TextSizes"] = "excluded",
-        ["ChartFrame"] = "excluded",
+        ["Own theme"] = OptionTheme,
+        ["Axes in the origin"] = OptionAxes,
+        ["Annotations"] = OptionAnnotations,
+        ["Primitives"] = ExcludedKey,
+        ["LayoutStackedPanes"] = ExcludedKey,
+        ["TextSizes"] = ExcludedKey,
+        ["ChartFrame"] = ExcludedKey,
         ["LineDash"] = "line",
-        ["AnnotationStyles"] = "option:annotations",
-        ["TextFonts"] = "option:annotations",
-        ["AnnotationSymbols"] = "option:annotations",
+        ["AnnotationStyles"] = OptionAnnotations,
+        ["TextFonts"] = OptionAnnotations,
+        ["AnnotationSymbols"] = OptionAnnotations,
         ["ZoomPreview"] = "rubberband",
         ["Selection"] = "selection",
         ["GroupStacked"] = "option:group",
         ["Overview"] = "option:overview",
-        ["CategoryAxis"] = "option:axes",
-        ["CategoryThinning"] = "option:axes",
-        ["ScaleBreak"] = "option:axes",
+        ["CategoryAxis"] = OptionAxes,
+        ["CategoryThinning"] = OptionAxes,
+        ["ScaleBreak"] = OptionAxes,
         ["Legends"] = "option:legend",
         ["GlowNeon"] = "line",
         ["Gradients"] = "area",
         ["ScatterPerPointColor"] = "bubbles",
-        ["GridBands"] = "option:theme",
+        ["GridBands"] = OptionTheme,
         ["Live-Chart (interaktiv)"] = "option:live",
         ["LineFifoWrap"] = "option:live",
-        ["Medical image"] = "medicalImage",
-        ["Medical measurements"] = "medicalImage",
+        ["Medical image"] = MedicalImage,
+        ["Medical measurements"] = MedicalImage,
         ["Medical MPR"] = "medicalMpr",
-        ["Medical analysis"] = "medicalAnalysis",
+        ["Medical analysis"] = MedicalAnalysis,
         ["Medical CT and MRI"] = "medicalSlice",
-        ["Medical oblique and curved"] = "medicalReformat",
-        ["MedicalAxial"] = "medicalImage",
-        ["MedicalCoronal"] = "medicalImage",
-        ["MedicalSagittal"] = "medicalImage",
-        ["MedicalMeasurements"] = "medicalImage",
-        ["MedicalAnalysisSlice"] = "medicalAnalysis",
-        ["MedicalProfile"] = "medicalAnalysis",
-        ["MedicalHistogram"] = "medicalAnalysis",
+        ["Medical oblique and curved"] = MedicalReformat,
+        ["MedicalAxial"] = MedicalImage,
+        ["MedicalCoronal"] = MedicalImage,
+        ["MedicalSagittal"] = MedicalImage,
+        ["MedicalMeasurements"] = MedicalImage,
+        ["MedicalAnalysisSlice"] = MedicalAnalysis,
+        ["MedicalProfile"] = MedicalAnalysis,
+        ["MedicalHistogram"] = MedicalAnalysis,
         ["MedicalThoraxAxial"] = "medicalSlice",
         ["MedicalThoraxCoronal"] = "medicalSlice",
-        ["MedicalReformatSlice"] = "medicalReformat",
-        ["MedicalOblique"] = "medicalReformat",
-        ["MedicalCurved"] = "medicalReformat",
+        ["MedicalReformatSlice"] = MedicalReformat,
+        ["MedicalOblique"] = MedicalReformat,
+        ["MedicalCurved"] = MedicalReformat,
         ["Raster (interaktiv)"] = "heatmap",
         ["Smith (interaktiv)"] = "smith",
         ["Parallel (interaktiv)"] = "parallel",
@@ -177,9 +191,9 @@ public static class ConfiguratorLink
         ["ParallelCoordinates"] = "parallel",
         ["ContourLabels"] = "contour",
         ["HeatmapInAnArea"] = "maskedheatmap",
-        ["Candles"] = "candles",
-        ["OHLC bars"] = "candles",
-        ["1 million candles"] = "candles",
+        ["Candles"] = CandlesKey,
+        ["OHLC bars"] = CandlesKey,
+        ["1 million candles"] = CandlesKey,
         ["Large file"] = "fileLine",
         ["Recording"] = "fileLine",
         ["Digital channels"] = "digital",
@@ -188,27 +202,27 @@ public static class ConfiguratorLink
         ["World map"] = "geoMap",
         ["Tile map"] = "tileMap",
         ["Candles without weekends"] = "option:weekends",
-        ["Market profile"] = "candles",
-        ["Drawing tools"] = "candles",
+        ["Market profile"] = CandlesKey,
+        ["Drawing tools"] = CandlesKey,
         ["Gantt"] = "gantt",
         ["Gantt, 100 000 tasks"] = "gantt",
-        ["OhlcLight"] = "candles",
-        ["MarketProfile"] = "candles",
-        ["Drawings"] = "candles",
-        ["DrawingPatterns"] = "candles",
+        ["OhlcLight"] = CandlesKey,
+        ["MarketProfile"] = CandlesKey,
+        ["Drawings"] = CandlesKey,
+        ["DrawingPatterns"] = CandlesKey,
         ["GanttCollapsedLight"] = "gantt",
         ["CandlesWithoutWeekends"] = "option:weekends",
         ["Oszilloskop (interaktiv)"] = "oscilloscope",
         ["Spektrum (interaktiv)"] = "spectrum",
         ["Network (interaktiv)"] = "network",
-        ["Sweep monitor"] = "monitor",
-        ["Stepping monitor"] = "monitor",
+        ["Sweep monitor"] = Monitor,
+        ["Stepping monitor"] = Monitor,
         ["Oscilloscope"] = "oscilloscope",
         ["ColorGrade"] = "oscilloscope",
         ["Spectrum"] = "spectrum",
         ["Network"] = "network",
-        ["Sweep"] = "monitor",
-        ["Stepping"] = "monitor",
+        ["Sweep"] = Monitor,
+        ["Stepping"] = Monitor,
     };
 
     /// <summary>Gets the pages with nothing to configure, with the reason.</summary>
@@ -230,12 +244,12 @@ public static class ConfiguratorLink
     // The type an option of a chart starts with: options of 3D scenes on a surface, the weekends on candles, the others on a line.
     private static readonly Dictionary<string, string> _optionTypes = new(StringComparer.Ordinal)
     {
-        ["option:scene"] = "surface3d",
-        ["option:weekends"] = "candles",
+        [OptionScene] = Surface3d,
+        ["option:weekends"] = CandlesKey,
     };
 
     // Pages that show an interaction start with a line and that interaction switched on.
-    private static readonly HashSet<string> _interactions = new(StringComparer.Ordinal) { "crosshair", "rollover", "measure", "selection", "rubberband" };
+    private static readonly HashSet<string> _interactions = new(StringComparer.Ordinal) { CrosshairKey, "rollover", "measure", "selection", "rubberband" };
 
     /// <summary>Gets the interaction a page switches on in the configurator.</summary>
     /// <param name="page">The identifier of the page.</param>
@@ -248,14 +262,17 @@ public static class ConfiguratorLink
     /// <returns>The type, or <see langword="null"/> for a page with nothing to configure.</returns>
     public static string? TypeOf(string? page)
     {
-        if (page is null || !Targets.TryGetValue(page, out var target) || target == "excluded")
+        if (page is null || !Targets.TryGetValue(page, out var target) || target == ExcludedKey)
         {
             return null;
         }
 
-        return target.StartsWith("option:", StringComparison.Ordinal) ? _optionTypes.GetValueOrDefault(target, "line")
-            : _interactions.Contains(target) ? "line"
-            : target;
+        if (target.StartsWith("option:", StringComparison.Ordinal))
+        {
+            return _optionTypes.GetValueOrDefault(target, "line");
+        }
+
+        return _interactions.Contains(target) ? "line" : target;
     }
 
     /// <summary>
@@ -308,8 +325,15 @@ public static class ConfiguratorLink
     /// <summary>Gets why a page cannot open in the configurator, for the tooltip of the greyed out button.</summary>
     /// <param name="page">The identifier of the page.</param>
     /// <returns>The reason, or <see langword="null"/> when it can.</returns>
-    public static string? WhyNot(string? page) =>
-        TypeOf(page) is not null ? null : page is not null && Excluded.TryGetValue(page, out var reason) ? reason : "This page has nothing to configure.";
+    public static string? WhyNot(string? page)
+    {
+        if (TypeOf(page) is not null)
+        {
+            return null;
+        }
+
+        return page is not null && Excluded.TryGetValue(page, out var reason) ? reason : "This page has nothing to configure.";
+    }
 
     /// <summary>Starts the configurator with the type of a page.</summary>
     /// <param name="app">The name of the application without extension.</param>

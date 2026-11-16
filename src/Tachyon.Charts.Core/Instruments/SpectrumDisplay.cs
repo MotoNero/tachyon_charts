@@ -563,22 +563,28 @@ internal sealed class SpectrumSync(ChartSurface chart, SpectrumDisplay display) 
         var axes = chart.Panes[0].Axes;
         for (var i = 0; i < channels.Count && i < axes.Count; i++)
         {
-            var visible = shows && channels[i] == display.Trace;
-            if (axes[i].IsHidden == visible)
-            {
-                axes[i].IsHidden = !visible;
-                axes[i].Title = visible ? "Level in dBm" : null;
-                if (visible && axes[i] is Axes.NumericAxis level)
-                {
-                    level.LabelFormat = new Axes.NumericLabelFormat();
-                }
-            }
+            ShowLevelAxis(axes[i], shows && channels[i] == display.Trace);
 
             // The crosshair reads hidden axes too: frequency in hertz, level in dBm.
             ScopeSync.WithUnit(axes[i], _dbm);
         }
 
         ScopeSync.WithUnit(chart.HorizontalAxes[0], _hertz);
+    }
+
+    private static void ShowLevelAxis(Axes.AxisBase axis, bool visible)
+    {
+        if (axis.IsHidden != visible)
+        {
+            return;
+        }
+
+        axis.IsHidden = !visible;
+        axis.Title = visible ? "Level in dBm" : null;
+        if (visible && axis is Axes.NumericAxis level)
+        {
+            level.LabelFormat = new Axes.NumericLabelFormat();
+        }
     }
 
     private static readonly Axes.NumericLabelFormat _dbm = new() { Unit = "dBm" };

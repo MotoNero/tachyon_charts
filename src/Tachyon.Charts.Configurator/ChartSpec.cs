@@ -315,8 +315,6 @@ public enum DataKind
 /// <summary>Where the data of a series come from and how many there are.</summary>
 public sealed class DataSpec
 {
-    private string? _path;
-
     /// <summary>Gets or sets the kind of source.</summary>
     public DataKind Kind { get; set; }
 
@@ -333,11 +331,7 @@ public sealed class DataSpec
     /// Gets or sets the file of a CSV source. For a medical file it is kept for the preview only and never saved.
     /// </summary>
     [System.Text.Json.Serialization.JsonIgnore]
-    public string? Path
-    {
-        get => _path;
-        set => _path = value;
-    }
+    public string? Path { get; set; }
 
     /// <summary>
     /// Gets or sets a second medical file for the preview, such as a segmentation of the volume. It is never saved, for
@@ -351,8 +345,8 @@ public sealed class DataSpec
     [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
     public string? SavedPath
     {
-        get => Kind == DataKind.MedicalFile ? null : _path;
-        set => _path = value;
+        get => Kind == DataKind.MedicalFile ? null : Path;
+        set => Path = value;
     }
 }
 

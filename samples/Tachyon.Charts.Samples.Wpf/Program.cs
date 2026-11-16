@@ -186,21 +186,8 @@ internal sealed class SampleWindow : Window
         _colormap.SelectedIndex = 0;
         _colormap.SelectionChanged += (_, _) => ApplyColormap();
 
-        _trigger.SelectionChanged += (_, _) =>
-        {
-            if (_trigger.SelectedIndex >= 0)
-            {
-                _scopeDemo.Trigger.Mode = (TriggerMode)_trigger.SelectedIndex;
-                _scopeDemo.Trigger.Arm();
-            }
-        };
-        _persistence.SelectionChanged += (_, _) =>
-        {
-            if (_persistence.SelectedIndex >= 0)
-            {
-                _scopeDemo.Display.Persistence = (ScopePersistence)_persistence.SelectedIndex;
-            }
-        };
+        _trigger.SelectionChanged += (_, _) => ChooseTrigger();
+        _persistence.SelectionChanged += (_, _) => ChoosePersistence();
         _scopeControls.Children.Add(_trigger);
         _scopeControls.Children.Add(_persistence);
         _language.ItemsSource = SampleText.Languages;
@@ -265,39 +252,61 @@ internal sealed class SampleWindow : Window
                 ShowSelection();
             }
         };
-        _theme.SelectionChanged += (_, _) =>
-        {
-            if (!_isSwitching && _theme.SelectedIndex == _theme.Items.Count - 1)
-            {
-                LoadTheme();
-                return;
-            }
-
-            _themeIndex = Math.Max(0, _theme.SelectedIndex);
-            ApplyTheme();
-        };
+        _theme.SelectionChanged += (_, _) => ChooseTheme();
         PreviewKeyDown += OnPreviewKey;
-        Loaded += (_, _) =>
-        {
-            _list.SelectedItem = _pageList.FirstOrDefault(page => page.Id == startPage && !page.IsHeader) ?? _pageList.First(page => page.Id == LiveEntry);
-            if (ShowsSourceAtStart)
-            {
-                ShowSource();
-            }
-
-            if (RecordsAtStart)
-            {
-                _ = RecordAtStart();
-            }
-
-            if (ThemeAtStart is { } themeName && BuiltInThemes.All.Concat(_ownThemes).ToList().FindIndex(item => item.Name.Equals(themeName, StringComparison.OrdinalIgnoreCase)) is >= 0 and var chosen)
-            {
-                _theme.SelectedIndex = chosen + 1;
-            }
-        };
+        Loaded += (_, _) => Start(startPage);
     }
 
-    private Button? _configure;
+    private void ChooseTrigger()
+    {
+        if (_trigger.SelectedIndex >= 0)
+        {
+            _scopeDemo.Trigger.Mode = (TriggerMode)_trigger.SelectedIndex;
+            _scopeDemo.Trigger.Arm();
+        }
+    }
+
+    private void ChoosePersistence()
+    {
+        if (_persistence.SelectedIndex >= 0)
+        {
+            _scopeDemo.Display.Persistence = (ScopePersistence)_persistence.SelectedIndex;
+        }
+    }
+
+    private void ChooseTheme()
+    {
+        if (!_isSwitching && _theme.SelectedIndex == _theme.Items.Count - 1)
+        {
+            LoadTheme();
+            return;
+        }
+
+        _themeIndex = Math.Max(0, _theme.SelectedIndex);
+        ApplyTheme();
+    }
+
+    // The first page, and what the command line asks for: the source, a recording, a theme.
+    private void Start(string? startPage)
+    {
+        _list.SelectedItem = _pageList.FirstOrDefault(page => page.Id == startPage && !page.IsHeader) ?? _pageList.First(page => page.Id == LiveEntry);
+        if (ShowsSourceAtStart)
+        {
+            ShowSource();
+        }
+
+        if (RecordsAtStart)
+        {
+            _ = RecordAtStart();
+        }
+
+        if (ThemeAtStart is { } themeName && BuiltInThemes.All.Concat(_ownThemes).ToList().FindIndex(item => item.Name.Equals(themeName, StringComparison.OrdinalIgnoreCase)) is >= 0 and var chosen)
+        {
+            _theme.SelectedIndex = chosen + 1;
+        }
+    }
+
+    private readonly Button? _configure;
 
     // Pages that are checks rather than examples cannot open in the configurator; the tooltip says why.
     private void ShowConfiguratorChoice()

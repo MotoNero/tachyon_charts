@@ -653,38 +653,80 @@ public sealed class ChartCatalog
             problems.Add("A chart needs at least one horizontal and one vertical axis.");
         }
 
+        CheckThemes(spec, problems);
+        CheckCharts(spec, problems);
+        foreach (var series in spec.Series)
+        {
+            CheckSeries(spec, series, problems);
+        }
+
+        CheckOwners(spec, problems);
+        CheckAnnotations(spec, problems);
+        CheckAxes(spec, problems);
+        if (spec.Series.Count(series => series.Type == "candles" && series.Parameters.GetFlag("volume", true)) > 1)
+        {
+            problems.Add("Only one candles series per chart can show its volume below; switch \"Volume below\" off for the others.");
+        }
+
+        if (SceneOf(spec) is { } scene)
+        {
+            CheckValues("The scene", scene.Parameters, spec.Scene, problems);
+        }
+
+        foreach (var modifier in spec.Modifiers)
+        {
+            if (FindModifier(modifier.Type) is not { } info)
+            {
+                problems.Add($"The interaction {modifier.Type} is unknown.");
+                continue;
+            }
+
+            CheckValues(info.Name, info.Parameters, modifier.Parameters, problems);
+        }
+
+        return problems;
+    }
+
+    // The built-in theme, or the own theme with its base and colors.
+    private static void CheckThemes(ChartSpec spec, List<string> problems)
+    {
         if (spec.Theme is { } theme && !Themes.Contains(theme))
         {
             problems.Add($"The theme {theme} is unknown.");
         }
 
-        if (spec.OwnTheme is { } own)
+        if (spec.OwnTheme is not { } own)
         {
-            if (!Themes.Contains(own.Base))
-            {
-                problems.Add($"The base {own.Base} of the own theme is unknown.");
-            }
-            else
-            {
-                try
-                {
-                    own.Create();
-                }
-                catch (FormatException exception)
-                {
-                    problems.Add("Own theme: " + exception.Message);
-                }
-            }
+            return;
         }
 
-        // Further charts: each is checked on its own; linked views and the overview belong to a single chart.
+        if (!Themes.Contains(own.Base))
+        {
+            problems.Add($"The base {own.Base} of the own theme is unknown.");
+            return;
+        }
+
+        try
+        {
+            own.Create();
+        }
+        catch (FormatException exception)
+        {
+            problems.Add("Own theme: " + exception.Message);
+        }
+    }
+
+    // Further charts: each is checked on its own; linked views and the overview belong to a single chart.
+    private void CheckCharts(ChartSpec spec, List<string> problems)
+    {
         for (var i = 0; i < spec.Charts.Count; i++)
         {
             var further = spec.Charts[i];
-            problems.AddRange(Check(further).Select(problem => $"Chart {i + 2}: {problem}"));
+            var number = i + 2;
+            problems.AddRange(Check(further).Select(problem => $"Chart {number}: {problem}"));
             if (further.Charts.Count > 0)
             {
-                problems.Add($"Chart {i + 2}: only the first chart of a description has further charts.");
+                problems.Add($"Chart {number}: only the first chart of a description has further charts.");
             }
         }
 
@@ -707,13 +749,10 @@ public sealed class ChartCatalog
         {
             problems.Add("Annotations go into a single chart; linked charts leave them out.");
         }
+    }
 
-        foreach (var series in spec.Series)
-        {
-            CheckSeries(spec, series, problems);
-        }
-
-        CheckOwners(spec, problems);
+    private void CheckAnnotations(ChartSpec spec, List<string> problems)
+    {
         foreach (var annotation in spec.Annotations)
         {
             if (FindAnnotation(annotation.Type) is not { } info)
@@ -733,7 +772,10 @@ public sealed class ChartCatalog
                 problems.Add($"The place {legend.Placement} of a legend is unknown.");
             }
         }
+    }
 
+    private static void CheckAxes(ChartSpec spec, List<string> problems)
+    {
         foreach (var axis in spec.XAxes.Concat(spec.YAxes))
         {
             if (axis.ReadBreaks() is null)
@@ -746,27 +788,6 @@ public sealed class ChartCatalog
                 problems.Add($"The category axis {axis.Id} needs names for its places.");
             }
         }
-        if (spec.Series.Count(series => series.Type == "candles" && series.Parameters.GetFlag("volume", true)) > 1)
-        {
-            problems.Add("Only one candles series per chart can show its volume below; switch \"Volume below\" off for the others.");
-        }
-        if (SceneOf(spec) is { } scene)
-        {
-            CheckValues("The scene", scene.Parameters, spec.Scene, problems);
-        }
-
-        foreach (var modifier in spec.Modifiers)
-        {
-            if (FindModifier(modifier.Type) is not { } info)
-            {
-                problems.Add($"The interaction {modifier.Type} is unknown.");
-                continue;
-            }
-
-            CheckValues(info.Name, info.Parameters, modifier.Parameters, problems);
-        }
-
-        return problems;
     }
 
     private void CheckOwners(ChartSpec spec, List<string> problems)
@@ -824,39 +845,58 @@ public sealed class ChartCatalog
             problems.Add($"The series {series.Name} uses the unknown axis {y}.");
         }
 
-        if (!DataSources.Kinds(type, this).Contains(series.Data.Kind))
+        if (SourceProblem(series, type) is { } source)
         {
-            problems.Add($"{type.Name} cannot take data from {series.Data.Kind}.");
-        }
-        else if (DataSources.Loader(series, type, this) is { } loader)
-        {
-            if (loader.Problem(series) is { } unread)
-            {
-                problems.Add(unread);
-            }
-        }
-        else if (series.Data.Kind == DataKind.Csv && DataSources.CsvProblem(series, type) is { } problem)
-        {
-            problems.Add(problem);
-        }
-        else if (series.Data.Kind == DataKind.Hdf5 && DataSources.Hdf5Problem(series) is { } missing)
-        {
-            problems.Add(missing);
-        }
-        else if (series.Data.Kind == DataKind.Live && (type.Shape == DataShape.Candles ? FindSample(series.Data.Sample)?.Shape != DataShape.Candles : FindSample(series.Data.Sample)?.Curve is null))
-        {
-            problems.Add(type.Shape == DataShape.Candles ? $"Live prices of {series.Name} need prices as sample data." : $"Live data of {series.Name} need a curve as sample data.");
+            problems.Add(source);
         }
 
-        if (series.Data.Kind == DataKind.Sample && FindSample(series.Data.Sample) is { } sample && sample.Shape != type.Shape)
+        if (SampleProblem(series, type) is { } sampleProblem)
         {
-            problems.Add($"The sample {sample.Name} does not fit {type.Name}.");
-        }
-        else if (series.Data.Kind is DataKind.Sample or DataKind.Live && FindSample(series.Data.Sample) is null)
-        {
-            problems.Add($"The sample {series.Data.Sample} is unknown.");
+            problems.Add(sampleProblem);
         }
 
         CheckValues(type.Name, type.Parameters, series.Parameters, problems);
+    }
+
+    // What the source of the data misses: a kind the type cannot take, a file, columns, a dataset or a curve.
+    private string? SourceProblem(SeriesSpec series, ChartTypeInfo type)
+    {
+        if (!DataSources.Kinds(type, this).Contains(series.Data.Kind))
+        {
+            return $"{type.Name} cannot take data from {series.Data.Kind}.";
+        }
+
+        if (DataSources.Loader(series, type, this) is { } loader)
+        {
+            return loader.Problem(series);
+        }
+
+        return series.Data.Kind switch
+        {
+            DataKind.Csv => DataSources.CsvProblem(series, type),
+            DataKind.Hdf5 => DataSources.Hdf5Problem(series),
+            DataKind.Live => LiveProblem(series, type),
+            _ => null,
+        };
+    }
+
+    private string? LiveProblem(SeriesSpec series, ChartTypeInfo type)
+    {
+        if (type.Shape == DataShape.Candles)
+        {
+            return FindSample(series.Data.Sample)?.Shape != DataShape.Candles ? $"Live prices of {series.Name} need prices as sample data." : null;
+        }
+
+        return FindSample(series.Data.Sample)?.Curve is null ? $"Live data of {series.Name} need a curve as sample data." : null;
+    }
+
+    private string? SampleProblem(SeriesSpec series, ChartTypeInfo type)
+    {
+        if (series.Data.Kind == DataKind.Sample && FindSample(series.Data.Sample) is { } sample && sample.Shape != type.Shape)
+        {
+            return $"The sample {sample.Name} does not fit {type.Name}.";
+        }
+
+        return series.Data.Kind is DataKind.Sample or DataKind.Live && FindSample(series.Data.Sample) is null ? $"The sample {series.Data.Sample} is unknown." : null;
     }
 }

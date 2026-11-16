@@ -75,6 +75,15 @@ public sealed class FieldModel
 /// </summary>
 public sealed class ConfiguratorSession
 {
+    private const string ApplicationName = "Application";
+    private const string ChartName = "Chart";
+    private const string TitleName = "Title";
+    private const string DelimiterKey = "delimiter";
+    private const string Header = "header";
+    private const string DecimalCommaKey = "decimalComma";
+    private const string DatasetKey = "dataset";
+    private const string XDataset = "xDataset";
+
     private readonly List<IDisposable> _running = [];
 
     private readonly SynchronizationContext? _updates;
@@ -87,7 +96,7 @@ public sealed class ConfiguratorSession
 
     // The whole description, and the chart of it being edited: the first chart or one of its further charts.
     private ChartSpec _root;
-    private ChartSpec _spec;
+    private ChartSpec _edited;
     private int _chart;
     private int _selected;
 
@@ -112,7 +121,7 @@ public sealed class ConfiguratorSession
     {
         Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
         _generator = new CodeGenerator(catalog);
-        _root = _spec = catalog.CreateSpec(catalog.Types[0].Id);
+        _root = _edited = catalog.CreateSpec(catalog.Types[0].Id);
         _updates = updates;
         Take(Compute(ChartSpecJson.Copy(_root), Options));
     }
@@ -154,371 +163,6 @@ public sealed class ConfiguratorSession
         SpecChartBuilder.ApplyView(prepared.Spec, Catalog, chart, view, prepared.Data);
     }
 
-    /// <summary>Occurs after every change, on the thread that made it.</summary>
-    public event Action? Changed;
-
-    /// <summary>Occurs when fields come or go, so that the settings are built anew; a changed value alone does not raise it.</summary>
-    public event Action? FieldsChanged;
-
-    /// <summary>Gets the types, samples and interactions.</summary>
-    public ChartCatalog Catalog { get; }
-
-    /// <summary>Gets the description being edited, with all its charts; the one whose fields show is <see cref="EditedChart"/>.</summary>
-    public ChartSpec Spec => _root;
-
-    /// <summary>Gets the chart whose fields show: the first chart of the description or one of its further charts.</summary>
-    public ChartSpec EditedChart => _spec;
-
-    /// <summary>Gets the number of charts of the description.</summary>
-    public int ChartCount => _root.Charts.Count + 1;
-
-    /// <summary>Gets or sets the index of the chart whose fields show, 0 for the first.</summary>
-    public int SelectedChart
-    {
-        get => _chart;
-        set
-        {
-            _chart = Math.Clamp(value, 0, _root.Charts.Count);
-            _spec = _chart == 0 ? _root : _root.Charts[_chart - 1];
-            _selected = 0;
-            FieldsChanged?.Invoke();
-        }
-    }
-
-    // Whether all charts of the description are in the same group.
-    private bool AllInOneGroup => _root.Group is { Length: > 0 } group && _root.Charts.TrueForAll(chart => chart.Group == group);
-
-    // Puts all charts into the group of the first one, or a new group; or takes all of them out.
-    private void LinkAll(bool linked)
-    {
-        var group = linked ? _root.Group is { Length: > 0 } first ? first : "charts" : null;
-        _root.Group = group;
-        foreach (var chart in _root.Charts)
-        {
-            chart.Group = group;
-        }
-    }
-
-    /// <summary>Adds a chart with one series of a type after the others and selects it; it takes the theme of the first chart.</summary>
-    /// <param name="typeId">The type.</param>
-    public void AddChart(string typeId)
-    {
-        var added = Catalog.CreateSpec(typeId);
-        added.Theme = _root.Theme;
-        added.OwnTheme = _root.OwnTheme?.Copy();
-
-        // A new chart joins the group of the first one, if it has one.
-        added.Group = _root.Group;
-        _root.Charts.Add(added);
-        (_chart, _spec, _selected) = (_root.Charts.Count, added, 0);
-        Structure();
-    }
-
-    /// <summary>Removes the selected chart; the last one stays. Without the first chart the next one becomes the first.</summary>
-    public void RemoveChart()
-    {
-        if (_root.Charts.Count == 0)
-        {
-            return;
-        }
-
-        if (_chart == 0)
-        {
-            var next = _root.Charts[0];
-            next.Charts.AddRange(_root.Charts.Skip(1));
-            next.Columns = _root.Columns;
-            _root = next;
-        }
-        else
-        {
-            _root.Charts.RemoveAt(_chart - 1);
-        }
-
-        _chart = Math.Min(_chart, _root.Charts.Count);
-        _spec = _chart == 0 ? _root : _root.Charts[_chart - 1];
-        _selected = 0;
-        Structure();
-    }
-
-    /// <summary>Gets or sets the options of the code.</summary>
-    public CodeOptions Options
-    {
-        get;
-        set
-        {
-            field = value ?? throw new ArgumentNullException(nameof(value));
-            Refresh();
-        }
-    } = new();
-
-    /// <summary>Gets or sets the index of the series whose fields show.</summary>
-    public int SelectedSeries
-    {
-        get => _selected;
-        set
-        {
-            _selected = Math.Clamp(value, 0, Math.Max(0, _spec.Series.Count - 1));
-            FieldsChanged?.Invoke();
-        }
-    }
-
-    /// <summary>Gets the code, by the name of its tab: C#, view model, window, code behind and project file.</summary>
-    public IReadOnlyDictionary<string, string> Code { get; private set; } = new Dictionary<string, string>();
-
-    /// <summary>Gets what is wrong with the description now; empty when the preview and the code are up to date.</summary>
-    public IReadOnlyList<string> Problems { get; private set; } = [];
-
-    /// <summary>Gets how long the last change took to describe the chart and write the code.</summary>
-    public TimeSpan LastUpdate { get; private set; }
-
-    /// <summary>Gets the fields of the whole chart: title, theme, X downwards, group and legend.</summary>
-    public IReadOnlyList<FieldModel> ChartFields =>
-    [
-        .. ChartOptionFields,
-        .. Catalog.SceneOf(_spec) is { } scene
-            ? scene.Parameters.Select(parameter => Field("Scene", parameter, () => _spec.Scene.Get(parameter.Name) ?? parameter.Default, value => SetValue(_spec.Scene, parameter.Name, value)))
-            : [],
-    ];
-
-    private IReadOnlyList<FieldModel> ChartOptionFields =>
-    [
-        .. _root.Charts.Count > 0
-            ?
-            [
-                Field("Charts", new("columns", "Columns", ParameterKind.Integer, 1.0) { Minimum = 1, Maximum = 6, Description = "The charts of the description fill the rows from left to right." }, () => (double)Math.Max(1, _root.Columns), value => _root.Columns = (int)(double)value, structural: true),
-                Field("Charts", new("linked", "Linked: zoom and crosshair", ParameterKind.Flag, false) { Description = "All charts in one group: zooming one moves the others, and the crosshair shows in all. The group of each chart stays under Chart." }, () => AllInOneGroup, value => LinkAll((bool)value), structural: true),
-            ]
-            : Array.Empty<FieldModel>(),
-        Field("Chart", new("title", "Title", ParameterKind.Text, string.Empty), () => _spec.Title, value => _spec.Title = (string)value),
-        Field("Chart", new("theme", "Theme", ParameterKind.Choice, "Application") { Choices = ["Application", .. ChartCatalog.Themes, OwnTheme], Description = "Own: a built-in theme as the base, with own values under Own theme." }, () => _spec.OwnTheme is not null ? OwnTheme : _spec.Theme ?? "Application", value => ChooseTheme((string)value), structural: true),
-        .. OwnThemeFields(_spec.OwnTheme),
-        .. FontFields("title", "Title", () => _spec.TitleFont, font => _spec.TitleFont = font),
-        .. FontFields("axis", "Axes", () => _spec.AxisFont, font => _spec.AxisFont = font),
-        Field("Chart", new("xDown", "X axis downwards", ParameterKind.Flag, false), () => _spec.XDown, value => _spec.XDown = (bool)value),
-        Field("Chart", new("legend", "Legend", ParameterKind.Flag, false), () => _spec.Legend is not null, value => _spec.Legend = (bool)value ? _spec.Legend ?? new LegendSpec() : null, structural: true),
-        .. LegendFields("Legend", _spec.Legend),
-        Field("Chart", new("secondLegend", "Second legend", ParameterKind.Flag, false) { Description = "For example for the series of a second axis." }, () => _spec.SecondLegend is not null, value => _spec.SecondLegend = (bool)value ? _spec.SecondLegend ?? new LegendSpec { Placement = "BottomRight" } : null, structural: true),
-        .. LegendFields("Second legend", _spec.SecondLegend),
-        Field("Chart", new("export", "Export menu", ParameterKind.Flag, false) { Description = "In the generated window a right click on the chart saves it as PNG, SVG or PDF, its data as CSV, or records a video." }, () => _spec.ExportMenu, value => _spec.ExportMenu = (bool)value),
-        Field("Chart", new("group", "Group", ParameterKind.Text, string.Empty) { Description = "Charts of one group share range and cursor." }, () => _spec.Group ?? string.Empty, value => _spec.Group = ((string)value).Length > 0 ? (string)value : null),
-        Field("Chart", new("overview", "Overview below", ParameterKind.Flag, false) { Description = "A small chart below shows all data and the window of the chart; dragging the window moves the chart." }, () => _spec.Overview, value => _spec.Overview = (bool)value),
-    ];
-
-    /// <summary>Gets the fields of the axes.</summary>
-    public IReadOnlyList<FieldModel> AxisFields
-    {
-        get
-        {
-            var fields = new List<FieldModel>();
-            if (Catalog.OwnsAxes(_spec))
-            {
-                return fields;
-            }
-
-            foreach (var (axes, name) in new[] { (_spec.XAxes, "X axis"), (_spec.YAxes, "Y axis") })
-            {
-                foreach (var axis in axes)
-                {
-                    var group = $"{name} {axis.Id}";
-                    fields.Add(Field(group, new("title", "Title", ParameterKind.Text, string.Empty), () => axis.Title, value => axis.Title = (string)value));
-                    fields.Add(Field(group, new("kind", "Scale", ParameterKind.Choice, nameof(AxisKind.Numeric)) { Choices = Enum.GetNames<AxisKind>() }, () => axis.Kind.ToString(), value => axis.Kind = Enum.Parse<AxisKind>((string)value), structural: true));
-                    fields.Add(Field(group, new("auto", "Follow the data", ParameterKind.Flag, true), () => axis.IsAutoRange, value => (axis.Minimum, axis.Maximum) = (bool)value ? ((double?)null, (double?)null) : (axis.Minimum ?? 0, axis.Maximum ?? 10)));
-                    fields.Add(Field(group, new("minimum", "Minimum", ParameterKind.Number, 0.0), () => axis.Minimum ?? 0, value => (axis.Minimum, axis.Maximum) = ((double)value, axis.Maximum ?? 10)));
-                    fields.Add(Field(group, new("maximum", "Maximum", ParameterKind.Number, 10.0), () => axis.Maximum ?? 10, value => (axis.Minimum, axis.Maximum) = (axis.Minimum ?? 0, (double)value)));
-                    fields.Add(Field(group, new("inverted", "Inverted", ParameterKind.Flag, false), () => axis.IsInverted, value => axis.IsInverted = (bool)value));
-                    fields.Add(Field(group, new("opposite", "Far side", ParameterKind.Flag, false), () => axis.IsOpposite, value => axis.IsOpposite = (bool)value));
-                    if (axis.Kind == AxisKind.DateTime)
-                    {
-                        fields.Add(Field(group, new("weekends", "Without weekends", ParameterKind.Flag, false), () => axis.SkipsWeekends, value => axis.SkipsWeekends = (bool)value));
-                    }
-
-                    if (axis.Kind == AxisKind.Logarithmic)
-                    {
-                        fields.Add(Field(group, new("logBase", "Base", ParameterKind.Number, 10.0) { Minimum = 1.000001, Maximum = 1000 }, () => axis.LogBase, value => axis.LogBase = (double)value));
-                        fields.Add(Field(group, new("floor", "Floor when clamping", ParameterKind.Number, 0.0) { Minimum = 0, Description = "Where values of 0 and below are put; 0 for the axis to choose." }, () => axis.Floor ?? 0.0, value => axis.Floor = (double)value > 0 ? (double)value : null));
-                        fields.Add(Field(group, new("nonPositive", "Values of 0 and below", ParameterKind.Choice, "Hide") { Choices = Enum.GetNames<Core.Axes.NonPositiveValues>(), Description = "Hide them, clamp them to the floor, or show them on a symmetric logarithmic scale." }, () => axis.NonPositive, value => axis.NonPositive = (string)value));
-                    }
-
-                    if (axis.Kind == AxisKind.Category)
-                    {
-                        fields.Add(Field(group, new("categories", "Names of the places", ParameterKind.Text, string.Empty) { Description = "One per place 0, 1, 2 …, separated by commas." }, () => axis.Categories, value => axis.Categories = (string)value));
-                    }
-
-                    fields.Add(Field(group, new("origin", "Through the origin", ParameterKind.Flag, false) { Description = "The axis runs where the other axis is 0." }, () => axis.CrossesZero, value => axis.CrossesZero = (bool)value));
-                    if (axis.Kind == AxisKind.Category)
-                    {
-                        fields.Add(Field(group, new("rotation", "Label rotation", ParameterKind.Number, 0.0) { Minimum = -90, Maximum = 90, Description = "In degrees; negative labels rise to the right." }, () => axis.LabelRotation, value => axis.LabelRotation = (double)value));
-                    }
-                    fields.Add(Field(group, new("breaks", "Scale breaks", ParameterKind.Text, string.Empty) { Description = "Ranges left out, such as 10..90, separated by commas." }, () => axis.Breaks, value => axis.Breaks = (string)value));
-                    fields.Add(Field(group, new("hidden", "Hidden", ParameterKind.Flag, false), () => axis.IsHidden, value => axis.IsHidden = (bool)value));
-                    if (name == "Y axis")
-                    {
-                        fields.Add(Field(group, new("pane", "Pane", ParameterKind.Integer, 0.0) { Minimum = 0, Maximum = 9, Description = "Panes stack from 0 at the top and share the horizontal axis." }, () => (double)axis.Pane, value => axis.Pane = (int)(double)value));
-                        fields.Add(Field(group, new("paneWeight", "Height of the pane", ParameterKind.Number, 1.0) { Minimum = 0.05, Maximum = 20, Description = "Its share against the other panes." }, () => axis.PaneWeight, value => axis.PaneWeight = (double)value));
-                    }
-                }
-            }
-
-            return fields;
-        }
-    }
-
-    /// <summary>Gets the fields of the selected series: name, data and the parameters of its type.</summary>
-    public IReadOnlyList<FieldModel> SeriesFields
-    {
-        get
-        {
-            if (_spec.Series.Count == 0)
-            {
-                return [];
-            }
-
-            var series = _spec.Series[_selected];
-            var type = Catalog.FindType(series.Type)!;
-            var group = $"{type.Name} {_selected + 1}";
-            var samples = Catalog.Samples.Where(sample => sample.Shape == type.Shape).Select(sample => sample.Id).ToArray();
-            var fields = new List<FieldModel>
-            {
-                Field(group, new("name", "Name", ParameterKind.Text, string.Empty), () => series.Name, value => series.Name = (string)value),
-            };
-            fields.AddRange(DataFields(group, series, type, samples));
-            if (_spec.YAxes.Count > 1)
-            {
-                fields.Add(Field(group, new("yAxis", "Y axis", ParameterKind.Choice, _spec.YAxes[0].Id) { Choices = [.. _spec.YAxes.Select(axis => axis.Id)] }, () => series.YAxis ?? _spec.YAxes[0].Id, value => series.YAxis = (string)value));
-            }
-
-            foreach (var parameter in type.Parameters)
-            {
-                fields.Add(Field(group, parameter, () => series.Parameters.Get(parameter.Name) ?? parameter.Default, value => SetValue(series.Parameters, parameter.Name, value)));
-            }
-
-            return fields;
-        }
-    }
-
-    /// <summary>Gets the fields of the interactions: one switch each, followed by its parameters while it is on.</summary>
-    public IReadOnlyList<FieldModel> ModifierFields
-    {
-        get
-        {
-            var fields = new List<FieldModel>();
-
-            // Linked charts bring the interactions of their views; the usual ones would not reach them.
-            if (Catalog.ViewsOf(_spec) is not null)
-            {
-                return fields;
-            }
-
-            foreach (var info in Catalog.Modifiers)
-            {
-                var spec = _spec.Modifiers.FirstOrDefault(modifier => modifier.Type == info.Id);
-                fields.Add(Field("Interaction", new(info.Id, info.Name, ParameterKind.Flag, false), () => spec is not null, value => Toggle(info, (bool)value), structural: true));
-                if (spec is null)
-                {
-                    continue;
-                }
-
-                foreach (var parameter in info.Parameters)
-                {
-                    fields.Add(Field("Interaction", parameter with { Label = "   " + parameter.Label }, () => spec.Parameters.Get(parameter.Name) ?? parameter.Default, value => SetValue(spec.Parameters, parameter.Name, value)));
-                }
-            }
-
-            return fields;
-        }
-    }
-
-    /// <summary>Starts a new chart with one series of a type.</summary>
-    /// <param name="typeId">The type.</param>
-    public void NewChart(string typeId)
-    {
-        // With several charts only the edited one starts anew; the others stay, and the new one keeps its place in the
-        // group and the interactions, so that zoom and crosshair still reach it. A type with interactions of its own
-        // brings those instead.
-        var created = Catalog.CreateSpec(typeId);
-        if (_root.Charts.Count > 0)
-        {
-            created.Group = _spec.Group;
-            if (!Catalog.OwnsAxes(created) && !Catalog.OwnsAxes(_spec))
-            {
-                created.Modifiers.Clear();
-                created.Modifiers.AddRange(_spec.Modifiers.Select(modifier => new ModifierSpec { Type = modifier.Type, Parameters = DataSources.Copy(modifier.Parameters) }));
-            }
-        }
-
-        if (_chart == 0)
-        {
-            created.Charts.AddRange(_root.Charts);
-            created.Columns = _root.Columns;
-            _root = created;
-        }
-        else
-        {
-            created.Theme = _root.Theme;
-            created.OwnTheme = _root.OwnTheme?.Copy();
-            _root.Charts[_chart - 1] = created;
-        }
-
-        _spec = created;
-        _selected = 0;
-        Structure();
-    }
-
-    /// <summary>Starts a new chart from a template.</summary>
-    /// <param name="templateId">The identifier of the template, see <see cref="ChartCatalog.Templates"/>.</param>
-    /// <exception cref="KeyNotFoundException">There is no such template.</exception>
-    public void UseTemplate(string templateId)
-    {
-        var template = Catalog.Templates.FirstOrDefault(known => known.Id == templateId) ?? throw new KeyNotFoundException($"The template {templateId} is unknown.");
-        Load(template.Create(Catalog));
-    }
-
-    /// <summary>Replaces the description, for example by one read from a file.</summary>
-    /// <param name="spec">The description.</param>
-    public void Load(ChartSpec spec)
-    {
-        _root = _spec = spec ?? throw new ArgumentNullException(nameof(spec));
-        (_chart, _selected) = (0, 0);
-        Structure();
-    }
-
-    /// <summary>Adds a series of a type with its sample data and selects it.</summary>
-    /// <param name="typeId">The type.</param>
-    public void AddSeries(string typeId)
-    {
-        var added = Catalog.CreateSpec(typeId).Series[0];
-        added.Name = Unique(added.Name);
-
-        // One volume pane per chart: further candles start without one.
-        if (typeId == "candles" && _spec.Series.Exists(series => series.Type == "candles" && series.Parameters.GetFlag("volume", true)))
-        {
-            added.Parameters.Set("volume", false);
-        }
-
-        _spec.Series.Add(added);
-        _selected = _spec.Series.Count - 1;
-        Structure();
-    }
-
-    /// <summary>Removes the selected series; the last one stays.</summary>
-    public void RemoveSeries()
-    {
-        if (_spec.Series.Count > 1)
-        {
-            _spec.Series.RemoveAt(_selected);
-            _selected = Math.Min(_selected, _spec.Series.Count - 1);
-            Structure();
-        }
-    }
-
-    /// <summary>Adds a second Y axis on the far side, which series can choose.</summary>
-    public void AddYAxis()
-    {
-        var id = "y" + (_spec.YAxes.Count + 1).ToString(CultureInfo.InvariantCulture);
-        _spec.YAxes.Add(new AxisSpec { Id = id, Title = id, IsOpposite = true });
-        Structure();
-    }
-
     /// <summary>Describes the chart of the preview.</summary>
     /// <param name="chart">The chart description.</param>
     public void Apply(ChartBuilder chart)
@@ -550,6 +194,340 @@ public sealed class ConfiguratorSession
         {
             SpecChartBuilder.Apply(_root, Catalog, chart, _running, null, _chart == 0 ? Dragged : null);
         }
+    }
+
+    /// <summary>Occurs after every change, on the thread that made it.</summary>
+    public event Action? Changed;
+
+    /// <summary>Occurs when fields come or go, so that the settings are built anew; a changed value alone does not raise it.</summary>
+    public event Action? FieldsChanged;
+
+    /// <summary>Gets the types, samples and interactions.</summary>
+    public ChartCatalog Catalog { get; }
+
+    /// <summary>Gets the description being edited, with all its charts; the one whose fields show is <see cref="EditedChart"/>.</summary>
+    public ChartSpec Spec => _root;
+
+    /// <summary>Gets the chart whose fields show: the first chart of the description or one of its further charts.</summary>
+    public ChartSpec EditedChart => _edited;
+
+    /// <summary>Gets the number of charts of the description.</summary>
+    public int ChartCount => _root.Charts.Count + 1;
+
+    /// <summary>Gets or sets the index of the chart whose fields show, 0 for the first.</summary>
+    public int SelectedChart
+    {
+        get => _chart;
+        set
+        {
+            _chart = Math.Clamp(value, 0, _root.Charts.Count);
+            _edited = _chart == 0 ? _root : _root.Charts[_chart - 1];
+            _selected = 0;
+            FieldsChanged?.Invoke();
+        }
+    }
+
+    // Whether all charts of the description are in the same group.
+    private bool AllInOneGroup => _root.Group is { Length: > 0 } group && _root.Charts.TrueForAll(chart => chart.Group == group);
+
+    // Puts all charts into the group of the first one, or a new group; or takes all of them out.
+    private void LinkAll(bool linked)
+    {
+        string? group = null;
+        if (linked)
+        {
+            group = _root.Group is { Length: > 0 } first ? first : "charts";
+        }
+
+        _root.Group = group;
+        foreach (var chart in _root.Charts)
+        {
+            chart.Group = group;
+        }
+    }
+
+    /// <summary>Adds a chart with one series of a type after the others and selects it; it takes the theme of the first chart.</summary>
+    /// <param name="typeId">The type.</param>
+    public void AddChart(string typeId)
+    {
+        var added = Catalog.CreateSpec(typeId);
+        added.Theme = _root.Theme;
+        added.OwnTheme = _root.OwnTheme?.Copy();
+
+        // A new chart joins the group of the first one, if it has one.
+        added.Group = _root.Group;
+        _root.Charts.Add(added);
+        (_chart, _edited, _selected) = (_root.Charts.Count, added, 0);
+        Structure();
+    }
+
+    /// <summary>Removes the selected chart; the last one stays. Without the first chart the next one becomes the first.</summary>
+    public void RemoveChart()
+    {
+        if (_root.Charts.Count == 0)
+        {
+            return;
+        }
+
+        if (_chart == 0)
+        {
+            var next = _root.Charts[0];
+            next.Charts.AddRange(_root.Charts.Skip(1));
+            next.Columns = _root.Columns;
+            _root = next;
+        }
+        else
+        {
+            _root.Charts.RemoveAt(_chart - 1);
+        }
+
+        _chart = Math.Min(_chart, _root.Charts.Count);
+        _edited = _chart == 0 ? _root : _root.Charts[_chart - 1];
+        _selected = 0;
+        Structure();
+    }
+
+    /// <summary>Gets or sets the options of the code.</summary>
+    public CodeOptions Options
+    {
+        get;
+        set
+        {
+            field = value ?? throw new ArgumentNullException(nameof(value));
+            Refresh();
+        }
+    } = new();
+
+    /// <summary>Gets or sets the index of the series whose fields show.</summary>
+    public int SelectedSeries
+    {
+        get => _selected;
+        set
+        {
+            _selected = Math.Clamp(value, 0, Math.Max(0, _edited.Series.Count - 1));
+            FieldsChanged?.Invoke();
+        }
+    }
+
+    /// <summary>Gets the code, by the name of its tab: C#, view model, window, code behind and project file.</summary>
+    public IReadOnlyDictionary<string, string> Code { get; private set; } = new Dictionary<string, string>();
+
+    /// <summary>Gets what is wrong with the description now; empty when the preview and the code are up to date.</summary>
+    public IReadOnlyList<string> Problems { get; private set; } = [];
+
+    /// <summary>Gets how long the last change took to describe the chart and write the code.</summary>
+    public TimeSpan LastUpdate { get; private set; }
+
+    /// <summary>Gets the fields of the whole chart: title, theme, X downwards, group and legend.</summary>
+    public IReadOnlyList<FieldModel> ChartFields =>
+    [
+        .. ChartOptionFields,
+        .. Catalog.SceneOf(_edited) is { } scene
+            ? scene.Parameters.Select(parameter => Field("Scene", parameter, () => _edited.Scene.Get(parameter.Name) ?? parameter.Default, value => SetValue(_edited.Scene, parameter.Name, value)))
+            : [],
+    ];
+
+    private IReadOnlyList<FieldModel> ChartOptionFields =>
+    [
+        .. _root.Charts.Count > 0
+            ?
+            [
+                Field("Charts", new("columns", "Columns", ParameterKind.Integer, 1.0) { Minimum = 1, Maximum = 6, Description = "The charts of the description fill the rows from left to right." }, () => (double)Math.Max(1, _root.Columns), value => _root.Columns = (int)(double)value, structural: true),
+                Field("Charts", new("linked", "Linked: zoom and crosshair", ParameterKind.Flag, false) { Description = "All charts in one group: zooming one moves the others, and the crosshair shows in all. The group of each chart stays under Chart." }, () => AllInOneGroup, value => LinkAll((bool)value), structural: true),
+            ]
+            : Array.Empty<FieldModel>(),
+        Field(ChartName, new("title", TitleName, ParameterKind.Text, string.Empty), () => _edited.Title, value => _edited.Title = (string)value),
+        Field(ChartName, new("theme", "Theme", ParameterKind.Choice, ApplicationName) { Choices = [ApplicationName, .. ChartCatalog.Themes, OwnTheme], Description = "Own: a built-in theme as the base, with own values under Own theme." }, () => _edited.OwnTheme is not null ? OwnTheme : _edited.Theme ?? ApplicationName, value => ChooseTheme((string)value), structural: true),
+        .. OwnThemeFields(_edited.OwnTheme),
+        .. FontFields("title", TitleName, () => _edited.TitleFont, font => _edited.TitleFont = font),
+        .. FontFields("axis", "Axes", () => _edited.AxisFont, font => _edited.AxisFont = font),
+        Field(ChartName, new("xDown", "X axis downwards", ParameterKind.Flag, false), () => _edited.XDown, value => _edited.XDown = (bool)value),
+        Field(ChartName, new("legend", "Legend", ParameterKind.Flag, false), () => _edited.Legend is not null, value => _edited.Legend = (bool)value ? _edited.Legend ?? new LegendSpec() : null, structural: true),
+        .. LegendFields("Legend", _edited.Legend),
+        Field(ChartName, new("secondLegend", "Second legend", ParameterKind.Flag, false) { Description = "For example for the series of a second axis." }, () => _edited.SecondLegend is not null, value => _edited.SecondLegend = (bool)value ? _edited.SecondLegend ?? new LegendSpec { Placement = "BottomRight" } : null, structural: true),
+        .. LegendFields("Second legend", _edited.SecondLegend),
+        Field(ChartName, new("export", "Export menu", ParameterKind.Flag, false) { Description = "In the generated window a right click on the chart saves it as PNG, SVG or PDF, its data as CSV, or records a video." }, () => _edited.ExportMenu, value => _edited.ExportMenu = (bool)value),
+        Field(ChartName, new("group", "Group", ParameterKind.Text, string.Empty) { Description = "Charts of one group share range and cursor." }, () => _edited.Group ?? string.Empty, value => _edited.Group = ((string)value).Length > 0 ? (string)value : null),
+        Field(ChartName, new("overview", "Overview below", ParameterKind.Flag, false) { Description = "A small chart below shows all data and the window of the chart; dragging the window moves the chart." }, () => _edited.Overview, value => _edited.Overview = (bool)value),
+    ];
+
+    /// <summary>Gets the fields of the axes.</summary>
+    public IReadOnlyList<FieldModel> AxisFields
+    {
+        get
+        {
+            var fields = new List<FieldModel>();
+            if (Catalog.OwnsAxes(_edited))
+            {
+                return fields;
+            }
+
+            foreach (var (axes, name) in new[] { (_edited.XAxes, "X axis"), (_edited.YAxes, "Y axis") })
+            {
+                foreach (var axis in axes)
+                {
+                    AddAxisFields(fields, axis, name);
+                }
+            }
+
+            return fields;
+        }
+    }
+
+    /// <summary>Gets the fields of the selected series: name, data and the parameters of its type.</summary>
+    public IReadOnlyList<FieldModel> SeriesFields
+    {
+        get
+        {
+            if (_edited.Series.Count == 0)
+            {
+                return [];
+            }
+
+            var series = _edited.Series[_selected];
+            var type = Catalog.FindType(series.Type)!;
+            var group = $"{type.Name} {_selected + 1}";
+            var samples = Catalog.Samples.Where(sample => sample.Shape == type.Shape).Select(sample => sample.Id).ToArray();
+            var fields = new List<FieldModel>
+            {
+                Field(group, new("name", "Name", ParameterKind.Text, string.Empty), () => series.Name, value => series.Name = (string)value),
+            };
+            fields.AddRange(DataFields(group, series, type, samples));
+            if (_edited.YAxes.Count > 1)
+            {
+                fields.Add(Field(group, new("yAxis", "Y axis", ParameterKind.Choice, _edited.YAxes[0].Id) { Choices = [.. _edited.YAxes.Select(axis => axis.Id)] }, () => series.YAxis ?? _edited.YAxes[0].Id, value => series.YAxis = (string)value));
+            }
+
+            foreach (var parameter in type.Parameters)
+            {
+                fields.Add(Field(group, parameter, () => series.Parameters.Get(parameter.Name) ?? parameter.Default, value => SetValue(series.Parameters, parameter.Name, value)));
+            }
+
+            return fields;
+        }
+    }
+
+    /// <summary>Gets the fields of the interactions: one switch each, followed by its parameters while it is on.</summary>
+    public IReadOnlyList<FieldModel> ModifierFields
+    {
+        get
+        {
+            var fields = new List<FieldModel>();
+
+            // Linked charts bring the interactions of their views; the usual ones would not reach them.
+            if (Catalog.ViewsOf(_edited) is not null)
+            {
+                return fields;
+            }
+
+            foreach (var info in Catalog.Modifiers)
+            {
+                var spec = _edited.Modifiers.FirstOrDefault(modifier => modifier.Type == info.Id);
+                fields.Add(Field("Interaction", new(info.Id, info.Name, ParameterKind.Flag, false), () => spec is not null, value => Toggle(info, (bool)value), structural: true));
+                if (spec is null)
+                {
+                    continue;
+                }
+
+                foreach (var parameter in info.Parameters)
+                {
+                    fields.Add(Field("Interaction", parameter with { Label = "   " + parameter.Label }, () => spec.Parameters.Get(parameter.Name) ?? parameter.Default, value => SetValue(spec.Parameters, parameter.Name, value)));
+                }
+            }
+
+            return fields;
+        }
+    }
+
+    /// <summary>Starts a new chart with one series of a type.</summary>
+    /// <param name="typeId">The type.</param>
+    public void NewChart(string typeId)
+    {
+        // With several charts only the edited one starts anew; the others stay, and the new one keeps its place in the
+        // group and the interactions, so that zoom and crosshair still reach it. A type with interactions of its own
+        // brings those instead.
+        var created = Catalog.CreateSpec(typeId);
+        if (_root.Charts.Count > 0)
+        {
+            created.Group = _edited.Group;
+            if (!Catalog.OwnsAxes(created) && !Catalog.OwnsAxes(_edited))
+            {
+                created.Modifiers.Clear();
+                created.Modifiers.AddRange(_edited.Modifiers.Select(modifier => new ModifierSpec { Type = modifier.Type, Parameters = DataSources.Copy(modifier.Parameters) }));
+            }
+        }
+
+        if (_chart == 0)
+        {
+            created.Charts.AddRange(_root.Charts);
+            created.Columns = _root.Columns;
+            _root = created;
+        }
+        else
+        {
+            created.Theme = _root.Theme;
+            created.OwnTheme = _root.OwnTheme?.Copy();
+            _root.Charts[_chart - 1] = created;
+        }
+
+        _edited = created;
+        _selected = 0;
+        Structure();
+    }
+
+    /// <summary>Starts a new chart from a template.</summary>
+    /// <param name="templateId">The identifier of the template, see <see cref="ChartCatalog.Templates"/>.</param>
+    /// <exception cref="KeyNotFoundException">There is no such template.</exception>
+    public void UseTemplate(string templateId)
+    {
+        var template = Catalog.Templates.FirstOrDefault(known => known.Id == templateId) ?? throw new KeyNotFoundException($"The template {templateId} is unknown.");
+        Load(template.Create(Catalog));
+    }
+
+    /// <summary>Replaces the description, for example by one read from a file.</summary>
+    /// <param name="spec">The description.</param>
+    public void Load(ChartSpec spec)
+    {
+        _root = _edited = spec ?? throw new ArgumentNullException(nameof(spec));
+        (_chart, _selected) = (0, 0);
+        Structure();
+    }
+
+    /// <summary>Adds a series of a type with its sample data and selects it.</summary>
+    /// <param name="typeId">The type.</param>
+    public void AddSeries(string typeId)
+    {
+        var added = Catalog.CreateSpec(typeId).Series[0];
+        added.Name = Unique(added.Name);
+
+        // One volume pane per chart: further candles start without one.
+        if (typeId == "candles" && _edited.Series.Exists(series => series.Type == "candles" && series.Parameters.GetFlag("volume", true)))
+        {
+            added.Parameters.Set("volume", false);
+        }
+
+        _edited.Series.Add(added);
+        _selected = _edited.Series.Count - 1;
+        Structure();
+    }
+
+    /// <summary>Removes the selected series; the last one stays.</summary>
+    public void RemoveSeries()
+    {
+        if (_edited.Series.Count > 1)
+        {
+            _edited.Series.RemoveAt(_selected);
+            _selected = Math.Min(_selected, _edited.Series.Count - 1);
+            Structure();
+        }
+    }
+
+    /// <summary>Adds a second Y axis on the far side, which series can choose.</summary>
+    public void AddYAxis()
+    {
+        var id = "y" + (_edited.YAxes.Count + 1).ToString(CultureInfo.InvariantCulture);
+        _edited.YAxes.Add(new AxisSpec { Id = id, Title = id, IsOpposite = true });
+        Structure();
     }
 
     /// <summary>Gets a value indicating whether the preview has an overview below the chart; see <see cref="ApplyOverview"/>.</summary>
@@ -618,12 +596,12 @@ public sealed class ConfiguratorSession
 
     private void TakeDrag(int index, string kind, (string Name, double Value)[] values)
     {
-        if (index >= _spec.Annotations.Count || _spec.Annotations[index].Type != kind)
+        if (index >= _edited.Annotations.Count || _edited.Annotations[index].Type != kind)
         {
             return;
         }
 
-        var parameters = _spec.Annotations[index].Parameters;
+        var parameters = _edited.Annotations[index].Parameters;
         var isChanged = false;
         foreach (var (name, value) in values)
         {
@@ -663,9 +641,9 @@ public sealed class ConfiguratorSession
         get
         {
             var fields = new List<FieldModel>();
-            for (var i = 0; i < _spec.Annotations.Count; i++)
+            for (var i = 0; i < _edited.Annotations.Count; i++)
             {
-                var annotation = _spec.Annotations[i];
+                var annotation = _edited.Annotations[i];
                 var info = ChartCatalog.FindAnnotation(annotation.Type)!;
                 var group = $"Annotation {i + 1} · {info.Name}";
                 foreach (var parameter in Catalog.AnnotationParameters(info))
@@ -691,34 +669,91 @@ public sealed class ConfiguratorSession
             AnnotationCatalog.Place(annotation, region.X, region.Y);
         }
 
-        _spec.Annotations.Add(annotation);
+        _edited.Annotations.Add(annotation);
         Structure();
     }
 
     // The part of the chart that shows, for types that tell it, so that a new annotation starts in sight.
     private (Core.Numerics.DoubleRange X, Core.Numerics.DoubleRange Y)? Region() =>
-        _chart == 0 && _spec.Series.Count > 0 && _prepared is { } prepared && prepared.Data.Count > 0 && prepared.Data[0] is { } data
-        && prepared.Spec.Series.Count > 0 && prepared.Spec.Series[0].Type == _spec.Series[0].Type
-        && Catalog.FindType(_spec.Series[0].Type)?.Region is { } region
+        _chart == 0 && _edited.Series.Count > 0 && _prepared is { } prepared && prepared.Data.Count > 0 && prepared.Data[0] is { } data
+        && prepared.Spec.Series.Count > 0 && prepared.Spec.Series[0].Type == _edited.Series[0].Type
+        && Catalog.FindType(_edited.Series[0].Type)?.Region is { } region
             ? region(prepared.Spec.Series[0], data)
             : null;
 
     /// <summary>Removes the last annotation.</summary>
     public void RemoveAnnotation()
     {
-        if (_spec.Annotations.Count > 0)
+        if (_edited.Annotations.Count > 0)
         {
-            _spec.Annotations.RemoveAt(_spec.Annotations.Count - 1);
+            _edited.Annotations.RemoveAt(_edited.Annotations.Count - 1);
             Structure();
         }
     }
 
     // Where the data come from, then what that source needs: a generator and a count, a CSV file and its columns, or a
     // curve with the rate of live data.
-    private List<FieldModel> DataFields(string group, SeriesSpec series, ChartTypeInfo type, string[] samples)
+    // The datasets of a readable file to choose from, with their dimensions; otherwise a path to type.
+    private void Hdf5Fields(string group, SeriesSpec series, ChartTypeInfo type, List<FieldModel> fields)
     {
         var data = series.Data;
         var options = data.Options;
+        // The datasets of a readable file to choose from, with their dimensions; otherwise a path to type.
+        fields.Add(Field(group, new("file", "HDF5 file", ParameterKind.File, string.Empty), () => data.Path ?? string.Empty, value => data.Path = (string)value, structural: true));
+        var datasets = DataSources.Hdf5Datasets(data.Path);
+        fields.Add(Field(group, datasets.Count > 0
+            ? new(DatasetKey, "Dataset", ParameterKind.Choice, datasets[0]) { Choices = datasets }
+            : new(DatasetKey, "Dataset", ParameterKind.Text, string.Empty) { Description = "Its path in the file, such as /pressure: one dimension for curves and values, two for grids, three for volumes." }, () => options.GetText(DatasetKey, string.Empty), value => SetValue(options, DatasetKey, value)));
+        if (type.Shape == DataShape.Points)
+        {
+            fields.Add(Field(group, datasets.Count > 0
+                ? new(XDataset, "X dataset", ParameterKind.Choice, string.Empty) { Choices = ["", .. datasets], Description = "Empty for the number of each value." }
+                : new(XDataset, "X dataset", ParameterKind.Text, string.Empty) { Description = "Empty for the number of each value." }, () => options.GetText(XDataset, string.Empty), value => SetValue(options, XDataset, value)));
+        }
+    }
+
+    // Medical files stay in memory for the preview; neither path is saved.
+    private void MedicalFileFields(string group, SeriesSpec series, ChartTypeInfo type, List<FieldModel> fields)
+    {
+        var data = series.Data;
+        // Medical files stay in memory for the preview; neither path is saved.
+        fields.Add(Field(group, new("file", "Medical file", ParameterKind.File, string.Empty) { Description = type.Shape == DataShape.MedicalImage ? "A DICOM image." : "A NIfTI volume, or any DICOM file of a series for the whole series in its folder. Not saved with the configuration." }, () => data.Path ?? string.Empty, value => data.Path = (string)value));
+        if (type.Shape == DataShape.MedicalVolume)
+        {
+            fields.Add(Field(group, new("segmentationFile", "Segmentation file", ParameterKind.File, string.Empty) { Description = "NIfTI labels or DICOM SEG on the same volume; empty for none. Not saved." }, () => data.Segmentation ?? string.Empty, value => data.Segmentation = ((string)value).Length > 0 ? (string)value : null));
+        }
+    }
+
+    // A curve that keeps growing: which, how fast and how many points it keeps.
+    private void LiveFields(string group, SeriesSpec series, List<FieldModel> fields)
+    {
+        var data = series.Data;
+        var options = data.Options;
+        fields.Add(Field(group, new("curve", "Curve", ParameterKind.Choice, data.Sample) { Choices = [.. Catalog.Samples.Where(sample => sample.Curve is not null).Select(sample => sample.Id)] }, () => data.Sample, value => data.Sample = (string)value));
+        fields.Add(Field(group, new("rate", "Points per second", ParameterKind.Number, 200.0) { Minimum = 1, Maximum = 1_000_000 }, () => options.GetNumber("rate", 200), value => SetValue(options, "rate", value)));
+        fields.Add(Field(group, new("count", "Points kept", ParameterKind.Integer, 1000.0) { Minimum = 2, Maximum = 10_000_000 }, () => (double)data.Count, value => data.Count = (int)(double)value));
+    }
+
+    // Sample data: which, and how many values where the sample takes a number.
+    private void SampleFields(string group, SeriesSpec series, ChartTypeInfo type, string[] samples, List<FieldModel> fields)
+    {
+        var data = series.Data;
+        fields.Add(Field(group, new("sample", "Sample data", ParameterKind.Choice, type.DefaultSample) { Choices = samples }, () => data.Sample, value =>
+        {
+            data.Sample = (string)value;
+            TakeNewData(series);
+        }, structural: true));
+        if (Catalog.FindSample(data.Sample)?.HasCount == false)
+        {
+            return;
+        }
+
+        fields.Add(Field(group, new("count", "Number of values", ParameterKind.Integer, 1000.0) { Minimum = Catalog.FindSample(data.Sample)?.MinimumCount ?? 2, Maximum = Catalog.FindSample(data.Sample)?.MaximumCount ?? 10_000_000 }, () => (double)data.Count, value => data.Count = (int)(double)value));
+    }
+
+    private List<FieldModel> DataFields(string group, SeriesSpec series, ChartTypeInfo type, string[] samples)
+    {
+        var data = series.Data;
         var kinds = DataSources.Kinds(type, Catalog);
         var fields = new List<FieldModel>();
         if (kinds.Count > 1)
@@ -740,28 +775,10 @@ public sealed class ConfiguratorSession
                 CsvFields(group, type, data, fields);
                 break;
             case DataKind.Hdf5:
-                // The datasets of a readable file to choose from, with their dimensions; otherwise a path to type.
-                fields.Add(Field(group, new("file", "HDF5 file", ParameterKind.File, string.Empty), () => data.Path ?? string.Empty, value => data.Path = (string)value, structural: true));
-                var datasets = DataSources.Hdf5Datasets(data.Path);
-                fields.Add(Field(group, datasets.Count > 0
-                    ? new("dataset", "Dataset", ParameterKind.Choice, datasets[0]) { Choices = datasets }
-                    : new("dataset", "Dataset", ParameterKind.Text, string.Empty) { Description = "Its path in the file, such as /pressure: one dimension for curves and values, two for grids, three for volumes." }, () => options.GetText("dataset", string.Empty), value => SetValue(options, "dataset", value)));
-                if (type.Shape == DataShape.Points)
-                {
-                    fields.Add(Field(group, datasets.Count > 0
-                        ? new("xDataset", "X dataset", ParameterKind.Choice, string.Empty) { Choices = ["", .. datasets], Description = "Empty for the number of each value." }
-                        : new("xDataset", "X dataset", ParameterKind.Text, string.Empty) { Description = "Empty for the number of each value." }, () => options.GetText("xDataset", string.Empty), value => SetValue(options, "xDataset", value)));
-                }
-
+                Hdf5Fields(group, series, type, fields);
                 break;
             case DataKind.MedicalFile:
-                // Medical files stay in memory for the preview; neither path is saved.
-                fields.Add(Field(group, new("file", "Medical file", ParameterKind.File, string.Empty) { Description = type.Shape == DataShape.MedicalImage ? "A DICOM image." : "A NIfTI volume, or any DICOM file of a series for the whole series in its folder. Not saved with the configuration." }, () => data.Path ?? string.Empty, value => data.Path = (string)value));
-                if (type.Shape == DataShape.MedicalVolume)
-                {
-                    fields.Add(Field(group, new("segmentationFile", "Segmentation file", ParameterKind.File, string.Empty) { Description = "NIfTI labels or DICOM SEG on the same volume; empty for none. Not saved." }, () => data.Segmentation ?? string.Empty, value => data.Segmentation = ((string)value).Length > 0 ? (string)value : null));
-                }
-
+                MedicalFileFields(group, series, type, fields);
                 break;
             case DataKind.File:
                 fields.Add(Field(group, new("file", "File", ParameterKind.File, string.Empty) { Description = "Points: XYZ, PLY or LAS; volumes: NIfTI or raw; models: STL or OBJ; large files: column files (.tcol)." }, () => data.Path ?? string.Empty, value =>
@@ -771,22 +788,10 @@ public sealed class ConfiguratorSession
                 }, structural: true));
                 break;
             case DataKind.Live:
-                fields.Add(Field(group, new("curve", "Curve", ParameterKind.Choice, data.Sample) { Choices = [.. Catalog.Samples.Where(sample => sample.Curve is not null).Select(sample => sample.Id)] }, () => data.Sample, value => data.Sample = (string)value));
-                fields.Add(Field(group, new("rate", "Points per second", ParameterKind.Number, 200.0) { Minimum = 1, Maximum = 1_000_000 }, () => options.GetNumber("rate", 200), value => SetValue(options, "rate", value)));
-                fields.Add(Field(group, new("count", "Points kept", ParameterKind.Integer, 1000.0) { Minimum = 2, Maximum = 10_000_000 }, () => (double)data.Count, value => data.Count = (int)(double)value));
+                LiveFields(group, series, fields);
                 break;
             default:
-                fields.Add(Field(group, new("sample", "Sample data", ParameterKind.Choice, type.DefaultSample) { Choices = samples }, () => data.Sample, value =>
-                {
-                    data.Sample = (string)value;
-                    TakeNewData(series);
-                }, structural: true));
-                if (Catalog.FindSample(data.Sample)?.HasCount == false)
-                {
-                    break;
-                }
-
-                fields.Add(Field(group, new("count", "Number of values", ParameterKind.Integer, 1000.0) { Minimum = Catalog.FindSample(data.Sample)?.MinimumCount ?? 2, Maximum = Catalog.FindSample(data.Sample)?.MaximumCount ?? 10_000_000 }, () => (double)data.Count, value => data.Count = (int)(double)value));
+                SampleFields(group, series, type, samples, fields);
                 break;
         }
 
@@ -803,9 +808,9 @@ public sealed class ConfiguratorSession
             write(font.IsDefault ? null : font);
         }
 
-        yield return Field("Chart", new(name + "Font", label + " font", ParameterKind.Choice, FontSpec.DefaultFamily) { Choices = FontSpec.Families, Description = "Default is the font of the chart; Roboto Slab comes with the library, the others when they are installed, else the default stands in." }, () => read()?.Family ?? FontSpec.DefaultFamily, value => Change(font => font.Family = (string)value));
-        yield return Field("Chart", new(name + "Bold", label + " bold", ParameterKind.Flag, false), () => read()?.Bold ?? false, value => Change(font => font.Bold = (bool)value));
-        yield return Field("Chart", new(name + "Italic", label + " italic", ParameterKind.Flag, false), () => read()?.Italic ?? false, value => Change(font => font.Italic = (bool)value));
+        yield return Field(ChartName, new(name + "Font", label + " font", ParameterKind.Choice, FontSpec.DefaultFamily) { Choices = FontSpec.Families, Description = "Default is the font of the chart; Roboto Slab comes with the library, the others when they are installed, else the default stands in." }, () => read()?.Family ?? FontSpec.DefaultFamily, value => Change(font => font.Family = (string)value));
+        yield return Field(ChartName, new(name + "Bold", label + " bold", ParameterKind.Flag, false), () => read()?.Bold ?? false, value => Change(font => font.Bold = (bool)value));
+        yield return Field(ChartName, new(name + "Italic", label + " italic", ParameterKind.Flag, false), () => read()?.Italic ?? false, value => Change(font => font.Italic = (bool)value));
     }
 
     // The choice of the theme that opens the fields of an own theme.
@@ -821,13 +826,13 @@ public sealed class ConfiguratorSession
     {
         if (choice == OwnTheme)
         {
-            _spec.OwnTheme ??= new ThemeSpec { Base = _spec.Theme ?? ChartCatalog.Themes[0] };
-            _spec.Theme = null;
+            _edited.OwnTheme ??= new ThemeSpec { Base = _edited.Theme ?? ChartCatalog.Themes[0] };
+            _edited.Theme = null;
         }
         else
         {
-            _spec.OwnTheme = null;
-            _spec.Theme = choice == "Application" ? null : choice;
+            _edited.OwnTheme = null;
+            _edited.Theme = choice == ApplicationName ? null : choice;
         }
     }
 
@@ -860,9 +865,9 @@ public sealed class ConfiguratorSession
 
     private IEnumerable<FieldModel> LegendFields(string name, LegendSpec? legend) => legend is null ? [] :
     [
-        Field("Chart", new(name + "Title", "   Title", ParameterKind.Text, string.Empty), () => legend.Title, value => legend.Title = (string)value),
-        Field("Chart", new(name + "Placement", "   Place", ParameterKind.Choice, "TopRight") { Choices = Enum.GetNames<Core.Input.LegendPlacement>() }, () => legend.Placement, value => legend.Placement = (string)value),
-        Field("Chart", new(name + "Series", "   Series", ParameterKind.Text, string.Empty) { Description = "The names of the series it lists, separated by commas; empty for all." }, () => legend.Series, value => legend.Series = (string)value),
+        Field(ChartName, new(name + TitleName, "   Title", ParameterKind.Text, string.Empty), () => legend.Title, value => legend.Title = (string)value),
+        Field(ChartName, new(name + "Placement", "   Place", ParameterKind.Choice, "TopRight") { Choices = Enum.GetNames<Core.Input.LegendPlacement>() }, () => legend.Placement, value => legend.Placement = (string)value),
+        Field(ChartName, new(name + "Series", "   Series", ParameterKind.Text, string.Empty) { Description = "The names of the series it lists, separated by commas; empty for all." }, () => legend.Series, value => legend.Series = (string)value),
     ];
 
     private const string OwnFile = "(own file)";
@@ -886,9 +891,9 @@ public sealed class ConfiguratorSession
         }
 
         fields.Add(Field(group, new("file", "CSV file", ParameterKind.File, string.Empty), () => data.Path ?? string.Empty, value => UseCsv(type, data, (string)value), structural: true));
-        fields.Add(Field(group, new("delimiter", "Delimiter", ParameterKind.Choice, "Comma") { Choices = ["Comma", "Semicolon", "Tab", "Space"] }, () => options.GetText("delimiter", "Comma"), value => SetValue(options, "delimiter", value), structural: true));
-        fields.Add(Field(group, new("header", "First line names the columns", ParameterKind.Flag, true), () => options.GetFlag("header", true), value => SetValue(options, "header", value), structural: true));
-        fields.Add(Field(group, new("decimalComma", "Decimal comma", ParameterKind.Flag, false) { Description = "Numbers like 3,14 instead of 3.14." }, () => options.GetFlag("decimalComma", false), value => SetValue(options, "decimalComma", value)));
+        fields.Add(Field(group, new(DelimiterKey, "Delimiter", ParameterKind.Choice, "Comma") { Choices = ["Comma", "Semicolon", "Tab", "Space"] }, () => options.GetText(DelimiterKey, "Comma"), value => SetValue(options, DelimiterKey, value), structural: true));
+        fields.Add(Field(group, new(Header, "First line names the columns", ParameterKind.Flag, true), () => options.GetFlag(Header, true), value => SetValue(options, Header, value), structural: true));
+        fields.Add(Field(group, new(DecimalCommaKey, "Decimal comma", ParameterKind.Flag, false) { Description = "Numbers like 3,14 instead of 3.14." }, () => options.GetFlag(DecimalCommaKey, false), value => SetValue(options, DecimalCommaKey, value)));
 
         // Without a readable file the columns are typed: names or numbers from 1.
         var names = DataSources.CsvNames(data.Path, options);
@@ -899,6 +904,12 @@ public sealed class ConfiguratorSession
             return;
         }
 
+        ColumnFields(group, type, options, names, fields);
+    }
+
+    // The columns of a readable file to choose from: X, and the Y columns or one per role of the form.
+    private void ColumnFields(string group, ChartTypeInfo type, SpecValues options, IReadOnlyList<string> names, List<FieldModel> fields)
+    {
         // A name with a comma is chosen by its number, as the chosen columns are kept separated by commas.
         var choices = names.Select((name, index) => name.Contains(',', StringComparison.Ordinal) ? (index + 1).ToString(CultureInfo.InvariantCulture) : name).ToArray();
         if (type.Shape is not (DataShape.Values or DataShape.Rows or DataShape.Groups))
@@ -926,7 +937,12 @@ public sealed class ConfiguratorSession
             return;
         }
 
-        // Forms with a column per role choose each one apart.
+        RoleFields(group, options, choices, roles, fields);
+    }
+
+    // Forms with a column per role choose each one apart.
+    private void RoleFields(string group, SpecValues options, string[] choices, string[] roles, List<FieldModel> fields)
+    {
         for (var role = 0; role < roles.Length; role++)
         {
             var at = role;
@@ -955,9 +971,9 @@ public sealed class ConfiguratorSession
 
         var options = data.Options;
         var format = DataSources.GuessCsv(path);
-        options.Set("delimiter", DataSources.DelimiterName(format.Delimiter));
-        options.Set("header", format.HasHeader);
-        options.Set("decimalComma", format.DecimalComma);
+        options.Set(DelimiterKey, DataSources.DelimiterName(format.Delimiter));
+        options.Set(Header, format.HasHeader);
+        options.Set(DecimalCommaKey, format.DecimalComma);
         var names = DataSources.CsvNames(path, options).Select((name, index) => name.Contains(',', StringComparison.Ordinal) ? (index + 1).ToString(CultureInfo.InvariantCulture) : name).ToArray();
         var hasX = names.Length > 1;
         options.Set("x", hasX && type.Shape is not (DataShape.Values or DataShape.Rows or DataShape.Groups) ? names[0] : string.Empty);
@@ -989,33 +1005,91 @@ public sealed class ConfiguratorSession
 
     private void ForgetSceneAxes()
     {
-        if (Catalog.SceneOf(_spec) is null)
+        if (Catalog.SceneOf(_edited) is null)
         {
             return;
         }
 
         foreach (var axis in (ReadOnlySpan<string>)["x", "y", "z"])
         {
-            _spec.Scene.Remove(axis + "Range");
-            _spec.Scene.Remove(axis + "Title");
+            _edited.Scene.Remove(axis + "Range");
+            _edited.Scene.Remove(axis + TitleName);
         }
     }
 
     private void Toggle(ModifierInfo info, bool on)
     {
-        _spec.Modifiers.RemoveAll(modifier => modifier.Type == info.Id);
+        _edited.Modifiers.RemoveAll(modifier => modifier.Type == info.Id);
         if (on)
         {
-            _spec.Modifiers.Add(new ModifierSpec { Type = info.Id });
+            _edited.Modifiers.Add(new ModifierSpec { Type = info.Id });
         }
+    }
+
+    // The fields of an axis: title, scale, range, side, and those of its kind and pane.
+    private void AddAxisFields(List<FieldModel> fields, AxisSpec axis, string name)
+    {
+        var group = $"{name} {axis.Id}";
+        fields.Add(Field(group, new("title", TitleName, ParameterKind.Text, string.Empty), () => axis.Title, value => axis.Title = (string)value));
+        fields.Add(Field(group, new("kind", "Scale", ParameterKind.Choice, nameof(AxisKind.Numeric)) { Choices = Enum.GetNames<AxisKind>() }, () => axis.Kind.ToString(), value => axis.Kind = Enum.Parse<AxisKind>((string)value), structural: true));
+        fields.Add(Field(group, new("auto", "Follow the data", ParameterKind.Flag, true), () => axis.IsAutoRange, value => (axis.Minimum, axis.Maximum) = (bool)value ? ((double?)null, (double?)null) : (axis.Minimum ?? 0, axis.Maximum ?? 10)));
+        fields.Add(Field(group, new("minimum", "Minimum", ParameterKind.Number, 0.0), () => axis.Minimum ?? 0, value => (axis.Minimum, axis.Maximum) = ((double)value, axis.Maximum ?? 10)));
+        fields.Add(Field(group, new("maximum", "Maximum", ParameterKind.Number, 10.0), () => axis.Maximum ?? 10, value => (axis.Minimum, axis.Maximum) = (axis.Minimum ?? 0, (double)value)));
+        fields.Add(Field(group, new("inverted", "Inverted", ParameterKind.Flag, false), () => axis.IsInverted, value => axis.IsInverted = (bool)value));
+        fields.Add(Field(group, new("opposite", "Far side", ParameterKind.Flag, false), () => axis.IsOpposite, value => axis.IsOpposite = (bool)value));
+        AddKindFields(fields, axis, group);
+        fields.Add(Field(group, new("origin", "Through the origin", ParameterKind.Flag, false) { Description = "The axis runs where the other axis is 0." }, () => axis.CrossesZero, value => axis.CrossesZero = (bool)value));
+        if (axis.Kind == AxisKind.Category)
+        {
+            fields.Add(Field(group, new("rotation", "Label rotation", ParameterKind.Number, 0.0) { Minimum = -90, Maximum = 90, Description = "In degrees; negative labels rise to the right." }, () => axis.LabelRotation, value => axis.LabelRotation = (double)value));
+        }
+        fields.Add(Field(group, new("breaks", "Scale breaks", ParameterKind.Text, string.Empty) { Description = "Ranges left out, such as 10..90, separated by commas." }, () => axis.Breaks, value => axis.Breaks = (string)value));
+        fields.Add(Field(group, new("hidden", "Hidden", ParameterKind.Flag, false), () => axis.IsHidden, value => axis.IsHidden = (bool)value));
+        if (name == "Y axis")
+        {
+            fields.Add(Field(group, new("pane", "Pane", ParameterKind.Integer, 0.0) { Minimum = 0, Maximum = 9, Description = "Panes stack from 0 at the top and share the horizontal axis." }, () => (double)axis.Pane, value => axis.Pane = (int)(double)value));
+            fields.Add(Field(group, new("paneWeight", "Height of the pane", ParameterKind.Number, 1.0) { Minimum = 0.05, Maximum = 20, Description = "Its share against the other panes." }, () => axis.PaneWeight, value => axis.PaneWeight = (double)value));
+        }
+    }
+
+    private void AddKindFields(List<FieldModel> fields, AxisSpec axis, string group)
+    {
+        if (axis.Kind == AxisKind.DateTime)
+        {
+            fields.Add(Field(group, new("weekends", "Without weekends", ParameterKind.Flag, false), () => axis.SkipsWeekends, value => axis.SkipsWeekends = (bool)value));
+        }
+
+        if (axis.Kind == AxisKind.Logarithmic)
+        {
+            fields.Add(Field(group, new("logBase", "Base", ParameterKind.Number, 10.0) { Minimum = 1.000001, Maximum = 1000 }, () => axis.LogBase, value => axis.LogBase = (double)value));
+            fields.Add(Field(group, new("floor", "Floor when clamping", ParameterKind.Number, 0.0) { Minimum = 0, Description = "Where values of 0 and below are put; 0 for the axis to choose." }, () => axis.Floor ?? 0.0, value => axis.Floor = (double)value > 0 ? (double)value : null));
+            fields.Add(Field(group, new("nonPositive", "Values of 0 and below", ParameterKind.Choice, "Hide") { Choices = Enum.GetNames<Core.Axes.NonPositiveValues>(), Description = "Hide them, clamp them to the floor, or show them on a symmetric logarithmic scale." }, () => axis.NonPositive, value => axis.NonPositive = (string)value));
+        }
+
+        if (axis.Kind == AxisKind.Category)
+        {
+            fields.Add(Field(group, new("categories", "Names of the places", ParameterKind.Text, string.Empty) { Description = "One per place 0, 1, 2 …, separated by commas." }, () => axis.Categories, value => axis.Categories = (string)value));
+        }
+    }
+
+    // The names of the views: numbers for several charts, those of the type's views, or one without a name.
+    private static string[] ViewNames(ChartSpec spec, (IReadOnlyList<ViewInfo> Views, int Columns)? linked)
+    {
+        if (spec.Charts.Count > 0)
+        {
+            return [.. Enumerable.Range(1, spec.Charts.Count + 1).Select(number => number.ToString(CultureInfo.InvariantCulture))];
+        }
+
+        return linked is { } views ? [.. views.Views.Select(view => view.Name)] : [string.Empty];
     }
 
     private string Unique(string name)
     {
         var unique = name;
-        for (var i = 2; _spec.Series.Any(series => series.Name == unique); i++)
+        var i = 2;
+        while (_edited.Series.Any(series => series.Name == unique))
         {
-            unique = name + " " + i.ToString(CultureInfo.InvariantCulture);
+            unique = name + " " + (i++).ToString(CultureInfo.InvariantCulture);
         }
 
         return unique;
@@ -1131,8 +1205,7 @@ public sealed class ConfiguratorSession
             }
 
             var linked = Catalog.ViewsOf(update.Spec);
-            Views = update.Spec.Charts.Count > 0 ? [.. Enumerable.Range(1, update.Spec.Charts.Count + 1).Select(number => number.ToString(CultureInfo.InvariantCulture))]
-                : linked is { } views ? [.. views.Views.Select(view => view.Name)] : [string.Empty];
+            Views = ViewNames(update.Spec, linked);
             ViewColumns = update.Spec.Charts.Count > 0 ? Math.Max(1, update.Spec.Columns) : linked?.Columns ?? 1;
         }
 

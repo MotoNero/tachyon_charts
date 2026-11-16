@@ -8,6 +8,9 @@ namespace Tachyon.Charts.Configurator;
 /// </summary>
 internal static class ShowroomGallery
 {
+    private const string JaggedDoubles = "double[][]";
+    private const string DataSourceType = "DataSource<double, double>";
+
     private const string Holes = "x switch { > 2 and < 3 => double.NaN, > 4.5 and < 5.0 => double.PositiveInfinity, > 5.1 and < 5.6 => double.NegativeInfinity, > 7 and < 7.2 => double.NaN, _ => 0.9 * Math.Sin(x * 1.3) }";
 
     public static IReadOnlyList<SampleInfo> Create() =>
@@ -97,8 +100,8 @@ internal static class ShowroomGallery
 
             return columns;
         },
-        "double[][]",
-        method => SampleCatalog.Header("a machine under load", method, "double[][]", "The number of rows.") + """
+        JaggedDoubles,
+        method => SampleCatalog.Header("a machine under load", method, JaggedDoubles, "The number of rows.") + """
                 {
                     var random = new Random(1);
                     var columns = new double[6][];
@@ -149,8 +152,8 @@ internal static class ShowroomGallery
 
             return data;
         },
-        "DataSource<double, double>",
-        method => SampleCatalog.Header(name.ToLowerInvariant(), method, "DataSource<double, double>") + $$"""
+        DataSourceType,
+        method => SampleCatalog.Header(name.ToLowerInvariant(), method, DataSourceType) + $$"""
                 {
                     var data = new DataSource<double, double>(count);
                     for (var i = 0; i < count; i++)
@@ -182,8 +185,8 @@ internal static class ShowroomGallery
 
             return data;
         },
-        "DataSource<double, double>",
-        method => SampleCatalog.Header("a circle around 5", method, "DataSource<double, double>") + """
+        DataSourceType,
+        method => SampleCatalog.Header("a circle around 5", method, DataSourceType) + """
                 {
                     var data = new DataSource<double, double>(count);
                     for (var i = 0; i < count; i++)
@@ -214,8 +217,8 @@ internal static class ShowroomGallery
 
             return data;
         },
-        "DataSource<double, double>",
-        method => SampleCatalog.Header("random points", method, "DataSource<double, double>") + """
+        DataSourceType,
+        method => SampleCatalog.Header("random points", method, DataSourceType) + """
                 {
                     var random = new Random(5);
                     var data = new DataSource<double, double>(count);
@@ -276,8 +279,8 @@ internal static class ShowroomGallery
         DataShape.Rows,
         6,
         _ => new[] { new double[] { 3, 5, 2, 6, 4, 7 }, [2, 1, 4, 3, 5, 2], [1, 3, double.NaN, 2, 2, 3] },
-        "double[][]",
-        method => SampleCatalog.Header("three rows of bars, one missing", method, "double[][]", "Not used: the values are fixed.") + """
+        JaggedDoubles,
+        method => SampleCatalog.Header("three rows of bars, one missing", method, JaggedDoubles, "Not used: the values are fixed.") + """
                 {
                     return [[3, 5, 2, 6, 4, 7], [2, 1, 4, 3, 5, 2], [1, 3, double.NaN, 2, 2, 3]];
                 }
@@ -306,8 +309,8 @@ internal static class ShowroomGallery
 
             return columns;
         },
-        "double[][]",
-        method => SampleCatalog.Header("six columns, the second against the first", method, "double[][]", "The number of rows.") + """
+        JaggedDoubles,
+        method => SampleCatalog.Header("six columns, the second against the first", method, JaggedDoubles, "The number of rows.") + """
                 {
                     var columns = new double[6][];
                     for (var column = 0; column < columns.Length; column++)

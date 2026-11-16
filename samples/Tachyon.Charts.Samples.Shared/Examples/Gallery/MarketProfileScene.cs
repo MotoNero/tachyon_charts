@@ -13,6 +13,8 @@ namespace Tachyon.Charts.Samples.Shared.Examples.Gallery;
 /// <summary>Daily candles with the volume per price level of the shown months, point of control and value area highlighted.</summary>
 public sealed class MarketProfileScene : IScene, IChartScene
 {
+    private const string PriceKey = "price";
+
     /// <inheritdoc />
     public string Name => "MarketProfile";
 
@@ -25,9 +27,9 @@ public sealed class MarketProfileScene : IScene, IChartScene
         var data = CandleDemo.Create(200, TimeSpan.FromDays(1), seed: 11);
         var builder = new ChartBuilder().Title("Market profile").Theme(BuiltInThemes.TachyonDark)
             .XAxis(a => a.DateTime("time"))
-            .YAxis(a => a.Numeric("price").Title("Price").AutoRange())
-            .Candles(data, yAxis: "price")
-            .VolumeProfile(data, profile => profile.Levels = 40, yAxis: "price");
+            .YAxis(a => a.Numeric(PriceKey).Title("Price").AutoRange())
+            .Candles(data, yAxis: PriceKey)
+            .VolumeProfile(data, profile => profile.Levels = 40, yAxis: PriceKey);
         var chart = builder.ToDefinition().Build(SkiaTextEngine.Default).Surface;
         disposables = [];
         return chart;
@@ -39,9 +41,9 @@ public sealed class MarketProfileScene : IScene, IChartScene
         var data = CandleDemo.Create(200, TimeSpan.FromDays(1), seed: 11);
         var builder = new ChartBuilder().Title("Market profile").Theme(BuiltInThemes.TachyonDark)
             .XAxis(a => a.DateTime("time"))
-            .YAxis(a => a.Numeric("price").Title("Price").AutoRange())
-            .Candles(data, yAxis: "price")
-            .VolumeProfile(data, profile => profile.Levels = 40, yAxis: "price");
+            .YAxis(a => a.Numeric(PriceKey).Title("Price").AutoRange())
+            .Candles(data, yAxis: PriceKey)
+            .VolumeProfile(data, profile => profile.Levels = 40, yAxis: PriceKey);
         var chart = builder.ToDefinition().Build(SkiaTextEngine.Default).Surface;
         chart.Render(device, target);
 

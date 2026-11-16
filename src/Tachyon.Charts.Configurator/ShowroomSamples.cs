@@ -9,6 +9,9 @@ namespace Tachyon.Charts.Configurator;
 /// </summary>
 internal static class ShowroomSamples
 {
+    private const string DataSourceArrayType = "DataSource<double, double>[]";
+    private const string JaggedDoubles = "double[][]";
+
     public static IReadOnlyList<SampleInfo> Create() =>
     [
         Curve("pureSine", "Sine", 300, 10, Math.Sin, "Math.Sin(x)"),
@@ -81,7 +84,7 @@ internal static class ShowroomSamples
 
             return layers;
         },
-        "DataSource<double, double>[]",
+        DataSourceArrayType,
         method => SampleCatalog.Header("three layers, one with a gap", method, "DataSource<double, double>[]") + """
                 {
                     var layers = new[] { new DataSource<double, double>(count), new DataSource<double, double>(count), new DataSource<double, double>(count) };
@@ -105,8 +108,8 @@ internal static class ShowroomSamples
         DataShape.Rows,
         200,
         n => new[] { Enumerable.Range(0, n).Select(i => 1 + Math.Sin(i * 0.1)).ToArray() },
-        "double[][]",
-        method => SampleCatalog.Header("a value per sensor", method, "double[][]", "The number of sensors.") + """
+        JaggedDoubles,
+        method => SampleCatalog.Header("a value per sensor", method, JaggedDoubles, "The number of sensors.") + """
                 {
                     return [[.. Enumerable.Range(0, count).Select(i => 1 + Math.Sin(i * 0.1))]];
                 }
@@ -133,7 +136,7 @@ internal static class ShowroomSamples
 
             return layers;
         },
-        "DataSource<double, double>[]",
+        DataSourceArrayType,
         method => SampleCatalog.Header("three layers, the upper one faster", method, "DataSource<double, double>[]") + """
                 {
                     var layers = new[] { new DataSource<double, double>(count), new DataSource<double, double>(count), new DataSource<double, double>(count) };
@@ -276,8 +279,8 @@ internal static class ShowroomSamples
             DataShape.Rows,
             rows[0].Length,
             _ => rows.Select(row => row.ToArray()).ToArray(),
-            "double[][]",
-            method => SampleCatalog.Header(name.ToLowerInvariant(), method, "double[][]", "Not used: the values are fixed.") + $$"""
+            JaggedDoubles,
+            method => SampleCatalog.Header(name.ToLowerInvariant(), method, JaggedDoubles, "Not used: the values are fixed.") + $$"""
                     {
                         return {{literal}};
                     }
@@ -294,7 +297,7 @@ internal static class ShowroomSamples
         5000,
         n =>
         {
-            var random = new Random(3);
+            var random = new Random(3); // NOSONAR: sample data drawn the same each time, nothing secret
             var values = new double[n];
             for (var i = 0; i < n; i++)
             {
@@ -326,15 +329,15 @@ internal static class ShowroomSamples
         300,
         n =>
         {
-            var random = new Random(5);
+            var random = new Random(5); // NOSONAR: sample data drawn the same each time, nothing secret
             var groups = new double[3][];
             groups[0] = [.. Enumerable.Range(0, n).Select(_ => (random.NextDouble() + random.NextDouble() + random.NextDouble()) * 2)];
             groups[1] = [.. Enumerable.Range(0, n).Select(_ => -Math.Log(1 - random.NextDouble()) + 1)];
             groups[2] = [.. Enumerable.Range(0, n).Select(_ => random.Next(2) == 0 ? 2 + random.NextDouble() : 5 + random.NextDouble())];
             return groups;
         },
-        "double[][]",
-        method => SampleCatalog.Header("normal, skewed and two peaks", method, "double[][]", "The number of values per group.") + """
+        JaggedDoubles,
+        method => SampleCatalog.Header("normal, skewed and two peaks", method, JaggedDoubles, "The number of values per group.") + """
                 {
                     var random = new Random(5);
                     double[] normal = [.. Enumerable.Range(0, count).Select(_ => (random.NextDouble() + random.NextDouble() + random.NextDouble()) * 2)];

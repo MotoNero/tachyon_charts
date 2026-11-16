@@ -8,12 +8,13 @@ namespace Tachyon.Charts.Configurator;
 /// </summary>
 internal static class ShowroomPlans
 {
+    private const string GanttDataName = "GanttData";
     private const string Mixture = "(double[] A, double[] B, double[] C)";
     private static readonly DateTime _start = new(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
 
     public static IReadOnlyList<SampleInfo> Create() =>
     [
-        new("testPlan", "Test plan of three stations", DataShape.Gantt, 13, _ => TestPlan(), "GanttData", method => SampleCatalog.Header("test plan of three stations", method, "GanttData", "Not used: the plan is fixed.") + """
+        new("testPlan", "Test plan of three stations", DataShape.Gantt, 13, _ => TestPlan(), GanttDataName, method => SampleCatalog.Header("test plan of three stations", method, GanttDataName, "Not used: the plan is fixed.") + """
                 {
                     var start = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
                     double Day(double days) => (start + TimeSpan.FromDays(days)).Ticks;
@@ -46,7 +47,7 @@ internal static class ShowroomPlans
                 }
 
             """) { HasCount = false },
-        new("testHall", "A test hall of 100 stations", DataShape.Gantt, 100_000, TestHall, "GanttData", method => SampleCatalog.Header("a test hall of 100 stations", method, "GanttData", "The number of tests, spread over the stations.") + """
+        new("testHall", "A test hall of 100 stations", DataShape.Gantt, 100_000, TestHall, GanttDataName, method => SampleCatalog.Header("a test hall of 100 stations", method, GanttDataName, "The number of tests, spread over the stations.") + """
                 {
                     var start = new DateTime(2026, 3, 2, 0, 0, 0, DateTimeKind.Utc);
                     double Day(double days) => (start + TimeSpan.FromDays(days)).Ticks;

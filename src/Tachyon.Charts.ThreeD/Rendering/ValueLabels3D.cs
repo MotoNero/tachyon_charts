@@ -73,65 +73,20 @@ internal sealed class ValueLabels3D(Scene3D scene) : ChartOverlay
 
     private void Collect()
     {
-        for (var n = 0; n < scene.Bars.Count; n++)
-        {
-            var bars = scene.Bars[n];
-            if (bars.ShowsValues)
-            {
-                // The top of each column, in the middle of its cell.
-                var (data, step) = (bars.Data, GridStride(bars.Data.Width, bars.Data.Height));
-                for (var row = 0; row < data.Height; row += step)
-                {
-                    for (var column = 0; column < data.Width; column += step)
-                    {
-                        var value = data[column, row];
-                        if (float.IsFinite(value))
-                        {
-                            var place = new Point3D(bars.X.Min + ((column + 0.5) * bars.X.Length / data.Width), bars.Y.Min + ((row + 0.5) * bars.Y.Length / data.Height), value);
-                            _labels.Add((place, value));
-                        }
-                    }
-                }
-            }
-        }
-
-        for (var n = 0; n < scene.Surfaces.Count; n++)
-        {
-            var surface = scene.Surfaces[n];
-            if (surface.ShowsValues)
-            {
-                // The corners of the grid, evenly thinned.
-                var (data, step) = (surface.Data, GridStride(surface.Data.Width, surface.Data.Height));
-                for (var row = 0; row < data.Height; row += step)
-                {
-                    for (var column = 0; column < data.Width; column += step)
-                    {
-                        var value = data[column, row];
-                        if (float.IsFinite(value))
-                        {
-                            var place = new Point3D(surface.X.Min + (column * surface.X.Length / Math.Max(data.Width - 1, 1)), surface.Y.Min + (row * surface.Y.Length / Math.Max(data.Height - 1, 1)), value);
-                            _labels.Add((place, value));
-                        }
-                    }
-                }
-            }
-        }
-
+        CollectGrids();
         for (var n = 0; n < scene.Lines.Count; n++)
         {
-            var line = scene.Lines[n];
-            if (line.ShowsValues)
+            if (scene.Lines[n].ShowsValues)
             {
-                AddPoints(line.Points);
+                AddPoints(scene.Lines[n].Points);
             }
         }
 
         for (var n = 0; n < scene.Scatters.Count; n++)
         {
-            var scatter = scene.Scatters[n];
-            if (scatter.ShowsValues)
+            if (scene.Scatters[n].ShowsValues)
             {
-                AddPoints(scatter.Points);
+                AddPoints(scene.Scatters[n].Points);
             }
         }
 
@@ -159,6 +114,46 @@ internal sealed class ValueLabels3D(Scene3D scene) : ChartOverlay
             if (cloud.ShowsValues)
             {
                 AddArrays(cloud.X, cloud.Y, cloud.Z);
+            }
+        }
+    }
+
+    // Columns at the middle of their cells, surfaces at the corners of their grid; both evenly thinned.
+    private void CollectGrids()
+    {
+        for (var n = 0; n < scene.Bars.Count; n++)
+        {
+            var bars = scene.Bars[n];
+            if (bars.ShowsValues)
+            {
+                var data = bars.Data;
+                AddGrid(data, bars.X.Min + (0.5 * bars.X.Length / data.Width), bars.X.Length / data.Width, bars.Y.Min + (0.5 * bars.Y.Length / data.Height), bars.Y.Length / data.Height);
+            }
+        }
+
+        for (var n = 0; n < scene.Surfaces.Count; n++)
+        {
+            var surface = scene.Surfaces[n];
+            if (surface.ShowsValues)
+            {
+                var data = surface.Data;
+                AddGrid(data, surface.X.Min, surface.X.Length / Math.Max(data.Width - 1, 1), surface.Y.Min, surface.Y.Length / Math.Max(data.Height - 1, 1));
+            }
+        }
+    }
+
+    private void AddGrid(Tachyon.Charts.Core.Data.HeatmapData data, double x0, double dx, double y0, double dy)
+    {
+        var step = GridStride(data.Width, data.Height);
+        for (var row = 0; row < data.Height; row += step)
+        {
+            for (var column = 0; column < data.Width; column += step)
+            {
+                var value = data[column, row];
+                if (float.IsFinite(value))
+                {
+                    _labels.Add((new Point3D(x0 + (column * dx), y0 + (row * dy), value), value));
+                }
             }
         }
     }

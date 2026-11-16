@@ -541,7 +541,6 @@ public sealed class ScopeModifier(ScopeDisplay display) : ChartModifier(ZoomPanM
 {
     private const float EdgeWidth = 60;
     private const double GrabReach = 14;
-    private const double ReadoutHeight = 26;
 
     private ScopeChannel? _channel;
     private bool _isTrigger;

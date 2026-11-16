@@ -158,47 +158,65 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable, Overlays.IRe
 
         var columns = (int)Math.Ceiling(2 * maximumDistance) + 1;
         var perColumn = Math.Max(1, (last - first + columns) / columns);
-        var best = maximumDistance * maximumDistance;
-        var (bestStart, bestEnd, bestValue) = (-1L, -1L, double.NaN);
+        var best = new Candidate { Squared = maximumDistance * maximumDistance, Start = -1, End = -1, Value = double.NaN };
         for (var start = first; start <= last; start += perColumn)
         {
             var end = Math.Min(start + perColumn, last + 1);
             if (end - start <= 64)
             {
                 // Few values: each one counts.
-                for (var i = start; i < end; i++)
-                {
-                    if (TryTake(i, out _, out var valueX, out var valueY))
-                    {
-                        var distance = Distance(frame, pixel, valueX, valueY);
-                        if (distance < best)
-                        {
-                            (best, bestStart, bestEnd, bestValue) = (distance, i, i + 1, valueY);
-                        }
-                    }
-                }
-
-                continue;
+                NearestValue(frame, pixel, start, end, ref best);
             }
-
-            var extremes = _pyramid.IsComplete ? _pyramid.Query(start, end) : _pyramid.QueryAvailable(start, end);
-            if (extremes.Min > extremes.Max)
+            else
             {
-                continue;
-            }
-
-            var middle = _source.XStart + ((start + ((end - start) / 2)) * _source.XStep) - origin;
-            foreach (var value in (ReadOnlySpan<double>)[double.CreateTruncating(extremes.Min), double.CreateTruncating(extremes.Max)])
-            {
-                var distance = Distance(frame, pixel, middle, value);
-                if (distance < best)
-                {
-                    (best, bestStart, bestEnd, bestValue) = (distance, start, end, value);
-                }
+                NearestExtreme(frame, pixel, start, end, origin, ref best);
             }
         }
 
-        return bestStart >= 0 && TryTake(Find(bestStart, bestEnd, bestValue), out index, out x, out y);
+        return best.Start >= 0 && TryTake(Find(best.Start, best.End, best.Value), out index, out x, out y);
+    }
+
+    private void NearestValue(in SeriesFrame frame, System.Numerics.Vector2 pixel, long start, long end, ref Candidate best)
+    {
+        for (var i = start; i < end; i++)
+        {
+            if (TryTake(i, out _, out var valueX, out var valueY))
+            {
+                best.Take(Distance(frame, pixel, valueX, valueY), i, i + 1, valueY);
+            }
+        }
+    }
+
+    // A range of many values: its lowest and its highest in the middle of the range.
+    private void NearestExtreme(in SeriesFrame frame, System.Numerics.Vector2 pixel, long start, long end, double origin, ref Candidate best)
+    {
+        var extremes = _pyramid.IsComplete ? _pyramid.Query(start, end) : _pyramid.QueryAvailable(start, end);
+        if (extremes.Min > extremes.Max)
+        {
+            return;
+        }
+
+        var middle = _source.XStart + ((start + ((end - start) / 2)) * _source.XStep) - origin;
+        var (low, high) = (double.CreateTruncating(extremes.Min), double.CreateTruncating(extremes.Max));
+        best.Take(Distance(frame, pixel, middle, low), start, end, low);
+        best.Take(Distance(frame, pixel, middle, high), start, end, high);
+    }
+
+    // The nearest so far: its squared distance, the range it stands for and its value.
+    private struct Candidate
+    {
+        public double Squared;
+        public long Start;
+        public long End;
+        public double Value;
+
+        public void Take(double distance, long start, long end, double value)
+        {
+            if (distance < Squared)
+            {
+                (Squared, Start, End, Value) = (distance, start, end, value);
+            }
+        }
     }
 
     private static double Distance(in SeriesFrame frame, System.Numerics.Vector2 pixel, double valueX, double valueY)
@@ -344,7 +362,7 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable, Overlays.IRe
             var end = first + (span * (column + 1) / columns);
             // A column of many blocks takes whole blocks: no value of the file is read, which keeps panning smooth when
             // the file is far larger than the cache; the outer blocks shift an extreme by less than a pixel.
-            var extremes = coarse ? _pyramid.QueryAvailable(start, end) : end - start >= WholeBlocks ? _pyramid.QueryBlocks(start, end) : _pyramid.Query(start, end);
+            var extremes = ExtremesOf(start, end, coarse);
             if (extremes.Min > extremes.Max)
             {
                 AddGap();
@@ -391,5 +409,16 @@ public sealed class ColumnLineSeries<T> : ChartSeries, IDisposable, Overlays.IRe
         {
             AddVertex(_vertices[_count - 1]);
         }
+    }
+
+    // What the pyramid has so far while it grows; whole blocks for a column of many; otherwise exact.
+    private MinMax<T> ExtremesOf(long start, long end, bool coarse)
+    {
+        if (coarse)
+        {
+            return _pyramid.QueryAvailable(start, end);
+        }
+
+        return end - start >= WholeBlocks ? _pyramid.QueryBlocks(start, end) : _pyramid.Query(start, end);
     }
 }

@@ -125,6 +125,32 @@ public sealed class OverlayCanvas
         _glyphCount += _textEngine.Layout(text, position, (float)(size * _scale), color, _glyphs.AsSpan(_glyphCount));
     }
 
+    /// <summary>Draws text.</summary>
+    /// <param name="text">The text.</param>
+    /// <param name="x">The left edge.</param>
+    /// <param name="baseline">The baseline.</param>
+    /// <param name="size">The font size.</param>
+    /// <param name="color">The color.</param>
+    public void DrawText(string text, double x, double baseline, float size, Rgba8 color) => DrawText(text, x, baseline, size, color, default);
+
+    /// <summary>Draws text in a font.</summary>
+    /// <param name="text">The text.</param>
+    /// <param name="x">The left edge.</param>
+    /// <param name="baseline">The baseline.</param>
+    /// <param name="size">The font size.</param>
+    /// <param name="color">The color.</param>
+    /// <param name="font">The font.</param>
+    public void DrawText(string text, double x, double baseline, float size, Rgba8 color, TextFont font)
+    {
+        if (_glyphCount + text.Length > _glyphs.Length)
+        {
+            Array.Resize(ref _glyphs, Math.Max(_glyphs.Length * 2, _glyphCount + text.Length));
+        }
+
+        var position = new Vector2((float)(x * _scale), (float)(baseline * _scale));
+        _glyphCount += _textEngine.Layout(text, position, (float)(size * _scale), color, font, _glyphs.AsSpan(_glyphCount));
+    }
+
     /// <summary>Finds where a value lies on an axis.</summary>
     /// <param name="axis">The axis.</param>
     /// <param name="value">The value.</param>
@@ -392,32 +418,6 @@ public sealed class OverlayCanvas
         {
             _glyphs[i] = _glyphs[i] with { Rotation = angle, Pivot = pivot };
         }
-    }
-
-    /// <summary>Draws text.</summary>
-    /// <param name="text">The text.</param>
-    /// <param name="x">The left edge.</param>
-    /// <param name="baseline">The baseline.</param>
-    /// <param name="size">The font size.</param>
-    /// <param name="color">The color.</param>
-    public void DrawText(string text, double x, double baseline, float size, Rgba8 color) => DrawText(text, x, baseline, size, color, default);
-
-    /// <summary>Draws text in a font.</summary>
-    /// <param name="text">The text.</param>
-    /// <param name="x">The left edge.</param>
-    /// <param name="baseline">The baseline.</param>
-    /// <param name="size">The font size.</param>
-    /// <param name="color">The color.</param>
-    /// <param name="font">The font.</param>
-    public void DrawText(string text, double x, double baseline, float size, Rgba8 color, TextFont font)
-    {
-        if (_glyphCount + text.Length > _glyphs.Length)
-        {
-            Array.Resize(ref _glyphs, Math.Max(_glyphs.Length * 2, _glyphCount + text.Length));
-        }
-
-        var position = new Vector2((float)(x * _scale), (float)(baseline * _scale));
-        _glyphCount += _textEngine.Layout(text, position, (float)(size * _scale), color, font, _glyphs.AsSpan(_glyphCount));
     }
 
     /// <summary>Draws text on a colored plate, kept inside the chart.</summary>

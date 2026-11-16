@@ -35,6 +35,9 @@ internal interface IDataLoaders
 /// </summary>
 internal static class DataSources
 {
+    private const string TachyonChartsCoreData = "Tachyon.Charts.Core.Data";
+    private const string DatasetKey = "dataset";
+
     /// <summary>The forms of data a CSV file can give, with the columns each takes after X.</summary>
     private static readonly Dictionary<DataShape, string> _csvShapes = new()
     {
@@ -146,11 +149,12 @@ internal static class DataSources
         }
 
         var first = lines[0];
-        var delimiter = first.Contains('\t', StringComparison.Ordinal) ? '\t' : first.Contains(';', StringComparison.Ordinal) ? ';' : first.Contains(',', StringComparison.Ordinal) ? ',' : ' ';
+        var delimiter = DelimiterOf(first);
 
         // A first line with a field that is no number names the columns.
         var header = first.Split(delimiter).Any(field => field.Trim().Trim('"').Length > 0 && !double.TryParse(field.Trim().Trim('"').Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out _));
-        var row = header ? (lines.Length > 1 ? lines[1] : string.Empty) : first;
+        var second = lines.Length > 1 ? lines[1] : string.Empty;
+        var row = header ? second : first;
         var decimalComma = delimiter != ',' && row.Split(delimiter).Any(field => field.Contains(',', StringComparison.Ordinal) && double.TryParse(field.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out _));
         return new CsvFormat(delimiter, header, decimalComma);
     }
@@ -186,21 +190,26 @@ internal static class DataSources
 
             for (var index = 0; index < columns.Length; index++)
             {
-                var column = columns[index];
-                var data = new DataSpec { Kind = item.Data.Kind, Sample = item.Data.Sample, Count = item.Data.Count, Path = item.Data.Path, Options = Copy(item.Data.Options) };
-                data.Options.Set("y", column);
-
-                // Series take the one color of the theme; the further columns get colors of their own to tell them apart.
-                var parameters = Copy(item.Parameters);
-                if (index > 0 && parameters.GetText("color", string.Empty).Length == 0)
-                {
-                    parameters.Set("color", _columnColors[(index - 1) % _columnColors.Length]);
-                }
-
-                var named = int.TryParse(column, NumberStyles.Integer, CultureInfo.InvariantCulture, out _) ? item.Name + " " + column : column;
-                yield return new SeriesSpec { Type = item.Type, Name = named, XAxis = item.XAxis, YAxis = item.YAxis, Parameters = parameters, Data = data };
+                yield return ColumnSeries(item, columns[index], index);
             }
         }
+    }
+
+    // One column of a CSV source as a series of its own.
+    private static SeriesSpec ColumnSeries(SeriesSpec item, string column, int index)
+    {
+        var data = new DataSpec { Kind = item.Data.Kind, Sample = item.Data.Sample, Count = item.Data.Count, Path = item.Data.Path, Options = Copy(item.Data.Options) };
+        data.Options.Set("y", column);
+
+        // Series take the one color of the theme; the further columns get colors of their own to tell them apart.
+        var parameters = Copy(item.Parameters);
+        if (index > 0 && parameters.GetText("color", string.Empty).Length == 0)
+        {
+            parameters.Set("color", _columnColors[(index - 1) % _columnColors.Length]);
+        }
+
+        var named = int.TryParse(column, NumberStyles.Integer, CultureInfo.InvariantCulture, out _) ? item.Name + " " + column : column;
+        return new SeriesSpec { Type = item.Type, Name = named, XAxis = item.XAxis, YAxis = item.YAxis, Parameters = parameters, Data = data };
     }
 
     private static readonly string[] _columnColors = ["#F5A623", "#7ED321", "#E94B6A", "#B37FEB", "#50E3C2", "#F8E71C"];
@@ -263,8 +272,8 @@ internal static class DataSources
     };
 
     /// <summary>Gets the shared parts of the code of live data: the timers that keep running.</summary>
-    /// <returns>The field, indented by four spaces.</returns>
-    public static string LiveField() => """
+    /// <remarks>The field, indented by four spaces.</remarks>
+    public const string LiveField = """
 
             // The timers of the live data; kept here so that they keep running.
             private static readonly List<Timer> _timers = [];
@@ -275,10 +284,29 @@ internal static class DataSources
     /// <param name="series">The series.</param>
     /// <param name="type">Its type.</param>
     /// <returns>The problem, or <see langword="null"/>.</returns>
-    public static string? CsvProblem(SeriesSpec series, ChartTypeInfo type) =>
-        series.Data.Path is not { Length: > 0 } ? $"Choose the CSV file of {series.Name}."
-        : Columns(series.Data.Options).Length < Needed(type.Shape) ? $"{series.Name} needs {_csvShapes[type.Shape]} from the CSV file; name them under Y columns."
-        : null;
+    public static string? CsvProblem(SeriesSpec series, ChartTypeInfo type)
+    {
+        if (series.Data.Path is not { Length: > 0 })
+        {
+            return $"Choose the CSV file of {series.Name}.";
+        }
+
+        return Columns(series.Data.Options).Length < Needed(type.Shape) ? $"{series.Name} needs {_csvShapes[type.Shape]} from the CSV file; name them under Y columns." : null;
+    }
+
+    // The first of tab, semicolon and comma the line has; otherwise blanks.
+    private static char DelimiterOf(string line)
+    {
+        foreach (var candidate in "\t;,")
+        {
+            if (line.Contains(candidate, StringComparison.Ordinal))
+            {
+                return candidate;
+            }
+        }
+
+        return ' ';
+    }
 
     private static CsvFormat Format(SpecValues options) =>
         new(Delimiter(options.GetText("delimiter", ",")), options.GetFlag("header", true), options.GetFlag("decimalComma", false));
@@ -391,7 +419,7 @@ internal static class DataSources
                 }
 
             """;
-        return new DataCode(returnType, method, method + "()", code, ["Tachyon.Charts.Core.Data"]);
+        return new DataCode(returnType, method, method + "()", code, [TachyonChartsCoreData]);
     }
 
     /// <summary>Lists the datasets of numbers in an HDF5 file, with their paths.</summary>
@@ -436,10 +464,15 @@ internal static class DataSources
     /// <summary>Names what an HDF5 source misses: its file or its dataset.</summary>
     /// <param name="series">The series.</param>
     /// <returns>The problem, or <see langword="null"/>.</returns>
-    public static string? Hdf5Problem(SeriesSpec series) =>
-        series.Data.Path is not { Length: > 0 } ? $"Choose the HDF5 file of {series.Name}."
-        : series.Data.Options.GetText("dataset", string.Empty).Length == 0 ? $"Name the dataset of {series.Name} in the HDF5 file, such as /pressure."
-        : null;
+    public static string? Hdf5Problem(SeriesSpec series)
+    {
+        if (series.Data.Path is not { Length: > 0 })
+        {
+            return $"Choose the HDF5 file of {series.Name}.";
+        }
+
+        return series.Data.Options.GetText(DatasetKey, string.Empty).Length == 0 ? $"Name the dataset of {series.Name} in the HDF5 file, such as /pressure." : null;
+    }
 
     /// <summary>Reads the numbers of a dataset of any integer or floating point type, in the order of its elements.</summary>
     /// <param name="dataset">The dataset.</param>
@@ -467,8 +500,8 @@ internal static class DataSources
     }
 
     /// <summary>Writes <see cref="Numbers"/> for the generated code.</summary>
-    /// <returns>The method, indented by four spaces.</returns>
-    public static string NumbersHelper() => """
+    /// <remarks>The method, indented by four spaces.</remarks>
+    public const string NumbersHelper = """
 
             // The numbers of a dataset of any integer or floating point type, in the order of its elements.
             private static double[] Numbers(IH5Dataset dataset)
@@ -503,7 +536,7 @@ internal static class DataSources
 
         using var file = H5File.OpenRead(series.Data.Path!);
         var options = series.Data.Options;
-        var dataset = file.Dataset(options.GetText("dataset", string.Empty));
+        var dataset = file.Dataset(options.GetText(DatasetKey, string.Empty));
         var values = Numbers(dataset);
         switch (shape)
         {
@@ -516,7 +549,7 @@ internal static class DataSources
                 var dimensions = dataset.Space.Dimensions;
                 if (dimensions.Length != 2)
                 {
-                    throw new InvalidOperationException($"A grid needs a dataset of two dimensions; {options.GetText("dataset", string.Empty)} has {dimensions.Length}.");
+                    throw new InvalidOperationException($"A grid needs a dataset of two dimensions; {options.GetText(DatasetKey, string.Empty)} has {dimensions.Length}.");
                 }
 
                 var grid = new HeatmapData((int)dimensions[1], (int)dimensions[0]);
@@ -533,7 +566,7 @@ internal static class DataSources
         }
 
         var options = series.Data.Options;
-        var dataset = CodeText.String(options.GetText("dataset", string.Empty));
+        var dataset = CodeText.String(options.GetText(DatasetKey, string.Empty));
         var body = type.Shape switch
         {
             DataShape.Points => options.GetText("xDataset", string.Empty) is { Length: > 0 } xName
@@ -554,12 +587,12 @@ internal static class DataSources
                 }
 
             """;
-        return new DataCode(returnType, method, method + "()", code, ["Tachyon.Charts.Core.Data", "PureHDF"]);
+        return new DataCode(returnType, method, method + "()", code, [TachyonChartsCoreData, "PureHDF"]);
     }
 
     /// <summary>Writes the helper that makes points from two columns.</summary>
-    /// <returns>The method, indented by four spaces.</returns>
-    public static string PointsHelper() => """
+    /// <remarks>The method, indented by four spaces.</remarks>
+    public const string PointsHelper = """
 
             private static DataSource<double, double> Points(double[] x, double[] y)
             {
@@ -594,7 +627,7 @@ internal static class DataSources
     {
         var sample = catalog.FindSample(series.Data.Sample)!;
         var code = sample.Method(method + "Start") + ShowroomPrices.TradeCode(method, method + "Start");
-        return new DataCode("CandleData", method, $"{method}({Math.Max(2, series.Data.Count).ToString(CultureInfo.InvariantCulture)})", code, ["Tachyon.Charts.Core.Data"]);
+        return new DataCode("CandleData", method, $"{method}({Math.Max(2, series.Data.Count).ToString(CultureInfo.InvariantCulture)})", code, [TachyonChartsCoreData]);
     }
 
     private static DataCode LiveCode(SeriesSpec series, ChartCatalog catalog, string method)
@@ -627,7 +660,7 @@ internal static class DataSources
                 }
 
             """;
-        return new DataCode("FifoDataSource<double, double>", method, $"{method}({Math.Max(2, series.Data.Count).ToString(CultureInfo.InvariantCulture)})", code, ["Tachyon.Charts.Core.Data", "System.Diagnostics"]);
+        return new DataCode("FifoDataSource<double, double>", method, $"{method}({Math.Max(2, series.Data.Count).ToString(CultureInfo.InvariantCulture)})", code, [TachyonChartsCoreData, "System.Diagnostics"]);
     }
 }
 

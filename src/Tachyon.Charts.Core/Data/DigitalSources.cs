@@ -309,8 +309,6 @@ public sealed class PackedBits : IDigitalSource
     /// <summary>The points of a block of the index.</summary>
     public const int BlockSize = 4096;
 
-    private const int BlockWords = BlockSize / 64;
-
     // A piece of the building: 64 blocks, so that each piece owns whole words of the index.
     private const int PieceBlocks = 64 * 64;
 
@@ -445,44 +443,40 @@ public sealed class PackedBits : IDigitalSource
         }
 
         var lastBlock = (to - 1) / BlockSize;
-        for (var next = block + 1; next <= lastBlock;)
+        var next = block + 1;
+        while (next <= lastBlock)
         {
-            var limit = lastBlock;
-            if (!_isComplete)
+            // While the index grows, a piece not yet built is read point by point, or passed over for a quick look.
+            var limit = _isComplete ? lastBlock : Math.Min(lastBlock, (((next / PieceBlocks) + 1) * PieceBlocks) - 1);
+            if (!_isComplete && Volatile.Read(ref _builtPieces[next / PieceBlocks]) == 0)
             {
-                // While the index grows, a piece not yet built is read point by point, or passed over for a quick look.
-                var piece = next / PieceBlocks;
-                limit = Math.Min(limit, ((piece + 1) * PieceBlocks) - 1);
-                if (Volatile.Read(ref _builtPieces[piece]) == 0)
-                {
-                    change = exact ? ScanRaw(next * BlockSize, Math.Min(to, (limit + 1) * BlockSize)) : -1;
-                    if (change >= 0)
-                    {
-                        return change;
-                    }
-
-                    next = limit + 1;
-                    continue;
-                }
-            }
-
-            var marked = NextMarked(next, limit);
-            if (marked < 0)
-            {
+                change = exact ? ScanRaw(next * BlockSize, Math.Min(to, (limit + 1) * BlockSize)) : -1;
                 next = limit + 1;
-                continue;
+            }
+            else
+            {
+                (change, next) = ScanMarked(next, limit, to);
             }
 
-            change = ScanRaw(marked * BlockSize, Math.Min(to, (marked + 1) * BlockSize));
             if (change >= 0)
             {
                 return change;
             }
-
-            next = marked + 1;
         }
 
         return -1;
+    }
+
+    // The next block the index marks up to the limit, read point by point; and where to go on.
+    private (long Change, long Next) ScanMarked(long next, long limit, long to)
+    {
+        var marked = NextMarked(next, limit);
+        if (marked < 0)
+        {
+            return (-1, limit + 1);
+        }
+
+        return (ScanRaw(marked * BlockSize, Math.Min(to, (marked + 1) * BlockSize)), marked + 1);
     }
 
     // The first block from one to a limit that the index marks, or −1.
@@ -633,10 +627,11 @@ public sealed class BitFileWriter : IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentOutOfRangeException.ThrowIfNegative(points);
         ArgumentOutOfRangeException.ThrowIfGreaterThan(points, words.Length * 64L);
-        for (var w = 0; points > 0; w++)
+        var w = 0;
+        while (points > 0)
         {
             var take = (int)Math.Min(points, 64);
-            AddBits(words[w], take);
+            AddBits(words[w++], take);
             points -= take;
         }
     }

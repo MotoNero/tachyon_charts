@@ -102,6 +102,16 @@ internal static class MedicalToolBar
         _ => null,
     };
 
+    private static void DrawButton(OverlayCanvas canvas, MedicalToolButton button, DipRect bounds, bool isChosen, bool isHovered, bool isEnabled, Rgba8 lit)
+    {
+        var (ink, back) = (canvas.TextColor, canvas.BackgroundColor);
+        var (fillAlpha, frameAlpha) = isHovered ? ((byte)250, (byte)200) : ((byte)210, (byte)90);
+        canvas.FillRectangle(bounds, isChosen ? lit with { A = 90 } : back with { A = fillAlpha });
+        canvas.DrawRectangle(bounds, isChosen ? lit : ink with { A = frameAlpha });
+        var color = isChosen ? lit : ink;
+        Symbol(canvas, button, bounds, isEnabled ? color : ink with { A = 70 });
+    }
+
     /// <summary>Draws the bar.</summary>
     /// <param name="canvas">The canvas.</param>
     /// <param name="tool">The chosen tool.</param>
@@ -122,13 +132,7 @@ internal static class MedicalToolBar
         for (var i = 0; i < Count; i++)
         {
             var button = (MedicalToolButton)i;
-            var bounds = Bounds(pane, button);
-            var isChosen = button == chosen;
-            var isHovered = button == hovered;
-            canvas.FillRectangle(bounds, isChosen ? lit with { A = 90 } : back with { A = (byte)(isHovered ? 250 : 210) });
-            canvas.DrawRectangle(bounds, isChosen ? lit : ink with { A = (byte)(isHovered ? 200 : 90) });
-            var color = button == MedicalToolButton.Delete && !canDelete ? ink with { A = 70 } : isChosen ? lit : ink;
-            Symbol(canvas, button, bounds, color);
+            DrawButton(canvas, button, Bounds(pane, button), button == chosen, button == hovered, button != MedicalToolButton.Delete || canDelete, lit);
         }
 
         if (hovered is { } shown)

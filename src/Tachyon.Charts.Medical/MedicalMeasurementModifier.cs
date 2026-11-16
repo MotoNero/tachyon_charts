@@ -45,6 +45,23 @@ internal sealed class MedicalMeasurementModifier(MedicalMeasurementLayer layer) 
         return null;
     }
 
+    private bool OnToolBar(ChartInteraction interaction, Tachyon.Charts.Core.Layout.ChartLayoutResult layout, in PointerInputEvent input)
+    {
+        if (!_layer.ShowsTools || !MedicalToolBar.TryHit(layout, input.Position, out var button))
+        {
+            _layer.Hovered = null;
+            return false;
+        }
+
+        _layer.Hovered = button;
+        if (input.Kind == PointerEventKind.Pressed && input.ChangedButton == PointerButton.Primary)
+        {
+            Choose(interaction, button);
+        }
+
+        return true;
+    }
+
     /// <inheritdoc />
     protected override ModifierResult OnPointer(in PointerInputEvent input)
     {
@@ -64,18 +81,10 @@ internal sealed class MedicalMeasurementModifier(MedicalMeasurementLayer layer) 
         }
 
         // The bar of tools: a click chooses, the pointer over a button shows its name; nothing else gets the click.
-        if (_layer.ShowsTools && MedicalToolBar.TryHit(layout, input.Position, out var button))
+        if (OnToolBar(interaction, layout, input))
         {
-            _layer.Hovered = button;
-            if (input.Kind == PointerEventKind.Pressed && input.ChangedButton == PointerButton.Primary)
-            {
-                Choose(interaction, button);
-            }
-
             return ModifierResult.Handled;
         }
-
-        _layer.Hovered = null;
 
         if (WaitForAngle(interaction, input, point) is { } waited)
         {

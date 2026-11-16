@@ -12,6 +12,8 @@ namespace Tachyon.Charts.Configurator.ThreeD;
 /// </summary>
 internal static class ShowroomSamples3D
 {
+    private const string Bubbles3DName = "Bubbles3D";
+    private const string Points3DName = "Points3D";
     private const string Points = "(double[] X, double[] Y, double[] Z)";
     private const string Pattern = "(double[] Azimuths, double[] Elevations, double[,] Gains)";
 
@@ -20,7 +22,7 @@ internal static class ShowroomSamples3D
 
     public static IReadOnlyList<SampleInfo> Create() =>
     [
-        new("threeClouds", "Three clouds, colored by height", DataShape.Points3D, 3000, ThreeClouds, "Points3D", method => SampleCatalog.Header("three clouds, colored by height", method, "Points3D", "The number of points; above 100 000 they are small.") + """
+        new("threeClouds", "Three clouds, colored by height", DataShape.Points3D, 3000, ThreeClouds, Points3DName, method => SampleCatalog.Header("three clouds, colored by height", method, Points3DName, "The number of points; above 100 000 they are small.") + """
                 {
                     var points = new Points3D(count);
                     var random = new Random(5);
@@ -38,7 +40,7 @@ internal static class ShowroomSamples3D
                 private static double Spread(Random random) => 0.24 * (random.NextDouble() + random.NextDouble() + random.NextDouble() - 1.5);
 
             """) { MinimumCount = 3 },
-        new("particlePath", "Path of a particle", DataShape.Points3D, 200_000, ParticlePath, "Points3D", method => SampleCatalog.Header("the path of a particle, colored along its way", method, "Points3D", "The number of steps.") + """
+        new("particlePath", "Path of a particle", DataShape.Points3D, 200_000, ParticlePath, Points3DName, method => SampleCatalog.Header("the path of a particle, colored along its way", method, Points3DName, "The number of steps.") + """
                 {
                     var points = new Points3D(count);
                     var (x, y, z) = (1.0, 1.0, 20.0);
@@ -52,7 +54,7 @@ internal static class ShowroomSamples3D
                 }
 
             """) { MinimumCount = 2 },
-        new("wells", "Wells of three fields, volume by yield", DataShape.Bubbles3D, 180, _ => Wells(), "Bubbles3D", method => SampleCatalog.Header("wells of three fields, the volume by the yield", method, "Bubbles3D", "Not used: 60 wells per field.") + """
+        new("wells", "Wells of three fields, volume by yield", DataShape.Bubbles3D, 180, _ => Wells(), Bubbles3DName, method => SampleCatalog.Header("wells of three fields, the volume by the yield", method, Bubbles3DName, "Not used: 60 wells per field.") + """
                 {
                     Rgba8[] fields = [new(255, 190, 11, 255), new(58, 134, 255, 255), new(6, 214, 160, 255)];
                     (double X, double Y, double Z)[] middles = [(2.5, 3, 4), (7, 6.5, 6), (4.5, 7.5, 2.5)];
@@ -73,7 +75,7 @@ internal static class ShowroomSamples3D
                 private static double Gauss(Random random) => Math.Sqrt(-2 * Math.Log(1 - random.NextDouble())) * Math.Cos(2 * Math.PI * random.NextDouble());
 
             """) { HasCount = false },
-        new("spiralBubbles", "Two arms of a spiral", DataShape.Bubbles3D, 1_000_000, SpiralBubbles, "Bubbles3D", method => SampleCatalog.Header("two arms of a spiral, thicker near the middle", method, "Bubbles3D", "The number of bubbles.") + """
+        new("spiralBubbles", "Two arms of a spiral", DataShape.Bubbles3D, 1_000_000, SpiralBubbles, Bubbles3DName, method => SampleCatalog.Header("two arms of a spiral, thicker near the middle", method, Bubbles3DName, "The number of bubbles.") + """
                 {
                     var random = new Random(5);
                     var (x, y, z, sizes, colors) = (new double[count], new double[count], new double[count], new double[count], new Rgba8[count]);

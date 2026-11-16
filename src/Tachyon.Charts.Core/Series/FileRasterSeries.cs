@@ -250,27 +250,43 @@ public sealed class FileRasterSeries : ChartSeries, IDisposable, Overlays.IRefin
         return (long)(cell * levelCells / cells);
     }
 
+    // Rows of the raster run along X: each pixel column reads one row.
+    private void FillColumns(int band)
+    {
+        var (level, width, height, bands) = _job;
+        for (var pixelX = width * band / bands; pixelX < width * (band + 1) / bands; pixelX++)
+        {
+            var row = _pixelColumns[pixelX];
+            if (row < 0)
+            {
+                for (var pixelY = 0; pixelY < height; pixelY++)
+                {
+                    _values[(pixelY * width) + pixelX] = float.NaN;
+                }
+
+                continue;
+            }
+
+            var values = _pyramid.Row(level, row);
+            for (var pixelY = 0; pixelY < height; pixelY++)
+            {
+                var cell = _rowsOfPixels[pixelY];
+                _values[(pixelY * width) + pixelX] = cell < 0 ? float.NaN : values[(int)cell];
+            }
+        }
+    }
+
     // A band of pixel rows, each reading one row of the stage; with rows along X a band of pixel columns instead, each
     // reading one row of the stage from top to bottom, so that every row of the file is read in one piece.
     private void FillBand(int band)
     {
-        var (level, width, height, bands) = _job;
         if (_rowsAlongX)
         {
-            for (var pixelX = width * band / bands; pixelX < width * (band + 1) / bands; pixelX++)
-            {
-                var row = _pixelColumns[pixelX];
-                var values = row < 0 ? default : _pyramid.Row(level, row);
-                for (var pixelY = 0; pixelY < height; pixelY++)
-                {
-                    var cell = _rowsOfPixels[pixelY];
-                    _values[(pixelY * width) + pixelX] = row < 0 || cell < 0 ? float.NaN : values[(int)cell];
-                }
-            }
-
+            FillColumns(band);
             return;
         }
 
+        var (level, width, height, bands) = _job;
         for (var pixelY = height * band / bands; pixelY < height * (band + 1) / bands; pixelY++)
         {
             var target = _values.AsSpan(pixelY * width, width);

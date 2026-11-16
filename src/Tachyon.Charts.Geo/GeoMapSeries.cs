@@ -203,7 +203,7 @@ public sealed class GeoMapSeries : ChartSeries, IDisposable
         var (left, right) = Order(frame.X.ToData(frame.Bounds.X), frame.X.ToData(frame.Bounds.X + frame.Bounds.Width));
         var (bottom, top) = Order(frame.Y.ToData(frame.Bounds.Y + frame.Bounds.Height), frame.Y.ToData(frame.Bounds.Y));
         var share = (right - left) / Math.Max(_worldX.Length, 1e-12);
-        _level = Math.Min(_levels.Count - 1, share > MediumBelow ? 0 : share > FineBelow ? 1 : 2);
+        _level = Math.Min(_levels.Count - 1, LevelOf(share));
         var level = _projected[_level] ??= Project(_levels[_level]);
 
         if (_sea.A > 0)
@@ -216,37 +216,46 @@ public sealed class GeoMapSeries : ChartSeries, IDisposable
             for (var r = 0; r < level.Regions.Length; r++)
             {
                 ref readonly var region = ref level.Regions[r];
-                if (region.MaxX < left || region.MinX > right || region.MaxY < bottom || region.MinY > top)
+                if (region.MaxX >= left && region.MinX <= right && region.MaxY >= bottom && region.MinY <= top)
                 {
-                    continue;
-                }
-
-                var color = _colors.TryGetValue(region.Code, out var own) ? own : _land;
-                foreach (var area in region.Areas)
-                {
-                    foreach (var corner in area.Triangles)
-                    {
-                        _mesh.Add(new MeshVertex(ToPixel(frame, area.X[corner], area.Y[corner]), color));
-                    }
-
-                    if (_border.A > 0 && _borderThickness > 0)
-                    {
-                        AddRings(frame, area);
-                    }
+                    AddRegion(frame, region);
                 }
             }
         }
 
         if (_borders.Count >= 2)
         {
-            if (_buffer is null || _buffer.SizeInBytes < _borders.Count * 8L)
+            UploadBorders(device);
+        }
+    }
+
+    // The triangles of a region in its color, and its borders.
+    private void AddRegion(in SeriesFrame frame, in ProjectedRegion region)
+    {
+        var color = _colors.TryGetValue(region.Code, out var own) ? own : _land;
+        foreach (var area in region.Areas)
+        {
+            foreach (var corner in area.Triangles)
             {
-                _buffer?.Dispose();
-                _buffer = device.CreateBuffer(new BufferDesc(Math.Max(_borders.Count * 8L, 4096), BufferUsage.Vertex));
+                _mesh.Add(new MeshVertex(ToPixel(frame, area.X[corner], area.Y[corner]), color));
             }
 
-            _buffer.Write<Vector2>(0, CollectionsMarshal.AsSpan(_borders));
+            if (_border.A > 0 && _borderThickness > 0)
+            {
+                AddRings(frame, area);
+            }
         }
+    }
+
+    private void UploadBorders(IRenderDevice device)
+    {
+        if (_buffer is null || _buffer.SizeInBytes < _borders.Count * 8L)
+        {
+            _buffer?.Dispose();
+            _buffer = device.CreateBuffer(new BufferDesc(Math.Max(_borders.Count * 8L, 4096), BufferUsage.Vertex));
+        }
+
+        _buffer.Write<Vector2>(0, CollectionsMarshal.AsSpan(_borders));
     }
 
     /// <inheritdoc />
@@ -402,4 +411,15 @@ public sealed class GeoMapSeries : ChartSeries, IDisposable
     private readonly record struct ProjectedRegion(string Code, Area[] Areas, double MinX, double MinY, double MaxX, double MaxY);
 
     private sealed record Area(double[] X, double[] Y, int[] Triangles, int[] Rings);
+
+    // The coarse level for wide views, the finer ones as the view narrows.
+    private static int LevelOf(double share)
+    {
+        if (share > MediumBelow)
+        {
+            return 0;
+        }
+
+        return share > FineBelow ? 1 : 2;
+    }
 }

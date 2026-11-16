@@ -26,6 +26,9 @@ public sealed class TileLayerSeries : ChartSeries, IDisposable
     private readonly ConcurrentStack<(int Z, int X, int Y)> _wanted = new();
     private readonly ConcurrentQueue<(int Z, int X, int Y)> _order = new();
     private readonly CancellationTokenSource _stop = new();
+
+    // Taken once, so that workers still running after Dispose meet a cancelled token, not a disposed source.
+    private readonly CancellationToken _token;
     private readonly Action<int> _fillBand;
     private IGpuTexture? _texture;
     private IRenderDevice? _device;
@@ -43,6 +46,7 @@ public sealed class TileLayerSeries : ChartSeries, IDisposable
     public TileLayerSeries(TileSource source, AxisBase xAxis, AxisBase yAxis)
         : base(xAxis, yAxis)
     {
+        _token = _stop.Token;
         _source = source ?? throw new ArgumentNullException(nameof(source));
         _fillBand = FillBand;
     }
@@ -66,6 +70,7 @@ public sealed class TileLayerSeries : ChartSeries, IDisposable
     public void Dispose()
     {
         _stop.Cancel();
+        _stop.Dispose();
         _texture?.Dispose();
         (_texture, _device) = (null, null);
     }
@@ -155,7 +160,7 @@ public sealed class TileLayerSeries : ChartSeries, IDisposable
         while (Volatile.Read(ref _running) < Workers && !_wanted.IsEmpty)
         {
             Interlocked.Increment(ref _running);
-            _ = Task.Run(Work);
+            _ = Task.Run(Work, _token);
         }
     }
 
@@ -164,11 +169,11 @@ public sealed class TileLayerSeries : ChartSeries, IDisposable
     {
         try
         {
-            while (!_stop.IsCancellationRequested && _wanted.TryPop(out var key))
+            while (!_token.IsCancellationRequested && _wanted.TryPop(out var key))
             {
                 try
                 {
-                    if (await _source.LoadAsync(key.Z, key.X, key.Y, _stop.Token).ConfigureAwait(false) is { } image)
+                    if (await _source.LoadAsync(key.Z, key.X, key.Y, _token).ConfigureAwait(false) is { } image)
                     {
                         Keep(key, image);
                     }

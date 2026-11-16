@@ -12,6 +12,11 @@ namespace Tachyon.Charts.Configurator.Geo;
 /// </summary>
 public sealed class GeoModule : IChartModule, IDataLoaders
 {
+    private const string TachyonChartsGeo = "Tachyon.Charts.Geo";
+    private const string EqualEarthName = "EqualEarth";
+    private const string ColorsKey = "colors";
+    private const string ViridisName = "Viridis";
+
     /// <summary>The version of the geo package the code refers to: the version of the 2D packages.</summary>
     public const string PackageVersion = "0.15.0";
 
@@ -32,17 +37,17 @@ public sealed class GeoModule : IChartModule, IDataLoaders
     [
         new("geoMap", "World map", ChartCategory.TwoD, DataShape.GeoMap, "world",
             [
-                new("projection", "Projection", ParameterKind.Choice, "EqualEarth") { Choices = ["EqualEarth", "WebMercator", "Equirectangular"] },
-                new("colors", "Colors of the countries", ParameterKind.Choice, OneColor) { Choices = [OneColor, ByLatitude] },
-                new("colormap", "Colormap", ParameterKind.Choice, "Viridis") { Choices = ["Viridis", "Inferno", "Magma", "Plasma", "Turbo"] },
+                new("projection", "Projection", ParameterKind.Choice, EqualEarthName) { Choices = [EqualEarthName, "WebMercator", "Equirectangular"] },
+                new(ColorsKey, "Colors of the countries", ParameterKind.Choice, OneColor) { Choices = [OneColor, ByLatitude] },
+                new("colormap", "Colormap", ParameterKind.Choice, ViridisName) { Choices = [ViridisName, "Inferno", "Magma", "Plasma", "Turbo"] },
                 new("land", "Land", ParameterKind.Color, string.Empty) { Description = "Empty for the usual pale green." },
                 new("sea", "Sea", ParameterKind.Color, string.Empty) { Description = "Empty for the usual pale blue." },
                 new("border", "Borders", ParameterKind.Color, string.Empty) { Description = "Empty for the usual gray." },
                 new("borderThickness", "Border thickness", ParameterKind.Number, 0.6) { Minimum = 0, Maximum = 5 },
             ], Apply, Code)
         {
-            Usings = ["Tachyon.Charts.Geo", "Tachyon.Charts.Core.Colors", "Tachyon.Charts.Rendering"],
-            Packages = [("Tachyon.Charts.Geo", PackageVersion)],
+            Usings = [TachyonChartsGeo, "Tachyon.Charts.Core.Colors", "Tachyon.Charts.Rendering"],
+            Packages = [(TachyonChartsGeo, PackageVersion)],
         },
         new("tileMap", "Tile map", ChartCategory.TwoD, DataShape.GeoMap, "world",
             [
@@ -50,8 +55,8 @@ public sealed class GeoModule : IChartModule, IDataLoaders
                 new("attribution", "Source notice", ParameterKind.Text, string.Empty) { Description = "The notice the server asks for; the map shows it in the corner." },
             ], ApplyTiles, TilesCode)
         {
-            Usings = ["Tachyon.Charts.Geo"],
-            Packages = [("Tachyon.Charts.Geo", PackageVersion)],
+            Usings = [TachyonChartsGeo],
+            Packages = [(TachyonChartsGeo, PackageVersion)],
         },
     ];
 
@@ -72,7 +77,7 @@ public sealed class GeoModule : IChartModule, IDataLoaders
             series => (IReadOnlyList<GeoMap>)[GeoMap.FromShapefile(ShapefileReader.Read(series.Data.Path!))],
             ShapefileCode,
             series => series.Data.Path is { Length: > 0 } ? null : $"Choose the shapefile (.shp) of {series.Name}.",
-            [("Tachyon.Charts.Geo", true)]),
+            [(TachyonChartsGeo, true)]),
     ];
 
     private static string WorldCode(string method) => SampleCatalog.Header("the countries of the world from Natural Earth in three levels of detail", method, "IReadOnlyList<GeoMap>", "Not used.") + """
@@ -98,7 +103,7 @@ public sealed class GeoModule : IChartModule, IDataLoaders
         $"        /// <summary>Reads the areas of {System.Security.SecurityElement.Escape(series.Name)} from a shapefile; the table beside it gives the names.</summary>\n" +
         "        /// <returns>The map, one level of detail.</returns>\n" +
         $"        public static IReadOnlyList<GeoMap> {method}() => [GeoMap.FromShapefile(ShapefileReader.Read({CodeText.String(series.Data.Path ?? string.Empty)}))];\n\n",
-        ["Tachyon.Charts.Geo"]);
+        [TachyonChartsGeo]);
 
     private static DataSource<double, double> Capitals()
     {
@@ -108,7 +113,7 @@ public sealed class GeoModule : IChartModule, IDataLoaders
         return data;
     }
 
-    private static GeoProjection ProjectionOf(SpecValues values) => values.GetText("projection", "EqualEarth") switch
+    private static GeoProjection ProjectionOf(SpecValues values) => values.GetText("projection", EqualEarthName) switch
     {
         "WebMercator" => GeoProjection.WebMercator,
         "Equirectangular" => GeoProjection.Equirectangular,
@@ -132,30 +137,27 @@ public sealed class GeoModule : IChartModule, IDataLoaders
 
     private static GeoMapSeries Style(GeoMapSeries map, IReadOnlyList<GeoMap> levels, SpecValues values)
     {
+        if (values.GetText(ColorsKey, OneColor) == ByLatitude)
         {
-            if (values.GetText("colors", OneColor) == ByLatitude)
-            {
-                map.SetColors(ByDistance(levels[0], ColormapOf(values.GetText("colormap", "Viridis"))));
-            }
-
-            if (SpecColor.TryParse(values.GetText("land", string.Empty), out var land))
-            {
-                map.Land = land;
-            }
-
-            if (SpecColor.TryParse(values.GetText("sea", string.Empty), out var sea))
-            {
-                map.Sea = sea;
-            }
-
-            if (SpecColor.TryParse(values.GetText("border", string.Empty), out var border))
-            {
-                map.Border = border;
-            }
-
-            map.BorderThickness = values.GetNumber("borderThickness", 0.6);
+            map.SetColors(ByDistance(levels[0], ColormapOf(values.GetText("colormap", ViridisName))));
         }
 
+        if (SpecColor.TryParse(values.GetText("land", string.Empty), out var land))
+        {
+            map.Land = land;
+        }
+
+        if (SpecColor.TryParse(values.GetText("sea", string.Empty), out var sea))
+        {
+            map.Sea = sea;
+        }
+
+        if (SpecColor.TryParse(values.GetText("border", string.Empty), out var border))
+        {
+            map.Border = border;
+        }
+
+        map.BorderThickness = values.GetNumber("borderThickness", 0.6);
         return map;
     }
 
@@ -163,9 +165,9 @@ public sealed class GeoModule : IChartModule, IDataLoaders
     {
         var values = series.Parameters;
         var settings = new List<string>();
-        if (values.GetText("colors", OneColor) == ByLatitude)
+        if (values.GetText(ColorsKey, OneColor) == ByLatitude)
         {
-            settings.Add($"map.SetColors({data}[0].Regions.Where(region => region.Code.Length > 0).GroupBy(region => region.Code).ToDictionary(group => group.Key, group => Colormaps.{values.GetText("colormap", "Viridis")}.Sample(Math.Abs((group.First().Bounds.North + group.First().Bounds.South) / 2) / 70)));");
+            settings.Add($"map.SetColors({data}[0].Regions.Where(region => region.Code.Length > 0).GroupBy(region => region.Code).ToDictionary(group => group.Key, group => Colormaps.{values.GetText("colormap", ViridisName)}.Sample(Math.Abs((group.First().Bounds.North + group.First().Bounds.South) / 2) / 70)));");
         }
 
         foreach (var (key, property) in new[] { ("land", "Land"), ("sea", "Sea"), ("border", "Border") })
@@ -177,7 +179,7 @@ public sealed class GeoModule : IChartModule, IDataLoaders
         }
 
         settings.Add($"map.BorderThickness = {CodeText.Number(values.GetNumber("borderThickness", 0.6))};");
-        return $".AddSeries((x, y) => {{ var map = new GeoMapSeries({data}, GeoProjection.{values.GetText("projection", "EqualEarth")}, x, y); {string.Join(" ", settings)} return map; }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
+        return $".AddSeries((x, y) => {{ var map = new GeoMapSeries({data}, GeoProjection.{values.GetText("projection", EqualEarthName)}, x, y); {string.Join(" ", settings)} return map; }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
     }
 
     // A server with its notice when both are given, else the grid drawn locally.
@@ -234,7 +236,7 @@ public sealed class GeoModule : IChartModule, IDataLoaders
         (spec.YAxes[0].IsHidden, spec.YAxes[0].Minimum, spec.YAxes[0].Maximum, spec.YAxes[0].Title) = (true, south, north, string.Empty);
         spec.Modifiers.Clear();
         spec.Series[0].Name = string.Empty;
-        spec.Series[0].Parameters.Set("colors", ByLatitude);
+        spec.Series[0].Parameters.Set(ColorsKey, ByLatitude);
         var capitals = new SeriesSpec { Type = "scatter", Name = "Capitals", Data = new DataSpec { Sample = "capitals", Count = 20 } };
         capitals.Parameters.Set("color", "#E63C3C");
         capitals.Parameters.Set("size", 7.0);

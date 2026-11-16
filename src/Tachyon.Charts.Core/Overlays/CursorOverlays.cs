@@ -168,31 +168,39 @@ public sealed class CrosshairOverlay : ChartOverlay
                 continue;
             }
 
-            var bounds = placement.Bounds;
             double along = axis.IsHorizontal ? center.X : center.Y;
-            var isInside = axis.IsHorizontal
-                ? along >= bounds.X && along <= bounds.Right
-                : along >= bounds.Y && along <= bounds.Bottom;
             var curve = CurveOf(axis);
-            if (!isInside || (axis.IsHidden && Chart is not null && curve is null) || !canvas.TryGetValue(axis, along, out var value))
+            if (!IsAlong(axis, placement.Bounds, along) || !Labels(axis, curve) || !canvas.TryGetValue(axis, along, out var value))
             {
                 continue;
             }
 
             var text = TextOf(axis, value);
-            if (IsShown(axis.Position, text))
+            if (!IsShown(axis.Position, text))
             {
-                continue;
+                DrawAxisLabel(canvas, placement, along, text, curve is not null && SharesSide(placements, placement) ? curve : null);
             }
-
-            var width = canvas.MeasureWidth(text, canvas.LabelSize) + 8;
-            var height = canvas.GetLineHeight(canvas.LabelSize) + 2;
-            var (x, y) = Place(axis, bounds, along, width, height, canvas.GetLineHeight(canvas.LabelSize) + 4);
-            var label = Free(new DipRect(x, y, width, height), axis.IsHorizontal, bounds);
-            _axisLabels.Add((label, axis.Position, text));
-            var (color, ink) = curve is { } series && SharesSide(placements, placement) ? (series.AccentColor, canvas.BackgroundColor) : (canvas.CrosshairLabelFill, canvas.CrosshairLabelText);
-            canvas.DrawLabel(text, label.X, label.Y, color, ink);
         }
+    }
+
+    // A hidden axis of a chart gets a label only for the curve that colors it.
+    private bool Labels(AxisBase axis, ChartSeries? curve) => !axis.IsHidden || Chart is null || curve is not null;
+
+    private static bool IsAlong(AxisBase axis, DipRect bounds, double along) => axis.IsHorizontal
+        ? along >= bounds.X && along <= bounds.Right
+        : along >= bounds.Y && along <= bounds.Bottom;
+
+    // The label of an axis at the crosshair, in the color of a curve that has the side to itself.
+    private void DrawAxisLabel(OverlayCanvas canvas, AxisPlacement placement, double along, string text, ChartSeries? curve)
+    {
+        var (axis, bounds) = (placement.Axis, placement.Bounds);
+        var width = canvas.MeasureWidth(text, canvas.LabelSize) + 8;
+        var height = canvas.GetLineHeight(canvas.LabelSize) + 2;
+        var (x, y) = Place(axis, bounds, along, width, height, canvas.GetLineHeight(canvas.LabelSize) + 4);
+        var label = Free(new DipRect(x, y, width, height), axis.IsHorizontal, bounds);
+        _axisLabels.Add((label, axis.Position, text));
+        var (color, ink) = curve is not null ? (curve.AccentColor, canvas.BackgroundColor) : (canvas.CrosshairLabelFill, canvas.CrosshairLabelText);
+        canvas.DrawLabel(text, label.X, label.Y, color, ink);
     }
 
     // The first visible curve on an axis, or none.

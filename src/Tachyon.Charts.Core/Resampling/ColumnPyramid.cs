@@ -49,7 +49,7 @@ public sealed class ColumnPyramid<T> : IColumnPyramid<T>
     }
 
     /// <summary>Gets the share of the column covered so far, from 0 to 1.</summary>
-    public double Progress => _isComplete ? 1 : _blocks == 0 ? 1 : (double)Interlocked.Read(ref _builtBlocks) / _blocks;
+    public double Progress => _isComplete || _blocks == 0 ? 1 : (double)Interlocked.Read(ref _builtBlocks) / _blocks;
 
     /// <summary>Gets the number of pieces of <see cref="PieceSize"/> values read so far; it grows while the pyramid is built.</summary>
     public int BuiltPieces => Volatile.Read(ref _builtPieces);
@@ -136,7 +136,15 @@ public sealed class ColumnPyramid<T> : IColumnPyramid<T>
 
         ReadExtremes(start, firstBlock * BlockSize, ref min, ref max);
         ReadExtremes(Math.Min(lastBlock * BlockSize, end), end, ref min, ref max);
-        for (var level = 0; firstBlock < lastBlock; level++)
+        AccumulateLevels(firstBlock, lastBlock, ref min, ref max);
+        return new MinMax<T>(min, max);
+    }
+
+    // Whole blocks from the coarsest levels that fit, the blocks at both ends from the finer ones.
+    private void AccumulateLevels(long firstBlock, long lastBlock, ref T min, ref T max)
+    {
+        var level = 0;
+        while (firstBlock < lastBlock)
         {
             var length = _min[level].Length;
             if (level + 1 == _min.Length)
@@ -164,9 +172,8 @@ public sealed class ColumnPyramid<T> : IColumnPyramid<T>
 
             firstBlock = alignedStart / Factor;
             lastBlock = alignedEnd == length ? (length + Factor - 1) / Factor : alignedEnd / Factor;
+            level++;
         }
-
-        return new MinMax<T>(min, max);
     }
 
     /// <summary>
@@ -303,6 +310,53 @@ public sealed class ColumnPyramid<T> : IColumnPyramid<T>
         }
     }
 
+    // The extremes of every block of a piece, and of the piece; it counts as built afterwards.
+    private void BuildPiece(long chunk, T[] baseMin, T[] baseMax, CancellationToken cancellation)
+    {
+        var last = Math.Min(_blocks, (chunk + 1) * ChunkBlocks);
+        var (pieceMin, pieceMax) = (T.MaxValue, T.MinValue);
+        for (var block = chunk * ChunkBlocks; block < last; block++)
+        {
+            if ((block & 1023) == 0)
+            {
+                cancellation.ThrowIfCancellationRequested();
+            }
+
+            var min = T.MaxValue;
+            var max = T.MinValue;
+            ReadExtremes(block * BlockSize, Math.Min((block + 1) * BlockSize, _source.Count), ref min, ref max);
+            baseMin[block] = min;
+            baseMax[block] = max;
+            (pieceMin, pieceMax) = (T.Min(pieceMin, min), T.Max(pieceMax, max));
+        }
+
+        (_pieceMin[chunk], _pieceMax[chunk]) = (pieceMin, pieceMax);
+        Volatile.Write(ref _pieceDone[chunk], 1);
+        Interlocked.Increment(ref _builtPieces);
+        Interlocked.Add(ref _builtBlocks, last - (chunk * ChunkBlocks));
+    }
+
+    // The next level: the extremes of every group of blocks below.
+    private static (T[] Min, T[] Max) Coarser(T[] lowerMin, T[] lowerMax)
+    {
+        var length = (lowerMin.Length + Factor - 1) / Factor;
+        var (upperMin, upperMax) = (new T[length], new T[length]);
+        for (var i = 0; i < length; i++)
+        {
+            var min = T.MaxValue;
+            var max = T.MinValue;
+            for (var j = i * Factor; j < Math.Min(lowerMin.Length, (i + 1) * Factor); j++)
+            {
+                min = T.Min(min, lowerMin[j]);
+                max = T.Max(max, lowerMax[j]);
+            }
+
+            (upperMin[i], upperMax[i]) = (min, max);
+        }
+
+        return (upperMin, upperMax);
+    }
+
     private void Make(string? filePath, int workers, CancellationToken cancellation)
     {
         if (filePath is not null && TryLoad(filePath))
@@ -326,28 +380,7 @@ public sealed class ColumnPyramid<T> : IColumnPyramid<T>
             for (var taken = Interlocked.Increment(ref next); taken < chunks; taken = Interlocked.Increment(ref next))
             {
                 cancellation.ThrowIfCancellationRequested();
-                long chunk = order[taken];
-                var last = Math.Min(_blocks, (chunk + 1) * ChunkBlocks);
-                var (pieceMin, pieceMax) = (T.MaxValue, T.MinValue);
-                for (var block = chunk * ChunkBlocks; block < last; block++)
-                {
-                    if ((block & 1023) == 0)
-                    {
-                        cancellation.ThrowIfCancellationRequested();
-                    }
-
-                    var min = T.MaxValue;
-                    var max = T.MinValue;
-                    ReadExtremes(block * BlockSize, Math.Min((block + 1) * BlockSize, _source.Count), ref min, ref max);
-                    baseMin[block] = min;
-                    baseMax[block] = max;
-                    (pieceMin, pieceMax) = (T.Min(pieceMin, min), T.Max(pieceMax, max));
-                }
-
-                (_pieceMin[chunk], _pieceMax[chunk]) = (pieceMin, pieceMax);
-                Volatile.Write(ref _pieceDone[chunk], 1);
-                Interlocked.Increment(ref _builtPieces);
-                Interlocked.Add(ref _builtBlocks, last - (chunk * ChunkBlocks));
+                BuildPiece(order[taken], baseMin, baseMax, cancellation);
             }
         });
 
@@ -355,22 +388,7 @@ public sealed class ColumnPyramid<T> : IColumnPyramid<T>
         var maxs = new List<T[]> { baseMax };
         while (mins[^1].Length > 1)
         {
-            var (lowerMin, lowerMax) = (mins[^1], maxs[^1]);
-            var length = (lowerMin.Length + Factor - 1) / Factor;
-            var (upperMin, upperMax) = (new T[length], new T[length]);
-            for (var i = 0; i < length; i++)
-            {
-                var min = T.MaxValue;
-                var max = T.MinValue;
-                for (var j = i * Factor; j < Math.Min(lowerMin.Length, (i + 1) * Factor); j++)
-                {
-                    min = T.Min(min, lowerMin[j]);
-                    max = T.Max(max, lowerMax[j]);
-                }
-
-                (upperMin[i], upperMax[i]) = (min, max);
-            }
-
+            var (upperMin, upperMax) = Coarser(mins[^1], maxs[^1]);
             mins.Add(upperMin);
             maxs.Add(upperMax);
         }

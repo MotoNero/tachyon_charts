@@ -9,14 +9,17 @@ namespace Tachyon.Charts.Configurator;
 /// </summary>
 internal static class ShowroomPrices
 {
+    private const string TimeSpanFromDaysName = "TimeSpan.FromDays(1)";
+    private const string CandleDataName = "CandleData";
+
     private static readonly DateTime _start = new(2024, 1, 2, 0, 0, 0, DateTimeKind.Utc);
 
     public static IReadOnlyList<SampleInfo> Create() =>
     [
-        Walk("dailyWalk", "Daily prices, a random walk", 250, TimeSpan.FromDays(1), "TimeSpan.FromDays(1)", 7),
-        Walk("dailyWalk3", "Daily prices, another walk", 120, TimeSpan.FromDays(1), "TimeSpan.FromDays(1)", 3),
-        Walk("dailyWalk5", "Daily prices for drawings", 160, TimeSpan.FromDays(1), "TimeSpan.FromDays(1)", 5),
-        Walk("dailyWalk11", "Daily prices over a year", 400, TimeSpan.FromDays(1), "TimeSpan.FromDays(1)", 11),
+        Walk("dailyWalk", "Daily prices, a random walk", 250, TimeSpan.FromDays(1), TimeSpanFromDaysName, 7),
+        Walk("dailyWalk3", "Daily prices, another walk", 120, TimeSpan.FromDays(1), TimeSpanFromDaysName, 3),
+        Walk("dailyWalk5", "Daily prices for drawings", 160, TimeSpan.FromDays(1), TimeSpanFromDaysName, 5),
+        Walk("dailyWalk11", "Daily prices over a year", 400, TimeSpan.FromDays(1), TimeSpanFromDaysName, 11),
         Walk("minuteWalk", "Minute prices", 1_000_000, TimeSpan.FromMinutes(1), "TimeSpan.FromMinutes(1)", 7),
         Workdays(),
     ];
@@ -110,8 +113,8 @@ internal static class ShowroomPrices
         DataShape.Candles,
         count,
         n => Prices(n, period, seed),
-        "CandleData",
-        method => SampleCatalog.Header(name.ToLowerInvariant(), method, "CandleData", "The number of periods.") + WalkCode(periodCode, seed));
+        CandleDataName,
+        method => SampleCatalog.Header(name.ToLowerInvariant(), method, CandleDataName, "The number of periods.") + WalkCode(periodCode, seed));
 
     // The working days of a walk: the weekends of a daily walk are left out.
     private static SampleInfo Workdays() => new(
@@ -133,7 +136,7 @@ internal static class ShowroomPrices
 
             return data;
         },
-        "CandleData",
+        CandleDataName,
         method => SampleCatalog.Header("prices of working days", method, "CandleData", "The number of days.") + """
                 {
                     var all = WalkOfDays((count * 7 / 5) + 7);

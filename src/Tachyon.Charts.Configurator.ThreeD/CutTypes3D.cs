@@ -13,6 +13,9 @@ namespace Tachyon.Charts.Configurator.ThreeD;
 /// </summary>
 internal static class CutTypes3D
 {
+    private const string CutBelowTheSurface = "Cut below the surface";
+    private const string ViridisName = "Viridis";
+
     /// <summary>The group of the two charts, so that the cursor and the markers go across.</summary>
     public const string Group = "cut-3d";
 
@@ -23,9 +26,9 @@ internal static class CutTypes3D
     /// <returns>The type.</returns>
     public static ChartTypeInfo Create() => new("surfaceCut3d", "Surface with its cut", ChartCategory.ThreeD, DataShape.Grid, "hillAcross",
         [
-            new("layout", "Arrangement", ParameterKind.Choice, "Cut below the surface") { Choices = ["Cut below the surface", CutAbove, "Side by side"] },
+            new("layout", "Arrangement", ParameterKind.Choice, CutBelowTheSurface) { Choices = [CutBelowTheSurface, CutAbove, "Side by side"] },
             new("at", "Plane at", ParameterKind.Number, 0.25) { Minimum = -1, Maximum = 1, Description = "Where the plane crosses Y, from -1 to 1 across the box. Dragging its outline moves it." },
-            new("colormap", "Colormap", ParameterKind.Choice, "Viridis") { Choices = ["Viridis", "Inferno", "Magma", "Plasma", "Turbo", "Grayscale"] },
+            new("colormap", "Colormap", ParameterKind.Choice, ViridisName) { Choices = [ViridisName, "Inferno", "Magma", "Plasma", "Turbo", "Grayscale"] },
         ],
         (chart, _, data, _) => Surface(chart, (CutCurveFeed)data),
         (_, _, _) => string.Empty)
@@ -38,17 +41,17 @@ internal static class CutTypes3D
         {
             var surface = new ViewInfo("Surface", (chart, _, data) => Surface(chart, (CutCurveFeed)data), (_, _) => "chart.Scene3D(SurfaceWithCut);");
             var cut = new ViewInfo("Cut", (chart, _, data) => Cut(chart, (CutCurveFeed)data), (_, _) => "CutCurve(chart);");
-            return series.Parameters.GetText("layout", "Cut below the surface") == CutAbove ? [cut, surface] : [surface, cut];
+            return series.Parameters.GetText("layout", CutBelowTheSurface) == CutAbove ? [cut, surface] : [surface, cut];
         },
-        Columns = series => series.Parameters.GetText("layout", "Cut below the surface") == "Side by side" ? 2 : 1,
-        PrepareCode = (series, data) => [$"PrepareCut({data}, {CodeText.Number(series.Parameters.GetNumber("at", 0.25))}, Colormaps.{series.Parameters.GetText("colormap", "Viridis")});"],
+        Columns = series => series.Parameters.GetText("layout", CutBelowTheSurface) == "Side by side" ? 2 : 1,
+        PrepareCode = (series, data) => [$"PrepareCut({data}, {CodeText.Number(series.Parameters.GetNumber("at", 0.25))}, Colormaps.{series.Parameters.GetText("colormap", ViridisName)});"],
         Helpers = Code,
     };
 
     // The surface over -1 to 1 in both directions, the plane across Y that shows where it cuts without hiding anything,
     // and the curve of the cut.
     private static CutCurveFeed Feed(HeatmapData data, SpecValues values) =>
-        new(new ClipPlane3D(new Point3D(0, 1, 0), values.GetNumber("at", 0.25)) { Hides = false }, new Surface3D(data, new DoubleRange(-1, 1), new DoubleRange(-1, 1)) { Colormap = ThreeDModule.ColormapOf(values.GetText("colormap", "Viridis")) });
+        new(new ClipPlane3D(new Point3D(0, 1, 0), values.GetNumber("at", 0.25)) { Hides = false }, new Surface3D(data, new DoubleRange(-1, 1), new DoubleRange(-1, 1)) { Colormap = ThreeDModule.ColormapOf(values.GetText("colormap", ViridisName)) });
 
     private static void Surface(ChartBuilder chart, CutCurveFeed cut) => chart.Scene3D(scene => scene
         .Title("Cut through a surface").XAxis(-1, 1, "x").YAxis(-1, 1, "y").ZAxis(-1, 1, "z")

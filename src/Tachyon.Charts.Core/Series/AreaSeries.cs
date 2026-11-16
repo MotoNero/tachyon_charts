@@ -318,6 +318,19 @@ public sealed class StackedAreaSeries : RibbonSeries
         }
 
         // The total of each place first, for shares in percent; then each layer at the top of its part.
+        SumLayers(count);
+        var places = _layers.Count == 0 ? default : _layers[0].GetSnapshot().X.Span;
+        for (var i = 0; i < count && labels.Count < Overlays.ValueLabelMarks.Limit; i++)
+        {
+            if (x.Contains(places[i]))
+            {
+                AddPlaceLabels(i, places[i], labels);
+            }
+        }
+    }
+
+    private void SumLayers(int count)
+    {
         Array.Clear(_sums, 0, count);
         for (var layer = 0; layer < _layers.Count; layer++)
         {
@@ -327,24 +340,19 @@ public sealed class StackedAreaSeries : RibbonSeries
                 _sums[i] += double.IsFinite(values[i]) ? values[i] : 0;
             }
         }
+    }
 
-        var places = _layers.Count == 0 ? default : _layers[0].GetSnapshot().X.Span;
-        for (var i = 0; i < count && labels.Count < Overlays.ValueLabelMarks.Limit; i++)
+    // The values of all layers at a place, each in the middle of its part of the stack.
+    private void AddPlaceLabels(int i, double place, List<ValueLabel> labels)
+    {
+        var top = 0.0;
+        for (var layer = 0; layer < _layers.Count; layer++)
         {
-            if (!x.Contains(places[i]))
-            {
-                continue;
-            }
-
-            var top = 0.0;
-            for (var layer = 0; layer < _layers.Count; layer++)
-            {
-                var values = _layers[layer].GetSnapshot().Y.Span;
-                var value = i < values.Length && double.IsFinite(values[i]) ? values[i] : 0;
-                var part = _isPercent && _sums[i] != 0 ? value / _sums[i] * 100 : value;
-                labels.Add(new ValueLabel(places[i], top + (part / 2), value, ValueLabelPlace.Center));
-                top += part;
-            }
+            var values = _layers[layer].GetSnapshot().Y.Span;
+            var value = i < values.Length && double.IsFinite(values[i]) ? values[i] : 0;
+            var part = _isPercent && _sums[i] != 0 ? value / _sums[i] * 100 : value;
+            labels.Add(new ValueLabel(place, top + (part / 2), value, ValueLabelPlace.Center));
+            top += part;
         }
     }
     /// <summary>Gets or sets the fills of the layers.</summary>

@@ -32,7 +32,7 @@ public static class ThemeResources
         ("crosshair.line", "Crosshair lines.", t => Text(t.Crosshair?.Line), (t, v) => t with { Crosshair = (t.Crosshair ?? new()) with { Line = ThemeColor.Parse(v) } }),
         ("crosshair.labelBackground", "Background of the crosshair labels at the axes.", t => Text(t.Crosshair?.LabelBackground), (t, v) => t with { Crosshair = (t.Crosshair ?? new()) with { LabelBackground = ThemeColor.Parse(v) } }),
         ("crosshair.labelText", "Text of the crosshair labels at the axes.", t => Text(t.Crosshair?.LabelText), (t, v) => t with { Crosshair = (t.Crosshair ?? new()) with { LabelText = ThemeColor.Parse(v) } }),
-        ("glow.enabled", "Whether lines glow: true or false.", t => t.Effects?.Glow?.Enabled is { } on ? (on ? "true" : "false") : null, (t, v) => WithGlow(t, glow => glow with { Enabled = bool.Parse(v) })),
+        ("glow.enabled", "Whether lines glow: true or false.", t => Flag(t.Effects?.Glow?.Enabled), (t, v) => WithGlow(t, glow => glow with { Enabled = bool.Parse(v) })),
         ("glow.radius", "Radius of the glow in pixels.", t => Number(t.Effects?.Glow?.Radius), (t, v) => WithGlow(t, glow => glow with { Radius = ReadNumber(v) })),
         ("glow.intensity", "Strength of the glow, 0 to 1.", t => Number(t.Effects?.Glow?.Intensity), (t, v) => WithGlow(t, glow => glow with { Intensity = ReadNumber(v) })),
         ("effects.seriesOpacity", "Opacity of all series, 0 to 1; kept in the theme only.", t => Number(t.Effects?.SeriesOpacity), (t, v) => t with { Effects = (t.Effects ?? new()) with { SeriesOpacity = ReadNumber(v) } }),
@@ -102,6 +102,8 @@ public static class ThemeResources
     private static string? Text(ThemeColor? color) => color?.ToString();
 
     private static string? Number(double? value) => value?.ToString(CultureInfo.InvariantCulture);
+
+    private static string? Flag(bool? value) => value?.ToString(CultureInfo.InvariantCulture).ToLowerInvariant();
 
     private static double ReadNumber(string text) => double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture);
 }

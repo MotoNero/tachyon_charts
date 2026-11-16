@@ -9,6 +9,7 @@ namespace Tachyon.Charts.Configurator;
 /// </summary>
 internal static class ShowroomShapes
 {
+    private const string TheNumberOfCellsPerSide = "The number of cells per side.";
     private const string Grid = "HeatmapData";
     private const string Shapes = "List<Polygon>";
     private const string Masked = "(HeatmapData Data, Polygon Region)";
@@ -23,7 +24,7 @@ internal static class ShowroomShapes
 
     public static IReadOnlyList<SampleInfo> Create() =>
     [
-        new("hills", "Hills and a valley over 0 to 6", DataShape.Grid, 512, Field, Grid, method => SampleCatalog.Header("hills and a valley over 0 to 6", method, Grid, "The number of cells per side.") + """
+        new("hills", "Hills and a valley over 0 to 6", DataShape.Grid, 512, Field, Grid, method => SampleCatalog.Header("hills and a valley over 0 to 6", method, Grid, TheNumberOfCellsPerSide) + """
                 {
                     var values = new float[count * count];
                     for (var row = 0; row < count; row++)
@@ -42,7 +43,7 @@ internal static class ShowroomShapes
                 }
 
             """),
-        new("hillsWithGap", "Hills and a valley with a gap", DataShape.Grid, 128, count => Field(count, gap: true), Grid, method => SampleCatalog.Header("hills and a valley over 0 to 6, missing above 4.8", method, Grid, "The number of cells per side.") + """
+        new("hillsWithGap", "Hills and a valley with a gap", DataShape.Grid, 128, count => Field(count, gap: true), Grid, method => SampleCatalog.Header("hills and a valley over 0 to 6, missing above 4.8", method, Grid, TheNumberOfCellsPerSide) + """
                 {
                     var values = new float[count * count];
                     for (var row = 0; row < count; row++)
@@ -61,7 +62,7 @@ internal static class ShowroomShapes
                 }
 
             """),
-        new("hillsInRegion", "Hills measured inside a region", DataShape.MaskedGrid, 400, count => (Field(count), Region()), Masked, method => SampleCatalog.Header("hills measured inside a region", method, Masked, "The number of cells per side.") + """
+        new("hillsInRegion", "Hills measured inside a region", DataShape.MaskedGrid, 400, count => (Field(count), Region()), Masked, method => SampleCatalog.Header("hills measured inside a region", method, Masked, TheNumberOfCellsPerSide) + """
                 {
                     var values = new float[count * count];
                     for (var row = 0; row < count; row++)
@@ -158,7 +159,7 @@ internal static class ShowroomShapes
                 }
 
             """) { MinimumCount = 1 },
-        new("fineCells", "Cells growing in frequency and depth", DataShape.UnevenGrid, 4096, count => FineCells(count), Uneven, method => SampleCatalog.Header("cells growing in frequency and depth", method, Uneven, "The number of cells per side.") + """
+        new("fineCells", "Cells growing in frequency and depth", DataShape.UnevenGrid, 4096, count => FineCells(count), Uneven, method => SampleCatalog.Header("cells growing in frequency and depth", method, Uneven, TheNumberOfCellsPerSide) + """
                 {
                     var values = new float[count * count];
                     Parallel.For(0, count, row =>

@@ -281,6 +281,7 @@ public sealed class PieSeries : ChartSeries
     /// <inheritdoc />
     protected internal override void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
     {
+        // A pie writes its values into its slices itself; there is no place along the axes for them.
     }
 
     /// <inheritdoc />

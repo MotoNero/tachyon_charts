@@ -384,21 +384,9 @@ internal sealed class ChartController : IChartElementHost, IDisposable
         }
     }
 
-    private void Rebuild()
+    // As a chart built without a UI: turned with the X axis down, otherwise the vertical axes in their panes.
+    private ChartSurface CreateSurface()
     {
-        if (_target is not { } target)
-        {
-            return;
-        }
-
-        if (_xAxes.Count == 0 || _yAxes.Count == 0)
-        {
-            throw new InvalidOperationException("A chart needs an X axis and a Y axis.");
-        }
-
-        var old = _surface;
-        _published.Clear();
-        // As a chart built without a UI: turned with the X axis down, otherwise the vertical axes in their panes.
         var xAxes = new AxisBase[_xAxes.Count];
         for (var i = 0; i < xAxes.Length; i++)
         {
@@ -420,9 +408,26 @@ internal sealed class ChartController : IChartElementHost, IDisposable
             }
         }
 
-        var surface = IsXDown
+        return IsXDown
             ? new ChartSurface(yAxes, [new LayoutPane([.. xAxes, .. colorAxes])], _textEngine) { Title = _title, Theme = _theme, IsXDown = true, TitleFont = _titleFont, AxisFont = _axisFont }
             : new ChartSurface(xAxes, Panes(yAxes, colorAxes), _textEngine) { Title = _title, Theme = _theme, TitleFont = _titleFont, AxisFont = _axisFont };
+    }
+
+    private void Rebuild()
+    {
+        if (_target is not { } target)
+        {
+            return;
+        }
+
+        if (_xAxes.Count == 0 || _yAxes.Count == 0)
+        {
+            throw new InvalidOperationException("A chart needs an X axis and a Y axis.");
+        }
+
+        var old = _surface;
+        _published.Clear();
+        var surface = CreateSurface();
         var series = BuildSeries();
         var annotations = BuildAnnotations();
         _builtAnnotations.Clear();

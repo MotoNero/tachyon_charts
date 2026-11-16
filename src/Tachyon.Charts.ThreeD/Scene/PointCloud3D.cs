@@ -56,15 +56,6 @@ public sealed class PointCloud3D
         _isLoaded = true;
     }
 
-    /// <summary>Gets the pages of a cloud from a file, or <see langword="null"/> for points in memory.</summary>
-    public CloudPages? Pages { get; }
-
-    /// <summary>Gets the colors by height of a cloud from pages, or <see langword="null"/> for <see cref="Color"/>.</summary>
-    public Core.Colors.Colormap? HeightColors { get; init; }
-
-    /// <summary>Gets the most bytes of the GPU a cloud from pages keeps its pages in; 1 GB holds 64 million points.</summary>
-    public long PageMemory { get; init; } = 1L << 30;
-
     /// <summary>Initializes a new instance of the <see cref="PointCloud3D"/> class with points that exist already.</summary>
     /// <param name="x">The first coordinates. The cloud keeps the arrays instead of a copy.</param>
     /// <param name="y">The second coordinates.</param>
@@ -85,6 +76,15 @@ public sealed class PointCloud3D
     /// </summary>
     /// <param name="load">Creates the points. It reports its progress from 0 to 1.</param>
     public PointCloud3D(Func<IProgress<double>, PointCloudArrays> load) => _load = load ?? throw new ArgumentNullException(nameof(load));
+
+    /// <summary>Gets the pages of a cloud from a file, or <see langword="null"/> for points in memory.</summary>
+    public CloudPages? Pages { get; }
+
+    /// <summary>Gets the colors by height of a cloud from pages, or <see langword="null"/> for <see cref="Color"/>.</summary>
+    public Core.Colors.Colormap? HeightColors { get; init; }
+
+    /// <summary>Gets the most bytes of the GPU a cloud from pages keeps its pages in; 1 GB holds 64 million points.</summary>
+    public long PageMemory { get; init; } = 1L << 30;
 
     /// <summary>Gets the first coordinates.</summary>
     public double[] X { get; private set; } = [];
@@ -420,7 +420,7 @@ internal sealed class CloudSelection
     private float[] _areas = [];
     private float[] _allAreas = [];
     private int[] _indices = [];
-    private long[] _partTotals = new long[Parts];
+    private readonly long[] _partTotals = new long[Parts];
     private CloudLeaf[]? _leafArray;
     private Point3D[]? _boxArray;
 

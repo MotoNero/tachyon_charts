@@ -170,8 +170,12 @@ internal sealed class SeriesRecipe
     {
         if (type == typeof(Rgba8) || type == typeof(SeriesFill))
         {
-            return !SpecColor.TryParse(values.GetText(info.Name, (string)info.Default), out var color) ? null
-                : type == typeof(Rgba8) ? color : new SolidFill(color);
+            if (!SpecColor.TryParse(values.GetText(info.Name, (string)info.Default), out var color))
+            {
+                return null;
+            }
+
+            return type == typeof(Rgba8) ? color : new SolidFill(color);
         }
 
         return type switch

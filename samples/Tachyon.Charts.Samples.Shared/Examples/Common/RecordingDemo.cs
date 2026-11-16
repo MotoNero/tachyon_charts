@@ -122,7 +122,7 @@ public sealed class RecordingDemo : IColumnSource<float>, IColumnPyramid<float>
         var chunk = new float[Chunk];
         long written = 0;
         var start = _clock.Elapsed.TotalSeconds;
-        while (true)
+        while (!Environment.HasShutdownStarted)
         {
             if (_clock.ElapsedMilliseconds - Volatile.Read(ref _lastFrame) > 1000 && written > 0)
             {

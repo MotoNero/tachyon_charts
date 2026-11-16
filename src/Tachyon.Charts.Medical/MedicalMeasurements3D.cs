@@ -43,6 +43,25 @@ internal sealed class MedicalMeasurements3D
 
     private MedicalMprSlice[] Slices => [_display.Axial, _display.Coronal, _display.Sagittal];
 
+    // A measurement in the volume: its points, a region closed.
+    private static List<Point3D> LineOf(MedicalMprSlice slice, MedicalMeasurement measurement)
+    {
+        var points = measurement.IsRegion ? measurement.OutlineSnapshot : measurement.Snapshot;
+        var at = slice.SlicePosition(measurement.Slice);
+        var line = new List<Point3D>(points.Length + 1);
+        foreach (var point in points)
+        {
+            line.Add(slice.ToVolumePosition(point.X, point.Y, at));
+        }
+
+        if (measurement.IsRegion && points.Length > 2)
+        {
+            line.Add(line[0]);
+        }
+
+        return line;
+    }
+
     /// <summary>Writes the lines anew from the measurements of the three planes.</summary>
     public void Refresh()
     {
@@ -52,20 +71,7 @@ internal sealed class MedicalMeasurements3D
             var layer = slice.Measurements;
             foreach (var measurement in layer.Measurements)
             {
-                var points = measurement.IsRegion ? measurement.OutlineSnapshot : measurement.Snapshot;
-                var at = slice.SlicePosition(measurement.Slice);
-                var line = new List<Point3D>(points.Length + 1);
-                foreach (var point in points)
-                {
-                    line.Add(slice.ToVolumePosition(point.X, point.Y, at));
-                }
-
-                // Regions close their outline.
-                if (measurement.IsRegion && points.Length > 2)
-                {
-                    line.Add(line[0]);
-                }
-
+                var line = LineOf(slice, measurement);
                 written.AddRange(line);
                 written.Add(Gap);
 

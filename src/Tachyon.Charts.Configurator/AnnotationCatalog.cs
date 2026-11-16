@@ -20,11 +20,13 @@ internal sealed record AnnotationInfo(string Id, string Name, IReadOnlyList<Para
 /// <summary>The annotations: lines, a band, a box, text and a free line, on the first axes of the chart.</summary>
 internal static class AnnotationCatalog
 {
+    private const string ColorKey = "color";
+
     // The axes of the annotations: the first X axis and the first value axis, also with the X axis downwards.
     private const string XCode = "c.FirstXAxis";
     private const string YCode = "c.IsXDown ? c.HorizontalAxes[0] : c.Panes[0].Axes[0]";
 
-    private static readonly ParameterInfo _color = new("color", "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the usual color." };
+    private static readonly ParameterInfo _color = new(ColorKey, "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the usual color." };
     private static readonly ParameterInfo _label = new("label", "Label", ParameterKind.Text, string.Empty);
 
     /// <summary>Gets the signs as pictures for the list of choices, drawn as the chart draws them.</summary>
@@ -66,7 +68,7 @@ internal static class AnnotationCatalog
         new("vline", "Vertical line", [new("x", "Place", ParameterKind.Number, 5.0), _label, _color, .. _look],
             (c, v) => Colored(new VerticalLineAnnotation(c.FirstXAxis) { X = v.GetNumber("x", 5), Label = Label(v) }, v),
             (v, more) => $"new VerticalLineAnnotation({XCode}){Init($"X = {CodeText.Number(v.GetNumber("x", 5))}", LabelCode(v), ColorCode(v), more)}"),
-        new("band", "Band", [new("from", "From", ParameterKind.Number, 2.0), new("to", "To", ParameterKind.Number, 4.0), new("color", "Color", ParameterKind.Color, "#F0BE5A30") { Description = "A band covers what lies behind it; a color with little opacity keeps that visible." }, _label, .. _look],
+        new("band", "Band", [new("from", "From", ParameterKind.Number, 2.0), new("to", "To", ParameterKind.Number, 4.0), new(ColorKey, "Color", ParameterKind.Color, "#F0BE5A30") { Description = "A band covers what lies behind it; a color with little opacity keeps that visible." }, _label, .. _look],
             (c, v) =>
             {
                 var band = new BandAnnotation(c.FirstXAxis) { Label = Label(v) };
@@ -195,8 +197,8 @@ internal static class AnnotationCatalog
     }
 
     /// <summary>Writes the helper methods the code of band, box, text and line needs, which set what has no property.</summary>
-    /// <returns>The methods, indented by four spaces.</returns>
-    public static string Helpers() => """
+    /// <remarks>The methods, indented by four spaces.</remarks>
+    public const string Helpers = """
 
             private static BandAnnotation Band(BandAnnotation band, double from, double to)
             {
@@ -298,11 +300,11 @@ internal static class AnnotationCatalog
 
     private static string LabelCode(SpecValues values) => Label(values) is { } label ? $"Label = {CodeText.String(label)}" : string.Empty;
 
-    private static string ColorCode(SpecValues values) => SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? $"Color = {CodeText.Color(color)}" : string.Empty;
+    private static string ColorCode(SpecValues values) => SpecColor.TryParse(values.GetText(ColorKey, string.Empty), out var color) ? $"Color = {CodeText.Color(color)}" : string.Empty;
 
     private static Annotation Colored(Annotation annotation, SpecValues values, string standard = "")
     {
-        if (SpecColor.TryParse(values.GetText("color", standard), out var color))
+        if (SpecColor.TryParse(values.GetText(ColorKey, standard), out var color))
         {
             annotation.Color = color;
         }
@@ -321,8 +323,8 @@ internal static class AnnotationCatalog
     {
         var more = string.Join(", ", new[] { isEditable ? "IsEditable = true" : string.Empty, LookCode(values, looks.SelectMany(look => look.Code(values))) }.Where(member => member.Length > 0));
         var code = info.Code(values, more);
-        var standard = (string)info.Parameters.First(parameter => parameter.Name == "color").Default;
-        return info.Id is "band" or "box" or "text" && SpecColor.TryParse(values.GetText("color", standard), out var color)
+        var standard = (string)info.Parameters.First(parameter => parameter.Name == ColorKey).Default;
+        return info.Id is "band" or "box" or "text" && SpecColor.TryParse(values.GetText(ColorKey, standard), out var color)
             ? $"Colored({code}, {CodeText.Color(color)})"
             : code;
     }

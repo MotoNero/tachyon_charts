@@ -11,6 +11,8 @@ namespace Tachyon.Charts.Configurator;
 /// </summary>
 internal static class ShowroomChecks
 {
+    private const string SpectrogramDataName = "SpectrogramData";
+
     private const string Colored = "(DataSource<double, double> Points, float[] Sizes, Rgba8[] Colors)";
     private const string Uneven = "(HeatmapData Data, double[] XEdges, double[] YEdges)";
 
@@ -214,27 +216,38 @@ internal static class ShowroomChecks
     // The part of the formula of the fine field that leaves the hole.
     private const string Hole = "x is > 5 and < 6.5 && y is > 1 and < 2.5 ? float.NaN : ";
 
+    private static HeatmapData FineFieldData(int n, bool withHole)
+    {
+        var values = new float[n * n];
+        Parallel.For(0, n, row =>
+        {
+            var y = row * 8.0 / n;
+            for (var column = 0; column < n; column++)
+            {
+                values[(row * n) + column] = FineValue(column * 8.0 / n, y, withHole);
+            }
+        });
+        var data = new HeatmapData(n, n);
+        data.SetValues(values);
+        return data;
+    }
+
+    private static float FineValue(double x, double y, bool withHole)
+    {
+        if (withHole && x is > 5 and < 6.5 && y is > 1 and < 2.5)
+        {
+            return float.NaN;
+        }
+
+        return (float)((Math.Sin(x * x * 0.6) * Math.Cos(y * 2.1)) + Math.Exp(-(((x - 3) * (x - 3)) + ((y - 5) * (y - 5)))));
+    }
+
     private static SampleInfo FineField(bool withHole = true) => new(
         withHole ? "fineFieldWithHole" : "fineField",
         withHole ? "A fine field with a hole" : "A fine field without a hole",
         DataShape.Grid,
         4096,
-        n =>
-        {
-            var values = new float[n * n];
-            Parallel.For(0, n, row =>
-            {
-                var y = row * 8.0 / n;
-                for (var column = 0; column < n; column++)
-                {
-                    var x = column * 8.0 / n;
-                    values[(row * n) + column] = withHole && x is > 5 and < 6.5 && y is > 1 and < 2.5 ? float.NaN : (float)((Math.Sin(x * x * 0.6) * Math.Cos(y * 2.1)) + Math.Exp(-(((x - 3) * (x - 3)) + ((y - 5) * (y - 5)))));
-                }
-            });
-            var data = new HeatmapData(n, n);
-            data.SetValues(values);
-            return data;
-        },
+        n => FineFieldData(n, withHole),
         "HeatmapData",
         method => (SampleCatalog.Header(withHole ? "a fine field with a hole" : "a fine field without a hole", method, "HeatmapData", "The number of cells per side.") + """
                 {
@@ -295,7 +308,7 @@ internal static class ShowroomChecks
 
             return data;
         },
-        "SpectrogramData",
+        SpectrogramDataName,
         method => SampleCatalog.Header("a wandering tone over 512 rows", method, "SpectrogramData", "The number of frequencies.") + """
                 {
                     var (data, row) = (new SpectrogramData(count, 512), new float[count]);
@@ -341,7 +354,7 @@ internal static class ShowroomChecks
 
             return data;
         },
-        "SpectrogramData",
+        SpectrogramDataName,
         method => SampleCatalog.Header("a wandering tone with pauses", method, "SpectrogramData", "The number of frequencies.") + """
                 {
                     var data = new SpectrogramData(count, 256);

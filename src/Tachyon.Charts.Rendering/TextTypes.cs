@@ -86,12 +86,25 @@ public interface ITextEngine
     /// <param name="size">The em size.</param>
     float GetLineHeight(float size);
 
+    /// <summary>Gets the distance between two baselines in a font.</summary>
+    /// <param name="size">The em size.</param>
+    /// <param name="font">The font; an engine with one font ignores it.</param>
+    /// <returns>The distance.</returns>
+    float GetLineHeight(float size, TextFont font) => GetLineHeight(size);
+
     /// <summary>
     /// Measures the advance of a text.
     /// </summary>
     /// <param name="text">The text.</param>
     /// <param name="size">The em size.</param>
     float MeasureWidth(ReadOnlySpan<char> text, float size);
+
+    /// <summary>Measures the advance of a text in a font.</summary>
+    /// <param name="text">The text.</param>
+    /// <param name="size">The em size.</param>
+    /// <param name="font">The font; an engine with one font ignores it.</param>
+    /// <returns>The advance.</returns>
+    float MeasureWidth(ReadOnlySpan<char> text, float size, TextFont font) => MeasureWidth(text, size);
 
     /// <summary>
     /// Creates the glyphs of a text. Characters seen for the first time extend the atlas.
@@ -104,19 +117,6 @@ public interface ITextEngine
     /// <returns>The number of glyphs. Spaces produce none.</returns>
     /// <exception cref="ArgumentException">The destination is too short.</exception>
     int Layout(ReadOnlySpan<char> text, Vector2 baseline, float size, Rgba8 color, Span<GlyphInstance> glyphs);
-
-    /// <summary>Gets the distance between two baselines in a font.</summary>
-    /// <param name="size">The em size.</param>
-    /// <param name="font">The font; an engine with one font ignores it.</param>
-    /// <returns>The distance.</returns>
-    float GetLineHeight(float size, TextFont font) => GetLineHeight(size);
-
-    /// <summary>Measures the advance of a text in a font.</summary>
-    /// <param name="text">The text.</param>
-    /// <param name="size">The em size.</param>
-    /// <param name="font">The font; an engine with one font ignores it.</param>
-    /// <returns>The advance.</returns>
-    float MeasureWidth(ReadOnlySpan<char> text, float size, TextFont font) => MeasureWidth(text, size);
 
     /// <summary>Creates the glyphs of a text in a font.</summary>
     /// <param name="text">The text.</param>

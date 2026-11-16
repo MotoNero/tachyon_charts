@@ -10,6 +10,14 @@ namespace Tachyon.Charts.Configurator;
 /// </summary>
 internal static class ScienceTypes
 {
+    private const string Radius = "radius";
+    private const string TurboName = "Turbo";
+    private const string TachyonChartsCoreColors = "Tachyon.Charts.Core.Colors";
+    private const string TachyonChartsCoreSeries = "Tachyon.Charts.Core.Series";
+    private const string ColormapKey = "colormap";
+    private const string ColorKey = "color";
+    private const string ThicknessKey = "thickness";
+
     // The spokes of a polar chart: evenly around, named by their angle.
     private static string[] Degrees(SpecValues values)
     {
@@ -19,11 +27,11 @@ internal static class ScienceTypes
     private static readonly string[] _parts = ["Line", "Area", "Markers", "Area, Line", "Line, Markers", "Area, Line, Markers"];
     private static string DegreesCode(SpecValues values) => "[" + string.Join(", ", Degrees(values).Select(CodeText.String)) + "]";
 
-    private static ParameterInfo Colormap(string standard) => new("colormap", "Colormap", ParameterKind.Choice, standard) { Choices = CoreModule.Colormaps };
+    private static ParameterInfo Colormap(string standard) => new(ColormapKey, "Colormap", ParameterKind.Choice, standard) { Choices = CoreModule.Colormaps };
 
-    private static ParameterInfo Color => new("color", "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the type." };
+    private static ParameterInfo Color => new(ColorKey, "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the type." };
 
-    private static ParameterInfo Thickness => new("thickness", "Thickness", ParameterKind.Number, 1.5) { Minimum = 0.5, Maximum = 10 };
+    private static ParameterInfo Thickness => new(ThicknessKey, "Thickness", ParameterKind.Number, 1.5) { Minimum = 0.5, Maximum = 10 };
 
     public static IReadOnlyList<ChartTypeInfo> Create() =>
     [
@@ -46,8 +54,13 @@ internal static class ScienceTypes
     private static readonly ParameterInfo _colorRange = new("colorRange", "Range of the colors", ParameterKind.Text, string.Empty) { Description = "From..to, for example -0.1..1.1; empty to follow the values." };
 
     // A fixed range of the colors, when one is given.
-    private static ColorAxisBuilder Ranged(ColorAxisBuilder axis, SpecValues values) =>
-        Range(values) is { } range ? axis.Range(range.From, range.To) : axis;
+    private static void Ranged(ColorAxisBuilder axis, SpecValues values)
+    {
+        if (Range(values) is { } range)
+        {
+            axis.Range(range.From, range.To);
+        }
+    }
 
     private static string RangedCode(SpecValues values) =>
         Range(values) is { } range ? $".Range({CodeText.Number(range.From)}, {CodeText.Number(range.To)})" : string.Empty;
@@ -67,17 +80,17 @@ internal static class ScienceTypes
         ChartCategory.TwoD,
         DataShape.UnevenGrid,
         "uneven",
-        [Colormap("Turbo"), _missingColor, _logColors, CoreModule.ValuesParameter],
+        [Colormap(TurboName), _missingColor, _logColors, CoreModule.ValuesParameter],
         (chart, series, data, _) =>
         {
             var (grid, x, y) = ((HeatmapData, double[], double[]))data;
             chart.AddHeatmap(grid, heatmap => heatmap.Name(series.Name).Edges(x, y)
-                .ColorAxis(axis => CoreModule.ColorScale(axis.Colormap(CoreModule.Colormap(series.Parameters.GetText("colormap", "Turbo"))), series.Parameters))
+                .ColorAxis(axis => CoreModule.ColorScale(axis.Colormap(CoreModule.Colormap(series.Parameters.GetText(ColormapKey, TurboName))), series.Parameters))
                 .Values(series.Parameters.GetFlag("values", false)));
         },
-        (series, data, _) => $".AddHeatmap({data}.Data, h => h.Name({CodeText.String(series.Name)}).Edges({data}.XEdges, {data}.YEdges).ColorAxis(a => a.Colormap(Colormaps.{series.Parameters.GetText("colormap", "Turbo")}){CoreModule.ColorScaleCode(series.Parameters)}){Values(series)})")
+        (series, data, _) => $".AddHeatmap({data}.Data, h => h.Name({CodeText.String(series.Name)}).Edges({data}.XEdges, {data}.YEdges).ColorAxis(a => a.Colormap(Colormaps.{series.Parameters.GetText(ColormapKey, TurboName)}){CoreModule.ColorScaleCode(series.Parameters)}){Values(series)})")
     {
-        Usings = ["Tachyon.Charts.Core.Colors"],
+        Usings = [TachyonChartsCoreColors],
     };
 
     private static ChartTypeInfo MaskedHeatmap() => new(
@@ -86,22 +99,22 @@ internal static class ScienceTypes
         ChartCategory.TwoD,
         DataShape.MaskedGrid,
         "region",
-        [Colormap("Turbo"), new("outline", "Outline of the area", ParameterKind.Flag, true), CoreModule.ValuesParameter],
+        [Colormap(TurboName), new("outline", "Outline of the area", ParameterKind.Flag, true), CoreModule.ValuesParameter],
         (chart, series, data, _) =>
         {
             var (grid, region) = ((HeatmapData, Polygon))data;
             chart.AddHeatmap(grid, heatmap => heatmap.Name(series.Name).Cells(0, 10.0 / grid.Width, 0, 10.0 / grid.Height).Mask([region])
-                .ColorAxis(axis => axis.Colormap(CoreModule.Colormap(series.Parameters.GetText("colormap", "Turbo"))))
+                .ColorAxis(axis => axis.Colormap(CoreModule.Colormap(series.Parameters.GetText(ColormapKey, TurboName))))
                 .Values(series.Parameters.GetFlag("values", false)));
             if (series.Parameters.GetFlag("outline", true))
             {
                 chart.Polygons([region], outline => outline.FillAlpha = 0);
             }
         },
-        (series, data, _) => $".AddHeatmap({data}.Data, h => h.Name({CodeText.String(series.Name)}).Cells(0, 10.0 / {data}.Data.Width, 0, 10.0 / {data}.Data.Height).Mask([{data}.Region]).ColorAxis(a => a.Colormap(Colormaps.{series.Parameters.GetText("colormap", "Turbo")})){Values(series)})"
+        (series, data, _) => $".AddHeatmap({data}.Data, h => h.Name({CodeText.String(series.Name)}).Cells(0, 10.0 / {data}.Data.Width, 0, 10.0 / {data}.Data.Height).Mask([{data}.Region]).ColorAxis(a => a.Colormap(Colormaps.{series.Parameters.GetText(ColormapKey, TurboName)})){Values(series)})"
             + (series.Parameters.GetFlag("outline", true) ? $".Polygons([{data}.Region], s => s.FillAlpha = 0)" : string.Empty))
     {
-        Usings = ["Tachyon.Charts.Core.Colors", "Tachyon.Charts.Core.Series"],
+        Usings = [TachyonChartsCoreColors, TachyonChartsCoreSeries],
     };
 
     // The levels run evenly from the first to the last; the code writes them as numbers.
@@ -129,7 +142,7 @@ internal static class ScienceTypes
             {
                 var size = values.GetNumber("size", 10);
                 contour.Name(series.Name).Cells(0, size / grid.Width, 0, size / grid.Height).Levels(Levels(values))
-                    .ColorAxis(axis => axis.Colormap(CoreModule.Colormap(values.GetText("colormap", "Viridis"))));
+                    .ColorAxis(axis => axis.Colormap(CoreModule.Colormap(values.GetText(ColormapKey, "Viridis"))));
                 if (values.GetFlag("filled", true))
                 {
                     contour.Filled();
@@ -150,13 +163,13 @@ internal static class ScienceTypes
         {
             var values = series.Parameters;
             var size = CodeText.Number(values.GetNumber("size", 10));
-            return $".AddContour({data}, c => c.Name({CodeText.String(series.Name)}).Cells(0, {size} / (double){data}.Width, 0, {size} / (double){data}.Height).Levels({string.Join(", ", Levels(values).Select(CodeText.Number))}).ColorAxis(a => a.Colormap(Colormaps.{values.GetText("colormap", "Viridis")}))"
+            return $".AddContour({data}, c => c.Name({CodeText.String(series.Name)}).Cells(0, {size} / (double){data}.Width, 0, {size} / (double){data}.Height).Levels({string.Join(", ", Levels(values).Select(CodeText.Number))}).ColorAxis(a => a.Colormap(Colormaps.{values.GetText(ColormapKey, "Viridis")}))"
                 + (values.GetFlag("filled", true) ? ".Filled()" : string.Empty)
                 + (values.GetFlag("lines", true) ? string.Empty : ".WithoutLines()")
                 + (values.GetFlag("labels", true) ? ".Labels()" : string.Empty) + ")";
         })
     {
-        Usings = ["Tachyon.Charts.Core.Colors"],
+        Usings = [TachyonChartsCoreColors],
     };
 
     private static ChartTypeInfo Spectrogram() => new(
@@ -173,10 +186,10 @@ internal static class ScienceTypes
             new("rate", "Rows per second", ParameterKind.Number, 60.0) { Minimum = 1, Maximum = 1000 },
         ],
         (chart, series, data, _) => chart.AddSpectrogram((SpectrogramData)data, spectrogram => spectrogram.Name(series.Name)
-            .ColorAxis(axis => Ranged(CoreModule.ColorScale(axis.Colormap(CoreModule.Colormap(series.Parameters.GetText("colormap", "Plasma"))), series.Parameters), series.Parameters))),
-        (series, data, _) => $".AddSpectrogram({data}, s => s.Name({CodeText.String(series.Name)}).ColorAxis(a => a.Colormap(Colormaps.{series.Parameters.GetText("colormap", "Plasma")}){CoreModule.ColorScaleCode(series.Parameters)}{RangedCode(series.Parameters)}))")
+            .ColorAxis(axis => Ranged(CoreModule.ColorScale(axis.Colormap(CoreModule.Colormap(series.Parameters.GetText(ColormapKey, "Plasma"))), series.Parameters), series.Parameters))),
+        (series, data, _) => $".AddSpectrogram({data}, s => s.Name({CodeText.String(series.Name)}).ColorAxis(a => a.Colormap(Colormaps.{series.Parameters.GetText(ColormapKey, "Plasma")}){CoreModule.ColorScaleCode(series.Parameters)}{RangedCode(series.Parameters)}))")
     {
-        Usings = ["Tachyon.Charts.Core.Colors", "System.Diagnostics"],
+        Usings = [TachyonChartsCoreColors, "System.Diagnostics"],
         Start = (series, data) => series.Parameters.GetFlag("live", false) ? SpectrogramFeed.Start((SpectrogramData)data, series.Parameters.GetNumber("rate", 60), Pauses(series)) : null,
         PrepareCode = (series, data) => series.Parameters.GetFlag("live", false)
             ? [$"StartRows({data}, {CodeText.Number(series.Parameters.GetNumber("rate", 60))}, {CodeText.Flag(Pauses(series))});"]
@@ -192,7 +205,7 @@ internal static class ScienceTypes
         var recipe = new SeriesRecipe(
             typeof(PolarSeries),
             [
-                new("radius", "Outer ring", ParameterKind.Number, 10.0) { Minimum = 1e-9 },
+                new(Radius, "Outer ring", ParameterKind.Number, 10.0) { Minimum = 1e-9 },
                 new("spokes", "Spokes", ParameterKind.Integer, 12.0) { Minimum = 3, Maximum = 72, Description = "Lines from the middle, evenly around, named by their angle." },
                 new("parts", "Show", ParameterKind.Choice, "Line") { Choices = _parts },
                 new("closed", "Closed", ParameterKind.Flag, false),
@@ -201,8 +214,8 @@ internal static class ScienceTypes
             ],
             ("parts", nameof(PolarSeries.Parts)),
             ("closed", nameof(PolarSeries.IsClosed)),
-            ("thickness", nameof(PolarSeries.Thickness)),
-            ("color", nameof(PolarSeries.Color)));
+            (ThicknessKey, nameof(PolarSeries.Thickness)),
+            (ColorKey, nameof(PolarSeries.Color)));
         return new ChartTypeInfo(
             "polar",
             "Polar",
@@ -213,14 +226,14 @@ internal static class ScienceTypes
             (chart, series, data, _) =>
             {
                 var (angles, values) = ((double[], double[]))data;
-                chart.Polar(series.Parameters.GetNumber("radius", 10), Degrees(series.Parameters), (x, y) =>
+                chart.Polar(series.Parameters.GetNumber(Radius, 10), Degrees(series.Parameters), (x, y) =>
                 {
                     var created = new PolarSeries(angles, values, x, y);
                     recipe.Set(created, series);
                     return created;
                 });
             },
-            (series, data, _) => $".Polar({CodeText.Number(series.Parameters.GetNumber("radius", 10))}, {DegreesCode(series.Parameters)}, {recipe.Factory($"new PolarSeries({data}.Angles, {data}.Values, x, y)", series)})")
+            (series, data, _) => $".Polar({CodeText.Number(series.Parameters.GetNumber(Radius, 10))}, {DegreesCode(series.Parameters)}, {recipe.Factory($"new PolarSeries({data}.Angles, {data}.Values, x, y)", series)})")
         {
             Usings = recipe.Usings,
             OwnsAxes = true,
@@ -231,9 +244,9 @@ internal static class ScienceTypes
     {
         var recipe = new SeriesRecipe(
             typeof(PolarSeries),
-            [new("radius", "Outer ring", ParameterKind.Number, 40.0) { Minimum = 1e-9 }, Thickness, Color],
-            ("thickness", nameof(PolarSeries.Thickness)),
-            ("color", nameof(PolarSeries.Color)));
+            [new(Radius, "Outer ring", ParameterKind.Number, 40.0) { Minimum = 1e-9 }, Thickness, Color],
+            (ThicknessKey, nameof(PolarSeries.Thickness)),
+            (ColorKey, nameof(PolarSeries.Color)));
         return new ChartTypeInfo(
             "radar",
             "Radar",
@@ -244,14 +257,14 @@ internal static class ScienceTypes
             (chart, series, data, _) =>
             {
                 var (values, names) = ((double[], string[]))data;
-                chart.Polar(series.Parameters.GetNumber("radius", 40), names, (x, y) =>
+                chart.Polar(series.Parameters.GetNumber(Radius, 40), names, (x, y) =>
                 {
                     var created = PolarSeries.Radar(values, x, y);
                     recipe.Set(created, series);
                     return created;
                 });
             },
-            (series, data, _) => $".Polar({CodeText.Number(series.Parameters.GetNumber("radius", 40))}, {data}.Names, {recipe.Factory($"PolarSeries.Radar({data}.Values, x, y)", series)})")
+            (series, data, _) => $".Polar({CodeText.Number(series.Parameters.GetNumber(Radius, 40))}, {data}.Names, {recipe.Factory($"PolarSeries.Radar({data}.Values, x, y)", series)})")
         {
             Usings = recipe.Usings,
             OwnsAxes = true,
@@ -281,7 +294,7 @@ internal static class ScienceTypes
             return $".Ternary({data}.A, {data}.B, {data}.C, ({CodeText.String(values.GetText("top", "A"))}, {CodeText.String(values.GetText("left", "B"))}, {CodeText.String(values.GetText("right", "C"))}))";
         })
     {
-        Usings = ["Tachyon.Charts.Core.Series"],
+        Usings = [TachyonChartsCoreSeries],
         OwnsAxes = true,
     };
 
@@ -302,7 +315,7 @@ internal static class ScienceTypes
         },
         (series, data, _) => $".Smith({data}.Resistance, {data}.Reactance, Math.Min({(int)series.Parameters.GetNumber("marker", 100)}, {data}.Resistance.Length - 1), {CodeText.Number(series.Parameters.GetNumber("reference", 50))})")
     {
-        Usings = ["Tachyon.Charts.Core.Series"],
+        Usings = [TachyonChartsCoreSeries],
         OwnsAxes = true,
     };
 
@@ -318,13 +331,13 @@ internal static class ScienceTypes
         ],
         (chart, series, data, _) =>
         {
-            chart.ParallelCoordinates((double[][])data, Names(series), SpecColor.TryParse(series.Parameters.GetText("color", string.Empty), out var color) ? color : null);
+            chart.ParallelCoordinates((double[][])data, Names(series), SpecColor.TryParse(series.Parameters.GetText(ColorKey, string.Empty), out var color) ? color : null);
         },
-        (series, data, _) => SpecColor.TryParse(series.Parameters.GetText("color", string.Empty), out var color)
+        (series, data, _) => SpecColor.TryParse(series.Parameters.GetText(ColorKey, string.Empty), out var color)
             ? $".ParallelCoordinates({data}, {NamesCode(series)}, {CodeText.Color(color)})"
             : $".ParallelCoordinates({data}, {NamesCode(series)})")
     {
-        Usings = ["Tachyon.Charts.Core.Series"],
+        Usings = [TachyonChartsCoreSeries],
         OwnsAxes = true,
     };
 
@@ -339,14 +352,14 @@ internal static class ScienceTypes
             (x, y) => new PolygonSeries((List<Polygon>)data, x, y)
             {
                 Name = series.Name,
-                Thickness = series.Parameters.GetNumber("thickness", 1.5),
+                Thickness = series.Parameters.GetNumber(ThicknessKey, 1.5),
                 FillAlpha = (byte)series.Parameters.GetNumber("fill", 160),
             },
             axes.X,
             axes.Y),
-        (series, data, axes) => $".AddSeries((x, y) => new PolygonSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Thickness = {CodeText.Number(series.Parameters.GetNumber("thickness", 1.5))}, FillAlpha = {(int)series.Parameters.GetNumber("fill", 160)} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})")
+        (series, data, axes) => $".AddSeries((x, y) => new PolygonSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Thickness = {CodeText.Number(series.Parameters.GetNumber(ThicknessKey, 1.5))}, FillAlpha = {(int)series.Parameters.GetNumber("fill", 160)} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})")
     {
-        Usings = ["Tachyon.Charts.Core.Series"],
+        Usings = [TachyonChartsCoreSeries],
     };
 
     private static double[] Levels(SpecValues values)

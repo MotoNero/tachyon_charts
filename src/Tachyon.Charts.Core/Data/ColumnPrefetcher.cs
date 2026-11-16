@@ -27,6 +27,9 @@ internal sealed class ColumnPrefetcher<T>(IColumnSource<T> source) : IThreadPool
     // Keeps the sum, so that the reads are not left out.
     private T _sink;
 
+    /// <summary>Gets the sum of the values read last, which keeps the compiler from leaving the reads out.</summary>
+    internal T Checksum => _sink;
+
     /// <summary>Asks for a range to be read; a running read moves on to it.</summary>
     /// <param name="start">The first index.</param>
     /// <param name="end">The index behind the last one.</param>

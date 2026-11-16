@@ -325,7 +325,6 @@ public sealed unsafe class RasterPyramid : IDisposable
 
         Interlocked.Exchange(ref _total, Math.Max(1, total));
         var part = path + ".part";
-        var (low, high) = (double.PositiveInfinity, double.NegativeInfinity);
         using (var map = MemoryMappedFile.CreateFromFile(part, FileMode.Create, null, length, MemoryMappedFileAccess.ReadWrite))
         using (var view = map.CreateViewAccessor(0, length, MemoryMappedFileAccess.ReadWrite))
         {
@@ -334,56 +333,10 @@ public sealed unsafe class RasterPyramid : IDisposable
             try
             {
                 data += view.PointerOffset;
-                var options = new ParallelOptions { CancellationToken = cancellation };
-                var gate = new Lock();
-                for (var index = 0; index < levels.Length; index++)
-                {
-                    var (width, height, offset) = levels[index];
-                    var (belowWidth, belowHeight) = index == 0 ? (_source.Width, _source.Height) : (levels[index - 1].Width, levels[index - 1].Height);
-                    var below = index == 0 ? null : data + levels[index - 1].Offset;
-                    var target = (float*)(data + offset);
-                    var first = index == 0;
-                    Parallel.For(0, (int)((height + 63) / 64), options, () => (double.PositiveInfinity, double.NegativeInfinity), (band, _, range) =>
-                    {
-                        for (var row = band * 64L; row < Math.Min(height, (band + 1) * 64L); row++)
-                        {
-                            range = Reduce(below, belowWidth, belowHeight, width, height, row, target + (row * width), range, first);
-                        }
 
-                        Interlocked.Add(ref _done, Math.Min(height, (band + 1) * 64L) - (band * 64L));
-                        return range;
-                    }, range =>
-                    {
-                        lock (gate)
-                        {
-                            (low, high) = (Math.Min(low, range.Item1), Math.Max(high, range.Item2));
-                        }
-                    });
-                }
-
-                if (levels.Length == 0)
-                {
-                    // A raster small enough has no stages; its range comes from the rows themselves.
-                    for (var row = 0L; row < _source.Height; row++)
-                    {
-                        foreach (var value in _source.Row(row))
-                        {
-                            if (float.IsFinite(value))
-                            {
-                                (low, high) = (Math.Min(low, value), Math.Max(high, value));
-                            }
-                        }
-                    }
-                }
-
-                var header = new Span<byte>(data, HeaderSize);
-                header.Clear();
-                BinaryPrimitives.WriteUInt32LittleEndian(header, Magic);
-                BinaryPrimitives.WriteInt32LittleEndian(header[4..], FormatVersion);
-                BinaryPrimitives.WriteInt32LittleEndian(header[8..], (int)Reduction);
-                BinaryPrimitives.WriteUInt64LittleEndian(header[16..], fingerprint);
-                BinaryPrimitives.WriteDoubleLittleEndian(header[24..], low);
-                BinaryPrimitives.WriteDoubleLittleEndian(header[32..], high);
+                // A raster small enough has no stages; its range comes from the rows themselves.
+                var (low, high) = levels.Length == 0 ? RangeOfSource() : BuildStages(data, levels, cancellation);
+                WriteHeader(data, fingerprint, low, high);
                 view.Flush();
             }
             finally
@@ -411,6 +364,69 @@ public sealed unsafe class RasterPyramid : IDisposable
         _isComplete = true;
     }
 
+    // Each stage from the one below on all cores, the first from the raster itself, whose range it finds meanwhile.
+    private (double Low, double High) BuildStages(byte* data, (int Width, long Height, long Offset)[] levels, CancellationToken cancellation)
+    {
+        var (low, high) = (double.PositiveInfinity, double.NegativeInfinity);
+        var options = new ParallelOptions { CancellationToken = cancellation };
+        var gate = new Lock();
+        for (var index = 0; index < levels.Length; index++)
+        {
+            var (width, height, offset) = levels[index];
+            var (belowWidth, belowHeight) = index == 0 ? (_source.Width, _source.Height) : (levels[index - 1].Width, levels[index - 1].Height);
+            var below = index == 0 ? null : data + levels[index - 1].Offset;
+            var target = (float*)(data + offset);
+            var first = index == 0;
+            Parallel.For(0, (int)((height + 63) / 64), options, () => (double.PositiveInfinity, double.NegativeInfinity), (band, _, range) =>
+            {
+                for (var row = band * 64L; row < Math.Min(height, (band + 1) * 64L); row++)
+                {
+                    range = Reduce(below, belowWidth, belowHeight, width, height, row, target + (row * width), range, first);
+                }
+
+                Interlocked.Add(ref _done, Math.Min(height, (band + 1) * 64L) - (band * 64L));
+                return range;
+            }, range =>
+            {
+                lock (gate)
+                {
+                    (low, high) = (Math.Min(low, range.Item1), Math.Max(high, range.Item2));
+                }
+            });
+        }
+
+        return (low, high);
+    }
+
+    private (double Low, double High) RangeOfSource()
+    {
+        var (low, high) = (double.PositiveInfinity, double.NegativeInfinity);
+        for (var row = 0L; row < _source.Height; row++)
+        {
+            foreach (var value in _source.Row(row))
+            {
+                if (float.IsFinite(value))
+                {
+                    (low, high) = (Math.Min(low, value), Math.Max(high, value));
+                }
+            }
+        }
+
+        return (low, high);
+    }
+
+    private void WriteHeader(byte* data, ulong fingerprint, double low, double high)
+    {
+        var header = new Span<byte>(data, HeaderSize);
+        header.Clear();
+        BinaryPrimitives.WriteUInt32LittleEndian(header, Magic);
+        BinaryPrimitives.WriteInt32LittleEndian(header[4..], FormatVersion);
+        BinaryPrimitives.WriteInt32LittleEndian(header[8..], (int)Reduction);
+        BinaryPrimitives.WriteUInt64LittleEndian(header[16..], fingerprint);
+        BinaryPrimitives.WriteDoubleLittleEndian(header[24..], low);
+        BinaryPrimitives.WriteDoubleLittleEndian(header[32..], high);
+    }
+
     // One row of a stage from the two rows below it (or one, where the height is not halved), and the range of the
     // raster itself while the first stage reads it.
     private (double, double) Reduce(byte* below, int belowWidth, long belowHeight, int width, long height, long row, float* target, (double Low, double High) range, bool first)
@@ -432,29 +448,40 @@ public sealed unsafe class RasterPyramid : IDisposable
         {
             var left = halvesColumns ? column * 2 : column;
             var right = halvesColumns && left + 1 < belowWidth ? left + 1 : -1;
-            var (sum, count, highest) = (0.0, 0, float.NegativeInfinity);
-            Take(upper[left], ref sum, ref count, ref highest);
-            if (right >= 0)
-            {
-                Take(upper[right], ref sum, ref count, ref highest);
-            }
-
-            if (!lower.IsEmpty)
-            {
-                Take(lower[left], ref sum, ref count, ref highest);
-                if (right >= 0)
-                {
-                    Take(lower[right], ref sum, ref count, ref highest);
-                }
-            }
-
-            target[column] = nearest ? upper[left] : count == 0 ? float.NaN : max ? highest : (float)(sum / count);
+            target[column] = nearest ? upper[left] : Cell(upper, lower, left, right, max);
         }
 
         return range;
     }
 
     private ReadOnlySpan<float> Row(byte* below, int width, long row) => below is null ? _source.Row(row) : new ReadOnlySpan<float>(below + (row * width * 4), width);
+
+    // A cell of a stage from up to four below: their highest or their mean, NaN without a finite one.
+    private static float Cell(ReadOnlySpan<float> upper, ReadOnlySpan<float> lower, int left, int right, bool max)
+    {
+        var (sum, count, highest) = (0.0, 0, float.NegativeInfinity);
+        Take(upper[left], ref sum, ref count, ref highest);
+        if (right >= 0)
+        {
+            Take(upper[right], ref sum, ref count, ref highest);
+        }
+
+        if (!lower.IsEmpty)
+        {
+            Take(lower[left], ref sum, ref count, ref highest);
+            if (right >= 0)
+            {
+                Take(lower[right], ref sum, ref count, ref highest);
+            }
+        }
+
+        if (count == 0)
+        {
+            return float.NaN;
+        }
+
+        return max ? highest : (float)(sum / count);
+    }
 
     private static void Take(float value, ref double sum, ref int count, ref float highest)
     {

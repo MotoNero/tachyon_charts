@@ -28,56 +28,13 @@ public static class PngDecoder
             return null;
         }
 
-        var (width, height, colorType) = (0, 0, -1);
-        Rgba8[] palette = [];
         using var data = new MemoryStream();
-        for (var at = 8; at + 12 <= bytes.Length;)
+        if (ReadChunks(bytes, data) is not { } header)
         {
-            var length = BinaryPrimitives.ReadInt32BigEndian(bytes[at..]);
-            if (length < 0 || at + 12 + length > bytes.Length)
-            {
-                return null;
-            }
-
-            var type = bytes.Slice(at + 4, 4);
-            var chunk = bytes.Slice(at + 8, length);
-            if (type.SequenceEqual("IHDR"u8))
-            {
-                (width, height) = (BinaryPrimitives.ReadInt32BigEndian(chunk), BinaryPrimitives.ReadInt32BigEndian(chunk[4..]));
-                colorType = chunk[9];
-                if (chunk[8] != 8 || chunk[12] != 0 || width <= 0 || height <= 0 || (long)width * height > 1 << 26)
-                {
-                    return null;
-                }
-            }
-            else if (type.SequenceEqual("PLTE"u8))
-            {
-                palette = new Rgba8[length / 3];
-                for (var i = 0; i < palette.Length; i++)
-                {
-                    palette[i] = new Rgba8(chunk[i * 3], chunk[(i * 3) + 1], chunk[(i * 3) + 2], 255);
-                }
-            }
-            else if (type.SequenceEqual("tRNS"u8) && colorType == 3)
-            {
-                for (var i = 0; i < Math.Min(length, palette.Length); i++)
-                {
-                    palette[i] = palette[i] with { A = chunk[i] };
-                }
-            }
-            else if (type.SequenceEqual("IDAT"u8))
-            {
-                data.Write(chunk);
-            }
-            else if (type.SequenceEqual("IEND"u8))
-            {
-                break;
-            }
-
-            at += 12 + length;
+            return null;
         }
 
-        var channels = colorType switch
+        var channels = header.ColorType switch
         {
             0 => 1,
             2 => 3,
@@ -86,13 +43,13 @@ public static class PngDecoder
             6 => 4,
             _ => 0,
         };
-        if (channels == 0 || width == 0)
+        if (channels == 0 || header.Width == 0)
         {
             return null;
         }
 
-        var stride = width * channels;
-        var raw = new byte[(stride + 1) * height];
+        var stride = header.Width * channels;
+        var raw = new byte[(stride + 1) * header.Height];
         data.Position = 0;
         try
         {
@@ -104,6 +61,86 @@ public static class PngDecoder
             return null;
         }
 
+        return new TileImage(ToPixels(raw, header, channels), header.Width, header.Height);
+    }
+
+    // The header, the palette with its transparency, and the compressed data of all IDAT chunks; null for a file this
+    // reader does not know.
+    private static Header? ReadChunks(ReadOnlySpan<byte> bytes, MemoryStream data)
+    {
+        var header = new Header(0, 0, -1, []);
+        for (var at = 8; at + 12 <= bytes.Length;)
+        {
+            var length = BinaryPrimitives.ReadInt32BigEndian(bytes[at..]);
+            if (length < 0 || at + 12 + length > bytes.Length)
+            {
+                return null;
+            }
+
+            var type = bytes.Slice(at + 4, 4);
+            var chunk = bytes.Slice(at + 8, length);
+            if (type.SequenceEqual("IEND"u8))
+            {
+                break;
+            }
+
+            if (type.SequenceEqual("IDAT"u8))
+            {
+                data.Write(chunk);
+            }
+            else if (ReadChunk(type, chunk, header) is { } read)
+            {
+                header = read;
+            }
+            else
+            {
+                return null;
+            }
+
+            at += 12 + length;
+        }
+
+        return header;
+    }
+
+    // A chunk before the data: the header, the palette or its transparency; others pass. Null for a header this
+    // reader cannot read.
+    private static Header? ReadChunk(ReadOnlySpan<byte> type, ReadOnlySpan<byte> chunk, Header header)
+    {
+        if (type.SequenceEqual("IHDR"u8))
+        {
+            var (width, height) = (BinaryPrimitives.ReadInt32BigEndian(chunk), BinaryPrimitives.ReadInt32BigEndian(chunk[4..]));
+            var known = chunk[8] == 8 && chunk[12] == 0 && width > 0 && height > 0 && (long)width * height <= 1 << 26;
+            return known ? header with { Width = width, Height = height, ColorType = chunk[9] } : null;
+        }
+
+        if (type.SequenceEqual("PLTE"u8))
+        {
+            var palette = new Rgba8[chunk.Length / 3];
+            for (var i = 0; i < palette.Length; i++)
+            {
+                palette[i] = new Rgba8(chunk[i * 3], chunk[(i * 3) + 1], chunk[(i * 3) + 2], 255);
+            }
+
+            return header with { Palette = palette };
+        }
+
+        if (type.SequenceEqual("tRNS"u8) && header.ColorType == 3)
+        {
+            var palette = header.Palette;
+            for (var i = 0; i < Math.Min(chunk.Length, palette.Length); i++)
+            {
+                palette[i] = palette[i] with { A = chunk[i] };
+            }
+        }
+
+        return header;
+    }
+
+    private static Rgba8[] ToPixels(byte[] raw, Header header, int channels)
+    {
+        var (width, height) = (header.Width, header.Height);
+        var stride = width * channels;
         var pixels = new Rgba8[width * height];
         var previous = new byte[stride];
         var current = new byte[stride];
@@ -113,22 +150,23 @@ public static class PngDecoder
             Unfilter(raw[row * (stride + 1)], line, previous, current, channels);
             for (var x = 0; x < width; x++)
             {
-                var p = current.AsSpan(x * channels, channels);
-                pixels[(row * width) + x] = colorType switch
-                {
-                    0 => new Rgba8(p[0], p[0], p[0], 255),
-                    2 => new Rgba8(p[0], p[1], p[2], 255),
-                    3 => p[0] < palette.Length ? palette[p[0]] : default,
-                    4 => new Rgba8(p[0], p[0], p[0], p[1]),
-                    _ => new Rgba8(p[0], p[1], p[2], p[3]),
-                };
+                pixels[(row * width) + x] = PixelOf(current.AsSpan(x * channels, channels), header);
             }
 
             (previous, current) = (current, previous);
         }
 
-        return new TileImage(pixels, width, height);
+        return pixels;
     }
+
+    private static Rgba8 PixelOf(ReadOnlySpan<byte> p, Header header) => header.ColorType switch
+    {
+        0 => new Rgba8(p[0], p[0], p[0], 255),
+        2 => new Rgba8(p[0], p[1], p[2], 255),
+        3 => p[0] < header.Palette.Length ? header.Palette[p[0]] : default,
+        4 => new Rgba8(p[0], p[0], p[0], p[1]),
+        _ => new Rgba8(p[0], p[1], p[2], p[3]),
+    };
 
     // The five filters of PNG, each against the byte to the left, the one above and the one above left.
     private static void Unfilter(byte filter, ReadOnlySpan<byte> line, byte[] above, byte[] target, int bytesPerPixel)
@@ -153,6 +191,13 @@ public static class PngDecoder
     {
         var p = a + b - c;
         var (pa, pb, pc) = (Math.Abs(p - a), Math.Abs(p - b), Math.Abs(p - c));
-        return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+        if (pa <= pb && pa <= pc)
+        {
+            return a;
+        }
+
+        return pb <= pc ? b : c;
     }
+
+    private sealed record Header(int Width, int Height, int ColorType, Rgba8[] Palette);
 }

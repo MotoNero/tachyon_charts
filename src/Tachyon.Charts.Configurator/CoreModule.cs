@@ -11,10 +11,19 @@ namespace Tachyon.Charts.Configurator;
 /// <summary>The 2D types of the core and the interactions; more types follow over the same metadata.</summary>
 internal sealed class CoreModule : IChartModule, IDataLoaders
 {
+    private const string ValuesKey = "values";
+    private const string ViridisName = "Viridis";
+    private const string ColormapKey = "colormap";
+    private const string ColorKey = "color";
+    private const string SolidName = "Solid";
+    private const string TurboName = "Turbo";
+    private const string MarkerKey = "marker";
+    private const string Straight = "straight";
+
     // The dash patterns by name: lengths of dash and gap in device independent units.
     private static readonly Dictionary<string, float[]> _dashes = new()
     {
-        ["Solid"] = [],
+        [SolidName] = [],
         ["Dashed"] = [8, 4],
         ["Dotted"] = [2, 3],
         ["Dash dot"] = [8, 3, 2, 3],
@@ -23,13 +32,13 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         ["Long dash dot"] = [16, 4, 4, 4],
     };
 
-    private static readonly ParameterInfo _color = new("color", "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the theme." };
+    private static readonly ParameterInfo _color = new(ColorKey, "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the theme." };
 
     /// <summary>Gets the switch for labels with the values, which every type with points offers.</summary>
-    public static ParameterInfo ValuesParameter { get; } = new("values", "Show values", ParameterKind.Flag, false) { Description = "Labels with the values at the points; labels that would cover others are left out." };
+    public static ParameterInfo ValuesParameter { get; } = new(ValuesKey, "Show values", ParameterKind.Flag, false) { Description = "Labels with the values at the points; labels that would cover others are left out." };
 
     /// <summary>Gets the names of the colormaps of heatmaps.</summary>
-    public static IReadOnlyList<string> Colormaps { get; } = ["Viridis", "Inferno", "Magma", "Plasma", "Turbo", "Grayscale"];
+    public static IReadOnlyList<string> Colormaps { get; } = [ViridisName, "Inferno", "Magma", "Plasma", TurboName, "Grayscale"];
 
     public IReadOnlyList<ChartTypeInfo> Types { get; } = [.. Basic(), LargeFileType.Type, DigitalType.Type, PointDensityType.Type, FileRasterType.Type, .. ScienceTypes.Create(), .. FinanceTypes.Create(), .. InstrumentTypes.Create()];
 
@@ -39,8 +48,8 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         [
             new("thickness", "Thickness", ParameterKind.Number, 1.5) { Minimum = 0.5, Maximum = 10 },
             _color,
-            new("style", "Style", ParameterKind.Choice, "straight") { Choices = ["straight", "step", "spline"] },
-            new("dash", "Dashes", ParameterKind.Choice, "Solid") { Choices = [.. _dashes.Keys] },
+            new("style", "Style", ParameterKind.Choice, Straight) { Choices = [Straight, "step", "spline"] },
+            new("dash", "Dashes", ParameterKind.Choice, SolidName) { Choices = [.. _dashes.Keys] },
             new("glow", "Glow radius", ParameterKind.Number, 0.0) { Minimum = 0, Maximum = 40, Description = "0 for the glow of the theme." },
             new("glowIntensity", "Glow intensity", ParameterKind.Number, 0.8) { Minimum = 0, Maximum = 1, Description = "How bright the glow is, from 0 to 1." },
             new("lastValue", "Last value at the axis", ParameterKind.Flag, false),
@@ -49,17 +58,17 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         new("scatter", "Scatter", ChartCategory.TwoD, DataShape.Points, "signal",
         [
             new("size", "Size", ParameterKind.Number, 4.0) { Minimum = 1, Maximum = 30 },
-            new("marker", "Marker", ParameterKind.Choice, nameof(MarkerShape.Circle)) { Choices = Enum.GetNames<MarkerShape>() },
+            new(MarkerKey, "Marker", ParameterKind.Choice, nameof(MarkerShape.Circle)) { Choices = Enum.GetNames<MarkerShape>() },
             _color,
             new("density", "Density colors", ParameterKind.Flag, false) { Description = "Colors by how many points lie close together." },
-            new("densityColormap", "Colormap of the density", ParameterKind.Choice, "Viridis") { Choices = Colormaps },
+            new("densityColormap", "Colormap of the density", ParameterKind.Choice, ViridisName) { Choices = Colormaps },
             new("borderColor", "Border color", ParameterKind.Color, string.Empty) { Description = "Empty for the usual dark border." },
             new("border", "Border thickness", ParameterKind.Number, 1.0) { Minimum = 0, Maximum = 10 },
             ValuesParameter,
         ], ApplyScatter, ScatterCode) { Usings = ["Tachyon.Charts.Rendering", "Tachyon.Charts.Core.Colors"] },
         new("bubbles", "Bubbles", ChartCategory.TwoD, DataShape.Bubbles, "bubbles",
         [
-            new("marker", "Marker", ParameterKind.Choice, nameof(MarkerShape.Circle)) { Choices = Enum.GetNames<MarkerShape>() },
+            new(MarkerKey, "Marker", ParameterKind.Choice, nameof(MarkerShape.Circle)) { Choices = Enum.GetNames<MarkerShape>() },
             _color,
             ValuesParameter,
         ], ApplyBubbles, BubblesCode) { Usings = ["Tachyon.Charts.Rendering"] },
@@ -67,7 +76,7 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         [
             new("baseline", "Baseline", ParameterKind.Number, 0.0),
             new("valueColors", "Colors by value", ParameterKind.Flag, false) { Description = "The fill takes the color of its value from a colormap." },
-            new("colormap", "Colormap", ParameterKind.Choice, "Turbo") { Choices = Colormaps },
+            new(ColormapKey, "Colormap", ParameterKind.Choice, TurboName) { Choices = Colormaps },
             new("colorFrom", "Lowest color at", ParameterKind.Number, -1.0),
             new("colorTo", "Highest color at", ParameterKind.Number, 1.0),
             _color,
@@ -96,7 +105,7 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         CoreTypes.Pie("donut", "Donut", 0.55),
         new("heatmap", "Heatmap", ChartCategory.TwoD, DataShape.Grid, "peaks",
         [
-            new("colormap", "Colormap", ParameterKind.Choice, "Viridis") { Choices = Colormaps },
+            new(ColormapKey, "Colormap", ParameterKind.Choice, ViridisName) { Choices = Colormaps },
             new("interpolated", "Smooth", ParameterKind.Flag, false),
             new("size", "Extent", ParameterKind.Number, 10.0) { Minimum = 1e-9, Description = "The grid covers 0 to this value on both axes." },
             new("missingColor", "Color of missing values", ParameterKind.Color, string.Empty) { Description = "Empty to leave them clear." },
@@ -129,7 +138,7 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
                 var limit = new AnnotationSpec { Type = "hline" };
                 limit.Parameters.Set("y", value);
                 limit.Parameters.Set("label", label);
-                limit.Parameters.Set("color", color);
+                limit.Parameters.Set(ColorKey, color);
                 spec.Annotations.Add(limit);
             }
 
@@ -152,8 +161,8 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         new("crosshair", "Crosshair",
         [
             new("snap", "Snap to the data", ParameterKind.Flag, false),
-            new("values", "Values of all series", ParameterKind.Flag, false),
-        ], (m, values) => m.Crosshair(values.GetFlag("snap", false), values.GetFlag("values", false)), CrosshairCode),
+            new(ValuesKey, "Values of all series", ParameterKind.Flag, false),
+        ], (m, values) => m.Crosshair(values.GetFlag("snap", false), values.GetFlag(ValuesKey, false)), CrosshairCode),
         new("tooltip", "Tooltip", [], (m, _) => m.Tooltip(), _ => ".Tooltip()"),
         new("rollover", "Rollover", [], (m, _) => m.Rollover(), _ => ".Rollover()"),
         new("axisdrag", "Drag the axes", [], (m, _) => m.AxisDrag(), _ => ".AxisDrag()"),
@@ -173,14 +182,14 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         "Inferno" => Core.Colors.Colormaps.Inferno,
         "Magma" => Core.Colors.Colormaps.Magma,
         "Plasma" => Core.Colors.Colormaps.Plasma,
-        "Turbo" => Core.Colors.Colormaps.Turbo,
+        TurboName => Core.Colors.Colormaps.Turbo,
         "Grayscale" => Core.Colors.Colormaps.Grayscale,
         _ => Core.Colors.Colormaps.Viridis,
     };
 
     private static string CrosshairCode(SpecValues values)
     {
-        var (snap, all) = (values.GetFlag("snap", false), values.GetFlag("values", false));
+        var (snap, all) = (values.GetFlag("snap", false), values.GetFlag(ValuesKey, false));
         return snap || all ? $".Crosshair(snap: {CodeText.Flag(snap)}, values: {CodeText.Flag(all)})" : ".Crosshair()";
     }
 
@@ -188,18 +197,18 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
     {
         var values = series.Parameters;
         var code = $".AddLine({data}, s => s.Name({CodeText.String(series.Name)}).XAxis({CodeText.String(axes.X)}).YAxis({CodeText.String(axes.Y)}).Thickness({CodeText.Number(values.GetNumber("thickness", 1.5))})";
-        if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
+        if (SpecColor.TryParse(values.GetText(ColorKey, string.Empty), out var color))
         {
             code += $".Stroke({CodeText.Color(color)})";
         }
 
-        code += values.GetText("style", "straight") switch
+        code += values.GetText("style", Straight) switch
         {
             "step" => ".Step()",
             "spline" => ".Spline()",
             _ => string.Empty,
         };
-        if (_dashes[values.GetText("dash", "Solid")] is { Length: > 0 } dashes)
+        if (_dashes[values.GetText("dash", SolidName)] is { Length: > 0 } dashes)
         {
             code += $".Dash({string.Join(", ", dashes.Select(length => CodeText.Number(length)))})";
         }
@@ -217,14 +226,19 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
     {
         var thickness = values.GetNumber("border", 1);
         var isColored = SpecColor.TryParse(values.GetText("borderColor", string.Empty), out var color);
-        return isColored || thickness != 1 ? (isColored ? color : new Rgba8(20, 50, 70, 255), thickness) : null;
+        if (!isColored && thickness == 1)
+        {
+            return null;
+        }
+
+        return (isColored ? color : new Rgba8(20, 50, 70, 255), thickness);
     }
 
     private static string ScatterCode(SeriesSpec series, string data, SeriesAxes axes)
     {
         var values = series.Parameters;
-        var code = $".AddScatter({data}, s => s.Name({CodeText.String(series.Name)}).XAxis({CodeText.String(axes.X)}).YAxis({CodeText.String(axes.Y)}).Size({CodeText.Number(values.GetNumber("size", 4))}).Marker(MarkerShape.{values.GetText("marker", nameof(MarkerShape.Circle))})";
-        if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
+        var code = $".AddScatter({data}, s => s.Name({CodeText.String(series.Name)}).XAxis({CodeText.String(axes.X)}).YAxis({CodeText.String(axes.Y)}).Size({CodeText.Number(values.GetNumber("size", 4))}).Marker(MarkerShape.{values.GetText(MarkerKey, nameof(MarkerShape.Circle))})";
+        if (SpecColor.TryParse(values.GetText(ColorKey, string.Empty), out var color))
         {
             code += $".Fill({CodeText.Color(color)})";
         }
@@ -234,28 +248,26 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
             code += $".Border({CodeText.Color(border.Color)}, {CodeText.Number(border.Thickness)})";
         }
 
-        return code + (values.GetFlag("density", false) ? $".Density(1, a => a.Colormap(Colormaps.{values.GetText("densityColormap", "Viridis")}))" : string.Empty) + Values(values) + ")";
+        return code + (values.GetFlag("density", false) ? $".Density(1, a => a.Colormap(Colormaps.{values.GetText("densityColormap", ViridisName)}))" : string.Empty) + Values(values) + ")";
     }
 
     private static string AreaCode(SeriesSpec series, string data, SeriesAxes axes)
     {
         var values = series.Parameters;
-        var fill = values.GetFlag("valueColors", false)
-            ? $", Fill = new ValueGradientFill(Colormaps.{values.GetText("colormap", "Turbo")}, new DoubleRange({CodeText.Number(values.GetNumber("colorFrom", -1))}, {CodeText.Number(values.GetNumber("colorTo", 1))}))"
-            : SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? $", Fill = new SolidFill({CodeText.Color(color)})" : string.Empty;
-        return $".AddSeries((x, y) => new AreaSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Baseline = {CodeText.Number(values.GetNumber("baseline", 0))}{fill}, ShowsValues = {CodeText.Flag(values.GetFlag("values", false))} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
+        var fill = AreaFillCode(values);
+        return $".AddSeries((x, y) => new AreaSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Baseline = {CodeText.Number(values.GetNumber("baseline", 0))}{fill}, ShowsValues = {CodeText.Flag(values.GetFlag(ValuesKey, false))} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
     }
 
     private static string BarsCode(SeriesSpec series, string data, SeriesAxes axes)
     {
         var values = series.Parameters;
-        return $".AddSeries((x, y) => new BarSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Layout = BarLayout.{values.GetText("layout", nameof(BarLayout.Grouped))}, BarWidth = {CodeText.Number(values.GetNumber("width", 0.8))}, IsHorizontal = {CodeText.Flag(values.GetFlag("horizontal", false))}, CornerRadius = {CodeText.Number(values.GetNumber("corners", 0))}{(Shadow(values) is { } shadow ? $", ShadowColor = {CodeText.Color(shadow)}" : string.Empty)}{(Gradient(values) is { } gradient ? $", Fills = [.. Enumerable.Repeat<SeriesFill>(new PositionGradientFill({CodeText.Color(gradient.From)}, {CodeText.Color(gradient.To)}), {data}.Length)]" : string.Empty)}, ShowsValues = {CodeText.Flag(values.GetFlag("values", false))} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
+        return $".AddSeries((x, y) => new BarSeries({data}, x, y) {{ Name = {CodeText.String(series.Name)}, Layout = BarLayout.{values.GetText("layout", nameof(BarLayout.Grouped))}, BarWidth = {CodeText.Number(values.GetNumber("width", 0.8))}, IsHorizontal = {CodeText.Flag(values.GetFlag("horizontal", false))}, CornerRadius = {CodeText.Number(values.GetNumber("corners", 0))}{(Shadow(values) is { } shadow ? $", ShadowColor = {CodeText.Color(shadow)}" : string.Empty)}{(Gradient(values) is { } gradient ? $", Fills = [.. Enumerable.Repeat<SeriesFill>(new PositionGradientFill({CodeText.Color(gradient.From)}, {CodeText.Color(gradient.To)}), {data}.Length)]" : string.Empty)}, ShowsValues = {CodeText.Flag(values.GetFlag(ValuesKey, false))} }}, {CodeText.String(axes.X)}, {CodeText.String(axes.Y)})";
     }
 
     private static string HeatmapCode(SeriesSpec series, string data, SeriesAxes axes)
     {
         var values = series.Parameters;
-        return $".AddHeatmap({data}, h => h.Name({CodeText.String(series.Name)}).Cells(0, {CodeText.Number(values.GetNumber("size", 10))} / (double){data}.Width, 0, {CodeText.Number(values.GetNumber("size", 10))} / (double){data}.Height).Interpolated({CodeText.Flag(values.GetFlag("interpolated", false))}).ColorAxis(a => a.Colormap(Colormaps.{values.GetText("colormap", "Viridis")}){ColorScaleCode(values)}){Values(values)})";
+        return $".AddHeatmap({data}, h => h.Name({CodeText.String(series.Name)}).Cells(0, {CodeText.Number(values.GetNumber("size", 10))} / (double){data}.Width, 0, {CodeText.Number(values.GetNumber("size", 10))} / (double){data}.Height).Interpolated({CodeText.Flag(values.GetFlag("interpolated", false))}).ColorAxis(a => a.Colormap(Colormaps.{values.GetText(ColormapKey, ViridisName)}){ColorScaleCode(values)}){Values(values)})";
     }
 
     // Bars keep the colors of their rows unless a gradient replaces them.
@@ -270,8 +282,26 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
     }
 
     // The shadow of the bars: its own color, a dark one, or none.
-    private static Rgba8? Shadow(SpecValues values) =>
-        SpecColor.TryParse(values.GetText("shadowColor", string.Empty), out var color) ? color : values.GetFlag("shadow", false) ? new Rgba8(0, 0, 0, 110) : null;
+    private static Rgba8? Shadow(SpecValues values)
+    {
+        if (SpecColor.TryParse(values.GetText("shadowColor", string.Empty), out var color))
+        {
+            return color;
+        }
+
+        return values.GetFlag("shadow", false) ? new Rgba8(0, 0, 0, 110) : null;
+    }
+
+    // The fill of an area: colors by value, one color, or that of the theme.
+    private static string AreaFillCode(SpecValues values)
+    {
+        if (values.GetFlag("valueColors", false))
+        {
+            return $", Fill = new ValueGradientFill(Colormaps.{values.GetText(ColormapKey, TurboName)}, new DoubleRange({CodeText.Number(values.GetNumber("colorFrom", -1))}, {CodeText.Number(values.GetNumber("colorTo", 1))}))";
+        }
+
+        return SpecColor.TryParse(values.GetText(ColorKey, string.Empty), out var color) ? $", Fill = new SolidFill({CodeText.Color(color)})" : string.Empty;
+    }
 
     private static (Rgba8 From, Rgba8 To)? Gradient(SpecValues values) =>
         SpecColor.TryParse(values.GetText("gradientFrom", string.Empty), out var from) && SpecColor.TryParse(values.GetText("gradientTo", string.Empty), out var to) ? (from, to) : null;
@@ -297,7 +327,7 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         (values.GetFlag("logColors", false) ? ".Log()" : string.Empty)
         + (SpecColor.TryParse(values.GetText("missingColor", string.Empty), out var missing) ? $".Missing({CodeText.Color(missing)})" : string.Empty);
 
-    private static string Values(SpecValues values) => values.GetFlag("values", false) ? ".Values()" : string.Empty;
+    private static string Values(SpecValues values) => values.GetFlag(ValuesKey, false) ? ".Values()" : string.Empty;
 
     private static IDataSource<double, double> Source(object data) => (IDataSource<double, double>)data;
 
@@ -307,12 +337,12 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         chart.AddLine(Source(data), line =>
         {
             line.Name(series.Name).XAxis(axes.X).YAxis(axes.Y).Thickness(values.GetNumber("thickness", 1.5));
-            if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
+            if (SpecColor.TryParse(values.GetText(ColorKey, string.Empty), out var color))
             {
                 line.Stroke(color);
             }
 
-            switch (values.GetText("style", "straight"))
+            switch (values.GetText("style", Straight))
             {
                 case "step":
                     line.Step();
@@ -322,7 +352,7 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
                     break;
             }
 
-            if (_dashes[values.GetText("dash", "Solid")] is { Length: > 0 } dashes)
+            if (_dashes[values.GetText("dash", SolidName)] is { Length: > 0 } dashes)
             {
                 line.Dash(dashes);
             }
@@ -337,7 +367,7 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
                 line.LastValue();
             }
 
-            if (values.GetFlag("values", false))
+            if (values.GetFlag(ValuesKey, false))
             {
                 line.Values();
             }
@@ -365,8 +395,8 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         chart.AddScatter(data, scatter =>
         {
             scatter.Name(series.Name).XAxis(axes.X).YAxis(axes.Y).Size(values.GetNumber("size", 4))
-                .Marker(Enum.Parse<MarkerShape>(values.GetText("marker", nameof(MarkerShape.Circle))));
-            if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
+                .Marker(Enum.Parse<MarkerShape>(values.GetText(MarkerKey, nameof(MarkerShape.Circle))));
+            if (SpecColor.TryParse(values.GetText(ColorKey, string.Empty), out var color))
             {
                 scatter.Fill(color);
             }
@@ -378,10 +408,10 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
 
             if (values.GetFlag("density", false))
             {
-                scatter.Density(1, axis => axis.Colormap(Colormap(values.GetText("densityColormap", "Viridis"))));
+                scatter.Density(1, axis => axis.Colormap(Colormap(values.GetText("densityColormap", ViridisName))));
             }
 
-            if (values.GetFlag("values", false))
+            if (values.GetFlag(ValuesKey, false))
             {
                 scatter.Values();
             }
@@ -394,13 +424,13 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
     private static string BubblesCode(SeriesSpec series, string data, SeriesAxes axes)
     {
         var values = series.Parameters;
-        var code = $".AddScatter({data}.Points, s => s.Name({CodeText.String(series.Name)}).XAxis({CodeText.String(axes.X)}).YAxis({CodeText.String(axes.Y)}).Marker(MarkerShape.{values.GetText("marker", nameof(MarkerShape.Circle))}).Sizes({data}.Sizes)";
+        var code = $".AddScatter({data}.Points, s => s.Name({CodeText.String(series.Name)}).XAxis({CodeText.String(axes.X)}).YAxis({CodeText.String(axes.Y)}).Marker(MarkerShape.{values.GetText(MarkerKey, nameof(MarkerShape.Circle))}).Sizes({data}.Sizes)";
         if (Colored.Contains(series.Data.Sample))
         {
             code += $".Colors({data}.Colors).Border(default, 0)";
         }
 
-        if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
+        if (SpecColor.TryParse(values.GetText(ColorKey, string.Empty), out var color))
         {
             code += $".Fill({CodeText.Color(color)})";
         }
@@ -415,18 +445,18 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         var (points, sizes) = ((DataSource<double, double>)tuple[0]!, (float[])tuple[1]!);
         chart.AddScatter(points, scatter =>
         {
-            scatter.Name(series.Name).XAxis(axes.X).YAxis(axes.Y).Marker(Enum.Parse<MarkerShape>(values.GetText("marker", nameof(MarkerShape.Circle)))).Sizes(sizes);
+            scatter.Name(series.Name).XAxis(axes.X).YAxis(axes.Y).Marker(Enum.Parse<MarkerShape>(values.GetText(MarkerKey, nameof(MarkerShape.Circle)))).Sizes(sizes);
             if (tuple.Length > 2 && tuple[2] is Rgba8[] colors)
             {
                 scatter.Colors(colors).Border(default, 0);
             }
 
-            if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
+            if (SpecColor.TryParse(values.GetText(ColorKey, string.Empty), out var color))
             {
                 scatter.Fill(color);
             }
 
-            if (values.GetFlag("values", false))
+            if (values.GetFlag(ValuesKey, false))
             {
                 scatter.Values();
             }
@@ -439,12 +469,12 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
         chart.AddSeries(
             (x, y) =>
             {
-                var area = new AreaSeries(Source(data), x, y) { Name = series.Name, Baseline = values.GetNumber("baseline", 0), ShowsValues = values.GetFlag("values", false) };
+                var area = new AreaSeries(Source(data), x, y) { Name = series.Name, Baseline = values.GetNumber("baseline", 0), ShowsValues = values.GetFlag(ValuesKey, false) };
                 if (values.GetFlag("valueColors", false))
                 {
-                    area.Fill = new ValueGradientFill(Colormap(values.GetText("colormap", "Turbo")), new DoubleRange(values.GetNumber("colorFrom", -1), values.GetNumber("colorTo", 1)));
+                    area.Fill = new ValueGradientFill(Colormap(values.GetText(ColormapKey, TurboName)), new DoubleRange(values.GetNumber("colorFrom", -1), values.GetNumber("colorTo", 1)));
                 }
-                else if (SpecColor.TryParse(values.GetText("color", string.Empty), out var color))
+                else if (SpecColor.TryParse(values.GetText(ColorKey, string.Empty), out var color))
                 {
                     area.Fill = new SolidFill(color);
                 }
@@ -467,7 +497,7 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
                 IsHorizontal = values.GetFlag("horizontal", false),
                 CornerRadius = values.GetNumber("corners", 0),
                 ShadowColor = Shadow(values),
-                ShowsValues = values.GetFlag("values", false),
+                ShowsValues = values.GetFlag(ValuesKey, false),
             }, values, ((double[][])data).Length),
             axes.X,
             axes.Y);
@@ -481,7 +511,7 @@ internal sealed class CoreModule : IChartModule, IDataLoaders
             .Name(series.Name)
             .Cells(0, values.GetNumber("size", 10) / grid.Width, 0, values.GetNumber("size", 10) / grid.Height)
             .Interpolated(values.GetFlag("interpolated", false))
-            .ColorAxis(axis => ColorScale(axis.Colormap(Colormap(values.GetText("colormap", "Viridis"))), values))
-            .Values(values.GetFlag("values", false)));
+            .ColorAxis(axis => ColorScale(axis.Colormap(Colormap(values.GetText(ColormapKey, ViridisName))), values))
+            .Values(values.GetFlag(ValuesKey, false)));
     }
 }

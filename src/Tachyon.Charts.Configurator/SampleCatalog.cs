@@ -78,6 +78,8 @@ public static class SpecColor
 /// <summary>The generators of the core. Each keeps its formula once and uses it for the data and for the code.</summary>
 internal static class SampleCatalog
 {
+    private const string JaggedDoubles = "double[][]";
+
     private static readonly double[] _mix = [38, 22, 17, 12, 7, 4];
     private static readonly string[] _mixNames = ["Solar", "Wind", "Hydro", "Gas", "Coal", "Other"];
 
@@ -285,7 +287,7 @@ internal static class SampleCatalog
 
             return new[] { first, second };
         },
-        "double[][]",
+        JaggedDoubles,
         method => Header("two groups of bars", method, "double[][]") + """
                 {
                     var (first, second) = (new double[count], new double[count]);
@@ -321,7 +323,7 @@ internal static class SampleCatalog
 
             return groups;
         },
-        "double[][]",
+        JaggedDoubles,
         method => Header("five groups of measurements", method, "double[][]") + """
                 {
                     var groups = new double[5][];

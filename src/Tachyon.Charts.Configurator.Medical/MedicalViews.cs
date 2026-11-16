@@ -10,7 +10,11 @@ namespace Tachyon.Charts.Configurator.Medical;
 /// </summary>
 public sealed partial class MedicalModule
 {
-    private static readonly string[] _layouts = ["2 × 2", "Row", "Column"];
+    private const string TwoByTwo = "2 × 2";
+    private const string VolumeKey = "volume";
+    private const string Measurements3d = "measurements3d";
+
+    private static readonly string[] _layouts = [TwoByTwo, "Row", "Column"];
     private static readonly string[] _viewUsings = ["Tachyon.Charts.Core.Colors", "Tachyon.Charts.Medical", "Tachyon.Charts.Rendering", "Tachyon.Charts.ThreeD", "Tachyon.Charts.ThreeD.Scene"];
 
     /// <inheritdoc />
@@ -69,14 +73,14 @@ public sealed partial class MedicalModule
     // The planes and the volume of one display; the position, the window and the segments are shared.
     private static ChartTypeInfo Mpr() => new("medicalMpr", "Medical MPR (linked)", ChartCategory.Medical, DataShape.MedicalVolume, "headPhantom",
         [
-            Layout("2 × 2"),
+            Layout(TwoByTwo),
             new("axial", "Axial", ParameterKind.Flag, true),
             new("coronal", "Coronal", ParameterKind.Flag, true),
             new("sagittal", "Sagittal", ParameterKind.Flag, true),
-            new("volume", "Volume in 3D", ParameterKind.Flag, true),
+            new(VolumeKey, "Volume in 3D", ParameterKind.Flag, true),
             Title3D(),
             Memory(),
-            new("measurements3d", "Measurements in 3D", ParameterKind.Flag, true) { Description = "Every measurement also as a line in the 3D chart, on the slice it was drawn on." },
+            new(Measurements3d, "Measurements in 3D", ParameterKind.Flag, true) { Description = "Every measurement also as a line in the 3D chart, on the slice it was drawn on." },
             new("x", "Sagittal position in %", ParameterKind.Number, 50.0) { Minimum = 0, Maximum = 100 },
             new("y", "Coronal position in %", ParameterKind.Number, 50.0) { Minimum = 0, Maximum = 100 },
             new("z", "Axial position in %", ParameterKind.Number, 50.0) { Minimum = 0, Maximum = 100 },
@@ -94,7 +98,7 @@ public sealed partial class MedicalModule
         Packages = _packages,
         TakeOver = TakeOverDrawings,
         Views = MprViews,
-        Columns = series => Columns(series, MprViews(series).Count, "2 × 2"),
+        Columns = series => Columns(series, MprViews(series).Count, TwoByTwo),
         Prepare = (series, data) => PrepareMpr(series, (MedicalMprDisplay)data),
         PrepareCode = PrepareMprCode,
         Helpers = Note + MedicalSetup.MoveToCode + MedicalSetup.PhantomSegmentationCode + MedicalSetup.ExampleMeasurementsCode,
@@ -105,7 +109,7 @@ public sealed partial class MedicalModule
         // The volume first, at the upper left; the planes after it.
         var values = series.Parameters;
         var views = new List<ViewInfo>();
-        if (values.GetFlag("volume", true))
+        if (values.GetFlag(VolumeKey, true))
         {
             views.Add(Titled(Volume(), series));
         }
@@ -134,7 +138,7 @@ public sealed partial class MedicalModule
         var axial = display.Axial;
         Measure(values, axial.Measurements, axial.Width * axial.Spacing.Column, axial.Height * axial.Spacing.Row);
         SetTools(values, [display.Axial.Measurements, display.Coronal.Measurements, display.Sagittal.Measurements]);
-        display.ShowsMeasurements3D = values.GetFlag("measurements3d", true);
+        display.ShowsMeasurements3D = values.GetFlag(Measurements3d, true);
         display.Cine.FramesPerSecond = values.GetNumber("speed", 10);
         if (values.GetText("cine", "Off") is var cine && cine != "Off")
         {
@@ -154,7 +158,7 @@ public sealed partial class MedicalModule
         lines.AddRange(SegmentationCode(series, data));
         lines.AddRange(MeasureCode(values, $"{data}.Axial.Measurements", $"{data}.Axial.Width * {data}.Axial.Spacing.Column", $"{data}.Axial.Height * {data}.Axial.Spacing.Row").Where(line => line.StartsWith("Example", StringComparison.Ordinal)));
         lines.AddRange(ToolsCode(values, PlaneLayers(data, MedicalMprPlane.Axial, MedicalMprPlane.Coronal, MedicalMprPlane.Sagittal)));
-        if (!values.GetFlag("measurements3d", true))
+        if (!values.GetFlag(Measurements3d, true))
         {
             lines.Add($"{data}.ShowsMeasurements3D = false;");
         }
@@ -170,8 +174,8 @@ public sealed partial class MedicalModule
     // A plane with a line across and a round region; the profile follows the line, the histogram the region.
     private static ChartTypeInfo Analysis() => new("medicalAnalysis", "Medical analysis (profile, histogram)", ChartCategory.Medical, DataShape.MedicalVolume, "headPhantom",
         [
-            Layout("2 × 2"),
-            new("volume", "Volume in 3D", ParameterKind.Flag, true),
+            Layout(TwoByTwo),
+            new(VolumeKey, "Volume in 3D", ParameterKind.Flag, true),
             Title3D(),
             Memory(),
             new("slice", "Axial plane", ParameterKind.Flag, true),
@@ -190,7 +194,7 @@ public sealed partial class MedicalModule
         Packages = _packages,
         TakeOver = TakeOverDrawings,
         Views = AnalysisViews,
-        Columns = series => Columns(series, AnalysisViews(series).Count, "2 × 2"),
+        Columns = series => Columns(series, AnalysisViews(series).Count, TwoByTwo),
         Prepare = (series, data) =>
         {
             var display = (MedicalMprDisplay)data;
@@ -209,7 +213,7 @@ public sealed partial class MedicalModule
     {
         var values = series.Parameters;
         var views = new List<ViewInfo>();
-        if (values.GetFlag("volume", true))
+        if (values.GetFlag(VolumeKey, true))
         {
             views.Add(Titled(Volume(), series));
         }
@@ -240,14 +244,14 @@ public sealed partial class MedicalModule
     // A line for the oblique plane and an arc for the curved section, on the axial plane; in 3D the oblique plane shows too.
     private static ChartTypeInfo Reformat() => new("medicalReformat", "Medical oblique and curved", ChartCategory.Medical, DataShape.MedicalVolume, "thoraxPhantom",
         [
-            Layout("2 × 2"),
-            new("volume", "Volume in 3D", ParameterKind.Flag, true) { Description = "With the oblique plane in it; the key V on the oblique plane turns it to face the 3D view." },
+            Layout(TwoByTwo),
+            new(VolumeKey, "Volume in 3D", ParameterKind.Flag, true) { Description = "With the oblique plane in it; the key V on the oblique plane turns it to face the 3D view." },
             Title3D(),
             Memory(),
             new("axial", "Axial plane", ParameterKind.Flag, true),
             new("oblique", "Oblique plane", ParameterKind.Flag, true),
             new("curved", "Curved section", ParameterKind.Flag, true),
-            new("measurements3d", "Measurements in 3D", ParameterKind.Flag, true) { Description = "Every measurement also as a line in the 3D chart, on the slice it was drawn on." },
+            new(Measurements3d, "Measurements in 3D", ParameterKind.Flag, true) { Description = "Every measurement also as a line in the 3D chart, on the slice it was drawn on." },
             .. Window(),
             .. Tools(),
         ],
@@ -259,7 +263,7 @@ public sealed partial class MedicalModule
         Packages = _packages,
         TakeOver = TakeOverDrawings,
         Views = ReformatViews,
-        Columns = series => Columns(series, ReformatViews(series).Count, "2 × 2"),
+        Columns = series => Columns(series, ReformatViews(series).Count, TwoByTwo),
         Prepare = (series, data) =>
         {
             var display = (MedicalMprDisplay)data;
@@ -268,9 +272,9 @@ public sealed partial class MedicalModule
             MedicalSetup.Oblique(display);
             MedicalSetup.ReformatMeasurements(display.Axial);
             SetTools(series.Parameters, [display.Axial.Measurements]);
-            display.ShowsMeasurements3D = series.Parameters.GetFlag("measurements3d", true);
+            display.ShowsMeasurements3D = series.Parameters.GetFlag(Measurements3d, true);
         },
-        PrepareCode = (series, data) => [.. LookCode(series.Parameters, data, image: false), .. WindowCode(series.Parameters, data), $"Oblique({data});", $"ReformatMeasurements({data}.Axial);", .. ToolsCode(series.Parameters, PlaneLayers(data, MedicalMprPlane.Axial)), .. series.Parameters.GetFlag("measurements3d", true) ? Array.Empty<string>() : [$"{data}.ShowsMeasurements3D = false;"]],
+        PrepareCode = (series, data) => [.. LookCode(series.Parameters, data, image: false), .. WindowCode(series.Parameters, data), $"Oblique({data});", $"ReformatMeasurements({data}.Axial);", .. ToolsCode(series.Parameters, PlaneLayers(data, MedicalMprPlane.Axial)), .. series.Parameters.GetFlag(Measurements3d, true) ? Array.Empty<string>() : [$"{data}.ShowsMeasurements3D = false;"]],
         Helpers = Note + MedicalSetup.ReformatCode,
     };
 
@@ -279,7 +283,7 @@ public sealed partial class MedicalModule
     {
         var values = series.Parameters;
         var views = new List<ViewInfo>();
-        if (values.GetFlag("volume", true))
+        if (values.GetFlag(VolumeKey, true))
         {
             views.Add(Titled(new ViewInfo(
                 "Volume",

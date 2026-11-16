@@ -37,6 +37,15 @@ public sealed record CodeOptions(string Namespace = "MyCharts", UiFramework Fram
 /// <param name="catalog">The types, samples and interactions.</param>
 public sealed class CodeGenerator(ChartCatalog catalog)
 {
+    private const string Indent8 = "        ";
+    private const string Csproj = ".csproj";
+    private const string ParamNameChartTheChartDescriptionParam = "    /// <param name=\"chart\">The chart description.</param>";
+    private const string ParamName = "    /// <param name=\"";
+    private const string OpenBrace = "    {";
+    private const string CloseBrace = "    }";
+    private const string NamespaceKeyword = "namespace ";
+    private const string SummaryEnd = ".</summary>";
+
     // Names the generated code uses for itself, which data must not take.
     private static readonly string[] _reserved = ["chart", "x", "y", "a", "s", "h", "m", "l", "data", "values", "rows", "count", "side", "c"];
     private readonly ChartCatalog _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
@@ -105,11 +114,11 @@ public sealed class CodeGenerator(ChartCatalog catalog)
 
         var code = new StringBuilder();
         WriteUsings(code, plan.Usings);
-        code.Append("namespace ").Append(options.Namespace).AppendLine(";").AppendLine();
+        code.Append(NamespaceKeyword).Append(options.Namespace).AppendLine(";").AppendLine();
         code.AppendLine("/// <summary>").Append("/// ").Append(Describe(spec)).AppendLine(", made with the Tachyon Charts configurator.").AppendLine("/// </summary>");
         code.AppendLine("public static class ChartSetup").AppendLine("{");
         code.AppendLine("    /// <summary>Describes the chart with its sample data.</summary>");
-        code.AppendLine("    /// <param name=\"chart\">The chart description.</param>");
+        code.AppendLine(ParamNameChartTheChartDescriptionParam);
         code.Append("    public static void Configure(ChartBuilder chart) => Configure(chart");
         foreach (var data in plan.Data)
         {
@@ -118,10 +127,10 @@ public sealed class CodeGenerator(ChartCatalog catalog)
 
         code.AppendLine(");").AppendLine();
         code.AppendLine("    /// <summary>Describes the chart with the given data.</summary>");
-        code.AppendLine("    /// <param name=\"chart\">The chart description.</param>");
+        code.AppendLine(ParamNameChartTheChartDescriptionParam);
         foreach (var data in plan.Data)
         {
-            code.Append("    /// <param name=\"").Append(data.Variable).Append("\">The data of ").Append(data.SeriesName).AppendLine(".</param>");
+            code.Append(ParamName).Append(data.Variable).Append("\">The data of ").Append(data.SeriesName).AppendLine(".</param>");
         }
 
         code.Append("    public static void Configure(ChartBuilder chart");
@@ -130,10 +139,10 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             code.Append(", ").Append(data.Type).Append(' ').Append(data.Variable);
         }
 
-        code.AppendLine(")").AppendLine("    {");
+        code.AppendLine(")").AppendLine(OpenBrace);
         foreach (var statement in plan.Setup)
         {
-            code.Append("        ").AppendLine(statement);
+            code.Append(Indent8).AppendLine(statement);
         }
 
         if (plan.Setup.Count > 0)
@@ -147,16 +156,24 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             code.AppendLine().Append("            ").Append(call);
         }
 
-        code.AppendLine(";").AppendLine("    }");
+        code.AppendLine(";").AppendLine(CloseBrace);
         if (HasOverview(spec))
         {
             WriteOverview(code, spec, options, plan);
         }
 
+        WriteHelpers(code, spec, plan);
+        return code.AppendLine("}").ToString();
+    }
+
+    // The helpers after the setup: of annotations, data, types, the own theme and shared parts of the data.
+    private void WriteHelpers(StringBuilder code, ChartSpec spec, CodePlan plan)
+    {
         if (spec.Annotations.Exists(annotation => annotation.Type is "band" or "box" or "text" or "line"))
         {
-            code.Append(AnnotationCatalog.Helpers());
+            code.Append(AnnotationCatalog.Helpers);
         }
+
         foreach (var method in plan.Data.DistinctBy(data => data.Method))
         {
             code.AppendLine();
@@ -177,20 +194,18 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         // Shared parts of the data: the timers of live data, the numbers of HDF5 datasets and the points of columns.
         if (spec.Series.Exists(series => series.Data.Kind == DataKind.Hdf5))
         {
-            code.Append(DataSources.NumbersHelper());
+            code.Append(DataSources.NumbersHelper);
         }
 
         if (spec.Series.Exists(series => series.Data.Kind == DataKind.Live))
         {
-            code.Append(DataSources.LiveField());
+            code.Append(DataSources.LiveField);
         }
 
         if (plan.Data.Exists(data => data.Source.Code.Contains("Points(", StringComparison.Ordinal) && data.Source.Usings.Count > 0 && data.Source.Call.EndsWith("()", StringComparison.Ordinal)))
         {
-            code.Append(DataSources.PointsHelper());
+            code.Append(DataSources.PointsHelper);
         }
-
-        return code.AppendLine("}").ToString();
     }
 
     /// <summary>Writes <c>ChartViewModel.cs</c>: the data of the chart as properties, ready for live updates.</summary>
@@ -211,17 +226,17 @@ public sealed class CodeGenerator(ChartCatalog catalog)
 
         var code = new StringBuilder();
         WriteUsings(code, plan.Usings);
-        code.Append("namespace ").Append(options.Namespace).AppendLine(";").AppendLine();
+        code.Append(NamespaceKeyword).Append(options.Namespace).AppendLine(";").AppendLine();
         code.AppendLine("/// <summary>The data of the chart. Append to them from any thread; the chart follows.</summary>");
         code.AppendLine("public sealed class ChartViewModel").AppendLine("{");
         foreach (var data in plan.Data)
         {
-            code.Append("    /// <summary>Gets the data of ").Append(data.SeriesName).AppendLine(".</summary>");
+            code.Append("    /// <summary>Gets the data of ").Append(data.SeriesName).AppendLine(SummaryEnd);
             code.Append("    public ").Append(data.Type).Append(' ').Append(data.Property).Append(" { get; } = ChartSetup.").Append(data.Call).AppendLine(";").AppendLine();
         }
 
         code.AppendLine("    /// <summary>Describes the chart with the data of this view model.</summary>");
-        code.AppendLine("    /// <param name=\"chart\">The chart description.</param>");
+        code.AppendLine(ParamNameChartTheChartDescriptionParam);
         code.Append("    public void Configure(ChartBuilder chart) => ChartSetup.Configure(chart");
         foreach (var data in plan.Data)
         {
@@ -232,7 +247,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         if (HasOverview(spec))
         {
             code.AppendLine().AppendLine("    /// <summary>Describes the overview below the chart with the same data.</summary>");
-            code.AppendLine("    /// <param name=\"chart\">The chart description.</param>");
+            code.AppendLine(ParamNameChartTheChartDescriptionParam);
             code.Append("    public void ConfigureOverview(ChartBuilder chart) => ChartSetup.ConfigureOverview(chart");
             foreach (var data in plan.Data)
             {
@@ -267,10 +282,10 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     {
         var overview = Plan(SpecChartBuilder.OverviewOf(spec), options);
         code.AppendLine().AppendLine("    /// <summary>Describes the overview below the chart: all data at a glance; dragging its window moves the chart.</summary>");
-        code.AppendLine("    /// <param name=\"chart\">The chart description.</param>");
+        code.AppendLine(ParamNameChartTheChartDescriptionParam);
         foreach (var data in plan.Data)
         {
-            code.Append("    /// <param name=\"").Append(data.Variable).Append("\">The data of ").Append(data.SeriesName).AppendLine(".</param>");
+            code.Append(ParamName).Append(data.Variable).Append("\">The data of ").Append(data.SeriesName).AppendLine(".</param>");
         }
 
         code.Append("    public static void ConfigureOverview(ChartBuilder chart");
@@ -279,17 +294,37 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             code.Append(", ").Append(data.Type).Append(' ').Append(data.Variable);
         }
 
-        code.AppendLine(")").AppendLine("    {").Append("        chart");
+        code.AppendLine(")").AppendLine(OpenBrace).Append("        chart");
         foreach (var call in overview.Calls)
         {
             code.AppendLine().Append("            ").Append(call);
         }
 
-        code.AppendLine().Append("            .Modifiers(m => m.Overview(").Append(CodeText.String(spec.Group ?? OverviewGroup)).AppendLine("));").AppendLine("    }");
+        code.AppendLine().Append("            .Modifiers(m => m.Overview(").Append(CodeText.String(spec.Group ?? OverviewGroup)).AppendLine("));").AppendLine(CloseBrace);
     }
 
     // The theme a description sets: its own, made by a helper of the class, or a built-in one.
-    private static string? ThemeCall(ChartSpec spec) => spec.OwnTheme is not null ? "OwnTheme()" : spec.Theme is { } name ? "BuiltInThemes." + name : null;
+    private static string? ThemeCall(ChartSpec spec)
+    {
+        if (spec.OwnTheme is not null)
+        {
+            return "OwnTheme()";
+        }
+
+        return spec.Theme is { } name ? "BuiltInThemes." + name : null;
+    }
+
+    // A logarithmic axis: base 10 hiding values at or below zero needs no more than its id.
+    private static string LogCode(AxisSpec axis)
+    {
+        if (axis.LogBase == 10 && axis.NonPositive == "Hide")
+        {
+            return $".Log({CodeText.String(axis.Id)})";
+        }
+
+        var nonPositive = Enum.TryParse<Core.Axes.NonPositiveValues>(axis.NonPositive, out var parsed) ? parsed : Core.Axes.NonPositiveValues.Hide;
+        return $".Log({CodeText.String(axis.Id)}, {CodeText.Number(axis.LogBase)}, Tachyon.Charts.Core.Axes.NonPositiveValues.{nonPositive})";
+    }
 
     // The helper that makes an own theme from its values, in the order of the keys.
     private static string OwnThemeHelper(ThemeSpec own)
@@ -299,8 +334,8 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         code.AppendLine("    /// <summary>Creates the own theme: the values that differ from its base; see ThemeResources.Keys for all keys.</summary>");
         code.AppendLine("    /// <returns>The theme.</returns>");
         code.AppendLine("    private static Theme OwnTheme() => ThemeResources.Create(");
-        code.Append("        ").Append(CodeText.String(own.Name)).AppendLine(",");
-        code.Append("        ").Append(CodeText.String(SpecChartBuilder.Theme(own.Base).Name)).AppendLine(",");
+        code.Append(Indent8).Append(CodeText.String(own.Name)).AppendLine(",");
+        code.Append(Indent8).Append(CodeText.String(SpecChartBuilder.Theme(own.Base).Name)).AppendLine(",");
         code.AppendLine("        new Dictionary<string, string>");
         code.AppendLine("        {");
         foreach (var key in ThemeResources.Keys.Keys.Where(own.Values.ContainsKey))
@@ -322,25 +357,25 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         var (series, data) = (spec.Series[0], plan.Data[0]);
         var code = new StringBuilder();
         WriteUsings(code, ThemeCall(spec) is null ? plan.Usings : [.. plan.Usings, "Tachyon.Charts.Core.Themes"]);
-        code.Append("namespace ").Append(options.Namespace).AppendLine(";").AppendLine();
+        code.Append(NamespaceKeyword).Append(options.Namespace).AppendLine(";").AppendLine();
         code.AppendLine("/// <summary>").Append("/// ").Append(Describe(spec)).AppendLine(", linked charts made with the Tachyon Charts configurator.").AppendLine("/// </summary>");
         code.AppendLine("public static class ChartSetup").AppendLine("{");
         code.AppendLine("    /// <summary>Sets the data up once for all charts.</summary>");
-        code.Append("    /// <param name=\"").Append(data.Variable).AppendLine("\">The data.</param>");
-        code.Append("    public static void Prepare(").Append(data.Type).Append(' ').Append(data.Variable).AppendLine(")").AppendLine("    {");
+        code.Append(ParamName).Append(data.Variable).AppendLine("\">The data.</param>");
+        code.Append("    public static void Prepare(").Append(data.Type).Append(' ').Append(data.Variable).AppendLine(")").AppendLine(OpenBrace);
         foreach (var statement in plan.Setup)
         {
-            code.Append("        ").AppendLine(statement);
+            code.Append(Indent8).AppendLine(statement);
         }
 
-        code.AppendLine("    }");
+        code.AppendLine(CloseBrace);
         foreach (var view in views)
         {
             code.AppendLine();
-            code.Append("    /// <summary>Describes the chart ").Append(view.Name).AppendLine(".</summary>");
-            code.AppendLine("    /// <param name=\"chart\">The chart description.</param>");
-            code.Append("    /// <param name=\"").Append(data.Variable).AppendLine("\">The data, the same for all charts.</param>");
-            code.Append("    public static void Configure").Append(view.Name).Append("(ChartBuilder chart, ").Append(data.Type).Append(' ').Append(data.Variable).AppendLine(")").AppendLine("    {");
+            code.Append("    /// <summary>Describes the chart ").Append(view.Name).AppendLine(SummaryEnd);
+            code.AppendLine(ParamNameChartTheChartDescriptionParam);
+            code.Append(ParamName).Append(data.Variable).AppendLine("\">The data, the same for all charts.</param>");
+            code.Append("    public static void Configure").Append(view.Name).Append("(ChartBuilder chart, ").Append(data.Type).Append(' ').Append(data.Variable).AppendLine(")").AppendLine(OpenBrace);
             if (ThemeCall(spec) is { } theme)
             {
                 code.Append("        chart.Theme(").Append(theme).AppendLine(");");
@@ -348,10 +383,10 @@ public sealed class CodeGenerator(ChartCatalog catalog)
 
             foreach (var line in view.Code(series, data.Variable).Split('\n'))
             {
-                code.Append("        ").AppendLine(line.TrimEnd('\r'));
+                code.Append(Indent8).AppendLine(line.TrimEnd('\r'));
             }
 
-            code.AppendLine("    }");
+            code.AppendLine(CloseBrace);
         }
 
         code.AppendLine();
@@ -375,18 +410,18 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         var data = plan.Data[0];
         var code = new StringBuilder();
         WriteUsings(code, plan.Usings);
-        code.Append("namespace ").Append(options.Namespace).AppendLine(";").AppendLine();
+        code.Append(NamespaceKeyword).Append(options.Namespace).AppendLine(";").AppendLine();
         code.AppendLine("/// <summary>The data the linked charts share; a change in one chart shows in the others.</summary>");
         code.AppendLine("public sealed class ChartViewModel").AppendLine("{");
         code.AppendLine("    /// <summary>Initializes the view model and sets the data up.</summary>");
         code.Append("    public ChartViewModel() => ChartSetup.Prepare(").Append(data.Property).AppendLine(");").AppendLine();
-        code.Append("    /// <summary>Gets the data of ").Append(data.SeriesName).AppendLine(".</summary>");
+        code.Append("    /// <summary>Gets the data of ").Append(data.SeriesName).AppendLine(SummaryEnd);
         code.Append("    public ").Append(data.Type).Append(' ').Append(data.Property).Append(" { get; } = ChartSetup.").Append(data.Call).AppendLine(";");
         foreach (var view in views)
         {
             code.AppendLine();
-            code.Append("    /// <summary>Describes the chart ").Append(view.Name).AppendLine(".</summary>");
-            code.AppendLine("    /// <param name=\"chart\">The chart description.</param>");
+            code.Append("    /// <summary>Describes the chart ").Append(view.Name).AppendLine(SummaryEnd);
+            code.AppendLine(ParamNameChartTheChartDescriptionParam);
             code.Append("    public void Configure").Append(view.Name).Append("(ChartBuilder chart) => ChartSetup.Configure").Append(view.Name).Append("(chart, ").Append(data.Property).AppendLine(");");
         }
 
@@ -676,7 +711,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         {
             ["MainWindow.xaml.cs".Replace(".xaml", options.Framework == UiFramework.Wpf ? ".xaml" : ".axaml", StringComparison.Ordinal)] = WindowCode(spec, options, ViewNames(spec)),
             [options.Framework == UiFramework.Wpf ? "MainWindow.xaml" : "MainWindow.axaml"] = WindowMarkup(spec, options),
-            [options.ProjectName + ".csproj"] = ProjectFile(
+            [options.ProjectName + Csproj] = ProjectFile(
                 options,
                 charts.Select(_catalog.SceneOf).FirstOrDefault(scene => scene is not null),
                 charts.Any(chart => chart.Series.Exists(series => series.Data.Kind == DataKind.Hdf5)),
@@ -768,7 +803,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         foreach (var (package, version) in scene is null ? [(adapter, options.PackageVersion)] : new[] { (adapter, options.PackageVersion), (scene.Package, scene.PackageVersion) })
         {
             references.Append(options.LocalSource is { } source
-                ? $"    <ProjectReference Include=\"{Path.Combine(source, package, package + ".csproj")}\" />\n"
+                ? $"    <ProjectReference Include=\"{Path.Combine(source, package, package + Csproj)}\" />\n"
                 : $"    <PackageReference Include=\"{package}\" Version=\"{version}\" />\n");
         }
 
@@ -776,7 +811,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         foreach (var package in packages)
         {
             references.Append(options.LocalSource is { } local
-                ? $"    <ProjectReference Include=\"{Path.Combine(local, package, package + ".csproj")}\" />\n"
+                ? $"    <ProjectReference Include=\"{Path.Combine(local, package, package + Csproj)}\" />\n"
                 : $"    <PackageReference Include=\"{package}\" Version=\"{scene?.PackageVersion ?? options.PackageVersion}\" />\n");
         }
 
@@ -784,7 +819,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         foreach (var (package, version) in typePackages)
         {
             references.Append(options.LocalSource is { } own
-                ? $"    <ProjectReference Include=\"{Path.Combine(own, package, package + ".csproj")}\" />\n"
+                ? $"    <ProjectReference Include=\"{Path.Combine(own, package, package + Csproj)}\" />\n"
                 : $"    <PackageReference Include=\"{package}\" Version=\"{version}\" />\n");
         }
 
@@ -910,18 +945,9 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             """);
     }
 
-    // The order of the calls follows SpecChartBuilder.Apply, so preview and code take the same steps.
-    private CodePlan Plan(ChartSpec spec, CodeOptions options)
+    // Title, fonts, theme outside a scene, the turned chart and the axes.
+    private void AddLookCalls(ChartSpec spec, bool withTheme, List<string> usings, List<string> calls)
     {
-        ArgumentNullException.ThrowIfNull(spec);
-        ArgumentNullException.ThrowIfNull(options);
-        if (_catalog.Check(spec) is { Count: > 0 } problems)
-        {
-            throw new InvalidOperationException(string.Join(" ", problems));
-        }
-
-        var usings = new List<string> { "Tachyon.Charts.Core.Data", "Tachyon.Charts.Core.Fluent" };
-        var calls = new List<string>();
         if (spec.Title.Length > 0)
         {
             calls.Add($".Title({CodeText.String(spec.Title)})");
@@ -939,8 +965,7 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             calls.Add($".AxisFont({FontSpec.Code(axisFont.ToTextFont())})");
         }
 
-        var scene = _catalog.SceneOf(spec);
-        if (ThemeCall(spec) is { } theme && scene is null)
+        if (ThemeCall(spec) is { } theme && withTheme)
         {
             usings.Add("Tachyon.Charts.Core.Themes");
             calls.Add($".Theme({theme})");
@@ -956,47 +981,55 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             calls.AddRange(spec.XAxes.Select(axis => ".XAxis(a => a" + AxisCode(axis, "Top", usings) + ")"));
             calls.AddRange(spec.YAxes.Select(axis => ".YAxis(a => a" + AxisCode(axis, "Right", usings) + ")"));
         }
+    }
 
+    // The data of a series in the code: a method of the sample, or one that reads the source.
+    private DataCode SourceOf(SeriesSpec series, ChartTypeInfo type, string variable, List<DataPlan> data)
+    {
+        if (series.Data.Kind != DataKind.Sample)
+        {
+            return DataSources.Code(series, type, _catalog, Unique(CodeText.Identifier(variable, upper: true, "Series") + series.Data.Kind, data.Select(item => item.Source.Method)));
+        }
+
+        var sample = _catalog.FindSample(series.Data.Sample) ?? _catalog.FindSample(type.DefaultSample)!;
+        var method = CodeText.Identifier(sample.Id, upper: true, "Sample");
+        return new DataCode(sample.ReturnType, method, $"{method}({Count(sample, series.Data.Count)})", sample.Method(method), []);
+    }
+
+    private static string LegendCode(LegendSpec legend, List<string> usings)
+    {
+        var parts = (legend.Title.Length > 0 ? $".Title({CodeText.String(legend.Title)})" : string.Empty)
+            + (legend.Placement != "TopRight" ? $".Place(LegendPlacement.{legend.Placement})" : string.Empty)
+            + (legend.ReadSeries() is { Length: > 0 } names ? $".Series([{string.Join(", ", names.Select(CodeText.String))}])" : string.Empty);
+        if (legend.Placement != "TopRight")
+        {
+            usings.Add("Tachyon.Charts.Core.Input");
+        }
+
+        return parts.Length > 0 ? $".Legend(l => l{parts})" : ".Legend()";
+    }
+
+    // The order of the calls follows SpecChartBuilder.Apply, so preview and code take the same steps.
+    private CodePlan Plan(ChartSpec spec, CodeOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(spec);
+        ArgumentNullException.ThrowIfNull(options);
+        if (_catalog.Check(spec) is { Count: > 0 } problems)
+        {
+            throw new InvalidOperationException(string.Join(" ", problems));
+        }
+
+        var usings = new List<string> { "Tachyon.Charts.Core.Data", "Tachyon.Charts.Core.Fluent" };
+        var calls = new List<string>();
+        var scene = _catalog.SceneOf(spec);
+        AddLookCalls(spec, scene is null, usings, calls);
         var data = new List<DataPlan>();
         var inScene = new List<string>();
         var setup = new List<string>();
-        foreach (var series in DataSources.Expanded(spec.Series, _catalog))
-        {
-            var type = _catalog.FindType(series.Type)!;
-            var sample = _catalog.FindSample(series.Data.Sample) ?? _catalog.FindSample(type.DefaultSample)!;
-            usings.AddRange(type.Usings);
-            var variable = Unique(CodeText.Identifier(series.Name, upper: false, "series"), data.Select(item => item.Variable).Concat(_reserved));
-            DataCode source;
-            if (series.Data.Kind == DataKind.Sample)
-            {
-                var method = CodeText.Identifier(sample.Id, upper: true, "Sample");
-                source = new DataCode(sample.ReturnType, method, $"{method}({Count(sample, series.Data.Count)})", sample.Method(method), []);
-            }
-            else
-            {
-                source = DataSources.Code(series, type, _catalog, Unique(CodeText.Identifier(variable, upper: true, "Series") + series.Data.Kind, data.Select(item => item.Source.Method)));
-            }
-
-            usings.AddRange(source.Usings);
-            data.Add(new DataPlan(series.Name, variable, CodeText.Identifier(variable, upper: true, "Series"), source));
-            if (type.PrepareCode is { } prepare)
-            {
-                setup.AddRange(prepare(series, variable));
-            }
-
-            (scene is null ? calls : inScene).Add(type.Code(series, variable, new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id) { InSharedBox = scene is not null && inScene.Count > 0 }));
-        }
-
+        PlanSeries(spec, scene is not null, usings, scene is null ? calls : inScene, data, setup);
         if (scene is not null)
         {
-            usings.AddRange(scene.Usings);
-            var (start, end) = scene.Code(spec);
-            calls.Add(start + string.Concat(inScene) + end);
-            if (ThemeCall(spec) is { } chosen)
-            {
-                usings.Add("Tachyon.Charts.Core.Themes");
-                calls.Add($".Theme({chosen})");
-            }
+            AddSceneCall(spec, scene, inScene, usings, calls);
         }
 
         if (spec.Modifiers.Count > 0)
@@ -1013,20 +1046,10 @@ public sealed class CodeGenerator(ChartCatalog catalog)
 
         foreach (var legend in new[] { spec.Legend, spec.SecondLegend })
         {
-            if (legend is null)
+            if (legend is not null)
             {
-                continue;
+                calls.Add(LegendCode(legend, usings));
             }
-
-            var parts = (legend.Title.Length > 0 ? $".Title({CodeText.String(legend.Title)})" : string.Empty)
-                + (legend.Placement != "TopRight" ? $".Place(LegendPlacement.{legend.Placement})" : string.Empty)
-                + (legend.ReadSeries() is { Length: > 0 } names ? $".Series([{string.Join(", ", names.Select(CodeText.String))}])" : string.Empty);
-            if (legend.Placement != "TopRight")
-            {
-                usings.Add("Tachyon.Charts.Core.Input");
-            }
-
-            calls.Add(parts.Length > 0 ? $".Legend(l => l{parts})" : ".Legend()");
         }
 
         if (spec.Group is { Length: > 0 } group && scene is null)
@@ -1047,11 +1070,44 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         return new CodePlan(usings, calls, data, setup);
     }
 
+    // The scene with its series inside; the chosen theme follows it, as a scene sets its own.
+    private static void AddSceneCall(ChartSpec spec, SceneInfo scene, List<string> inScene, List<string> usings, List<string> calls)
+    {
+        usings.AddRange(scene.Usings);
+        var (start, end) = scene.Code(spec);
+        calls.Add(start + string.Concat(inScene) + end);
+        if (ThemeCall(spec) is { } chosen)
+        {
+            usings.Add("Tachyon.Charts.Core.Themes");
+            calls.Add($".Theme({chosen})");
+        }
+    }
+
+    // Each series: its data, what prepares it, and its call; in a scene all but the first share its box.
+    private void PlanSeries(ChartSpec spec, bool isScene, List<string> usings, List<string> calls, List<DataPlan> data, List<string> setup)
+    {
+        foreach (var series in DataSources.Expanded(spec.Series, _catalog))
+        {
+            var type = _catalog.FindType(series.Type)!;
+            usings.AddRange(type.Usings);
+            var variable = Unique(CodeText.Identifier(series.Name, upper: false, "series"), data.Select(item => item.Variable).Concat(_reserved));
+            var source = SourceOf(series, type, variable, data);
+            usings.AddRange(source.Usings);
+            data.Add(new DataPlan(series.Name, variable, CodeText.Identifier(variable, upper: true, "Series"), source));
+            if (type.PrepareCode is { } prepare)
+            {
+                setup.AddRange(prepare(series, variable));
+            }
+
+            calls.Add(type.Code(series, variable, new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id) { InSharedBox = isScene && calls.Count > 0 }));
+        }
+    }
+
     private static string AxisCode(AxisSpec axis, string opposite, List<string> usings)
     {
         var code = new StringBuilder(axis.Kind switch
         {
-            AxisKind.Logarithmic => axis.LogBase == 10 && axis.NonPositive == "Hide" ? $".Log({CodeText.String(axis.Id)})" : $".Log({CodeText.String(axis.Id)}, {CodeText.Number(axis.LogBase)}, Tachyon.Charts.Core.Axes.NonPositiveValues.{(Enum.TryParse<Core.Axes.NonPositiveValues>(axis.NonPositive, out var nonPositive) ? nonPositive : Core.Axes.NonPositiveValues.Hide)})",
+            AxisKind.Logarithmic => LogCode(axis),
             AxisKind.DateTime => $".DateTime({CodeText.String(axis.Id)})",
             AxisKind.Category => $".Category([{string.Join(", ", axis.ReadCategories().Select(CodeText.String))}], {CodeText.String(axis.Id)})",
             _ => $".Numeric({CodeText.String(axis.Id)})",
@@ -1081,6 +1137,13 @@ public sealed class CodeGenerator(ChartCatalog catalog)
             code.Append(".Gaps(TimeGapMap.Weekends(new DateTime(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2100, 1, 1, 0, 0, 0, DateTimeKind.Utc), TimeZoneInfo.Utc))");
         }
 
+        AppendAxisDetails(code, axis, usings);
+        return code.ToString();
+    }
+
+    // Crossing, turned labels, floor, breaks, pane and hiding of an axis.
+    private static void AppendAxisDetails(StringBuilder code, AxisSpec axis, List<string> usings)
+    {
         if (axis.CrossesZero)
         {
             code.Append(".CrossesAt(0)");
@@ -1111,8 +1174,6 @@ public sealed class CodeGenerator(ChartCatalog catalog)
         {
             code.Append(".Hidden()");
         }
-
-        return code.ToString();
     }
 
     // The same lower bound the preview keeps.
@@ -1122,9 +1183,10 @@ public sealed class CodeGenerator(ChartCatalog catalog)
     {
         var used = taken.ToHashSet(StringComparer.Ordinal);
         var unique = name;
-        for (var i = 2; used.Contains(unique); i++)
+        var i = 2;
+        while (used.Contains(unique))
         {
-            unique = name + i.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            unique = name + (i++).ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         return unique;

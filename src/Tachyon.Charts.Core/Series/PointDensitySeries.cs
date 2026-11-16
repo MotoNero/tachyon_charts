@@ -245,17 +245,8 @@ public sealed class PointDensitySeries : ChartSeries, IDisposable, Overlays.IRef
         job.TileX1 = Math.Clamp((int)Math.Floor((job.Right - xRange.Min) / spanX * PointTiles.TilesPerSide), 0, PointTiles.TilesPerSide - 1);
         job.TileY0 = Math.Clamp((int)Math.Floor((job.Bottom - yRange.Min) / spanY * PointTiles.TilesPerSide), 0, PointTiles.TilesPerSide - 1);
         job.TileY1 = Math.Clamp((int)Math.Floor((job.Top - yRange.Min) / spanY * PointTiles.TilesPerSide), 0, PointTiles.TilesPerSide - 1);
-        long total = 0, largest = 0;
-        for (var ty = job.TileY0; ty <= job.TileY1; ty++)
-        {
-            for (var tx = job.TileX0; tx <= job.TileX1; tx++)
-            {
-                var count = _tiles.TileCount(tx, ty);
-                total += count;
-                largest = Math.Max(largest, count);
-            }
-        }
-
+        var largest = LargestTile();
+        var total = SumTiles(largest, long.MaxValue);
         if (total <= _pointBudget)
         {
             (job.Cap, job.Planned) = (largest, total);
@@ -267,16 +258,7 @@ public sealed class PointDensitySeries : ChartSeries, IDisposable, Overlays.IRef
         while (low < high)
         {
             var middle = (low + high + 1) / 2;
-            long sum = 0;
-            for (var ty = job.TileY0; ty <= job.TileY1 && sum <= _pointBudget; ty++)
-            {
-                for (var tx = job.TileX0; tx <= job.TileX1; tx++)
-                {
-                    sum += Math.Min(middle, _tiles.TileCount(tx, ty));
-                }
-            }
-
-            if (sum <= _pointBudget)
+            if (SumTiles(middle, _pointBudget) <= _pointBudget)
             {
                 low = middle;
             }
@@ -286,15 +268,39 @@ public sealed class PointDensitySeries : ChartSeries, IDisposable, Overlays.IRef
             }
         }
 
-        job.Cap = low;
-        job.Planned = 0;
+        (job.Cap, job.Planned) = (low, SumTiles(low, long.MaxValue));
+    }
+
+    // The most points of a tile in the view.
+    private long LargestTile()
+    {
+        ref var job = ref _job;
+        long largest = 0;
         for (var ty = job.TileY0; ty <= job.TileY1; ty++)
         {
             for (var tx = job.TileX0; tx <= job.TileX1; tx++)
             {
-                job.Planned += Math.Min(low, _tiles.TileCount(tx, ty));
+                largest = Math.Max(largest, _tiles.TileCount(tx, ty));
             }
         }
+
+        return largest;
+    }
+
+    // The points of the tiles in the view, each at most the cap; it stops early once the sum passes the limit.
+    private long SumTiles(long cap, long limit)
+    {
+        ref var job = ref _job;
+        long sum = 0;
+        for (var ty = job.TileY0; ty <= job.TileY1 && sum <= limit; ty++)
+        {
+            for (var tx = job.TileX0; tx <= job.TileX1; tx++)
+            {
+                sum += Math.Min(cap, _tiles.TileCount(tx, ty));
+            }
+        }
+
+        return sum;
     }
 
     // Each part counts a band of pixel rows straight into the result, so no part writes where another does.
@@ -350,26 +356,34 @@ public sealed class PointDensitySeries : ChartSeries, IDisposable, Overlays.IRef
             }
 
             var line = grid.Slice(row * size, size);
-            for (var column = column0; column <= column1; column++)
+            var lowerShare = takesLower ? 1 - upperShare : 0;
+            CountGridRow(line, column0, column1, x0, dx, width, upper, takesUpper ? upperShare : 0, lowerShare, bins);
+        }
+    }
+
+    // One row of cells into one or two pixel rows, each cell spread over the pixel columns it covers.
+    private void CountGridRow(ReadOnlySpan<uint> line, int column0, int column1, double x0, double dx, double width, int upper, double upperShare, double lowerShare, float[] bins)
+    {
+        var binWidth = _job.Width;
+        for (var column = column0; column <= column1; column++)
+        {
+            var count = line[column];
+            if (count == 0)
             {
-                var count = line[column];
-                if (count == 0)
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                var left = Math.Min(x0 + (column * dx), x0 + ((column + 1) * dx));
-                var first = (int)Math.Floor(left);
-                var firstShare = Math.Min(1, (first + 1 - left) / width);
-                if (takesUpper)
-                {
-                    Add(bins, job.Width, upper, first, firstShare, count * upperShare);
-                }
+            var left = Math.Min(x0 + (column * dx), x0 + ((column + 1) * dx));
+            var first = (int)Math.Floor(left);
+            var firstShare = Math.Min(1, (first + 1 - left) / width);
+            if (upperShare > 0)
+            {
+                Add(bins, binWidth, upper, first, firstShare, count * upperShare);
+            }
 
-                if (takesLower)
-                {
-                    Add(bins, job.Width, upper + 1, first, firstShare, count * (1 - upperShare));
-                }
+            if (lowerShare > 0)
+            {
+                Add(bins, binWidth, upper + 1, first, firstShare, count * lowerShare);
             }
         }
     }
@@ -410,26 +424,33 @@ public sealed class PointDensitySeries : ChartSeries, IDisposable, Overlays.IRef
 
             for (var tx = job.TileX0; tx <= job.TileX1; tx++)
             {
-                var count = _tiles.TileCount(tx, ty);
-                if (count == 0)
-                {
-                    continue;
-                }
-
-                var points = _tiles.TilePoints(tx, ty, (int)Math.Min(count, job.Cap));
-                var weight = (float)((double)count / points.Length);
                 var left = xRange.Min + (tx * tileWidth) - job.Origin;
                 var ax = (float)(frame.X.ToPixel(left) - frame.Bounds.X);
                 var bx = (float)(frame.X.ToPixel(left + tileWidth) - frame.Bounds.X) - ax;
-                foreach (var point in points)
-                {
-                    var pixelY = ay + (point.Y * by);
-                    var pixelX = ax + (point.X * bx);
-                    if (pixelY >= firstRow && pixelY < endRow && pixelX >= 0 && pixelX < job.Width)
-                    {
-                        bins[((int)pixelY * job.Width) + (int)pixelX] += weight;
-                    }
-                }
+                CountTile(tx, ty, ax, bx, ay, by, firstRow, endRow, bins);
+            }
+        }
+    }
+
+    // The points of a tile, each to its pixel in the rows of this band, weighed for the points left out.
+    private void CountTile(int tx, int ty, float ax, float bx, float ay, float by, int firstRow, int endRow, float[] bins)
+    {
+        var count = _tiles.TileCount(tx, ty);
+        if (count == 0)
+        {
+            return;
+        }
+
+        var width = _job.Width;
+        var points = _tiles.TilePoints(tx, ty, (int)Math.Min(count, _job.Cap));
+        var weight = (float)((double)count / points.Length);
+        foreach (var point in points)
+        {
+            var pixelY = ay + (point.Y * by);
+            var pixelX = ax + (point.X * bx);
+            if (pixelY >= firstRow && pixelY < endRow && pixelX >= 0 && pixelX < width)
+            {
+                bins[((int)pixelY * width) + (int)pixelX] += weight;
             }
         }
     }

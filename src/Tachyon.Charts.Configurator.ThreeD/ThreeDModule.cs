@@ -19,24 +19,52 @@ namespace Tachyon.Charts.Configurator.ThreeD;
 /// </summary>
 public sealed class ThreeDModule : IChartModule, IDataLoaders
 {
+    private const string CutAt = "cutAt";
+    private const string ScaleTo = "scaleTo";
+    private const string ScaleFrom = "scaleFrom";
+    private const string ColorsFollow = "colorsFollow";
+    private const string ValuesName = "Values";
+    private const string HeightName = "Height";
+    private const string ColorBy = "colorBy";
+    private const string ViridisName = "Viridis";
+    private const string ColormapKey = "colormap";
+    private const string PointSizeKey = "pointSize";
+    private const string InfernoName = "Inferno";
+    private const string StyleKey = "style";
+    private const string TachyonChartsCoreColors = "Tachyon.Charts.Core.Colors";
+    private const string SideBySide = "Side by side";
+    private const string ZFrom = "zFrom";
+    private const string StartKey = "start";
+    private const string ColormapName = "Colormap";
+    private const string OpacityKey = "opacity";
+    private const string GlossKey = "gloss";
+    private const string ColorKey = "color";
+    private const string TachyonChartsThreeDScene = "Tachyon.Charts.ThreeD.Scene";
+    private const string HeightLinesKey = "heightLines";
+    private const string LimitValue = "limitValue";
+    private const string MaterialIsLit = "Material.IsLit";
+    private const string WidthKey = "width";
+    private const string LimitKey = "limit";
+    private const string TachyonChartsThreeD = "Tachyon.Charts.ThreeD";
+
     /// <summary>The version of the 3D package the generated projects refer to.</summary>
     public const string PackageVersion = "1.0.0-preview.3";
 
-    private static readonly string[] _colormaps = ["Viridis", "Inferno", "Magma", "Plasma", "Turbo", "Grayscale"];
+    private static readonly string[] _colormaps = [ViridisName, InfernoName, "Magma", "Plasma", "Turbo", "Grayscale"];
 
     /// <inheritdoc />
     public IReadOnlyList<ChartTypeInfo> Types { get; } =
     [
         Type("surface3d", "Surface 3D", DataShape.Grid, "hill", typeof(Surface3D), nameof(Chart3DBuilder.AddSurface), (-1, 1),
             [
-                Colormap("Viridis"), Lit(), Opacity(), Extent(),
-                new("heightLines", "Height lines", ParameterKind.Integer, 0.0) { Minimum = 0, Maximum = 50, Description = "Lines of equal height, evenly over the Z range; 0 for none." },
+                Colormap(ViridisName), Lit(), Opacity(), Extent(),
+                new(HeightLinesKey, "Height lines", ParameterKind.Integer, 0.0) { Minimum = 0, Maximum = 50, Description = "Lines of equal height, evenly over the Z range; 0 for none." },
                 new("onWalls", "Height lines on the walls", ParameterKind.Flag, false) { Description = "The cuts through the surface also show on the walls of the box." },
-                new("limit", "Limit plane", ParameterKind.Flag, false) { Description = "A red plane at a limit; where the surface crosses it is easy to see." },
-                new("limitValue", "Limit at", ParameterKind.Number, 0.5),
+                new(LimitKey, "Limit plane", ParameterKind.Flag, false) { Description = "A red plane at a limit; where the surface crosses it is easy to see." },
+                new(LimitValue, "Limit at", ParameterKind.Number, 0.5),
                 new("limitLine", "Line at the limit", ParameterKind.Flag, false) { Description = "A red line on the surface where it crosses the limit, instead of height lines." },
             ],
-            [("colormap", nameof(Surface3D.Colormap)), ("lit", "Material.IsLit"), ("opacity", "Material.Opacity")],
+            [(ColormapKey, nameof(Surface3D.Colormap)), ("lit", MaterialIsLit), (OpacityKey, "Material.Opacity")],
             data => new Surface3D((HeatmapData)data, Box, Box), data => $"new Surface3D({data}, new DoubleRange(0, 10), new DoubleRange(0, 10))",
             make: (data, values) => new Surface3D((HeatmapData)data, Span(values), Span(values)),
             write: (data, series) => $"new Surface3D({data}, {SpanCode(series.Parameters)}, {SpanCode(series.Parameters)})",
@@ -45,88 +73,87 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
                 {
                     if (values.GetFlag("limitLine", false))
                     {
-                        typeof(Surface3D).GetProperty(nameof(Surface3D.Contours))!.SetValue(created, new Contours3D([values.GetNumber("limitValue", 0.5)]) { Color = LimitColor, Width = 2.5, OnFloor = false });
+                        typeof(Surface3D).GetProperty(nameof(Surface3D.Contours))!.SetValue(created, new Contours3D([values.GetNumber(LimitValue, 0.5)]) { Color = LimitColor, Width = 2.5, OnFloor = false });
                     }
-                    else if (values.GetNumber("heightLines", 0) > 0)
+                    else if (values.GetNumber(HeightLinesKey, 0) > 0)
                     {
                         // Contours can only be given when the surface is made; the preview sets it the same way.
                         typeof(Surface3D).GetProperty(nameof(Surface3D.Contours))!.SetValue(created, HeightLines(values));
                     }
                 },
-                values => values.GetFlag("limitLine", false) ? $"Contours = new Contours3D([{CodeText.Number(values.GetNumber("limitValue", 0.5))}]) {{ Color = new Rgba8(255, 70, 70, 255), Width = 2.5, OnFloor = false }}"
-                    : values.GetNumber("heightLines", 0) > 0 ? $"Contours = Contours3D.Even(new DoubleRange({CodeText.Number(values.GetNumber("zFrom", -1))}, {CodeText.Number(values.GetNumber("zTo", 1))}), {(int)values.GetNumber("heightLines", 0)}){(values.GetFlag("onWalls", false) ? " with { OnWalls = true }" : string.Empty)}" : null,
+                ContoursCode,
                 (scene, values) =>
                 {
-                    if (values.GetFlag("limit", false))
+                    if (values.GetFlag(LimitKey, false))
                     {
-                        scene.AddMesh(Shapes3D.Limit(Span(values), Span(values), values.GetNumber("limitValue", 0.5), LimitColor));
+                        scene.AddMesh(Shapes3D.Limit(Span(values), Span(values), values.GetNumber(LimitValue, 0.5), LimitColor));
                     }
                 },
-                values => values.GetFlag("limit", false) ? $".AddMesh(Shapes3D.Limit({SpanCode(values)}, {SpanCode(values)}, {CodeText.Number(values.GetNumber("limitValue", 0.5))}, new Rgba8(255, 70, 70, 255)))" : string.Empty)),
+                values => values.GetFlag(LimitKey, false) ? $".AddMesh(Shapes3D.Limit({SpanCode(values)}, {SpanCode(values)}, {CodeText.Number(values.GetNumber(LimitValue, 0.5))}, new Rgba8(255, 70, 70, 255)))" : string.Empty)),
         Type("columns3d", "Columns 3D", DataShape.Grid, "blocks", typeof(Bars3D), nameof(Chart3DBuilder.AddBars), (0, 1),
-            [Colormap("Viridis"), new("width", "Width", ParameterKind.Number, 0.8) { Minimum = 0.05, Maximum = 1 }, Lit(), Opacity(), new("gloss", "Gloss", ParameterKind.Number, 0.18) { Minimum = 0, Maximum = 1, Description = "The strength of the highlights." }, Extent(), new("start", "Start", ParameterKind.Number, 0.0) { Description = "Where the grid starts across and along; it ends at the start plus the extent." }, new("baseline", "Base of the columns", ParameterKind.Number, 0.0)],
-            [("colormap", nameof(Bars3D.Colormap)), ("width", nameof(Bars3D.Width)), ("lit", "Material.IsLit"), ("opacity", "Material.Opacity"), ("gloss", "Material.Gloss"), ("baseline", nameof(Bars3D.Baseline))],
+            [Colormap(ViridisName), new(WidthKey, "Width", ParameterKind.Number, 0.8) { Minimum = 0.05, Maximum = 1 }, Lit(), Opacity(), new(GlossKey, "Gloss", ParameterKind.Number, 0.18) { Minimum = 0, Maximum = 1, Description = "The strength of the highlights." }, Extent(), new(StartKey, "Start", ParameterKind.Number, 0.0) { Description = "Where the grid starts across and along; it ends at the start plus the extent." }, new("baseline", "Base of the columns", ParameterKind.Number, 0.0)],
+            [(ColormapKey, nameof(Bars3D.Colormap)), (WidthKey, nameof(Bars3D.Width)), ("lit", MaterialIsLit), (OpacityKey, "Material.Opacity"), (GlossKey, "Material.Gloss"), ("baseline", nameof(Bars3D.Baseline))],
             data => new Bars3D((HeatmapData)data, Box, Box), data => $"new Bars3D({data}, new DoubleRange(0, 10), new DoubleRange(0, 10))",
             make: (data, values) => new Bars3D((HeatmapData)data, Span(values), Span(values)),
             write: (data, series) => $"new Bars3D({data}, {SpanCode(series.Parameters)}, {SpanCode(series.Parameters)})"),
         Type("waterfall3d", "Waterfall 3D", DataShape.Spectrogram, "waves", typeof(Waterfall3D), nameof(Chart3DBuilder.AddWaterfall), (0, 1.2),
-            [Colormap("Inferno"), new("style", "Style", ParameterKind.Choice, nameof(WaterfallStyle.Surface)) { Choices = Enum.GetNames<WaterfallStyle>() }, new("spacing", "Rows between lines", ParameterKind.Integer, 8.0) { Minimum = 1, Maximum = 64 }],
-            [("colormap", nameof(Waterfall3D.Colormap)), ("style", nameof(Waterfall3D.Style)), ("spacing", nameof(Waterfall3D.LineSpacing))],
+            [Colormap(InfernoName), new(StyleKey, "Style", ParameterKind.Choice, nameof(WaterfallStyle.Surface)) { Choices = Enum.GetNames<WaterfallStyle>() }, new("spacing", "Rows between lines", ParameterKind.Integer, 8.0) { Minimum = 1, Maximum = 64 }],
+            [(ColormapKey, nameof(Waterfall3D.Colormap)), (StyleKey, nameof(Waterfall3D.Style)), ("spacing", nameof(Waterfall3D.LineSpacing))],
             data => new Waterfall3D((SpectrogramData)data, Box, Box), data => $"new Waterfall3D({data}, new DoubleRange(0, 10), new DoubleRange(0, 10))"),
         Type("line3d", "Line 3D", DataShape.Points3D, "helix", typeof(Line3D), nameof(Chart3DBuilder.AddLine), (-1, 1),
-            [Color(), new("width", "Width", ParameterKind.Number, 1.5) { Minimum = 0.5, Maximum = 10 }],
-            [("color", nameof(Line3D.Color)), ("width", nameof(Line3D.Width))],
+            [Color(), new(WidthKey, "Width", ParameterKind.Number, 1.5) { Minimum = 0.5, Maximum = 10 }],
+            [(ColorKey, nameof(Line3D.Color)), (WidthKey, nameof(Line3D.Width))],
             data => new Line3D(Points(data)), data => $"new Line3D(Points3D.From({data}.X, {data}.Y, {data}.Z))",
             make: (data, _) => new Line3D(data as Points3D ?? Points(data)),
             write: (data, series) => ShowroomSamples3D.IsReady(series) ? $"new Line3D({data})" : $"new Line3D(Points3D.From({data}.X, {data}.Y, {data}.Z))",
-            usings: ["Tachyon.Charts.Core.Colors"],
+            usings: [TachyonChartsCoreColors],
             start: LiveSamples3D.Start),
         Type("scatter3d", "Scatter 3D", DataShape.Points3D, "scattered", typeof(Scatter3D), nameof(Chart3DBuilder.AddScatter), (-1, 1),
             [Color(), new("size", "Size", ParameterKind.Number, 3.0) { Minimum = 1, Maximum = 30 }],
-            [("color", nameof(Scatter3D.Color)), ("size", nameof(Scatter3D.Size))],
+            [(ColorKey, nameof(Scatter3D.Color)), ("size", nameof(Scatter3D.Size))],
             data => new Scatter3D(Points(data)), data => $"new Scatter3D(Points3D.From({data}.X, {data}.Y, {data}.Z))",
             make: (data, _) => new Scatter3D(data as Points3D ?? Points(data)),
             write: (data, series) => ShowroomSamples3D.IsReady(series) ? $"new Scatter3D({data})" : $"new Scatter3D(Points3D.From({data}.X, {data}.Y, {data}.Z))",
-            usings: ["Tachyon.Charts.Core.Colors", "Tachyon.Charts.Rendering"],
+            usings: [TachyonChartsCoreColors, "Tachyon.Charts.Rendering"],
             start: LiveSamples3D.Start),
         Type("bubbles3d", "Bubbles 3D", DataShape.Bubbles3D, "balls", typeof(Bubbles3D), nameof(Chart3DBuilder.AddBubbles), (-1, 1),
             [Color(), new("sizeUnit", "Size in", ParameterKind.Choice, nameof(BubbleSizeUnit.Data)) { Choices = Enum.GetNames<BubbleSizeUnit>(), Description = "Data: the diameters are in the units of the axes; Screen: in screen points, the same at every distance." }],
-            [("color", nameof(Bubbles3D.Color)), ("sizeUnit", nameof(Bubbles3D.SizeUnit))],
+            [(ColorKey, nameof(Bubbles3D.Color)), ("sizeUnit", nameof(Bubbles3D.SizeUnit))],
             data => Balls(data), data => $"new Bubbles3D({data}.X, {data}.Y, {data}.Z, {data}.Diameters)",
             make: (data, _) => data is Bubbles3D ready ? new Bubbles3D(ready.X, ready.Y, ready.Z, ready.Diameters) { Colors = ready.Colors, Values = ready.Values } : Balls(data),
             readyInit: data => $"Colors = {data}.Colors, Values = {data}.Values",
-            usings: ["Tachyon.Charts.Core.Colors", "Tachyon.Charts.Rendering"]),
+            usings: [TachyonChartsCoreColors, "Tachyon.Charts.Rendering"]),
         Type("cloudFile3d", "Point cloud from a file", DataShape.CloudPages, CloudFileSamples3D.Id, typeof(PointCloud3D), nameof(Chart3DBuilder.AddCloud), (-1, 1),
-            [Colormap("Viridis"), new("pointSize", "Point size", ParameterKind.Number, 2.0) { Minimum = 1, Maximum = 20 }],
-            [("colormap", nameof(PointCloud3D.HeightColors)), ("pointSize", nameof(PointCloud3D.PointSize))],
+            [Colormap(ViridisName), new(PointSizeKey, "Point size", ParameterKind.Number, 2.0) { Minimum = 1, Maximum = 20 }],
+            [(ColormapKey, nameof(PointCloud3D.HeightColors)), (PointSizeKey, nameof(PointCloud3D.PointSize))],
             data => new PointCloud3D((CloudPages)data), data => $"new PointCloud3D({data})"),
         Type("cloud3d", "Point cloud", DataShape.Points3D, "dust", typeof(PointCloud3D), nameof(Chart3DBuilder.AddCloud), (-1, 1),
-            [Color(), new("pointSize", "Point size", ParameterKind.Number, 2.5) { Minimum = 1, Maximum = 20 }],
-            [("color", nameof(PointCloud3D.Color)), ("pointSize", nameof(PointCloud3D.PointSize))],
+            [Color(), new(PointSizeKey, "Point size", ParameterKind.Number, 2.5) { Minimum = 1, Maximum = 20 }],
+            [(ColorKey, nameof(PointCloud3D.Color)), (PointSizeKey, nameof(PointCloud3D.PointSize))],
             data => Cloud(data), data => $"new PointCloud3D({data}.X, {data}.Y, {data}.Z)",
             make: (data, _) => data is Func<IProgress<double>, PointCloudArrays> load ? new PointCloud3D(load) : Cloud(data),
             write: (data, series) => ShowroomSamples3D.IsReady(series) ? $"new PointCloud3D({data})" : $"new PointCloud3D({data}.X, {data}.Y, {data}.Z)"),
         Type("map3d", "Map from measurements", DataShape.Points3D, "scattered", typeof(MeasuredMap3D), nameof(Chart3DBuilder.AddMap), (-1, 1),
-            [Colormap("Viridis"), new("points", "Show the points", ParameterKind.Flag, true), Lit()],
-            [("colormap", nameof(MeasuredMap3D.Colormap)), ("points", nameof(MeasuredMap3D.ShowsPoints)), ("lit", "Material.IsLit")],
+            [Colormap(ViridisName), new("points", "Show the points", ParameterKind.Flag, true), Lit()],
+            [(ColormapKey, nameof(MeasuredMap3D.Colormap)), ("points", nameof(MeasuredMap3D.ShowsPoints)), ("lit", MaterialIsLit)],
             data => Map(data), data => $"new MeasuredMap3D({data}.X, {data}.Y, {data}.Z)"),
         Type("volume3d", "Volume", DataShape.Volume, "blobs", typeof(Volume3D), nameof(Chart3DBuilder.AddVolume), (0, 10),
             [
                 new("mode", "Show", ParameterKind.Choice, nameof(VolumeMode.Transfer)) { Choices = Enum.GetNames<VolumeMode>() },
-                Colormap("Viridis"),
-                new("transfer", "Transfer", ParameterKind.Choice, "Colormap") { Choices = ["Colormap", "Tissue and spots"], Description = "How values turn into color and opacity when looking through: the colormap, or clear around a body, faint tissue and solid shell and spots." },
+                Colormap(ViridisName),
+                new("transfer", "Transfer", ParameterKind.Choice, ColormapName) { Choices = [ColormapName, "Tissue and spots"], Description = "How values turn into color and opacity when looking through: the colormap, or clear around a body, faint tissue and solid shell and spots." },
                 new("slices", "Slices", ParameterKind.Flag, true) { Description = "Three planes through the middle that show the values on them." },
                 new("sliceThreshold", "Slices leave out below", ParameterKind.Number, 0.0) { Minimum = 0, Maximum = 1, Description = "The share of the value range below which a slice stays clear." },
                 new("isoAt", "Surface at", ParameterKind.Number, 0.5) { Minimum = 0, Maximum = 1, Description = "For the surface of equal value: where between the lowest and the highest value it lies." },
                 Extent(),
-                new("start", "Start", ParameterKind.Number, 0.0) { Description = "Where the volume starts along each axis; it ends at the start plus the extent." },
+                new(StartKey, "Start", ParameterKind.Number, 0.0) { Description = "Where the volume starts along each axis; it ends at the start plus the extent." },
             ],
-            [("mode", nameof(Volume3D.Mode)), ("colormap", nameof(Volume3D.Colormap)), ("slices", nameof(Volume3D.ShowsSlices)), ("sliceThreshold", nameof(Volume3D.SliceThreshold))],
+            [("mode", nameof(Volume3D.Mode)), (ColormapKey, nameof(Volume3D.Colormap)), ("slices", nameof(Volume3D.ShowsSlices)), ("sliceThreshold", nameof(Volume3D.SliceThreshold))],
             data => new Volume3D((VolumeData)data, Box, Box, Box), data => $"new Volume3D({data}, new DoubleRange(0, 10), new DoubleRange(0, 10), new DoubleRange(0, 10))",
             make: (data, values) =>
             {
                 var volumeData = (VolumeData)data;
-                var volume = values.GetText("transfer", "Colormap") == "Colormap"
+                var volume = values.GetText("transfer", ColormapName) == ColormapName
                     ? new Volume3D(volumeData, Span(values), Span(values), Span(values))
                     : new Volume3D(volumeData, Span(values), Span(values), Span(values)) { Transfer = ShowroomVolumes3D.Tissue() };
                 var isoAt = values.GetNumber("isoAt", 0.5);
@@ -142,8 +169,8 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             usings: ["Tachyon.Charts.Rendering"],
             helpers: ShowroomVolumes3D.TissueCode),
         Type("antenna3d", "Antenna pattern", DataShape.Pattern, "dipole", typeof(AntennaPattern3D), nameof(Chart3DBuilder.AddAntenna), null,
-            [Colormap("Viridis"), new("range", "Dynamic range in dB", ParameterKind.Number, 40.0) { Minimum = 3, Maximum = 120 }, Lit()],
-            [("colormap", nameof(AntennaPattern3D.Colormap)), ("range", nameof(AntennaPattern3D.DynamicRange)), ("lit", "Material.IsLit")],
+            [Colormap(ViridisName), new("range", "Dynamic range in dB", ParameterKind.Number, 40.0) { Minimum = 3, Maximum = 120 }, Lit()],
+            [(ColormapKey, nameof(AntennaPattern3D.Colormap)), ("range", nameof(AntennaPattern3D.DynamicRange)), ("lit", MaterialIsLit)],
             data => Antenna(data), data => $"new AntennaPattern3D({data}.Azimuths, {data}.Elevations, {data}.Gains)"),
         Pie3DType("pie3d", "Pie 3D", 0),
         Pie3DType("donut3d", "Donut 3D", 0.5),
@@ -165,40 +192,36 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
 
     private static ChartTypeInfo SpectrumWaterfall() => new("spectrumWaterfall", "Spectrum with 3D waterfall", ChartCategory.Instrument, DataShape.Spectrum, "drift",
         [
-            new("layout", "Arrangement", ParameterKind.Choice, "Side by side") { Choices = ["Side by side", "One above the other", WaterfallAbove] },
+            new("layout", "Arrangement", ParameterKind.Choice, SideBySide) { Choices = [SideBySide, "One above the other", WaterfallAbove] },
             .. InstrumentTypes.SpectrumSettings(),
-            Colormap("Inferno"),
-            new("style", "Style", ParameterKind.Choice, nameof(WaterfallStyle.Surface)) { Choices = Enum.GetNames<WaterfallStyle>() },
+            Colormap(InfernoName),
+            new(StyleKey, "Style", ParameterKind.Choice, nameof(WaterfallStyle.Surface)) { Choices = Enum.GetNames<WaterfallStyle>() },
             new("live", "Live spectra", ParameterKind.Flag, false) { Description = "New spectra keep coming, as from a measurement, and run back in the waterfall." },
             new("rate", "Spectra per second", ParameterKind.Number, 20.0) { Minimum = 1, Maximum = 200 },
         ],
         (chart, series, data, _) => chart.Spectrum((SpectrumDisplay)data),
         (_, _, _) => string.Empty)
     {
-        Usings = ["Tachyon.Charts.Core.Axes", "Tachyon.Charts.Core.Instruments", "Tachyon.Charts.Core.Numerics", "Tachyon.Charts.Core.Colors", "Tachyon.Charts.ThreeD", "Tachyon.Charts.ThreeD.Scene"],
+        Usings = ["Tachyon.Charts.Core.Axes", "Tachyon.Charts.Core.Instruments", "Tachyon.Charts.Core.Numerics", TachyonChartsCoreColors, TachyonChartsThreeD, TachyonChartsThreeDScene],
         OwnsAxes = true,
-        Packages = [("Tachyon.Charts.ThreeD", PackageVersion)],
+        Packages = [(TachyonChartsThreeD, PackageVersion)],
         Region = (_, data) => InstrumentTypes.SpectrumRegion((SpectrumDisplay)data),
         Views = series =>
         {
             var spectrum = new ViewInfo("Spectrum", (chart, _, data) => chart.Spectrum((SpectrumDisplay)data), (_, data) => $"chart.Spectrum({data});");
-            var waterfall = new ViewInfo("Waterfall", (chart, s, data) => chart.Scene3D(scene => Waterfall(scene, (SpectrumDisplay)data, s.Parameters)), (s, data) => $"chart.Scene3D(scene => Waterfall(scene, {data}, Colormaps.{s.Parameters.GetText("colormap", "Inferno")}, WaterfallStyle.{s.Parameters.GetText("style", nameof(WaterfallStyle.Surface))}));");
-            return series.Parameters.GetText("layout", "Side by side") == WaterfallAbove ? [waterfall, spectrum] : [spectrum, waterfall];
+            var waterfall = new ViewInfo("Waterfall", (chart, s, data) => chart.Scene3D(scene => Waterfall(scene, (SpectrumDisplay)data, s.Parameters)), (s, data) => $"chart.Scene3D(scene => Waterfall(scene, {data}, Colormaps.{s.Parameters.GetText(ColormapKey, InfernoName)}, WaterfallStyle.{s.Parameters.GetText(StyleKey, nameof(WaterfallStyle.Surface))}));");
+            return series.Parameters.GetText("layout", SideBySide) == WaterfallAbove ? [waterfall, spectrum] : [spectrum, waterfall];
         },
-        Columns = series => series.Parameters.GetText("layout", "Side by side") == "Side by side" ? 2 : 1,
+        Columns = series => series.Parameters.GetText("layout", SideBySide) == SideBySide ? 2 : 1,
         Prepare = (series, data) => InstrumentTypes.PrepareSpectrum(series.Parameters, (SpectrumDisplay)data),
         PrepareCode = (series, data) =>
         [
             .. InstrumentTypes.PrepareSpectrumCode(series.Parameters, data),
-            .. !series.Parameters.GetFlag("live", false) ? Array.Empty<string>()
-                : series.Data.Sample == "drift" ? [$"StartFeed({data}, {CodeText.Number(series.Parameters.GetNumber("rate", 20))});"]
-                : [$"StartSpectra({data}, {InstrumentTypes.LiveFrequencies(series).ToString(System.Globalization.CultureInfo.InvariantCulture)}, {CodeText.Number(series.Parameters.GetNumber("rate", 20))});"],
+            .. InstrumentTypes.LiveSpectrumCode(series, data, 20),
         ],
 
         // The drifting carrier for its own sample; other spectra come as the analyzer brings them.
-        Start = (series, data) => !series.Parameters.GetFlag("live", false) ? null
-            : series.Data.Sample == "drift" ? SpectrumFeed.Start((SpectrumDisplay)data, series.Parameters.GetNumber("rate", 20))
-            : CarrierFeed.Start((SpectrumDisplay)data, InstrumentTypes.LiveFrequencies(series), series.Parameters.GetNumber("rate", 20)),
+        Start = (series, data) => InstrumentTypes.StartLiveSpectrum(series, (SpectrumDisplay)data, 20),
         Helpers = WaterfallCode + SpectrumFeed.StartCode + CarrierFeed.StartCode,
     };
 
@@ -213,15 +236,15 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             .AddWaterfall(new Waterfall3D(display.History, new DoubleRange(display.HistoryStart, display.HistoryStop), new DoubleRange(0, 400))
             {
                 Display = display,
-                Colormap = ColormapOf(values.GetText("colormap", "Inferno")),
-                Style = Enum.Parse<WaterfallStyle>(values.GetText("style", nameof(WaterfallStyle.Surface))),
+                Colormap = ColormapOf(values.GetText(ColormapKey, InfernoName)),
+                Style = Enum.Parse<WaterfallStyle>(values.GetText(StyleKey, nameof(WaterfallStyle.Surface))),
                 ColorRange = levels,
             });
     }
 
     internal static Colormap ColormapOf(string name) => name switch
     {
-        "Viridis" => Colormaps.Viridis,
+        ViridisName => Colormaps.Viridis,
         "Magma" => Colormaps.Magma,
         "Plasma" => Colormaps.Plasma,
         "Turbo" => Colormaps.Turbo,
@@ -262,9 +285,9 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         new("surfaceLimit", "Surface with height lines and a limit", catalog =>
         {
             var spec = catalog.CreateSpec("surface3d");
-            spec.Series[0].Parameters.Set("heightLines", 10.0);
-            spec.Series[0].Parameters.Set("limit", true);
-            spec.Series[0].Parameters.Set("limitValue", 0.4);
+            spec.Series[0].Parameters.Set(HeightLinesKey, 10.0);
+            spec.Series[0].Parameters.Set(LimitKey, true);
+            spec.Series[0].Parameters.Set(LimitValue, 0.4);
             return spec;
         }),
     ];
@@ -295,6 +318,12 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
 
     private static (double[], double[], double[]) Points(PointFileData points) => (points.X, points.Y, points.Z);
 
+    private static Points3D Points(object data)
+    {
+        var (x, y, z) = ((double[], double[], double[]))data;
+        return Points3D.From(x, y, z);
+    }
+
     private static DataCode FileCode(SeriesSpec series, string method, string type, string body) => new(
         type,
         method,
@@ -309,7 +338,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
                 }
 
             """,
-        ["Tachyon.Charts.ThreeD.Files", "Tachyon.Charts.ThreeD.Scene"]);
+        ["Tachyon.Charts.ThreeD.Files", TachyonChartsThreeDScene]);
 
     // A dataset of three dimensions, slowest first: depth, height, width.
     private static object VolumeFromHdf5(SeriesSpec series)
@@ -342,7 +371,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
                 }
 
             """,
-        ["PureHDF", "Tachyon.Charts.ThreeD.Scene"]);
+        ["PureHDF", TachyonChartsThreeDScene]);
 
     /// <inheritdoc />
     public IReadOnlyList<SceneInfo> Scenes { get; } =
@@ -352,7 +381,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             [
                 new("projection", "Camera", ParameterKind.Choice, nameof(CameraProjection.Perspective)) { Choices = Enum.GetNames<CameraProjection>() },
                 new("cut", "Cut plane", ParameterKind.Choice, "None") { Choices = ["None", "X", "Y", "Z"], Description = "A plane across an axis that hides what lies beyond it." },
-                new("cutAt", "Cut at", ParameterKind.Number, 5.0) { Description = "Where the plane crosses its axis, in the units of the axis; outside its range the plane cuts through the middle. What lies beyond the value disappears." },
+                new(CutAt, "Cut at", ParameterKind.Number, 5.0) { Description = "Where the plane crosses its axis, in the units of the axis; outside its range the plane cuts through the middle. What lies beyond the value disappears." },
                 new("planes", "Further planes", ParameterKind.Text, string.Empty) { Description = "In box coordinates, where every axis spans -1 to 1: the direction to the side that stays, @ and the distance from the middle, such as -1 0 0 @ -0.35; add slice for a plane that only shows its cut. Separated by semicolons." },
                 .. AxisParameters("x"),
                 .. AxisParameters("y"),
@@ -360,8 +389,8 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             ],
             Apply,
             Code,
-            ["Tachyon.Charts.ThreeD", "Tachyon.Charts.ThreeD.Scene", "Tachyon.Charts.Core.Numerics"],
-            "Tachyon.Charts.ThreeD",
+            [TachyonChartsThreeD, TachyonChartsThreeDScene, "Tachyon.Charts.Core.Numerics"],
+            TachyonChartsThreeD,
             PackageVersion),
     ];
 
@@ -380,30 +409,30 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         ChartCategory.ThreeD,
         DataShape.Model,
         "torus",
-        [Color(), Lit(), Opacity(), new("gloss", "Gloss", ParameterKind.Number, 0.18) { Minimum = 0, Maximum = 1, Description = "The strength of the highlights." }, new("sharpness", "Sharpness of the highlights", ParameterKind.Number, 64.0) { Minimum = 1, Maximum = 256 },
-            new("colorBy", "Color by", ParameterKind.Choice, ModelColors) { Choices = [ModelColors, "Height", "Values"], Description = "The colors of the model, or its height or the values its data bring (such as the temperature of the pipe bend) through the colormap; then the color scale shows beside the box. Data without values color by height." },
-            Colormap("Viridis"),
-            new("colorsFollow", "Colors follow the values", ParameterKind.Flag, true) { Description = "The colormap spans from the lowest to the highest value of the model; off for the range below." },
-            new("scaleFrom", "Colors from", ParameterKind.Number, 0.0) { Description = "The value at the start of the colormap." },
-            new("scaleTo", "Colors to", ParameterKind.Number, 1.0) { Description = "The value at the end of the colormap." },
+        [Color(), Lit(), Opacity(), new(GlossKey, "Gloss", ParameterKind.Number, 0.18) { Minimum = 0, Maximum = 1, Description = "The strength of the highlights." }, new("sharpness", "Sharpness of the highlights", ParameterKind.Number, 64.0) { Minimum = 1, Maximum = 256 },
+            new(ColorBy, "Color by", ParameterKind.Choice, ModelColors) { Choices = [ModelColors, HeightName, ValuesName], Description = "The colors of the model, or its height or the values its data bring (such as the temperature of the pipe bend) through the colormap; then the color scale shows beside the box. Data without values color by height." },
+            Colormap(ViridisName),
+            new(ColorsFollow, "Colors follow the values", ParameterKind.Flag, true) { Description = "The colormap spans from the lowest to the highest value of the model; off for the range below." },
+            new(ScaleFrom, "Colors from", ParameterKind.Number, 0.0) { Description = "The value at the start of the colormap." },
+            new(ScaleTo, "Colors to", ParameterKind.Number, 1.0) { Description = "The value at the end of the colormap." },
             new("scaleTitle", "Title of the scale", ParameterKind.Text, string.Empty) { Description = "The name or unit of the values, such as °C." }],
         (_, _, _, _) => throw new InvalidOperationException("Model 3D goes into a 3D scene."),
         (series, data, axes) => ModelCode(series, ShowroomModels3D.HasValues(series) ? data + ".Model" : data, data, axes))
     {
-        Usings = ["Tachyon.Charts.ThreeD.Files", "Tachyon.Charts.ThreeD.Scene", "Tachyon.Charts.Core.Colors", "Tachyon.Charts.Core.Numerics"],
+        Usings = ["Tachyon.Charts.ThreeD.Files", TachyonChartsThreeDScene, TachyonChartsCoreColors, "Tachyon.Charts.Core.Numerics"],
         OwnsAxes = true,
         Helpers = CubeCode,
         OnNewData = series =>
         {
             // Range and title set for the data before rarely fit others; values the new data do not bring become heights.
-            foreach (var name in (ReadOnlySpan<string>)["colorsFollow", "scaleFrom", "scaleTo", "scaleTitle"])
+            foreach (var name in (ReadOnlySpan<string>)[ColorsFollow, ScaleFrom, ScaleTo, "scaleTitle"])
             {
                 series.Parameters.Remove(name);
             }
 
-            if (series.Parameters.GetText("colorBy", ModelColors) == "Values" && !ShowroomModels3D.HasValues(series))
+            if (series.Parameters.GetText(ColorBy, ModelColors) == ValuesName && !ShowroomModels3D.HasValues(series))
             {
-                series.Parameters.Set("colorBy", "Height");
+                series.Parameters.Set(ColorBy, HeightName);
             }
         },
         SceneApply = (builder, series, data) =>
@@ -417,10 +446,8 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
                     .ZAxis(Cube(model, 2).From, Cube(model, 2).To, "z");
             }
 
-            var material = new Material3D { IsLit = values.GetFlag("lit", true), Opacity = values.GetNumber("opacity", 1), Gloss = values.GetNumber("gloss", 0.18), Sharpness = values.GetNumber("sharpness", 64) };
-            scene.AddMesh(values.GetText("colorBy", ModelColors) == ModelColors
-                ? model.ToMesh(SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? color : null, material)
-                : Colored(model, values.GetText("colorBy", ModelColors) == "Values" && carried is not null ? carried : [.. model.Positions.Select(place => place.Z)], values, material));
+            var material = new Material3D { IsLit = values.GetFlag("lit", true), Opacity = values.GetNumber(OpacityKey, 1), Gloss = values.GetNumber(GlossKey, 0.18), Sharpness = values.GetNumber("sharpness", 64) };
+            scene.AddMesh(MeshOf(model, carried, values, material));
         },
     };
 
@@ -485,8 +512,20 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
     private const string ModelColors = "Model colors";
 
     // The model colored by a value per corner, from the lowest to the highest value or over the range chosen.
+    // The model in its own colors, or colored by its height or by the values it carries.
+    private static Mesh3D MeshOf(ModelFileData model, double[]? carried, SpecValues values, Material3D material)
+    {
+        var colorBy = values.GetText(ColorBy, ModelColors);
+        if (colorBy == ModelColors)
+        {
+            return model.ToMesh(SpecColor.TryParse(values.GetText(ColorKey, string.Empty), out var color) ? color : null, material);
+        }
+
+        return Colored(model, colorBy == ValuesName && carried is not null ? carried : [.. model.Positions.Select(place => place.Z)], values, material);
+    }
+
     private static Mesh3D Colored(ModelFileData model, double[] perPoint, SpecValues values, Material3D material) =>
-        model.ToMesh(perPoint, CoreModule.Colormap(values.GetText("colormap", "Viridis")), values.GetFlag("colorsFollow", true) ? ValueRange(perPoint) : new DoubleRange(values.GetNumber("scaleFrom", 0), values.GetNumber("scaleTo", 1)), material, ScaleTitle(values));
+        model.ToMesh(perPoint, CoreModule.Colormap(values.GetText(ColormapKey, ViridisName)), values.GetFlag(ColorsFollow, true) ? ValueRange(perPoint) : new DoubleRange(values.GetNumber(ScaleFrom, 0), values.GetNumber(ScaleTo, 1)), material, ScaleTitle(values));
 
     // From the lowest to the highest value; one value alone gets a little room around it.
     private static DoubleRange ValueRange(IReadOnlyList<double> values)
@@ -496,45 +535,60 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
     }
 
     // The title of the scale; without one, colors by height name it.
-    private static string? ScaleTitle(SpecValues values) =>
-        values.GetText("scaleTitle", string.Empty) is { Length: > 0 } title ? title : values.GetText("colorBy", ModelColors) == "Height" ? "Height" : null;
+    private static string? ScaleTitle(SpecValues values)
+    {
+        if (values.GetText("scaleTitle", string.Empty) is { Length: > 0 } title)
+        {
+            return title;
+        }
+
+        return values.GetText(ColorBy, ModelColors) == HeightName ? HeightName : null;
+    }
 
     // The model with its box and its colors: those of the model, or its height or values through the colormap, whose
     // scale then shows beside the box. The same choice as the preview, so that scale and model always agree.
     private static string ModelCode(SeriesSpec series, string model, string data, SeriesAxes axes)
     {
         var values = series.Parameters;
-        var material = $"new Material3D {{ IsLit = {CodeText.Flag(values.GetFlag("lit", true))}, Opacity = {CodeText.Number(values.GetNumber("opacity", 1))}, Gloss = {CodeText.Number(values.GetNumber("gloss", 0.18))}, Sharpness = {CodeText.Number(values.GetNumber("sharpness", 64))} }}";
+        var material = $"new Material3D {{ IsLit = {CodeText.Flag(values.GetFlag("lit", true))}, Opacity = {CodeText.Number(values.GetNumber(OpacityKey, 1))}, Gloss = {CodeText.Number(values.GetNumber(GlossKey, 0.18))}, Sharpness = {CodeText.Number(values.GetNumber("sharpness", 64))} }}";
         var box = axes.InSharedBox ? string.Empty : $".XAxis(Cube({model}, 0).From, Cube({model}, 0).To, \"x\").YAxis(Cube({model}, 1).From, Cube({model}, 1).To, \"y\").ZAxis(Cube({model}, 2).From, Cube({model}, 2).To, \"z\")";
-        var colorBy = values.GetText("colorBy", ModelColors);
+        var colorBy = values.GetText(ColorBy, ModelColors);
         if (colorBy == ModelColors)
         {
             return box + $".AddMesh({model}.ToMesh({ModelColorCode(values)}, {material}))";
         }
 
-        var perPoint = colorBy == "Values" && ShowroomModels3D.HasValues(series) ? $"{data}.Values" : $"Heights({model})";
+        var perPoint = colorBy == ValuesName && ShowroomModels3D.HasValues(series) ? $"{data}.Values" : $"Heights({model})";
         var title = ScaleTitle(values) is { } named ? CodeText.String(named) : "null";
-        var range = values.GetFlag("colorsFollow", true) ? $"ValueRange({perPoint})" : $"new DoubleRange({CodeText.Number(values.GetNumber("scaleFrom", 0))}, {CodeText.Number(values.GetNumber("scaleTo", 1))})";
-        if (values.GetFlag("colorsFollow", true) && !perPoint.EndsWith(".Values", StringComparison.Ordinal))
+        var range = values.GetFlag(ColorsFollow, true) ? $"ValueRange({perPoint})" : $"new DoubleRange({CodeText.Number(values.GetNumber(ScaleFrom, 0))}, {CodeText.Number(values.GetNumber(ScaleTo, 1))})";
+        if (values.GetFlag(ColorsFollow, true) && !perPoint.EndsWith(".Values", StringComparison.Ordinal))
         {
             // The heights are needed twice: for the colors and their range.
-            return box + $".AddMesh({model}.ToMesh(Heights({model}), Colormaps.{values.GetText("colormap", "Viridis")}, ValueRange(Heights({model})), {material}, {title}))";
+            return box + $".AddMesh({model}.ToMesh(Heights({model}), Colormaps.{values.GetText(ColormapKey, ViridisName)}, ValueRange(Heights({model})), {material}, {title}))";
         }
 
-        return box + $".AddMesh({model}.ToMesh({perPoint}, Colormaps.{values.GetText("colormap", "Viridis")}, {range}, {material}, {title}))";
+        return box + $".AddMesh({model}.ToMesh({perPoint}, Colormaps.{values.GetText(ColormapKey, ViridisName)}, {range}, {material}, {title}))";
     }
 
-    private static string ModelColorCode(SpecValues values) => SpecColor.TryParse(values.GetText("color", string.Empty), out var color) ? CodeText.Color(color) : "null";
+    private static string ModelColorCode(SpecValues values) => SpecColor.TryParse(values.GetText(ColorKey, string.Empty), out var color) ? CodeText.Color(color) : "null";
 
     private static Rgba8 LimitColor => new(255, 70, 70, 255);
 
     // An object initializer ends with " }"; a further assignment goes in before.
-    private static string WithExtra(string expression, string? assignment) =>
-        assignment is null ? expression : expression[..^2].TrimEnd() + (expression.EndsWith("{  }", StringComparison.Ordinal) ? " " : ", ") + assignment + " }";
+    private static string WithExtra(string expression, string? assignment)
+    {
+        if (assignment is null)
+        {
+            return expression;
+        }
+
+        var separator = expression.EndsWith("{  }", StringComparison.Ordinal) ? " " : ", ";
+        return expression[..^2].TrimEnd() + separator + assignment + " }";
+    }
 
     // A pie in 3D; with a hole it is a donut.
     private static ChartTypeInfo Pie3DType(string id, string name, double hole) => Type(id, name, DataShape.Slices, "mix", typeof(Pie3D), nameof(Chart3DBuilder.AddPie), null,
-        [new("labels", "Labels", ParameterKind.Choice, nameof(PieLabels.NameAndPercent)) { Choices = Enum.GetNames<PieLabels>() }, new("innerRadius", "Hole", ParameterKind.Number, hole) { Minimum = 0, Maximum = 0.9, Description = "The radius of the hole as a share of the radius; above 0 for a donut." }, new("height", "Height", ParameterKind.Number, 0.3) { Minimum = 0.02, Maximum = 1 }, new("explodeDistance", "Pulled out by", ParameterKind.Number, 0.15) { Minimum = 0, Maximum = 0.5 }, new("exploded", "Piece pulled out", ParameterKind.Integer, -1.0) { Minimum = -1, Maximum = 100, Description = "The number of the piece from 0; -1 for none." }],
+        [new("labels", "Labels", ParameterKind.Choice, nameof(PieLabels.NameAndPercent)) { Choices = Enum.GetNames<PieLabels>() }, new("innerRadius", "Hole", ParameterKind.Number, hole) { Minimum = 0, Maximum = 0.9, Description = "The radius of the hole as a share of the radius; above 0 for a donut." }, new("height", HeightName, ParameterKind.Number, 0.3) { Minimum = 0.02, Maximum = 1 }, new("explodeDistance", "Pulled out by", ParameterKind.Number, 0.15) { Minimum = 0, Maximum = 0.5 }, new("exploded", "Piece pulled out", ParameterKind.Integer, -1.0) { Minimum = -1, Maximum = 100, Description = "The number of the piece from 0; -1 for none." }],
         [("labels", nameof(Pie3D.Labels)), ("innerRadius", nameof(Pie3D.InnerRadius)), ("height", nameof(Pie3D.Height)), ("explodeDistance", nameof(Pie3D.ExplodeDistance)), ("exploded", nameof(Pie3D.ExplodedIndex))],
         data => Pie(data), data => $"new Pie3D({data}.Values, {data}.Names)");
 
@@ -552,8 +606,13 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         if (Normal(spec.Scene) is { } normal)
         {
             // The plane lives in box coordinates, where every axis spans -1 to 1; the value is one of the axis.
-            var range = normal.X > 0 ? scene.Scene.XAxis.VisibleRange : normal.Y > 0 ? scene.Scene.YAxis.VisibleRange : scene.Scene.ZAxis.VisibleRange;
-            scene.AddPlane(new ClipPlane3D(normal, Offset(range, spec.Scene.GetNumber("cutAt", 5))));
+            var range = AxisOf(normal) switch
+            {
+                "X" => scene.Scene.XAxis.VisibleRange,
+                "Y" => scene.Scene.YAxis.VisibleRange,
+                _ => scene.Scene.ZAxis.VisibleRange,
+            };
+            scene.AddPlane(new ClipPlane3D(normal, Offset(range, spec.Scene.GetNumber(CutAt, 5))));
         }
 
         foreach (var (direction, offset, slice) in Planes(spec.Scene))
@@ -572,7 +631,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
 
         var planes = string.Concat(Planes(spec.Scene).Select(plane => $".AddPlane(new ClipPlane3D(new Point3D({CodeText.Number(plane.Direction.X)}, {CodeText.Number(plane.Direction.Y)}, {CodeText.Number(plane.Direction.Z)}), {CodeText.Number(plane.Offset)}){(plane.Slice ? " { Hides = false }" : string.Empty)})"));
         var end = AxesCode(spec.Scene) + (Normal(spec.Scene) is { } normal
-            ? $".AddPlane(new ClipPlane3D(new Point3D({CodeText.Number(normal.X)}, {CodeText.Number(normal.Y)}, {CodeText.Number(normal.Z)}), s.Scene.{(normal.X > 0 ? "X" : normal.Y > 0 ? "Y" : "Z")}Axis.VisibleRange is {{ }} range && {CodeText.Number(spec.Scene.GetNumber("cutAt", 5))} >= range.Min && {CodeText.Number(spec.Scene.GetNumber("cutAt", 5))} <= range.Max ? -1 + (2 * ({CodeText.Number(spec.Scene.GetNumber("cutAt", 5))} - range.Min) / (range.Max - range.Min)) : 0))" + planes + ")"
+            ? $".AddPlane(new ClipPlane3D(new Point3D({CodeText.Number(normal.X)}, {CodeText.Number(normal.Y)}, {CodeText.Number(normal.Z)}), s.Scene.{AxisOf(normal)}Axis.VisibleRange is {{ }} range && {CodeText.Number(spec.Scene.GetNumber(CutAt, 5))} >= range.Min && {CodeText.Number(spec.Scene.GetNumber(CutAt, 5))} <= range.Max ? -1 + (2 * ({CodeText.Number(spec.Scene.GetNumber(CutAt, 5))} - range.Min) / (range.Max - range.Min)) : 0))" + planes + ")"
             : planes + ")");
         return (start, end);
     }
@@ -642,8 +701,22 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
 
     // Without a title of its own an axis keeps the one of the type, which the code reads from the scene.
     private static string AxesCode(SpecValues values) => string.Concat(new[] { "x", "y", "z" }.Select(axis => Range(values, axis) is { } range
-        ? $".{axis.ToUpperInvariant()}Axis({CodeText.Number(range.From)}, {CodeText.Number(range.To)}, {(values.GetText(axis + "Title", string.Empty) is { Length: > 0 } title ? CodeText.String(title) : $"s.Scene.{axis.ToUpperInvariant()}Axis.Title")})"
+        ? $".{axis.ToUpperInvariant()}Axis({CodeText.Number(range.From)}, {CodeText.Number(range.To)}, {AxisTitleCode(values, axis)})"
         : string.Empty));
+
+    private static string AxisTitleCode(SpecValues values, string axis) =>
+        values.GetText(axis + "Title", string.Empty) is { Length: > 0 } title ? CodeText.String(title) : $"s.Scene.{axis.ToUpperInvariant()}Axis.Title";
+
+    // The axis a plane is cut across.
+    private static string AxisOf(Point3D normal)
+    {
+        if (normal.X > 0)
+        {
+            return "X";
+        }
+
+        return normal.Y > 0 ? "Y" : "Z";
+    }
 
     /// <summary>Gets where a plane across an axis stands in box coordinates: the value of the axis, or the middle when it lies outside.</summary>
     /// <param name="range">The range of the axis.</param>
@@ -662,21 +735,21 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
 
     private static ParameterInfo Extent() => new("size", "Extent", ParameterKind.Number, 10.0) { Minimum = 1e-6, Description = "The grid covers 0 to this value across and along." };
 
-    private static DoubleRange Span(SpecValues values) => new(values.GetNumber("start", 0), values.GetNumber("start", 0) + values.GetNumber("size", 10));
+    private static DoubleRange Span(SpecValues values) => new(values.GetNumber(StartKey, 0), values.GetNumber(StartKey, 0) + values.GetNumber("size", 10));
 
     private static string SpanCode(SpecValues values) => $"new DoubleRange({CodeText.Number(Span(values).Min)}, {CodeText.Number(Span(values).Max)})";
 
-    private static ParameterInfo Colormap(string standard) => new("colormap", "Colormap", ParameterKind.Choice, standard) { Choices = _colormaps };
+    private static ParameterInfo Colormap(string standard) => new(ColormapKey, ColormapName, ParameterKind.Choice, standard) { Choices = _colormaps };
 
     private static ParameterInfo Lit() => new("lit", "Light", ParameterKind.Flag, true);
 
-    private static ParameterInfo Opacity() => new("opacity", "Opacity", ParameterKind.Number, 1.0) { Minimum = 0.05, Maximum = 1 };
+    private static ParameterInfo Opacity() => new(OpacityKey, "Opacity", ParameterKind.Number, 1.0) { Minimum = 0.05, Maximum = 1 };
 
-    private static ParameterInfo Color() => new("color", "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the type." };
+    private static ParameterInfo Color() => new(ColorKey, "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the type." };
 
     // A type that goes into the scene: the axes of the box (unless the type sets its own), then the object with its properties.
     private static Contours3D HeightLines(SpecValues values) =>
-        Contours3D.Even(new DoubleRange(values.GetNumber("zFrom", -1), values.GetNumber("zTo", 1)), (int)values.GetNumber("heightLines", 0)) with { OnWalls = values.GetFlag("onWalls", false) };
+        Contours3D.Even(new DoubleRange(values.GetNumber(ZFrom, -1), values.GetNumber("zTo", 1)), (int)values.GetNumber(HeightLinesKey, 0)) with { OnWalls = values.GetFlag("onWalls", false) };
 
     private static ChartTypeInfo Type(
         string id,
@@ -701,7 +774,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
     {
         make ??= (data, _) => create(data);
         write ??= (data, _) => constructor(data);
-        var all = height is { } z ? [.. parameters, new("zFrom", "Z from", ParameterKind.Number, z.From), new("zTo", "Z to", ParameterKind.Number, z.To)] : parameters;
+        var all = height is { } z ? [.. parameters, new(ZFrom, "Z from", ParameterKind.Number, z.From), new("zTo", "Z to", ParameterKind.Number, z.To)] : parameters;
         var recipe = new SeriesRecipe(type, all, properties);
         var method = typeof(Chart3DBuilder).GetMethod(add, [type]) ?? throw new ArgumentException($"The 3D builder has no {add} for {type.Name}.", nameof(add));
         return new ChartTypeInfo(
@@ -712,10 +785,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
             sample,
             recipe.Parameters,
             (_, _, _, _) => throw new InvalidOperationException($"{name} goes into a 3D scene."),
-            (series, data, axes) => (axes.InSharedBox ? string.Empty
-                : series.Data.Kind != DataKind.Sample && shape == DataShape.Points3D ? $".XAxis({data}.X.Min(), {data}.X.Max(), \"x\").YAxis({data}.Y.Min(), {data}.Y.Max(), \"y\").ZAxis({data}.Z.Min(), {data}.Z.Max(), \"z\")"
-                : ShowroomSamples3D.BoxOf(series) is { } box ? BoxCode(box)
-                : Axes(series.Parameters, height)) + $".{add}({WithExtra(WithExtra(WithExtra(recipe.Expression(write(data, series), series), extra?.InitCode(series.Parameters)), ShowroomSamples3D.IsReady(series) ? readyInit?.Invoke(data) : null), dataInit?.Invoke(data, series))})" + (extra?.AfterCode(series.Parameters) ?? string.Empty))
+            (series, data, axes) => BoxCodeOf(series, data, axes, shape, height) + $".{add}({WithExtra(WithExtra(WithExtra(recipe.Expression(write(data, series), series), extra?.InitCode(series.Parameters)), ShowroomSamples3D.IsReady(series) ? readyInit?.Invoke(data) : null), dataInit?.Invoke(data, series))})" + (extra?.AfterCode(series.Parameters) ?? string.Empty))
         {
             Usings = [.. recipe.Usings, .. usings ?? []],
             OwnsAxes = true,
@@ -739,7 +809,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
                 else if (height is not null)
                 {
                     var values = series.Parameters;
-                    scene.XAxis(Span(values).Min, Span(values).Max, "x").YAxis(Span(values).Min, Span(values).Max, "y").ZAxis(values.GetNumber("zFrom", height.Value.From), values.GetNumber("zTo", height.Value.To), "z");
+                    scene.XAxis(Span(values).Min, Span(values).Max, "x").YAxis(Span(values).Min, Span(values).Max, "y").ZAxis(values.GetNumber(ZFrom, height.Value.From), values.GetNumber("zTo", height.Value.To), "z");
                 }
 
                 var created = make(data, series.Parameters);
@@ -751,6 +821,40 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
         };
     }
 
+    // The box of a series that has the scene to itself: from its own points, its sample or its parameters.
+    private static string BoxCodeOf(SeriesSpec series, string data, SeriesAxes axes, DataShape shape, (double From, double To)? height)
+    {
+        if (axes.InSharedBox)
+        {
+            return string.Empty;
+        }
+
+        if (series.Data.Kind != DataKind.Sample && shape == DataShape.Points3D)
+        {
+            return $".XAxis({data}.X.Min(), {data}.X.Max(), \"x\").YAxis({data}.Y.Min(), {data}.Y.Max(), \"y\").ZAxis({data}.Z.Min(), {data}.Z.Max(), \"z\")";
+        }
+
+        return ShowroomSamples3D.BoxOf(series) is { } box ? BoxCode(box) : Axes(series.Parameters, height);
+    }
+
+    // The limit line, or height lines at even steps.
+    private static string? ContoursCode(SpecValues values)
+    {
+        if (values.GetFlag("limitLine", false))
+        {
+            return $"Contours = new Contours3D([{CodeText.Number(values.GetNumber(LimitValue, 0.5))}]) {{ Color = new Rgba8(255, 70, 70, 255), Width = 2.5, OnFloor = false }}";
+        }
+
+        var lines = (int)values.GetNumber(HeightLinesKey, 0);
+        if (lines <= 0)
+        {
+            return null;
+        }
+
+        var walls = values.GetFlag("onWalls", false) ? " with { OnWalls = true }" : string.Empty;
+        return $"Contours = Contours3D.Even(new DoubleRange({CodeText.Number(values.GetNumber(ZFrom, -1))}, {CodeText.Number(values.GetNumber("zTo", 1))}), {lines}){walls}";
+    }
+
     private static string BoxCode((DoubleRange X, DoubleRange Y, DoubleRange Z) box) =>
         $".XAxis({CodeText.Number(box.X.Min)}, {CodeText.Number(box.X.Max)}, \"x\").YAxis({CodeText.Number(box.Y.Min)}, {CodeText.Number(box.Y.Max)}, \"y\").ZAxis({CodeText.Number(box.Z.Min)}, {CodeText.Number(box.Z.Max)}, \"z\")";
 
@@ -758,7 +862,7 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
     private static string? VolumeInit(string data, SpecValues values)
     {
         var parts = new List<string>();
-        if (values.GetText("transfer", "Colormap") != "Colormap")
+        if (values.GetText("transfer", ColormapName) != ColormapName)
         {
             parts.Add("Transfer = Tissue()");
         }
@@ -772,14 +876,8 @@ public sealed class ThreeDModule : IChartModule, IDataLoaders
     }
 
     private static string Axes(SpecValues values, (double From, double To)? height) => height is { } z
-        ? string.Create(CultureInfo.InvariantCulture, $".XAxis({CodeText.Number(Span(values).Min)}, {CodeText.Number(Span(values).Max)}, \"x\").YAxis({CodeText.Number(Span(values).Min)}, {CodeText.Number(Span(values).Max)}, \"y\").ZAxis({CodeText.Number(values.GetNumber("zFrom", z.From))}, {CodeText.Number(values.GetNumber("zTo", z.To))}, \"z\")")
+        ? string.Create(CultureInfo.InvariantCulture, $".XAxis({CodeText.Number(Span(values).Min)}, {CodeText.Number(Span(values).Max)}, \"x\").YAxis({CodeText.Number(Span(values).Min)}, {CodeText.Number(Span(values).Max)}, \"y\").ZAxis({CodeText.Number(values.GetNumber(ZFrom, z.From))}, {CodeText.Number(values.GetNumber("zTo", z.To))}, \"z\")")
         : string.Empty;
-
-    private static Points3D Points(object data)
-    {
-        var (x, y, z) = ((double[], double[], double[]))data;
-        return Points3D.From(x, y, z);
-    }
 
     private static PointCloud3D Cloud(object data)
     {

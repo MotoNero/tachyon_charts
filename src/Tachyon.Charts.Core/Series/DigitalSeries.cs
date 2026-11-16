@@ -230,6 +230,30 @@ public sealed class DigitalSeries : ChartSeries, IDisposable, Overlays.IRefining
     }
 
     // Many points: each pixel column shows its level, and an edge when the level changes inside it.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void AddStep(float x, float from, float to)
+    {
+        AddVertex(x, from);
+        AddVertex(x, to);
+    }
+
+    // An edge inside a column; a pulse that returns inside it is a pixel wide, so that the line never folds back on itself.
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void AddEdge(float middle, float from, float to, bool returns)
+    {
+        if (returns)
+        {
+            AddVertex(middle - 0.5f, from);
+            AddVertex(middle - 0.5f, to);
+            AddVertex(middle + 0.5f, to);
+            AddVertex(middle + 0.5f, from);
+        }
+        else
+        {
+            AddStep(middle, from, to);
+        }
+    }
+
     private void AddColumns(in SeriesFrame frame, long first, long last, int columns, double origin)
     {
         if (_states.Length < columns)
@@ -247,47 +271,37 @@ public sealed class DigitalSeries : ChartSeries, IDisposable, Overlays.IRefining
         {
             var start = first + (span * column / columns);
             var end = first + (span * (column + 1) / columns);
-            if (end <= start)
+            if (end > start)
             {
-                continue;
-            }
-
-            // A change right at the start of the column: the step stands at its left edge.
-            var state = states[column];
-            var level = (state & 1) != 0;
-            if (level != pen)
-            {
-                var x = X(frame, start, origin);
-                AddVertex(x, pen ? high : low);
-                AddVertex(x, level ? high : low);
-                pen = level;
-            }
-
-            if ((state & 2) != 0)
-            {
-                // Both levels inside: an edge over the column, ending at the level the column ends with.
-                var middle = X(frame, start + ((end - start) / 2), origin);
-                var ending = (state & 4) != 0;
-                if (ending == pen)
-                {
-                    // A pulse that returns inside the column: a pixel wide, so that the line never folds back on itself.
-                    AddVertex(middle - 0.5f, pen ? high : low);
-                    AddVertex(middle - 0.5f, pen ? low : high);
-                    AddVertex(middle + 0.5f, pen ? low : high);
-                    AddVertex(middle + 0.5f, pen ? high : low);
-                }
-                else
-                {
-                    AddVertex(middle, pen ? high : low);
-                    AddVertex(middle, ending ? high : low);
-                }
-
-                pen = ending;
+                pen = AddColumn(frame, origin, start, end, states[column], pen, low, high);
             }
         }
 
         AddVertex(X(frame, last - 1, origin), pen ? high : low);
     }
+
+    // A pixel column: a change right at its start makes a step at its left edge; both levels inside make an edge
+    // over the column, ending at the level the column ends with. Returns that level.
+    private bool AddColumn(in SeriesFrame frame, double origin, long start, long end, byte state, bool pen, float low, float high)
+    {
+        var level = (state & 1) != 0;
+        if (level != pen)
+        {
+            AddStep(X(frame, start, origin), Pick(pen, low, high), Pick(level, low, high));
+            pen = level;
+        }
+
+        if ((state & 2) == 0)
+        {
+            return pen;
+        }
+
+        var ending = (state & 4) != 0;
+        AddEdge(X(frame, start + ((end - start) / 2), origin), Pick(pen, low, high), Pick(!pen, low, high), ending == pen);
+        return ending;
+    }
+
+    private static float Pick(bool level, float low, float high) => level ? high : low;
 
     // The level at the start of each column, a change inside it and the level at its end; a list of changes runs a
     // cursor through them, other sources answer column by column.
@@ -305,17 +319,22 @@ public sealed class DigitalSeries : ChartSeries, IDisposable, Overlays.IRefining
         {
             var start = first + (span * column / states.Length);
             var end = first + (span * (column + 1) / states.Length);
-            if (end <= start)
-            {
-                states[column] = (byte)(_source.LevelAt(Math.Min(start, _source.Count - 1)) ? 0b101 : 0);
-                continue;
-            }
-
-            var change = quick is null ? _source.NextChange(start + 1, end) : quick.NextIndexedChange(start + 1, end);
-            var startLevel = _source.LevelAt(start);
-            var endLevel = change < 0 ? startLevel : _source.LevelAt(end - 1);
-            states[column] = (byte)((startLevel ? 1 : 0) | (change >= 0 ? 2 : 0) | (endLevel ? 4 : 0));
+            states[column] = StateOf(start, end, quick);
         }
+    }
+
+    // A pixel column: the level at its start, whether it changes, and the level at its end, as bits 1, 2 and 4.
+    private byte StateOf(long start, long end, PackedBits? quick)
+    {
+        if (end <= start)
+        {
+            return (byte)(_source.LevelAt(Math.Min(start, _source.Count - 1)) ? 0b101 : 0);
+        }
+
+        var change = quick is null ? _source.NextChange(start + 1, end) : quick.NextIndexedChange(start + 1, end);
+        var startLevel = _source.LevelAt(start);
+        var endLevel = change < 0 ? startLevel : _source.LevelAt(end - 1);
+        return (byte)((startLevel ? 1 : 0) | (change >= 0 ? 2 : 0) | (endLevel ? 4 : 0));
     }
 
     private (float Low, float High) Levels(in SeriesFrame frame) => ((float)frame.Y.ToPixel(_low), (float)frame.Y.ToPixel(_high));

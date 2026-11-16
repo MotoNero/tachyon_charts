@@ -86,6 +86,7 @@ public sealed class TernarySeries : MarkSeries
     /// <remarks>A point has three shares and no single value, so a ternary chart writes none.</remarks>
     protected internal override void CollectValueLabels(DoubleRange x, DoubleRange y, List<ValueLabel> labels)
     {
+        // Nothing to write, see the remarks.
     }
 
     /// <summary>Gets or sets the diameter of the points in device-independent units.</summary>

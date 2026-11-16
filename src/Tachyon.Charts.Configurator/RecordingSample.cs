@@ -165,7 +165,7 @@ internal static class RecordingSample
         private void Write()
         {
             var pattern = new float[Pattern];
-            var random = new Random(5);
+            var random = new Random(5); // NOSONAR: sample data drawn the same each time, nothing secret
             for (var i = 0; i < Pattern; i++)
             {
                 pattern[i] = (float)(random.NextDouble() - 0.5) * 0.3f;
@@ -174,7 +174,7 @@ internal static class RecordingSample
             var chunk = new float[Chunk];
             long written = 0;
             var start = _clock.Elapsed.TotalSeconds;
-            while (true)
+            while (!Environment.HasShutdownStarted)
             {
                 if (_clock.ElapsedMilliseconds - Volatile.Read(ref _lastFrame) > 1000 && written > 0)
                 {

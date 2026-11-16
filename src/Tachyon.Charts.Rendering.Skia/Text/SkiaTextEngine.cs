@@ -216,15 +216,6 @@ public sealed class SkiaTextEngine : ITextEngine, IDisposable
         _faces.Clear();
     }
 
-    // HarfBuzz reads tables on demand. Blob.FromStream leaves it a pointer into a managed array, which the
-    // garbage collector frees: glyphs then come from foreign memory. Native memory lives as long as the blob.
-    private static Blob CreateBlob(byte[] fontData)
-    {
-        var memory = Marshal.AllocHGlobal(fontData.Length);
-        Marshal.Copy(fontData, 0, memory, fontData.Length);
-        return new Blob(memory, fontData.Length, MemoryMode.ReadOnly, () => Marshal.FreeHGlobal(memory));
-    }
-
     private static byte[]? Embedded(string file)
     {
         using var stream = typeof(SkiaTextEngine).Assembly.GetManifestResourceStream(file);
@@ -254,86 +245,6 @@ public sealed class SkiaTextEngine : ITextEngine, IDisposable
         return (bytes, typeface.FontSlant != SKFontStyleSlant.Upright);
     }
 
-    private static Vector2[] FlattenQuad(Vector2 a, Vector2 b, Vector2 c)
-    {
-        var points = new Vector2[CurveSegments + 1];
-        for (var i = 0; i <= CurveSegments; i++)
-        {
-            var t = i / (float)CurveSegments;
-            var u = 1 - t;
-            points[i] = (u * u * a) + (2 * u * t * b) + (t * t * c);
-        }
-
-        return points;
-    }
-
-    private static Vector2[] FlattenCubic(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
-    {
-        var points = new Vector2[CurveSegments + 1];
-        for (var i = 0; i <= CurveSegments; i++)
-        {
-            var t = i / (float)CurveSegments;
-            var u = 1 - t;
-            points[i] = (u * u * u * a) + (3 * u * u * t * b) + (3 * u * t * t * c) + (t * t * t * d);
-        }
-
-        return points;
-    }
-
-    private static List<List<Vector2[]>> ExtractContours(SKPath path, Vector2 offset)
-    {
-        var contours = new List<List<Vector2[]>>();
-        List<Vector2[]>? contour = null;
-        var points = new SKPoint[4];
-        Vector2 Convert(SKPoint point) => new Vector2(point.X, point.Y) + offset;
-
-        using var iterator = path.CreateRawIterator();
-        SKPathVerb verb;
-        var start = Vector2.Zero;
-        var current = Vector2.Zero;
-        while ((verb = iterator.Next(points)) != SKPathVerb.Done)
-        {
-            switch (verb)
-            {
-                case SKPathVerb.Move:
-                    contour = [];
-                    contours.Add(contour);
-                    start = current = Convert(points[0]);
-                    break;
-                case SKPathVerb.Line:
-                    current = AddCurve(contour!, [current, Convert(points[1])]);
-                    break;
-                case SKPathVerb.Quad:
-                case SKPathVerb.Conic:
-                    current = AddCurve(contour!, FlattenQuad(current, Convert(points[1]), Convert(points[2])));
-                    break;
-                case SKPathVerb.Cubic:
-                    current = AddCurve(contour!, FlattenCubic(current, Convert(points[1]), Convert(points[2]), Convert(points[3])));
-                    break;
-                case SKPathVerb.Close:
-                    if (Vector2.DistanceSquared(current, start) > 1e-6f)
-                    {
-                        current = AddCurve(contour!, [current, start]);
-                    }
-
-                    break;
-            }
-        }
-
-        contours.RemoveAll(item => item.Count == 0);
-        return contours;
-    }
-
-    private static Vector2 AddCurve(List<Vector2[]> contour, Vector2[] curve)
-    {
-        if (Vector2.DistanceSquared(curve[0], curve[^1]) > 1e-8f)
-        {
-            contour.Add(curve);
-        }
-
-        return curve[^1];
-    }
-
     // Finds or makes the face of a font: an embedded cut, an installed family, or the font of the engine. A cut that
     // is missing is the nearest one there is; italic is then made by leaning the outlines.
     private FontFace FaceOf(TextFont font)
@@ -353,30 +264,60 @@ public sealed class SkiaTextEngine : ITextEngine, IDisposable
         return face;
     }
 
-    private FontFace MakeFace(TextFont font)
+    // A font that comes with the engine: Roboto in its cuts, Roboto Slab leaning for italic.
+    private static FontFace? EmbeddedFace(TextFont font, string? named)
     {
-        var family = font.Family?.Trim();
-        var named = family ?? (_isEmbedded ? "Roboto" : null);
         var (file, leans) = named?.ToUpperInvariant() switch
         {
-            "ROBOTO" => (font.Bold || font.Italic ? "Roboto-" + (font.Bold ? "Bold" : string.Empty) + (font.Italic ? "Italic" : string.Empty) + ".ttf" : EmbeddedFont, false),
+            "ROBOTO" => (RobotoFile(font), false),
             "ROBOTO SLAB" => ("RobotoSlab-" + (font.Bold ? "Bold" : "Regular") + ".ttf", font.Italic),
             _ => ((string?)null, false),
         };
-        if (file is not null && Embedded(file) is { } embedded)
-        {
-            return Own(new FontFace(embedded, leans ? SyntheticSlant : 0));
-        }
+        var slant = leans ? SyntheticSlant : 0;
+        return file is not null && Embedded(file) is { } embedded ? new FontFace(embedded, slant) : null;
+    }
 
-        if (family is { Length: > 0 } && FontRegistry.TryGet(family, out var registered))
+    // A font the application registered, or one of the system in the cut asked for; italic leans where it lacks.
+    private static FontFace? InstalledFace(TextFont font, string family)
+    {
+        if (FontRegistry.TryGet(family, out var registered))
         {
-            return Own(new FontFace(registered, font.Italic ? SyntheticSlant : 0));
+            return new FontFace(registered, font.Italic ? SyntheticSlant : 0);
         }
 
         var style = new SKFontStyle(font.Bold ? SKFontStyleWeight.Bold : SKFontStyleWeight.Normal, SKFontStyleWidth.Normal, font.Italic ? SKFontStyleSlant.Italic : SKFontStyleSlant.Upright);
-        if (family is { Length: > 0 } && SystemFont(family, style) is { } system)
+        if (SystemFont(family, style) is not { } system)
         {
-            return Own(new FontFace(system.Data, font.Italic && !system.IsItalic ? SyntheticSlant : 0));
+            return null;
+        }
+
+        return new FontFace(system.Data, font.Italic && !system.IsItalic ? SyntheticSlant : 0);
+    }
+
+    // The cut of the embedded Roboto: regular, bold, italic or both.
+    private static string RobotoFile(TextFont font)
+    {
+        if (!font.Bold && !font.Italic)
+        {
+            return EmbeddedFont;
+        }
+
+        var weight = font.Bold ? "Bold" : string.Empty;
+        var slant = font.Italic ? "Italic" : string.Empty;
+        return "Roboto-" + weight + slant + ".ttf";
+    }
+
+    private FontFace MakeFace(TextFont font)
+    {
+        var family = font.Family?.Trim();
+        if (EmbeddedFace(font, family ?? (_isEmbedded ? "Roboto" : null)) is { } embedded)
+        {
+            return Own(embedded);
+        }
+
+        if (family is { Length: > 0 } && InstalledFace(font, family) is { } installed)
+        {
+            return Own(installed);
         }
 
         // An unknown family takes the font of the engine in the same cut; the engine's own font can only lean.
@@ -486,6 +427,95 @@ public sealed class SkiaTextEngine : ITextEngine, IDisposable
     // One font file with its shaping, its outlines and the glyphs it has in the atlas.
     private sealed class FontFace : IDisposable
     {
+        private static Vector2[] FlattenQuad(Vector2 a, Vector2 b, Vector2 c)
+        {
+            var points = new Vector2[CurveSegments + 1];
+            for (var i = 0; i <= CurveSegments; i++)
+            {
+                var t = i / (float)CurveSegments;
+                var u = 1 - t;
+                points[i] = (u * u * a) + (2 * u * t * b) + (t * t * c);
+            }
+
+            return points;
+        }
+
+        private static Vector2[] FlattenCubic(Vector2 a, Vector2 b, Vector2 c, Vector2 d)
+        {
+            var points = new Vector2[CurveSegments + 1];
+            for (var i = 0; i <= CurveSegments; i++)
+            {
+                var t = i / (float)CurveSegments;
+                var u = 1 - t;
+                points[i] = (u * u * u * a) + (3 * u * u * t * b) + (3 * u * t * t * c) + (t * t * t * d);
+            }
+
+            return points;
+        }
+
+        private static Vector2 AddCurve(List<Vector2[]> contour, Vector2[] curve)
+        {
+            if (Vector2.DistanceSquared(curve[0], curve[^1]) > 1e-8f)
+            {
+                contour.Add(curve);
+            }
+
+            return curve[^1];
+        }
+
+        // HarfBuzz reads tables on demand. Blob.FromStream leaves it a pointer into a managed array, which the
+        // garbage collector frees: glyphs then come from foreign memory. Native memory lives as long as the blob.
+        private static Blob CreateBlob(byte[] fontData)
+        {
+            var memory = Marshal.AllocHGlobal(fontData.Length);
+            Marshal.Copy(fontData, 0, memory, fontData.Length);
+            return new Blob(memory, fontData.Length, MemoryMode.ReadOnly, () => Marshal.FreeHGlobal(memory));
+        }
+
+        private static List<List<Vector2[]>> ExtractContours(SKPath path, Vector2 offset)
+        {
+            var contours = new List<List<Vector2[]>>();
+            List<Vector2[]>? contour = null;
+            var points = new SKPoint[4];
+            Vector2 Convert(SKPoint point) => new Vector2(point.X, point.Y) + offset;
+
+            using var iterator = path.CreateRawIterator();
+            SKPathVerb verb;
+            var start = Vector2.Zero;
+            var current = Vector2.Zero;
+            while ((verb = iterator.Next(points)) != SKPathVerb.Done)
+            {
+                switch (verb)
+                {
+                    case SKPathVerb.Move:
+                        contour = [];
+                        contours.Add(contour);
+                        start = current = Convert(points[0]);
+                        break;
+                    case SKPathVerb.Line:
+                        current = AddCurve(contour!, [current, Convert(points[1])]);
+                        break;
+                    case SKPathVerb.Quad:
+                    case SKPathVerb.Conic:
+                        current = AddCurve(contour!, FlattenQuad(current, Convert(points[1]), Convert(points[2])));
+                        break;
+                    case SKPathVerb.Cubic:
+                        current = AddCurve(contour!, FlattenCubic(current, Convert(points[1]), Convert(points[2]), Convert(points[3])));
+                        break;
+                    case SKPathVerb.Close:
+                        if (Vector2.DistanceSquared(current, start) > 1e-6f)
+                        {
+                            current = AddCurve(contour!, [current, start]);
+                        }
+
+                        break;
+                }
+            }
+
+            contours.RemoveAll(item => item.Count == 0);
+            return contours;
+        }
+
         private readonly SKTypeface _typeface;
         private readonly SKFont _outlineFont;
         private readonly TrueTypeOutlines? _outlines;

@@ -111,6 +111,40 @@ public sealed class GeoMap
         return new GeoMap(regions);
     }
 
+    // A polygon: the corners of each ring, its triangles, and the polygon made of the rings.
+    private static (Polygon Polygon, (double[], double[], int[], int[]) Cut) ReadPolygon(BinaryReader reader)
+    {
+        var rings = ReadInts(reader);
+        var corners = rings.Sum();
+        var (x, y) = (new double[corners], new double[corners]);
+        for (var i = 0; i < corners; i++)
+        {
+            (x[i], y[i]) = (reader.ReadSingle(), reader.ReadSingle());
+        }
+
+        var triangles = ReadInts(reader);
+        var start = 0;
+        var parts = new PolygonRing[rings.Length];
+        for (var i = 0; i < rings.Length; i++)
+        {
+            parts[i] = new PolygonRing(x[start..(start + rings[i])], y[start..(start + rings[i])]);
+            start += rings[i];
+        }
+
+        return (new Polygon(parts[0], parts[1..]), (x, y, triangles, rings));
+    }
+
+    private static int[] ReadInts(BinaryReader reader)
+    {
+        var values = new int[reader.ReadInt32()];
+        for (var i = 0; i < values.Length; i++)
+        {
+            values[i] = reader.ReadInt32();
+        }
+
+        return values;
+    }
+
     /// <summary>Reads a map in its packed form.</summary>
     /// <param name="stream">The stream, gzip-packed.</param>
     /// <returns>The map, its areas already cut into triangles.</returns>
@@ -133,35 +167,7 @@ public sealed class GeoMap
             var cut = new (double[], double[], int[], int[])[polygons.Length];
             for (var p = 0; p < polygons.Length; p++)
             {
-                var rings = new int[reader.ReadInt32()];
-                for (var i = 0; i < rings.Length; i++)
-                {
-                    rings[i] = reader.ReadInt32();
-                }
-
-                var corners = rings.Sum();
-                var (x, y) = (new double[corners], new double[corners]);
-                for (var i = 0; i < corners; i++)
-                {
-                    (x[i], y[i]) = (reader.ReadSingle(), reader.ReadSingle());
-                }
-
-                var triangles = new int[reader.ReadInt32()];
-                for (var i = 0; i < triangles.Length; i++)
-                {
-                    triangles[i] = reader.ReadInt32();
-                }
-
-                var start = 0;
-                var parts = new PolygonRing[rings.Length];
-                for (var i = 0; i < rings.Length; i++)
-                {
-                    parts[i] = new PolygonRing(x[start..(start + rings[i])], y[start..(start + rings[i])]);
-                    start += rings[i];
-                }
-
-                polygons[p] = new Polygon(parts[0], parts[1..]);
-                cut[p] = (x, y, triangles, rings);
+                (polygons[p], cut[p]) = ReadPolygon(reader);
             }
 
             regions[r] = new GeoRegion(name, code, polygons);

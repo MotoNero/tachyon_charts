@@ -3,12 +3,20 @@ namespace Tachyon.Charts.Configurator.ThreeD;
 /// <summary>The 3D pages of the showroom as descriptions: the same data, axes, titles and options.</summary>
 internal static class ShowroomPages3D
 {
+    private const string Colormap = "colormap";
+    private const string Scatter3d = "scatter3d";
+    private const string Line3d = "line3d";
+    private const string PlanesKey = "planes";
+    private const string Model3d = "model3d";
+    private const string SlicesKey = "slices";
+    private const string Gloss = "gloss";
+
     private static readonly (string, string)[] _unitBox = Box("-1..1", "x", "-1..1", "y", "-1..1", "z");
 
     public static IReadOnlyList<PageInfo> All { get; } =
     [
-        new("Scatter of 3000 points", catalog => Scene(catalog, "Three clouds", "scatter3d", "threeClouds", 3000, [], _unitBox)),
-        new("Scatter of 10 million points", catalog => Scene(catalog, "Three clouds", "scatter3d", "threeClouds", 10_000_000, [], _unitBox)),
+        new("Scatter of 3000 points", catalog => Scene(catalog, "Three clouds", Scatter3d, "threeClouds", 3000, [], _unitBox)),
+        new("Scatter of 10 million points", catalog => Scene(catalog, "Three clouds", Scatter3d, "threeClouds", 10_000_000, [], _unitBox)),
         new("Columns", catalog => Columns(catalog, 16)),
         new("1 million columns", catalog => Columns(catalog, 1000)),
         new("Pie 3D", catalog => Scene(catalog, "Power mix", "pie3d", "tenSources", 10, [("exploded", 1.0)], [])),
@@ -29,57 +37,57 @@ internal static class ShowroomPages3D
         new("Cut planes", catalog =>
         {
             var spec = Hill(catalog);
-            spec.Scene.Set("planes", "-1 0 0 @ -0.35; -0.5 1 0 @ -0.5");
+            spec.Scene.Set(PlanesKey, "-1 0 0 @ -0.35; -0.5 1 0 @ -0.5");
             return spec;
         }),
         new("One plane, all kinds", catalog =>
         {
-            var spec = Scene(catalog, "One plane cuts every kind of data", "scatter3d", "threeClouds", 3000, [], _unitBox);
-            spec.Series.Add(Series(catalog, "line3d", "spiralPath", 4000, ("width", 2.5)));
+            var spec = Scene(catalog, "One plane cuts every kind of data", Scatter3d, "threeClouds", 3000, [], _unitBox);
+            spec.Series.Add(Series(catalog, Line3d, "spiralPath", 4000, ("width", 2.5)));
             spec.Series.Add(Series(catalog, "columns3d", "slopeRaster", 8, ("start", -1.0), ("size", 2.0), ("baseline", -1.0)));
-            spec.Scene.Set("planes", "-1 -0.4 0 @ -0.1");
+            spec.Scene.Set(PlanesKey, "-1 -0.4 0 @ -0.1");
             return spec;
         }),
         new("Planes and limits", catalog =>
         {
             var spec = Scene(catalog, "Surface against a limit of 0.9", "surface3d", "hills", 128, [("size", 6.0), ("zFrom", -1.5), ("zTo", 2.0), ("limit", true), ("limitValue", 0.9), ("limitLine", true)], Box("0..6", "x", "0..6", "y", "-1.5..2", "z"));
-            spec.Series.Add(Series(catalog, "model3d", "testZone", 1, ("color", "#3A86FF"), ("opacity", 0.25), ("gloss", 0.0)));
-            spec.Series.Add(Series(catalog, "model3d", "slantedArea", 1, ("color", "#06D6A0"), ("opacity", 0.6), ("gloss", 0.2)));
+            spec.Series.Add(Series(catalog, Model3d, "testZone", 1, ("color", "#3A86FF"), ("opacity", 0.25), (Gloss, 0.0)));
+            spec.Series.Add(Series(catalog, Model3d, "slantedArea", 1, ("color", "#06D6A0"), ("opacity", 0.6), (Gloss, 0.2)));
             return spec;
         }),
         new("Axis box", catalog => Scene(catalog, "Axis box", "box3d", "scattered", 400, [], Box("0..10", "Time in s", "-5..5", "Offset in mm", "0..100", "Level in dB"))),
         new("Model with measuring points", catalog =>
         {
-            var spec = Scene(catalog, "Pipe bend, wall temperature in °C", "model3d", "pipeBend", 96, [("gloss", 0.3), ("colorBy", "Values"), ("colormap", "Turbo"), ("colorsFollow", false), ("scaleFrom", 55.0), ("scaleTo", 115.0), ("scaleTitle", "°C")], Box("-1.25..126.25", "x in mm", "-63.75..63.75", "y in mm", "-26.25..101.25", "z in mm"));
-            spec.Series.Add(Series(catalog, "scatter3d", "pipeSensors", 9));
-            spec.Scene.Set("planes", "0 1 0 @ -0.05");
+            var spec = Scene(catalog, "Pipe bend, wall temperature in °C", Model3d, "pipeBend", 96, [(Gloss, 0.3), ("colorBy", "Values"), (Colormap, "Turbo"), ("colorsFollow", false), ("scaleFrom", 55.0), ("scaleTo", 115.0), ("scaleTitle", "°C")], Box("-1.25..126.25", "x in mm", "-63.75..63.75", "y in mm", "-26.25..101.25", "z in mm"));
+            spec.Series.Add(Series(catalog, Scatter3d, "pipeSensors", 9));
+            spec.Scene.Set(PlanesKey, "0 1 0 @ -0.05");
             return spec;
         }),
-        new("Model of 1 million triangles", catalog => Scene(catalog, "Knot of tube, colored by height", "model3d", "tubeKnot", 4000, [("gloss", 0.4), ("sharpness", 48.0), ("colorBy", "Height"), ("colormap", "Viridis"), ("colorsFollow", false), ("scaleFrom", -1.4), ("scaleTo", 1.4), ("scaleTitle", "Height in m")], Box("-2.99531..3.630977", "x in m", "-3.313152..3.313136", "y in m", "-3.313141..3.313146", "z in m"))),
+        new("Model of 1 million triangles", catalog => Scene(catalog, "Knot of tube, colored by height", Model3d, "tubeKnot", 4000, [(Gloss, 0.4), ("sharpness", 48.0), ("colorBy", "Height"), (Colormap, "Viridis"), ("colorsFollow", false), ("scaleFrom", -1.4), ("scaleTo", 1.4), ("scaleTitle", "Height in m")], Box("-2.99531..3.630977", "x in m", "-3.313152..3.313136", "y in m", "-3.313141..3.313146", "z in m"))),
         new("Volume slices 512³", catalog => Volume(catalog, "Slices through a body", 512, ("sliceThreshold", 0.04))),
-        new("Through a volume 512³", catalog => Volume(catalog, "Through a body", 512, ("transfer", "Tissue and spots"), ("slices", false))),
-        new("Maximum projection 512³", catalog => Volume(catalog, "Highest value along each ray", 512, ("mode", "Maximum"), ("slices", false), ("sliceThreshold", 0.05), ("colormap", "Inferno"))),
+        new("Through a volume 512³", catalog => Volume(catalog, "Through a body", 512, ("transfer", "Tissue and spots"), (SlicesKey, false))),
+        new("Maximum projection 512³", catalog => Volume(catalog, "Highest value along each ray", 512, ("mode", "Maximum"), (SlicesKey, false), ("sliceThreshold", 0.05), (Colormap, "Inferno"))),
         new("Surface of equal value 512³", catalog =>
         {
-            var spec = Volume(catalog, "Surface of equal value", 512, ("mode", "Surface"), ("slices", false), ("isoAt", 0.45));
-            spec.Scene.Set("planes", "1 1 0 @ -0.1");
+            var spec = Volume(catalog, "Surface of equal value", 512, ("mode", "Surface"), (SlicesKey, false), ("isoAt", 0.45));
+            spec.Scene.Set(PlanesKey, "1 1 0 @ -0.1");
             return spec;
         }),
         new("Objects inside a volume", catalog =>
         {
-            var spec = Volume(catalog, "Objects inside a volume", 128, ("transfer", "Tissue and spots"), ("slices", false));
-            spec.Series.Add(Series(catalog, "line3d", "greenSpiral", 400, ("width", 3.0)));
-            spec.Series.Add(Series(catalog, "model3d", "saddleMesh", 96));
+            var spec = Volume(catalog, "Objects inside a volume", 128, ("transfer", "Tissue and spots"), (SlicesKey, false));
+            spec.Series.Add(Series(catalog, Line3d, "greenSpiral", 400, ("width", 3.0)));
+            spec.Series.Add(Series(catalog, Model3d, "saddleMesh", 96));
             return spec;
         }),
         new("Cloud of 20 million points", catalog => Scene(catalog, "Scanned landscape", "cloud3d", "landscape", 20_000_000, [], _unitBox)),
         new("Cloud of 100 million points", catalog => Scene(catalog, "Scanned landscape", "cloud3d", "landscape", 100_000_000, [], _unitBox)),
-        new("Cloud from a file", catalog => Scene(catalog, "200 million points from a file", "cloudFile3d", CloudFileSamples3D.Id, 200_000_000, [("colormap", "Viridis"), ("pointSize", 2.0)], _unitBox)),
-        new("Path of 200 000 points", catalog => Scene(catalog, "Path of a particle", "line3d", "particlePath", 200_000, [], Box("-25..25", "x", "-30..30", "y", "0..55", "z"))),
+        new("Cloud from a file", catalog => Scene(catalog, "200 million points from a file", "cloudFile3d", CloudFileSamples3D.Id, 200_000_000, [(Colormap, "Viridis"), ("pointSize", 2.0)], _unitBox)),
+        new("Path of 200 000 points", catalog => Scene(catalog, "Path of a particle", Line3d, "particlePath", 200_000, [], Box("-25..25", "x", "-30..30", "y", "0..55", "z"))),
 
         // The live pages: points that keep coming, and the waterfall of a running spectrum above it.
-        new("Path, live", catalog => Scene(catalog, "Path of a particle, live", "line3d", "particlePathLive", 100_000, [], Box("-25..25", "x", "-30..30", "y", "0..55", "z"))),
-        new("Cloud, live", catalog => Scene(catalog, "A million points per second", "scatter3d", "sweepLive", 5_000_000, [("size", 1.5)], _unitBox)),
+        new("Path, live", catalog => Scene(catalog, "Path of a particle, live", Line3d, "particlePathLive", 100_000, [], Box("-25..25", "x", "-30..30", "y", "0..55", "z"))),
+        new("Cloud, live", catalog => Scene(catalog, "A million points per second", Scatter3d, "sweepLive", 5_000_000, [("size", 1.5)], _unitBox)),
         new("Waterfall, live", catalog =>
         {
             var spec = catalog.CreateSpec("spectrumWaterfall");
@@ -144,7 +152,7 @@ internal static class ShowroomPages3D
         Scene(catalog, title, "volume3d", "layeredBody", side, [("start", -1.0), ("size", 2.0), .. options], _unitBox);
 
     // The hill of triangles in the unit box.
-    private static ChartSpec Hill(ChartCatalog catalog) => Scene(catalog, "Surface", "model3d", "hillMesh", 96, [], _unitBox);
+    private static ChartSpec Hill(ChartCatalog catalog) => Scene(catalog, "Surface", Model3d, "hillMesh", 96, [], _unitBox);
 
     // One more series of a type with its sample data and options.
     private static SeriesSpec Series(ChartCatalog catalog, string type, string sample, int count, params (string Name, object Value)[] parameters)
@@ -155,7 +163,7 @@ internal static class ShowroomPages3D
 
     // Columns over a raster of 0 to 16 with two hills, glossy.
     private static ChartSpec Columns(ChartCatalog catalog, int side) =>
-        Scene(catalog, "Columns over a raster", "columns3d", "rasterHills", side, [("size", 16.0), ("zFrom", 0.0), ("zTo", 1.2), ("gloss", 0.4)], [(ZRange, "0..1.2"), (ZTitle, "Value")]);
+        Scene(catalog, "Columns over a raster", "columns3d", "rasterHills", side, [("size", 16.0), ("zFrom", 0.0), ("zTo", 1.2), (Gloss, 0.4)], [(ZRange, "0..1.2"), (ZTitle, "Value")]);
 
     // The field of hills over 0 to 6.
     private static ChartSpec Surface(ChartCatalog catalog, int side, params (string Name, object Value)[] more) =>

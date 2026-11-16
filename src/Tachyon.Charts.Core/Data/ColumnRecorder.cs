@@ -254,14 +254,10 @@ public sealed class ColumnRecorder<T> : IColumnSource<T>, IColumnPyramid<T>, IDi
             _values = (T*)(_base + ColumnFile.HeaderSize);
             WriteHeader(0);
 
-            var levels = new List<long>();
-            for (var length = (capacity + Block - 1) / Block; ; length = (length + Factor - 1) / Factor)
+            var levels = new List<long> { (capacity + Block - 1) / Block };
+            while (levels[^1] > 1)
             {
-                levels.Add(length);
-                if (length == 1)
-                {
-                    break;
-                }
+                levels.Add((levels[^1] + Factor - 1) / Factor);
             }
 
             (_min, _max) = ([.. levels.Select(length => new T[length])], [.. levels.Select(length => new T[length])]);

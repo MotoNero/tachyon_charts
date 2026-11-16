@@ -8,7 +8,11 @@ namespace Tachyon.Charts.Configurator;
 /// <summary>The 2D types of the core described by recipes: stacked area, band, measurements, statistics, pie and donut.</summary>
 internal static class CoreTypes
 {
-    private static readonly ParameterInfo _fill = new("color", "Color", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the theme." };
+    private const string ColorKey = "color";
+    private const string EmptyForTheColorOfTheTheme = "Empty for the color of the theme.";
+    private const string WidthKey = "width";
+
+    private static readonly ParameterInfo _fill = new(ColorKey, "Color", ParameterKind.Color, string.Empty) { Description = EmptyForTheColorOfTheTheme };
     private static readonly ParameterInfo _thickness = new("thickness", "Thickness", ParameterKind.Number, 1.0) { Minimum = 0.5, Maximum = 10 };
 
     public static ChartTypeInfo StackedArea { get; } = new SeriesRecipe(
@@ -37,8 +41,8 @@ internal static class CoreTypes
     public static ChartTypeInfo Band { get; } = new SeriesRecipe(
         typeof(BandSeries),
         [
-            new("firstAbove", "Color where the first is above", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the theme." },
-            new("secondAbove", "Color where the second is above", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the theme." },
+            new("firstAbove", "Color where the first is above", ParameterKind.Color, string.Empty) { Description = EmptyForTheColorOfTheTheme },
+            new("secondAbove", "Color where the second is above", ParameterKind.Color, string.Empty) { Description = EmptyForTheColorOfTheTheme },
         ],
         ("firstAbove", nameof(BandSeries.FirstAboveFill)),
         ("secondAbove", nameof(BandSeries.SecondAboveFill)))
@@ -55,7 +59,7 @@ internal static class CoreTypes
         ("capWidth", nameof(ErrorBarSeries.CapWidth)),
         ("pointSize", nameof(ErrorBarSeries.PointSize)),
         ("thickness", nameof(ErrorBarSeries.Thickness)),
-        ("color", nameof(ErrorBarSeries.Color)))
+        (ColorKey, nameof(ErrorBarSeries.Color)))
         .Type("errorbars", "Error bars", DataShape.Errors, "errors", (_, data, x, y) => Errors(data, x, y), (_, data) => $"new ErrorBarSeries({data}.Values, {data}.Lower, {data}.Upper, x, y)");
 
     public static ChartTypeInfo Stems { get; } = new SeriesRecipe(
@@ -69,7 +73,7 @@ internal static class CoreTypes
         ("baseline", nameof(StemSeries.Baseline)),
         ("headSize", nameof(StemSeries.HeadSize)),
         ("thickness", nameof(StemSeries.Thickness)),
-        ("color", nameof(StemSeries.Color)))
+        (ColorKey, nameof(StemSeries.Color)))
         .Type("stems", "Stems", DataShape.Points, "decay", (_, data, x, y) => new StemSeries((IDataSource<double, double>)data, x, y), (_, data) => $"new StemSeries({data}, x, y)");
 
     public static ChartTypeInfo Histogram { get; } = new SeriesRecipe(
@@ -77,9 +81,9 @@ internal static class CoreTypes
         [
             new("rule", "Bins", ParameterKind.Choice, nameof(BinningRule.Sturges)) { Choices = Enum.GetNames<BinningRule>() },
             new("parameter", "Count or width", ParameterKind.Number, 30.0) { Minimum = 0.001, Maximum = 10_000, Description = "The number of bins for a fixed count, their width for a fixed width." },
-            new("width", "Width", ParameterKind.Number, 1.0) { Minimum = 0.05, Maximum = 1 },
+            new(WidthKey, "Width", ParameterKind.Number, 1.0) { Minimum = 0.05, Maximum = 1 },
         ],
-        ("width", nameof(BarSeries.BarWidth)))
+        (WidthKey, nameof(BarSeries.BarWidth)))
         .Type(
             "histogram",
             "Histogram",
@@ -132,12 +136,12 @@ internal static class CoreTypes
     private static SeriesRecipe Distribution(Type series) => new(
         series,
         [
-            new("width", "Width", ParameterKind.Number, 0.6) { Minimum = 0.05, Maximum = 1 },
-            new("color", "Fill", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the theme." },
-            new("lineColor", "Line color", ParameterKind.Color, string.Empty) { Description = "Empty for the color of the theme." },
+            new(WidthKey, "Width", ParameterKind.Number, 0.6) { Minimum = 0.05, Maximum = 1 },
+            new(ColorKey, "Fill", ParameterKind.Color, string.Empty) { Description = EmptyForTheColorOfTheTheme },
+            new("lineColor", "Line color", ParameterKind.Color, string.Empty) { Description = EmptyForTheColorOfTheTheme },
         ],
-        ("width", nameof(SampleSeries.Width)),
-        ("color", nameof(SampleSeries.Fill)),
+        (WidthKey, nameof(SampleSeries.Width)),
+        (ColorKey, nameof(SampleSeries.Fill)),
         ("lineColor", nameof(SampleSeries.LineColor)));
 
     private static BinningRule Rule(SpecValues values) => Enum.Parse<BinningRule>(values.GetText("rule", nameof(BinningRule.Sturges)));

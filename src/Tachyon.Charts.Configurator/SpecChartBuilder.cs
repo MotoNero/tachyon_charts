@@ -62,27 +62,9 @@ public static class SpecChartBuilder
     private static IEnumerable<SeriesSpec> Drawn(ChartSpec spec, ChartCatalog catalog) =>
         catalog.SceneOf(spec) is null ? DataSources.Expanded(spec.Series, catalog) : spec.Series;
 
-    /// <summary>Writes a description into a chart builder with data made before by <see cref="Prepare"/>.</summary>
-    /// <param name="spec">The description.</param>
-    /// <param name="catalog">The types, samples and interactions.</param>
-    /// <param name="chart">The builder.</param>
-    /// <param name="running">Receives what keeps live data coming, or <see langword="null"/>.</param>
-    /// <param name="prepared">The data of the series, or <see langword="null"/> to make them now.</param>
-    /// <param name="edited">
-    /// For an editor: makes every annotation editable with the mouse and tells, on the thread of the chart, its index
-    /// when a drag ended; <see langword="null"/> to follow the description.
-    /// </param>
-    internal static void Apply(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, ICollection<IDisposable>? running, IReadOnlyList<object?>? prepared, Action<int, Annotation>? edited = null)
+    // Title, fonts, the theme outside a scene, the turned chart and the axes.
+    private static void ApplyLook(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, bool withTheme)
     {
-        ArgumentNullException.ThrowIfNull(spec);
-        ArgumentNullException.ThrowIfNull(catalog);
-        ArgumentNullException.ThrowIfNull(chart);
-
-        if (catalog.Check(spec) is { Count: > 0 } problems)
-        {
-            throw new InvalidOperationException(string.Join(" ", problems));
-        }
-
         if (spec.Title.Length > 0)
         {
             chart.Title(spec.Title);
@@ -98,9 +80,7 @@ public static class SpecChartBuilder
             chart.AxisFont(axisFont.ToTextFont());
         }
 
-        // A scene sets its own theme, so the chosen one follows it.
-        var scene = catalog.SceneOf(spec);
-        if (ThemeOf(spec) is { } theme && scene is null)
+        if (ThemeOf(spec) is { } theme && withTheme)
         {
             chart.Theme(theme);
         }
@@ -110,63 +90,61 @@ public static class SpecChartBuilder
             chart.XDown();
         }
 
-        if (!catalog.OwnsAxes(spec))
+        if (catalog.OwnsAxes(spec))
         {
-            foreach (var axis in spec.XAxes)
-            {
-                chart.XAxis(builder => Axis(builder, axis, AxisPosition.Top));
-            }
-
-            foreach (var axis in spec.YAxes)
-            {
-                chart.YAxis(builder => Axis(builder, axis, AxisPosition.Right));
-            }
+            return;
         }
 
-        if (scene is not null)
+        foreach (var axis in spec.XAxes)
         {
-            scene.Apply(chart, spec, builder =>
-            {
-                var index = 0;
-                foreach (var series in spec.Series)
-                {
-                    var type = catalog.FindType(series.Type)!;
-                    var data = prepared?[index] ?? Data(catalog, series, running);
-                    type.SceneApply!(builder, series, data);
-
-                    // Points that keep coming, such as a live path, run while the chart is shown.
-                    if (running is not null && type.Start?.Invoke(series, data) is { } feed)
-                    {
-                        running.Add(feed);
-                    }
-
-                    index++;
-                }
-            });
-            if (ThemeOf(spec) is { } chosen)
-            {
-                chart.Theme(chosen);
-            }
-        }
-        else
-        {
-            var index = 0;
-            foreach (var series in DataSources.Expanded(spec.Series, catalog))
-            {
-                var type = catalog.FindType(series.Type)!;
-                var data = prepared?[index] ?? Data(catalog, series, running);
-                type.Apply(chart, series, data, new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id));
-
-                // What keeps the data coming, such as live acquisitions, runs while the chart is shown.
-                if (running is not null && type.Start?.Invoke(series, data) is { } feed)
-                {
-                    running.Add(feed);
-                }
-
-                index++;
-            }
+            chart.XAxis(builder => Axis(builder, axis, AxisPosition.Top));
         }
 
+        foreach (var axis in spec.YAxes)
+        {
+            chart.YAxis(builder => Axis(builder, axis, AxisPosition.Right));
+        }
+    }
+
+    // The series of a scene; points that keep coming, such as a live path, run while the chart is shown.
+    private static void ApplySceneSeries(ChartSpec spec, ChartCatalog catalog, object builder, ICollection<IDisposable>? running, IReadOnlyList<object?>? prepared)
+    {
+        var index = 0;
+        foreach (var series in spec.Series)
+        {
+            var type = catalog.FindType(series.Type)!;
+            var data = prepared?[index] ?? Data(catalog, series, running);
+            type.SceneApply!(builder, series, data);
+            Start(type, series, data, running);
+            index++;
+        }
+    }
+
+    // The series of a chart; what keeps the data coming, such as live acquisitions, runs while the chart is shown.
+    private static void ApplySeries(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, ICollection<IDisposable>? running, IReadOnlyList<object?>? prepared)
+    {
+        var index = 0;
+        foreach (var series in DataSources.Expanded(spec.Series, catalog))
+        {
+            var type = catalog.FindType(series.Type)!;
+            var data = prepared?[index] ?? Data(catalog, series, running);
+            type.Apply(chart, series, data, new SeriesAxes(series.XAxis ?? spec.XAxes[0].Id, series.YAxis ?? spec.YAxes[0].Id));
+            Start(type, series, data, running);
+            index++;
+        }
+    }
+
+    private static void Start(ChartTypeInfo type, SeriesSpec series, object data, ICollection<IDisposable>? running)
+    {
+        if (running is not null && type.Start?.Invoke(series, data) is { } feed)
+        {
+            running.Add(feed);
+        }
+    }
+
+    // The interactions and the annotations, editable when the description or an editor asks for it.
+    private static void ApplyInteractions(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, Action<int, Annotation>? edited)
+    {
         if (spec.Modifiers.Count > 0)
         {
             chart.Modifiers(modifiers =>
@@ -188,28 +166,74 @@ public static class SpecChartBuilder
         {
             var (index, values) = (i, spec.Annotations[i].Parameters);
             var info = ChartCatalog.FindAnnotation(spec.Annotations[i].Type)!;
-            chart.AddOverlay(surface =>
-            {
-                var overlay = info.Create(surface, values);
-                if (overlay is Annotation looked)
-                {
-                    foreach (var look in catalog.AnnotationLooks)
-                    {
-                        look.Apply(values, looked.Appearance);
-                    }
-                }
-                if (overlay is Annotation annotation && (isEditable || edited is not null))
-                {
-                    annotation.IsEditable = true;
-                    if (edited is not null)
-                    {
-                        annotation.EditFinished += finished => edited(index, finished);
-                    }
-                }
-
-                return overlay;
-            });
+            chart.AddOverlay(surface => CreateAnnotation(surface, info, values, catalog, isEditable, edited is null ? null : finished => edited(index, finished)));
         }
+    }
+
+    // An annotation with the looks of the add-ons; editable when asked, telling each finished edit.
+    private static Tachyon.Charts.Core.Overlays.ChartOverlay CreateAnnotation(Tachyon.Charts.Core.Pipeline.ChartSurface surface, AnnotationInfo info, SpecValues values, ChartCatalog catalog, bool isEditable, Action<Annotation>? edited)
+    {
+        var overlay = info.Create(surface, values);
+        if (overlay is not Annotation annotation)
+        {
+            return overlay;
+        }
+
+        foreach (var look in catalog.AnnotationLooks)
+        {
+            look.Apply(values, annotation.Appearance);
+        }
+
+        if (isEditable || edited is not null)
+        {
+            annotation.IsEditable = true;
+            if (edited is not null)
+            {
+                annotation.EditFinished += edited;
+            }
+        }
+
+        return overlay;
+    }
+
+    /// <summary>Writes a description into a chart builder with data made before by <see cref="Prepare"/>.</summary>
+    /// <param name="spec">The description.</param>
+    /// <param name="catalog">The types, samples and interactions.</param>
+    /// <param name="chart">The builder.</param>
+    /// <param name="running">Receives what keeps live data coming, or <see langword="null"/>.</param>
+    /// <param name="prepared">The data of the series, or <see langword="null"/> to make them now.</param>
+    /// <param name="edited">
+    /// For an editor: makes every annotation editable with the mouse and tells, on the thread of the chart, its index
+    /// when a drag ended; <see langword="null"/> to follow the description.
+    /// </param>
+    internal static void Apply(ChartSpec spec, ChartCatalog catalog, ChartBuilder chart, ICollection<IDisposable>? running, IReadOnlyList<object?>? prepared, Action<int, Annotation>? edited = null)
+    {
+        ArgumentNullException.ThrowIfNull(spec);
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(chart);
+
+        if (catalog.Check(spec) is { Count: > 0 } problems)
+        {
+            throw new InvalidOperationException(string.Join(" ", problems));
+        }
+
+        // A scene sets its own theme, so the chosen one follows it.
+        var scene = catalog.SceneOf(spec);
+        ApplyLook(spec, catalog, chart, scene is null);
+        if (scene is not null)
+        {
+            scene.Apply(chart, spec, builder => ApplySceneSeries(spec, catalog, builder, running, prepared));
+            if (ThemeOf(spec) is { } chosen)
+            {
+                chart.Theme(chosen);
+            }
+        }
+        else
+        {
+            ApplySeries(spec, catalog, chart, running, prepared);
+        }
+
+        ApplyInteractions(spec, catalog, chart, edited);
 
         foreach (var legend in (ReadOnlySpan<LegendSpec?>)[spec.Legend, spec.SecondLegend])
         {
@@ -285,6 +309,12 @@ public static class SpecChartBuilder
             builder.Gaps(Weekends);
         }
 
+        AxisDetails(builder, axis);
+    }
+
+    // Crossing, turned labels, floor, breaks, pane and hiding of an axis.
+    private static void AxisDetails(AxisBuilder builder, AxisSpec axis)
+    {
         if (axis.CrossesZero)
         {
             builder.CrossesAt(0);

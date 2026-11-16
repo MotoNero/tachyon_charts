@@ -15,6 +15,7 @@ namespace Tachyon.Charts.Configurator.ThreeD;
 /// </summary>
 internal static class ShowroomModels3D
 {
+    private const string Points3DName = "Points3D";
     private const string Model = "ModelFileData";
     private const string PipeType = "(ModelFileData Model, double[] Values)";
 
@@ -77,7 +78,7 @@ internal static class ShowroomModels3D
                 }
 
             """) { HasCount = false },
-        new("pipeSensors", "Nine sensors on the pipe bend", DataShape.Points3D, 9, _ => Sensors(), "Points3D", method => SampleCatalog.Header("nine sensors on the outside of the pipe bend", method, "Points3D", "Not used: nine sensors.") + $$"""
+        new("pipeSensors", "Nine sensors on the pipe bend", DataShape.Points3D, 9, _ => Sensors(), Points3DName, method => SampleCatalog.Header("nine sensors on the outside of the pipe bend", method, Points3DName, "Not used: nine sensors.") + $$"""
                 {
                     Point3D[] sensors = [{{string.Join(", ", SensorPlaces().Select(place => $"new({Number(place.X)}, {Number(place.Y)}, {Number(place.Z)})"))}}];
                     var points = new Points3D(sensors.Length);
@@ -90,7 +91,7 @@ internal static class ShowroomModels3D
                 }
 
             """) { HasCount = false },
-        new("spiralPath", "A spiral upward", DataShape.Points3D, 4000, Spiral, "Points3D", method => SampleCatalog.Header("a spiral upward, colored along its way", method, "Points3D", "The number of points.") + """
+        new("spiralPath", "A spiral upward", DataShape.Points3D, 4000, Spiral, Points3DName, method => SampleCatalog.Header("a spiral upward, colored along its way", method, Points3DName, "The number of points.") + """
                 {
                     var path = new Points3D(count);
                     for (var i = 0; i < count; i++)
@@ -273,10 +274,15 @@ internal static class ShowroomModels3D
         return new Point3D(Math.Cos(angle), 0, Math.Sin(angle));
     }
 
-    private static double Along(Point3D place) =>
-        place.X <= Leg ? place.X
-        : place.Z <= Bend ? Leg + (Bend * Math.Atan2(place.X - Leg, Bend - place.Z))
-        : Leg + (Bend * Math.PI / 2) + (place.Z - Bend);
+    private static double Along(Point3D place)
+    {
+        if (place.X <= Leg)
+        {
+            return place.X;
+        }
+
+        return place.Z <= Bend ? Leg + (Bend * Math.Atan2(place.X - Leg, Bend - place.Z)) : Leg + (Bend * Math.PI / 2) + (place.Z - Bend);
+    }
 
     private static void Band(List<Point3D> corners, double s0, double r0, double s1, double r1, int around, bool outward, int steps = 1)
     {

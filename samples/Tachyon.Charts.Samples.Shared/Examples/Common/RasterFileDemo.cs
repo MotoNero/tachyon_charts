@@ -47,7 +47,7 @@ public static class RasterFileDemo
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var part = $"{path}.{Guid.NewGuid():N}.part";
         var columns = ColumnTerms(width);
-        var band = (int)Math.Max(1, (1 << 24) / width);
+        var band = Math.Max(1, (1 << 24) / width);
         var buffer = new float[(long)band * width];
         using (var writer = new RasterFileWriter(part, width, 0, 1, 0, 1))
         {

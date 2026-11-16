@@ -14,11 +14,20 @@ internal static class MedicalFiles
     /// <summary>Names what a medical source misses.</summary>
     /// <param name="series">The series.</param>
     /// <returns>The problem, or <see langword="null"/>.</returns>
-    public static string? Problem(SeriesSpec series) =>
-        series.Data.Path is not { Length: > 0 } path ? $"Choose the medical file of {series.Name}."
-        : !File.Exists(path) && !Directory.Exists(path) ? $"The medical file of {series.Name} is not there."
-        : series.Data.Segmentation is { Length: > 0 } segmentation && !File.Exists(segmentation) ? $"The segmentation file of {series.Name} is not there."
-        : null;
+    public static string? Problem(SeriesSpec series)
+    {
+        if (series.Data.Path is not { Length: > 0 } path)
+        {
+            return $"Choose the medical file of {series.Name}.";
+        }
+
+        if (!File.Exists(path) && !Directory.Exists(path))
+        {
+            return $"The medical file of {series.Name} is not there.";
+        }
+
+        return series.Data.Segmentation is { Length: > 0 } segmentation && !File.Exists(segmentation) ? $"The segmentation file of {series.Name} is not there." : null;
+    }
 
     /// <summary>Reads a DICOM image.</summary>
     /// <param name="path">The file.</param>

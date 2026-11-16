@@ -8,6 +8,9 @@ namespace Tachyon.Charts.Configurator;
 /// <summary>Prices and plans: candles or OHLC bars with volume, market profile and drawing tools, and Gantt charts.</summary>
 internal static class FinanceTypes
 {
+    private const string StyleKey = "style";
+    private const string VolumeKey = "volume";
+
     public static IReadOnlyList<ChartTypeInfo> Create() => [Candles(), Gantt()];
 
     public static IReadOnlyList<SampleInfo> Samples() => [Prices(), Plan()];
@@ -19,8 +22,8 @@ internal static class FinanceTypes
         DataShape.Candles,
         "prices",
         [
-            new("style", "Style", ParameterKind.Choice, nameof(CandleStyle.Candles)) { Choices = Enum.GetNames<CandleStyle>() },
-            new("volume", "Volume below", ParameterKind.Flag, true),
+            new(StyleKey, "Style", ParameterKind.Choice, nameof(CandleStyle.Candles)) { Choices = Enum.GetNames<CandleStyle>() },
+            new(VolumeKey, "Volume below", ParameterKind.Flag, true),
             new("profile", "Market profile", ParameterKind.Flag, false) { Description = "The volume per price level of the visible days, at the right." },
             new("levels", "Price levels of the profile", ParameterKind.Integer, 40.0) { Minimum = 2, Maximum = 1000 },
             new("drawings", "Drawing tools", ParameterKind.Flag, false) { Description = "Trend lines, channels and more, drawn with the mouse." },
@@ -135,33 +138,11 @@ internal static class FinanceTypes
     private static void ApplyCandles(ChartBuilder chart, SeriesSpec series, object data, SeriesAxes axes)
     {
         var (prices, values) = ((CandleData)data, series.Parameters);
-        chart.Candles(
-            prices,
-            candles =>
-            {
-                candles.Name = series.Name;
-                candles.Style = Enum.Parse<CandleStyle>(values.GetText("style", nameof(CandleStyle.Candles)));
-                candles.ShowsValues = values.GetFlag("values", false);
-                if (SpecColor.TryParse(values.GetText("rising", string.Empty), out var rising))
-                {
-                    candles.Rising = new CandleLook(rising, rising);
-                }
-
-                if (SpecColor.TryParse(values.GetText("falling", string.Empty), out var falling))
-                {
-                    candles.Falling = new CandleLook(falling, falling);
-                }
-
-                if (values.GetFlag("hollow", false))
-                {
-                    candles.Rising = candles.Rising with { IsHollow = true };
-                }
-            },
-            axes.Y);
-        if (values.GetFlag("volume", true))
+        chart.Candles(prices, candles => StyleCandles(candles, series.Name, values), axes.Y);
+        if (values.GetFlag(VolumeKey, true))
         {
             var share = values.GetNumber("volumeShare", 0.3);
-            chart.YAxis(axis => axis.Numeric("volume").Title("Volume").AutoRange().Pane(1, share)).Volume(prices, "volume");
+            chart.YAxis(axis => axis.Numeric(VolumeKey).Title("Volume").AutoRange().Pane(1, share)).Volume(prices, VolumeKey);
         }
 
         if (values.GetFlag("profile", false))
@@ -170,23 +151,52 @@ internal static class FinanceTypes
             chart.VolumeProfile(prices, profile => profile.Levels = levels, axes.Y);
         }
 
-        var (examples, patterns) = (values.GetFlag("examples", false), values.GetFlag("patterns", false));
-        if (values.GetFlag("drawings", false) || examples || patterns)
-        {
-            chart.Drawings(examples || patterns
-                ? layer =>
-                {
-                    if (examples)
-                    {
-                        ExampleDrawings(prices, layer);
-                    }
+        AddDrawings(chart, prices, values);
+    }
 
-                    if (patterns)
-                    {
-                        ExamplePatterns(prices, layer);
-                    }
-                }
-            : null);
+    private static void StyleCandles(CandleSeries candles, string name, SpecValues values)
+    {
+        candles.Name = name;
+        candles.Style = Enum.Parse<CandleStyle>(values.GetText(StyleKey, nameof(CandleStyle.Candles)));
+        candles.ShowsValues = values.GetFlag("values", false);
+        if (SpecColor.TryParse(values.GetText("rising", string.Empty), out var rising))
+        {
+            candles.Rising = new CandleLook(rising, rising);
+        }
+
+        if (SpecColor.TryParse(values.GetText("falling", string.Empty), out var falling))
+        {
+            candles.Falling = new CandleLook(falling, falling);
+        }
+
+        if (values.GetFlag("hollow", false))
+        {
+            candles.Rising = candles.Rising with { IsHollow = true };
+        }
+    }
+
+    // The drawing tools, with example drawings and patterns when asked for.
+    private static void AddDrawings(ChartBuilder chart, CandleData prices, SpecValues values)
+    {
+        var (examples, patterns) = (values.GetFlag("examples", false), values.GetFlag("patterns", false));
+        if (!values.GetFlag("drawings", false) && !examples && !patterns)
+        {
+            return;
+        }
+
+        chart.Drawings(examples || patterns ? layer => DrawExamples(prices, layer, examples, patterns) : null);
+    }
+
+    private static void DrawExamples(CandleData prices, DrawingLayer layer, bool examples, bool patterns)
+    {
+        if (examples)
+        {
+            ExampleDrawings(prices, layer);
+        }
+
+        if (patterns)
+        {
+            ExamplePatterns(prices, layer);
         }
     }
 
@@ -195,9 +205,9 @@ internal static class FinanceTypes
         var values = series.Parameters;
         var look = Look(values);
         var code = look.Length == 0
-            ? $".Candles({data}, s => (s.Name, s.Style, s.ShowsValues) = ({CodeText.String(series.Name)}, CandleStyle.{values.GetText("style", nameof(CandleStyle.Candles))}, {CodeText.Flag(values.GetFlag("values", false))}), {CodeText.String(axes.Y)})"
-            : $".Candles({data}, s => {{ (s.Name, s.Style, s.ShowsValues) = ({CodeText.String(series.Name)}, CandleStyle.{values.GetText("style", nameof(CandleStyle.Candles))}, {CodeText.Flag(values.GetFlag("values", false))}); {look} }}, {CodeText.String(axes.Y)})";
-        if (values.GetFlag("volume", true))
+            ? $".Candles({data}, s => (s.Name, s.Style, s.ShowsValues) = ({CodeText.String(series.Name)}, CandleStyle.{values.GetText(StyleKey, nameof(CandleStyle.Candles))}, {CodeText.Flag(values.GetFlag("values", false))}), {CodeText.String(axes.Y)})"
+            : $".Candles({data}, s => {{ (s.Name, s.Style, s.ShowsValues) = ({CodeText.String(series.Name)}, CandleStyle.{values.GetText(StyleKey, nameof(CandleStyle.Candles))}, {CodeText.Flag(values.GetFlag("values", false))}); {look} }}, {CodeText.String(axes.Y)})";
+        if (values.GetFlag(VolumeKey, true))
         {
             code += $".YAxis(a => a.Numeric(\"volume\").Title(\"Volume\").AutoRange().Pane(1, {CodeText.Number(values.GetNumber("volumeShare", 0.3))})).Volume({data}, \"volume\")";
         }
@@ -208,7 +218,12 @@ internal static class FinanceTypes
         }
 
         var (examples, patterns) = (values.GetFlag("examples", false), values.GetFlag("patterns", false));
-        return code + (examples || patterns ? ExampleDrawingsCode(data, examples, patterns) : values.GetFlag("drawings", false) ? ".Drawings()" : string.Empty);
+        if (examples || patterns)
+        {
+            return code + ExampleDrawingsCode(data, examples, patterns);
+        }
+
+        return code + (values.GetFlag("drawings", false) ? ".Drawings()" : string.Empty);
     }
 
     // Daily prices of working days from Monday, 5 January 2026: waves, a slow rise and the volume of each day.
@@ -221,11 +236,11 @@ internal static class FinanceTypes
         {
             var data = new CandleData(count);
             var (day, close) = (new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc), 100.0);
-            for (var i = 0; i < count; day = day.AddDays(1))
+            for (var i = 0; i < count; i++)
             {
-                if (day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                while (day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
                 {
-                    continue;
+                    day = day.AddDays(1);
                 }
 
                 var open = close;
@@ -233,7 +248,7 @@ internal static class FinanceTypes
                 var high = Math.Max(open, close) + 0.8 + (0.6 * Math.Abs(Math.Sin(i * 1.7)));
                 var low = Math.Min(open, close) - 0.8 - (0.5 * Math.Abs(Math.Cos(i * 1.3)));
                 data.Append(day.Ticks, open, high, low, close, 1000 + (600 * Math.Abs(Math.Sin(i * 0.9))));
-                i++;
+                day = day.AddDays(1);
             }
 
             return data;
@@ -243,11 +258,11 @@ internal static class FinanceTypes
                 {
                     var data = new CandleData(count);
                     var (day, close) = (new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc), 100.0);
-                    for (var i = 0; i < count; day = day.AddDays(1))
+                    for (var i = 0; i < count; i++)
                     {
-                        if (day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+                        while (day.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
                         {
-                            continue;
+                            day = day.AddDays(1);
                         }
 
                         var open = close;
@@ -255,7 +270,7 @@ internal static class FinanceTypes
                         var high = Math.Max(open, close) + 0.8 + (0.6 * Math.Abs(Math.Sin(i * 1.7)));
                         var low = Math.Min(open, close) - 0.8 - (0.5 * Math.Abs(Math.Cos(i * 1.3)));
                         data.Append(day.Ticks, open, high, low, close, 1000 + (600 * Math.Abs(Math.Sin(i * 0.9))));
-                        i++;
+                        day = day.AddDays(1);
                     }
 
                     return data;

@@ -10,6 +10,11 @@ namespace Tachyon.Charts.Configurator.Medical;
 /// </summary>
 public sealed partial class MedicalModule : IChartModule, IDataLoaders
 {
+    private const string GrayscaleName = "Grayscale";
+    private const string AutomaticName = "Automatic";
+    private const string SegmentationKey = "segmentation";
+    private const string OpacityKey = "opacity";
+
     /// <summary>The version of the medical package the generated projects refer to.</summary>
     public const string PackageVersion = "0.1.0-preview.1";
 
@@ -19,7 +24,7 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
 
         """;
 
-    private static readonly string[] _windows = ["Automatic", "Brain", "Bone", "Lung", "Custom"];
+    private static readonly string[] _windows = [AutomaticName, "Brain", "Bone", "Lung", "Custom"];
     private static readonly string[] _usings = ["Tachyon.Charts.Core.Colors", "Tachyon.Charts.Medical"];
     private static readonly string[] _volumeUsings = ["Tachyon.Charts.Core.Colors", "Tachyon.Charts.Medical", "Tachyon.Charts.Rendering", "Tachyon.Charts.ThreeD.Scene"];
     private static readonly (string, string)[] _packages = [("Tachyon.Charts.Medical", PackageVersion)];
@@ -102,13 +107,13 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
         [nameof(MedicalPhantoms.Thorax)] = new(MedicalPhantoms.Thorax),
     };
 
-    private static readonly string[] _colormaps = ["Grayscale", "Viridis", "Inferno", "Magma", "Plasma", "Turbo"];
+    private static readonly string[] _colormaps = [GrayscaleName, "Viridis", "Inferno", "Magma", "Plasma", "Turbo"];
 
     private static ParameterInfo[] Window() =>
     [
-        new("colormap", "Colors", ParameterKind.Choice, "Grayscale") { Choices = _colormaps, Description = "From the lower to the upper end of the window." },
+        new("colormap", "Colors", ParameterKind.Choice, GrayscaleName) { Choices = _colormaps, Description = "From the lower to the upper end of the window." },
         new("interpolated", "Blend pixels", ParameterKind.Flag, true) { Description = "Blends between neighbouring values; off shows each value as a square." },
-        new("window", "Window", ParameterKind.Choice, "Automatic") { Choices = _windows, Description = "The range of values from black to white; Automatic takes the one the data bring." },
+        new("window", "Window", ParameterKind.Choice, AutomaticName) { Choices = _windows, Description = "The range of values from black to white; Automatic takes the one the data bring." },
         new("center", "Window center", ParameterKind.Number, 40.0) { Description = "For a custom window." },
         new("width", "Window width", ParameterKind.Number, 400.0) { Minimum = 1, Description = "For a custom window." },
     ];
@@ -120,7 +125,7 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
         Description = "0 for the usual share of the graphics card; a volume above the limit shows with less precision or fewer values.",
     };
 
-    private static Colormap ColormapOf(SpecValues values) => values.GetText("colormap", "Grayscale") switch
+    private static Colormap ColormapOf(SpecValues values) => values.GetText("colormap", GrayscaleName) switch
     {
         "Viridis" => Colormaps.Viridis,
         "Inferno" => Colormaps.Inferno,
@@ -147,10 +152,10 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
 
     private static IEnumerable<string> LookCode(SpecValues values, string data, bool image)
     {
-        var (colormap, blends, memory) = (values.GetText("colormap", "Grayscale"), values.GetFlag("interpolated", true), (long)values.GetNumber("gpuMemory", 0));
+        var (colormap, blends, memory) = (values.GetText("colormap", GrayscaleName), values.GetFlag("interpolated", true), (long)values.GetNumber("gpuMemory", 0));
         if (image)
         {
-            if (colormap != "Grayscale")
+            if (colormap != GrayscaleName)
             {
                 yield return $"{data}.Colormap = Colormaps.{colormap};";
             }
@@ -163,7 +168,7 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
             yield break;
         }
 
-        if (colormap != "Grayscale" || !blends || memory > 0)
+        if (colormap != GrayscaleName || !blends || memory > 0)
         {
             var parts = new List<string> { $"Colormap = Colormaps.{colormap}" };
             if (!blends)
@@ -246,14 +251,14 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
     private static ParameterInfo[] Segmentation(bool threeD) => threeD
         ?
         [
-            new("segmentation", "Segmentation", ParameterKind.Flag, true) { Description = "The segments of the phantom, or of the segmentation file." },
-            new("opacity", "Opacity of the segments", ParameterKind.Number, 0.5) { Minimum = 0, Maximum = 1 },
+            new(SegmentationKey, "Segmentation", ParameterKind.Flag, true) { Description = "The segments of the phantom, or of the segmentation file." },
+            new(OpacityKey, "Opacity of the segments", ParameterKind.Number, 0.5) { Minimum = 0, Maximum = 1 },
             new("mode", "Segments in 3D", ParameterKind.Choice, nameof(MedicalSegmentation3DMode.Volume)) { Choices = Enum.GetNames<MedicalSegmentation3DMode>() },
         ]
         :
         [
-            new("segmentation", "Segmentation", ParameterKind.Flag, true) { Description = "The segments of the phantom, or of the segmentation file." },
-            new("opacity", "Opacity of the segments", ParameterKind.Number, 0.5) { Minimum = 0, Maximum = 1 },
+            new(SegmentationKey, "Segmentation", ParameterKind.Flag, true) { Description = "The segments of the phantom, or of the segmentation file." },
+            new(OpacityKey, "Opacity of the segments", ParameterKind.Number, 0.5) { Minimum = 0, Maximum = 1 },
         ];
 
     private static MedicalMprSlice Plane(MedicalMprDisplay display, SpecValues values) => Enum.Parse<MedicalMprPlane>(PlaneName(values)) switch
@@ -267,7 +272,7 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
 
     private static void SetWindow(SpecValues values, Action<MedicalWindow> preset, Action<double, double> custom)
     {
-        switch (values.GetText("window", "Automatic"))
+        switch (values.GetText("window", AutomaticName))
         {
             case "Brain":
                 preset(CtWindowPresets.Brain);
@@ -284,9 +289,9 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
         }
     }
 
-    private static IEnumerable<string> WindowCode(SpecValues values, string data) => values.GetText("window", "Automatic") switch
+    private static IEnumerable<string> WindowCode(SpecValues values, string data) => values.GetText("window", AutomaticName) switch
     {
-        "Automatic" => [],
+        AutomaticName => [],
         "Custom" => [$"{data}.SetWindow({CodeText.Number(values.GetNumber("center", 40))}, {CodeText.Number(values.GetNumber("width", 400))});"],
         var preset => [$"{data}.ApplyPreset(CtWindowPresets.{preset});"],
     };
@@ -334,8 +339,8 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
             MedicalSetup.MoveTo(display, Enum.Parse<MedicalMprPlane>(PlaneName(values)), values.GetNumber("position", 50) / 100);
         }
 
-        var (mode, opacity) = (Mode(values), values.GetNumber("opacity", 0.5));
-        if (values.GetFlag("segmentation", true))
+        var (mode, opacity) = (Mode(values), values.GetNumber(OpacityKey, 0.5));
+        if (values.GetFlag(SegmentationKey, true))
         {
             if (series.Data.Kind == DataKind.Sample)
             {
@@ -363,8 +368,8 @@ public sealed partial class MedicalModule : IChartModule, IDataLoaders
             lines.Add($"MoveTo({data}, MedicalMprPlane.{PlaneName(values)}, {CodeText.Number(values.GetNumber("position", 50) / 100)});");
         }
 
-        var (mode, opacity) = ($"MedicalSegmentation3DMode.{Mode(values)}", CodeText.Number(values.GetNumber("opacity", 0.5)));
-        if (values.GetFlag("segmentation", true))
+        var (mode, opacity) = ($"MedicalSegmentation3DMode.{Mode(values)}", CodeText.Number(values.GetNumber(OpacityKey, 0.5)));
+        if (values.GetFlag(SegmentationKey, true))
         {
             if (series.Data.Kind == DataKind.Sample)
             {

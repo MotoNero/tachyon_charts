@@ -55,31 +55,8 @@ public static class ColumnFileConverter
         // The header and the first row tell the columns; both are read from the start of the file.
         var carry = new List<byte>();
         var (header, columnCount, consumed) = Start(stream, format, carry);
-        var kept = (columns.Columns ?? Enumerable.Range(0, columnCount).Where(c => c != columns.XColumn).ToArray()).ToArray();
-        if (kept.Length == 0)
-        {
-            throw new InvalidDataException($"{csvPath} has no column to keep beside X.");
-        }
-
-        var missing = kept.Concat(columns.XColumn is { } xc ? [xc] : []).FirstOrDefault(c => c < 0 || c >= columnCount, -1);
-        if (missing >= 0)
-        {
-            throw new InvalidDataException($"{csvPath} has {columnCount} columns; there is no column {missing}.");
-        }
-
-        // What each field of a row is: the place of a kept column, X, or nothing.
-        var slots = Enumerable.Repeat(-1, columnCount).ToArray();
-        for (var k = 0; k < kept.Length; k++)
-        {
-            slots[kept[k]] = k;
-        }
-
-        if (columns.XColumn is { } xColumn)
-        {
-            slots[xColumn] = -2;
-        }
-
-        var layout = new Layout((byte)format.Delimiter, slots, kept.Length, columns.XColumn is not null, numbers, format.Delimiter);
+        var kept = KeptColumns(columns, columnCount, csvPath);
+        var layout = new Layout((byte)format.Delimiter, SlotsOf(columns, kept, columnCount), kept.Length, columns.XColumn is not null, numbers, format.Delimiter);
         using var writer = new ColumnFileWriter<double>(columnPath, kept.Length, columns.XStart, columns.XStep, ColumnFileWriter<double>.DefaultBlockRows);
         var state = new XState(csvPath);
         long rows = 0;
@@ -88,18 +65,10 @@ public static class ColumnFileConverter
         while (!done)
         {
             // Read pieces one after the other, each ending at a line end; parse them on all cores; write them in order.
-            var filled = 0;
-            for (; filled < pieces.Length; filled++)
-            {
-                if (!pieces[filled].Fill(stream, carry))
-                {
-                    done = true;
-                    break;
-                }
-            }
-
+            var filled = FillPieces(pieces, stream, carry);
+            done = filled < pieces.Length;
             cancellation.ThrowIfCancellationRequested();
-            Parallel.For(0, filled, new ParallelOptions { CancellationToken = cancellation }, index => pieces[index].Parse(layout));
+            Parallel.For(0, filled, new ParallelOptions { CancellationToken = cancellation }, index => pieces[index].ParseValues(layout));
             for (var index = 0; index < filled; index++)
             {
                 var piece = pieces[index];
@@ -119,11 +88,104 @@ public static class ColumnFileConverter
         var (xStart, xStep) = layout.HasX && rows >= 2 ? (state.First, (state.Last - state.First) / (rows - 1)) : (columns.XStart, columns.XStep);
         writer.SetX(xStart, xStep);
         progress?.Report(1);
-        var names = kept.Select(c => header is not null && c < header.Length && header[c].Trim().Length > 0 ? header[c].Trim() : "Column " + (c + 1).ToString(CultureInfo.InvariantCulture)).ToArray();
+        var names = kept.Select(c => NameOf(header, c)).ToArray();
         return new ColumnFileSummary(rows, names, xStart, xStep);
     }
 
+    private static string NameOf(string[]? header, int column) =>
+        header is not null && column < header.Length && header[column].Trim().Length > 0 ? header[column].Trim() : "Column " + (column + 1).ToString(CultureInfo.InvariantCulture);
+
+    // The columns kept: those asked for, or all beside X; each must exist.
+    private static int[] KeptColumns(CsvColumns columns, int columnCount, string csvPath)
+    {
+        var kept = (columns.Columns ?? Enumerable.Range(0, columnCount).Where(c => c != columns.XColumn).ToArray()).ToArray();
+        if (kept.Length == 0)
+        {
+            throw new InvalidDataException($"{csvPath} has no column to keep beside X.");
+        }
+
+        var missing = kept.Concat(columns.XColumn is { } xc ? [xc] : []).FirstOrDefault(c => c < 0 || c >= columnCount, -1);
+        if (missing >= 0)
+        {
+            throw new InvalidDataException($"{csvPath} has {columnCount} columns; there is no column {missing}.");
+        }
+
+        return kept;
+    }
+
+    // What each field of a row is: the place of a kept column, X (-2), or nothing (-1).
+    private static int[] SlotsOf(CsvColumns columns, int[] kept, int columnCount)
+    {
+        var slots = Enumerable.Repeat(-1, columnCount).ToArray();
+        for (var k = 0; k < kept.Length; k++)
+        {
+            slots[kept[k]] = k;
+        }
+
+        if (columns.XColumn is { } xColumn)
+        {
+            slots[xColumn] = -2;
+        }
+
+        return slots;
+    }
+
+    // Fills the pieces in order; fewer than all at the end of the file.
+    private static int FillPieces(Piece[] pieces, FileStream stream, List<byte> carry)
+    {
+        for (var filled = 0; filled < pieces.Length; filled++)
+        {
+            if (!pieces[filled].Fill(stream, carry))
+            {
+                return filled;
+            }
+        }
+
+        return pieces.Length;
+    }
+
     // Reads the header, if there is one, and counts the fields of the first row; the bytes read stay in the carry.
+    // Reads on into the carry, dropping a byte order mark at the start; false at the end of the file.
+    private static bool ReadMore(FileStream stream, byte[] buffer, List<byte> carry, ref bool checkedMark)
+    {
+        var read = stream.Read(buffer);
+        if (read == 0)
+        {
+            return false;
+        }
+
+        carry.AddRange(buffer.AsSpan(0, read));
+        if (!checkedMark && carry.Count >= 3)
+        {
+            checkedMark = true;
+            if (carry[0] == 0xEF && carry[1] == 0xBB && carry[2] == 0xBF)
+            {
+                carry.RemoveRange(0, 3);
+            }
+        }
+
+        return true;
+    }
+
+    // No line end: the rest is the last line, or there are no rows at all.
+    private static (string[]? Header, int Columns, long LinesConsumed) LastLine(List<byte> carry, string[]? header, CsvFormat format, long lines)
+    {
+        var rest = Encoding.UTF8.GetString([.. carry]).TrimEnd('\r');
+        if (rest.Length == 0)
+        {
+            return (header, header?.Length ?? 1, lines);
+        }
+
+        if (header is null && format.HasHeader)
+        {
+            var only = Split(rest, format.Delimiter);
+            carry.Clear();
+            return (only, only.Length, lines + 1);
+        }
+
+        return (header, Math.Max(header?.Length ?? 0, Split(rest, format.Delimiter).Length), lines);
+    }
+
     private static (string[]? Header, int Columns, long LinesConsumed) Start(FileStream stream, CsvFormat format, List<byte> carry)
     {
         var buffer = new byte[1 << 16];
@@ -135,34 +197,9 @@ public static class ColumnFileConverter
             var newline = carry.IndexOf((byte)'\n');
             if (newline < 0)
             {
-                var read = stream.Read(buffer);
-                if (read == 0)
+                if (!ReadMore(stream, buffer, carry, ref checkedMark))
                 {
-                    // No line end: the rest is the last line, or there are no rows at all.
-                    var rest = Encoding.UTF8.GetString([.. carry]).TrimEnd('\r');
-                    if (rest.Length == 0)
-                    {
-                        return (header, header?.Length ?? 1, lines);
-                    }
-
-                    if (header is null && format.HasHeader)
-                    {
-                        var only = Split(rest, format.Delimiter);
-                        carry.Clear();
-                        return (only, only.Length, lines + 1);
-                    }
-
-                    return (header, Math.Max(header?.Length ?? 0, Split(rest, format.Delimiter).Length), lines);
-                }
-
-                carry.AddRange(buffer.AsSpan(0, read));
-                if (!checkedMark && carry.Count >= 3)
-                {
-                    checkedMark = true;
-                    if (carry[0] == 0xEF && carry[1] == 0xBB && carry[2] == 0xBF)
-                    {
-                        carry.RemoveRange(0, 3);
-                    }
+                    return LastLine(carry, header, format, lines);
                 }
 
                 continue;
@@ -200,10 +237,11 @@ public static class ColumnFileConverter
         var fields = new List<string>();
         var field = new StringBuilder();
         var quoted = false;
-        for (var i = 0; i < line.Length; i++)
+        var i = 0;
+        while (i < line.Length)
         {
-            var c = line[i];
-            if (quoted && c == '"' && i + 1 < line.Length && line[i + 1] == '"')
+            var c = line[i++];
+            if (quoted && c == '"' && i < line.Length && line[i] == '"')
             {
                 field.Append('"');
                 i++;
@@ -226,12 +264,6 @@ public static class ColumnFileConverter
         fields.Add(field.ToString());
         return [.. fields];
     }
-
-    private static double Parse(ReadOnlySpan<byte> field, NumberFormatInfo numbers) =>
-        double.TryParse(field.Trim(" \t"u8), NumberStyles.Float | NumberStyles.AllowThousands, numbers, out var value) ? value : double.NaN;
-
-    private static double Parse(string field, NumberFormatInfo numbers) =>
-        double.TryParse(field.AsSpan().Trim(), NumberStyles.Float | NumberStyles.AllowThousands, numbers, out var value) ? value : double.NaN;
 
     // How a row turns into values: per field the place among the kept columns, -2 for X, -1 for nothing.
     private sealed record Layout(byte Delimiter, int[] Slots, int Kept, bool HasX, NumberFormatInfo Numbers, char DelimiterChar);
@@ -273,6 +305,12 @@ public static class ColumnFileConverter
     // A piece of the file that ends at a line end, with its rows once parsed.
     private sealed class Piece
     {
+        private static double Parse(ReadOnlySpan<byte> field, NumberFormatInfo numbers) =>
+            double.TryParse(field.Trim(" \t"u8), NumberStyles.Float | NumberStyles.AllowThousands, numbers, out var value) ? value : double.NaN;
+
+        private static double Parse(string field, NumberFormatInfo numbers) =>
+            double.TryParse(field.AsSpan().Trim(), NumberStyles.Float | NumberStyles.AllowThousands, numbers, out var value) ? value : double.NaN;
+
         private byte[] _bytes = new byte[PieceBytes];
         private int _length;
 
@@ -322,7 +360,7 @@ public static class ColumnFileConverter
             }
         }
 
-        public void Parse(Layout layout)
+        public void ParseValues(Layout layout)
         {
             var text = _bytes.AsSpan(0, _length);
             var estimate = Math.Max(16, text.Count((byte)'\n') + 1);
@@ -355,35 +393,46 @@ public static class ColumnFileConverter
                 Xs[Rows] = double.NaN;
                 if (line.Contains((byte)'"'))
                 {
-                    // Quotes are rare in numbers: such a line goes the careful way.
-                    var fields = Split(Encoding.UTF8.GetString(line), layout.DelimiterChar);
-                    for (var field = 0; field < fields.Length && field < layout.Slots.Length; field++)
-                    {
-                        Store(layout, field, ColumnFileConverter.Parse(fields[field], layout.Numbers), row);
-                    }
+                    ParseQuoted(line, layout, row);
                 }
                 else
                 {
-                    for (var field = 0; field < layout.Slots.Length; field++)
-                    {
-                        var delimiter = line.IndexOf(layout.Delimiter);
-                        var value = delimiter < 0 ? line : line[..delimiter];
-                        if (layout.Slots[field] != -1)
-                        {
-                            Store(layout, field, ColumnFileConverter.Parse(value, layout.Numbers), row);
-                        }
-
-                        if (delimiter < 0)
-                        {
-                            break;
-                        }
-
-                        line = line[(delimiter + 1)..];
-                    }
+                    ParsePlain(line, layout, row);
                 }
 
                 LineOfRow[Rows] = Lines - 1;
                 Rows++;
+            }
+        }
+
+        // Quotes are rare in numbers: such a line goes the careful way.
+        private void ParseQuoted(ReadOnlySpan<byte> line, Layout layout, Span<double> row)
+        {
+            var fields = Split(Encoding.UTF8.GetString(line), layout.DelimiterChar);
+            for (var field = 0; field < fields.Length && field < layout.Slots.Length; field++)
+            {
+                Store(layout, field, Parse(fields[field], layout.Numbers), row);
+            }
+        }
+
+        // The fields straight from the bytes, the ones not kept skipped unread.
+        private void ParsePlain(ReadOnlySpan<byte> line, Layout layout, Span<double> row)
+        {
+            for (var field = 0; field < layout.Slots.Length; field++)
+            {
+                var delimiter = line.IndexOf(layout.Delimiter);
+                var value = delimiter < 0 ? line : line[..delimiter];
+                if (layout.Slots[field] != -1)
+                {
+                    Store(layout, field, Parse(value, layout.Numbers), row);
+                }
+
+                if (delimiter < 0)
+                {
+                    return;
+                }
+
+                line = line[(delimiter + 1)..];
             }
         }
 

@@ -371,6 +371,79 @@ internal sealed class ConfiguratorWindow : Window
         return new StackPanel { Children = { search, list } };
     }
 
+    private static Control ChoiceEditor(FieldModel field, Action<string?> report)
+    {
+        var choice = new ComboBox { ItemsSource = field.Info.Choices, SelectedItem = field.Value, HorizontalAlignment = HorizontalAlignment.Stretch };
+        if (field.Info.ChoicePictures.Count > 0)
+        {
+            var pictures = field.Info.ChoicePictures;
+
+            // A choice with its picture before the name, in the color of the text.
+            choice.ItemTemplate = new global::Avalonia.Controls.Templates.FuncDataTemplate<string>((item, _) => new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Children =
+                {
+                    new global::Avalonia.Controls.Shapes.Path { Data = item is not null && pictures.TryGetValue(item, out var data) ? Geometry.Parse(data) : null, Fill = _ink, Stretch = Stretch.Uniform, Width = 14, Height = 14, Margin = new Thickness(0, 0, 6, 0) },
+                    new TextBlock { Text = item },
+                },
+            });
+        }
+
+        choice.SelectionChanged += (_, _) => report(choice.SelectedItem is string text ? field.Set(text) : null);
+        return choice;
+    }
+
+    private static Control ChoicesEditor(FieldModel field, Action<string?> report)
+    {
+        // A box per choice; the value lists the checked ones in the order of the choices.
+        var chosen = ParameterInfo.Split((string)field.Value);
+        var boxes = new WrapPanel();
+        foreach (var item in field.Info.Choices)
+        {
+            var option = new CheckBox { Content = new TextBlock { Text = item }, Tag = item, IsChecked = chosen.Contains(item), Margin = new Thickness(0, 0, 10, 2) };
+            option.IsCheckedChanged += (_, _) => report(field.Set(string.Join(",", boxes.Children.OfType<CheckBox>().Where(box => box.IsChecked == true).Select(box => (string)box.Tag!))));
+            boxes.Children.Add(option);
+        }
+        return boxes;
+    }
+
+    private static Control FileEditor(FieldModel field, Action<string?> report)
+    {
+        var path = new TextBox { Text = field.Text };
+        path.TextChanged += (_, _) => report(field.SetText(path.Text ?? string.Empty));
+        var browse = new Button { Content = "…", Margin = new Thickness(4, 0, 0, 0) };
+        browse.Click += async (_, _) =>
+        {
+            if (TopLevel.GetTopLevel(browse) is { } top)
+            {
+                var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { AllowMultiple = false });
+                if (files.Count > 0 && files[0].TryGetLocalPath() is { } chosen)
+                {
+                    path.Text = chosen;
+                }
+            }
+        };
+        var file = new DockPanel();
+        DockPanel.SetDock(browse, Dock.Right);
+        file.Children.Add(browse);
+        file.Children.Add(path);
+        return file;
+    }
+
+    private static Control ColorEditor(FieldModel field, Action<string?> report)
+    {
+        // The hex field stays for typing; the swatch beside it opens the picker.
+        var hex = new TextBox { Text = field.Text, HorizontalAlignment = HorizontalAlignment.Stretch };
+        hex.TextChanged += (_, _) => report(field.SetText(hex.Text ?? string.Empty));
+        var picker = new ColorPickerButton(hex);
+        var color = new DockPanel();
+        DockPanel.SetDock(picker, Dock.Left);
+        color.Children.Add(picker);
+        color.Children.Add(hex);
+        return color;
+    }
+
     private static Control Editor(FieldModel field)
     {
         var problem = new TextBlock { Foreground = _problem, TextWrapping = TextWrapping.Wrap, IsVisible = false };
@@ -386,70 +459,16 @@ internal sealed class ConfiguratorWindow : Window
                 editor = SearchableChoice(field, Report);
                 break;
             case ParameterKind.Choice:
-                var choice = new ComboBox { ItemsSource = field.Info.Choices, SelectedItem = field.Value, HorizontalAlignment = HorizontalAlignment.Stretch };
-                if (field.Info.ChoicePictures.Count > 0)
-                {
-                    var pictures = field.Info.ChoicePictures;
-
-                    // A choice with its picture before the name, in the color of the text.
-                    choice.ItemTemplate = new global::Avalonia.Controls.Templates.FuncDataTemplate<string>((item, _) => new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        Children =
-                        {
-                            new global::Avalonia.Controls.Shapes.Path { Data = item is not null && pictures.TryGetValue(item, out var data) ? Geometry.Parse(data) : null, Fill = _ink, Stretch = Stretch.Uniform, Width = 14, Height = 14, Margin = new Thickness(0, 0, 6, 0) },
-                            new TextBlock { Text = item },
-                        },
-                    });
-                }
-
-                choice.SelectionChanged += (_, _) => Report(choice.SelectedItem is string text ? field.Set(text) : null);
-                editor = choice;
+                editor = ChoiceEditor(field, Report);
                 break;
             case ParameterKind.Choices:
-                // A box per choice; the value lists the checked ones in the order of the choices.
-                var chosen = ParameterInfo.Split((string)field.Value);
-                var boxes = new WrapPanel();
-                foreach (var item in field.Info.Choices)
-                {
-                    var option = new CheckBox { Content = new TextBlock { Text = item }, Tag = item, IsChecked = chosen.Contains(item), Margin = new Thickness(0, 0, 10, 2) };
-                    option.IsCheckedChanged += (_, _) => Report(field.Set(string.Join(",", boxes.Children.OfType<CheckBox>().Where(box => box.IsChecked == true).Select(box => (string)box.Tag!))));
-                    boxes.Children.Add(option);
-                }
-
-                editor = boxes;
+                editor = ChoicesEditor(field, Report);
                 break;
             case ParameterKind.File:
-                var path = new TextBox { Text = field.Text };
-                path.TextChanged += (_, _) => Report(field.SetText(path.Text ?? string.Empty));
-                var browse = new Button { Content = "…", Margin = new Thickness(4, 0, 0, 0) };
-                browse.Click += async (_, _) =>
-                {
-                    if (TopLevel.GetTopLevel(browse) is { } top)
-                    {
-                        var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { AllowMultiple = false });
-                        if (files.Count > 0 && files[0].TryGetLocalPath() is { } chosen)
-                        {
-                            path.Text = chosen;
-                        }
-                    }
-                };
-                var file = new DockPanel();
-                DockPanel.SetDock(browse, Dock.Right);
-                file.Children.Add(browse);
-                file.Children.Add(path);
-                editor = file;
+                editor = FileEditor(field, Report);
                 break;
             case ParameterKind.Color:
-                // The hex field stays for typing; the swatch beside it opens the picker.
-                var hex = new TextBox { Text = field.Text, HorizontalAlignment = HorizontalAlignment.Stretch };
-                hex.TextChanged += (_, _) => Report(field.SetText(hex.Text ?? string.Empty));
-                var picker = new ColorPickerButton(hex);
-                var color = new DockPanel();
-                DockPanel.SetDock(picker, Dock.Left);
-                color.Children.Add(picker);
-                color.Children.Add(hex);
-                editor = color;
+                editor = ColorEditor(field, Report);
                 break;
             default:
                 var box = new TextBox { Text = field.Text, HorizontalAlignment = HorizontalAlignment.Stretch };

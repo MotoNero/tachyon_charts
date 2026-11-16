@@ -112,41 +112,58 @@ internal static class GeoTriangulator
     private static void Bridge(Node outer, Node hole)
     {
         var (hx, hy) = (hole.X, hole.Y);
+        var (edge, nearest) = RayHit(outer, hx, hy);
+        if (edge is null)
+        {
+            return;
+        }
+
+        var target = Visible(outer, edge, hx, hy, nearest);
+
+        // Two copies of each end close the bridge: target → hole → around the hole → hole' → target' → on.
+        var targetCopy = new Node(target.Index, target.X, target.Y);
+        var holeCopy = new Node(hole.Index, hole.X, hole.Y);
+        var (afterTarget, beforeHole) = (target.Next, hole.Prev);
+        (target.Next, hole.Prev) = (hole, target);
+        (beforeHole.Next, holeCopy.Prev) = (holeCopy, beforeHole);
+        (holeCopy.Next, targetCopy.Prev) = (targetCopy, holeCopy);
+        (targetCopy.Next, afterTarget.Prev) = (afterTarget, targetCopy);
+    }
+
+    // The edge the ray from the hole east meets first, and its end further east.
+    private static (Node? Edge, double X) RayHit(Node outer, double hx, double hy)
+    {
         Node? edge = null;
         var nearest = double.PositiveInfinity;
         var node = outer;
         do
         {
             var next = node.Next;
-            if ((node.Y <= hy && next.Y >= hy) || (next.Y <= hy && node.Y >= hy))
+            var crosses = (node.Y <= hy && next.Y >= hy) || (next.Y <= hy && node.Y >= hy);
+            if (crosses && next.Y != node.Y)
             {
-                if (next.Y != node.Y)
+                var x = node.X + ((hy - node.Y) * (next.X - node.X) / (next.Y - node.Y));
+                if (x >= hx && x < nearest)
                 {
-                    var x = node.X + ((hy - node.Y) * (next.X - node.X) / (next.Y - node.Y));
-                    if (x >= hx && x < nearest)
-                    {
-                        (nearest, edge) = (x, node.X > next.X ? node : next);
-                    }
+                    (nearest, edge) = (x, node.X > next.X ? node : next);
                 }
             }
 
             node = next;
         }
         while (node != outer);
+        return (edge, nearest);
+    }
 
-        if (edge is null)
-        {
-            return;
-        }
-
-        // Corners inside the triangle could block the bridge: the one at the smallest angle to the ray is visible.
-        var (mx, my) = (nearest, hy);
+    // Corners inside the triangle could block the bridge: the one at the smallest angle to the ray is visible.
+    private static Node Visible(Node outer, Node edge, double hx, double hy, double mx)
+    {
         var target = edge;
         var smallest = double.PositiveInfinity;
-        node = outer;
+        var node = outer;
         do
         {
-            if (node != edge && node.X >= hx && InTriangle(hx, hy, mx, my, edge.X, edge.Y, node.X, node.Y))
+            if (node != edge && node.X >= hx && InTriangle(hx, hy, mx, hy, edge.X, edge.Y, node.X, node.Y))
             {
                 var angle = Math.Abs(node.Y - hy) / Math.Max(node.X - hx, 1e-300);
                 if (angle < smallest || (angle == smallest && node.X > target.X))
@@ -158,15 +175,7 @@ internal static class GeoTriangulator
             node = node.Next;
         }
         while (node != outer);
-
-        // Two copies of each end close the bridge: target → hole → around the hole → hole' → target' → on.
-        var targetCopy = new Node(target.Index, target.X, target.Y);
-        var holeCopy = new Node(hole.Index, hole.X, hole.Y);
-        var (afterTarget, beforeHole) = (target.Next, hole.Prev);
-        (target.Next, hole.Prev) = (hole, target);
-        (beforeHole.Next, holeCopy.Prev) = (holeCopy, beforeHole);
-        (holeCopy.Next, targetCopy.Prev) = (targetCopy, holeCopy);
-        (targetCopy.Next, afterTarget.Prev) = (afterTarget, targetCopy);
+        return target;
     }
 
     // Cuts ears along the ring; a grid over the corners finds those that could lie inside an ear.

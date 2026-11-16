@@ -133,9 +133,8 @@ public sealed unsafe class ColumnFile : IDisposable
         var size = SizeOf(type);
         var block = blockRows == 0 ? rows : blockRows;
         var blocks = block == 0 ? 0 : (rows + block - 1) / block;
-        var needed = type == ColumnType.Bit
-            ? HeaderSize + ((rows + 63) / 64 * 8)
-            : HeaderSize + (blocks == 0 ? 0 : ((blocks - 1) * block * columns * size) + ((rows - ((blocks - 1) * block)) * columns * size));
+        var values = blocks == 0 ? 0 : ((blocks - 1) * block * columns * size) + ((rows - ((blocks - 1) * block)) * columns * size);
+        var needed = type == ColumnType.Bit ? HeaderSize + ((rows + 63) / 64 * 8) : HeaderSize + values;
         if (length < needed)
         {
             throw new InvalidDataException($"{path} has {length:N0} bytes, its header needs {needed:N0}.");
@@ -182,12 +181,14 @@ public sealed unsafe class ColumnFile : IDisposable
     /// <typeparam name="T">The value type.</typeparam>
     /// <returns>The column type.</returns>
     /// <exception cref="NotSupportedException">Columns cannot hold that type.</exception>
-    internal static ColumnType TypeOf<T>() =>
-        typeof(T) == typeof(double) ? ColumnType.Double
-        : typeof(T) == typeof(float) ? ColumnType.Single
-        : typeof(T) == typeof(short) ? ColumnType.Int16
-        : typeof(T) == typeof(int) ? ColumnType.Int32
-        : throw new NotSupportedException($"Columns hold double, float, short or int, not {typeof(T).Name}.");
+    internal static ColumnType TypeOf<T>() => System.Type.GetTypeCode(typeof(T)) switch
+    {
+        TypeCode.Double => ColumnType.Double,
+        TypeCode.Single => ColumnType.Single,
+        TypeCode.Int16 => ColumnType.Int16,
+        TypeCode.Int32 => ColumnType.Int32,
+        _ => throw new NotSupportedException($"Columns hold double, float, short or int, not {typeof(T).Name}."),
+    };
 
     internal static int SizeOf(ColumnType type) => type switch
     {

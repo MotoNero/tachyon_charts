@@ -310,25 +310,31 @@ public sealed class BarSeries : ChartSeries
         var (lower, upper) = _layout == BarLayout.Grouped ? (_rows, _rows) : ComputeEnds(_rows, _layout);
         for (var i = 0; i < count && labels.Count < Overlays.ValueLabelMarks.Limit; i++)
         {
-            if (!places.Contains(Position(i)))
+            if (places.Contains(Position(i)))
+            {
+                AddValueLabels(i, lower, upper, width, slot, labels);
+            }
+        }
+    }
+
+    // The values of one bar position: beyond the end of grouped bars, in the middle of stacked ones.
+    private void AddValueLabels(int i, double[][] lower, double[][] upper, double width, double slot, List<ValueLabel> labels)
+    {
+        var isGrouped = _layout == BarLayout.Grouped;
+        var beyond = _isHorizontal ? ValueLabelPlace.Right : ValueLabelPlace.Above;
+        for (var row = 0; row < _rows.Length; row++)
+        {
+            var value = _rows[row][i];
+            if (!double.IsFinite(value))
             {
                 continue;
             }
 
-            for (var row = 0; row < _rows.Length; row++)
-            {
-                var value = _rows[row][i];
-                if (!double.IsFinite(value))
-                {
-                    continue;
-                }
-
-                var place = Position(i) - (width / 2) + ((isGrouped ? row + 0.5 : 0.5) * slot);
-                var (end, kind) = isGrouped
-                    ? (upper[row][i], _isHorizontal ? ValueLabelPlace.Right : ValueLabelPlace.Above)
-                    : ((lower[row][i] + upper[row][i]) / 2, ValueLabelPlace.Center);
-                labels.Add(_isHorizontal ? new ValueLabel(end, place, value, kind) : new ValueLabel(place, end, value, kind));
-            }
+            var place = Position(i) - (width / 2) + ((isGrouped ? row + 0.5 : 0.5) * slot);
+            var (end, kind) = isGrouped
+                ? (upper[row][i], beyond)
+                : ((lower[row][i] + upper[row][i]) / 2, ValueLabelPlace.Center);
+            labels.Add(_isHorizontal ? new ValueLabel(end, place, value, kind) : new ValueLabel(place, end, value, kind));
         }
     }
 

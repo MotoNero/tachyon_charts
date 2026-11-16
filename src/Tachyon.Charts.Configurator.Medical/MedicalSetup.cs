@@ -108,10 +108,7 @@ internal static class MedicalSetup
                 for (var x = 0; x < data.Width; x++)
                 {
                     var (nx, ny, nz) = (x / (data.Width - 1.0), y / (data.Height - 1.0), z / (data.Depth - 1.0));
-                    labels[(((z * data.Height) + y) * data.Width) + x] =
-                        Square((nx - 0.32) / 0.11) + Square((ny - 0.46) / 0.14) + Square((nz - 0.52) / 0.16) < 1 ? (ushort)1
-                        : Square((nx - 0.56) / 0.12) + Square((ny - 0.5) / 0.19) + Square((nz - 0.5) / 0.28) < 1 ? (ushort)2
-                        : (ushort)0;
+                    labels[(((z * data.Height) + y) * data.Width) + x] = LabelAt(nx, ny, nz);
                 }
             }
         }
@@ -139,6 +136,17 @@ internal static class MedicalSetup
             read.Orientation,
             read.Segments)
         { ThreeDMode = mode };
+    }
+
+    // Two organs of the phantom as ellipsoids: 1 and 2, the rest 0.
+    private static ushort LabelAt(double nx, double ny, double nz)
+    {
+        if (Square((nx - 0.32) / 0.11) + Square((ny - 0.46) / 0.14) + Square((nz - 0.52) / 0.16) < 1)
+        {
+            return 1;
+        }
+
+        return Square((nx - 0.56) / 0.12) + Square((ny - 0.5) / 0.19) + Square((nz - 0.5) / 0.28) < 1 ? (ushort)2 : (ushort)0;
     }
 
     private static double Square(double value) => value * value;

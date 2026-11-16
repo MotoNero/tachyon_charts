@@ -270,7 +270,7 @@ internal sealed class SampleWindow : Window
         _producer.Start();
     }
 
-    private Button? _configure;
+    private readonly Button? _configure;
 
     // Pages that are checks rather than examples cannot open in the configurator; the tooltip says why.
     private void ShowConfiguratorChoice()
@@ -301,7 +301,7 @@ internal sealed class SampleWindow : Window
     // The theme of meadow.axaml, compiled with the showroom: the dictionary as App.axaml would include it, read into a theme.
     private static Theme LoadMeadow()
     {
-        var resources = (ResourceDictionary)AvaloniaXamlLoader.Load(new Uri("avares://Tachyon.Charts.Samples.Avalonia/Themes/meadow.axaml"));
+        var resources = (ResourceDictionary)AvaloniaXamlLoader.Load(new Uri("avares://Tachyon.Charts.Samples.Avalonia/Themes/meadow.axaml")); // NOSONAR: the address of a resource embedded in this program, not a path on a machine
         return ChartThemes.FromResources(resources, OwnThemePage.Meadow, OwnThemePage.MeadowBase);
     }
 
@@ -552,7 +552,12 @@ internal sealed class SampleWindow : Window
                 return _scope;
             }
 
-            return _raster.IsVisible ? (Chart)_raster.Children[0] : _group.IsVisible ? (Chart)_group.Children[0] : _live;
+            if (_raster.IsVisible)
+            {
+                return (Chart)_raster.Children[0];
+            }
+
+            return _group.IsVisible ? (Chart)_group.Children[0] : _live;
         }
     }
 

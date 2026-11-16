@@ -145,53 +145,59 @@ public static class ShapefileReader
                 Need(content, 20, name, record, offset);
                 return [([Double(content, 4)], [Double(content, 12)])];
             case ShapeKind.MultiPoint:
-                {
-                    Need(content, 40, name, record, offset);
-                    var count = BinaryPrimitives.ReadInt32LittleEndian(content[36..]);
-                    Need(content, 40 + (count * 16L), name, record, offset);
-                    var (x, y) = (new double[count], new double[count]);
-                    for (var i = 0; i < count; i++)
-                    {
-                        (x[i], y[i]) = (Double(content, 40 + (i * 16)), Double(content, 48 + (i * 16)));
-                    }
-
-                    return [(x, y)];
-                }
-
+                return ReadMultiPoint(content, name, record, offset);
             default:
-                {
-                    Need(content, 44, name, record, offset);
-                    var parts = BinaryPrimitives.ReadInt32LittleEndian(content[36..]);
-                    var points = BinaryPrimitives.ReadInt32LittleEndian(content[40..]);
-                    if (parts < 0 || points < 0)
-                    {
-                        throw Damaged(name, $"has a record {record} with {parts} parts and {points} points", offset);
-                    }
-
-                    Need(content, 44 + (parts * 4L) + (points * 16L), name, record, offset);
-                    var start = 44 + (parts * 4);
-                    var result = new List<(double[], double[])>(parts);
-                    for (var part = 0; part < parts; part++)
-                    {
-                        var first = BinaryPrimitives.ReadInt32LittleEndian(content[(44 + (part * 4))..]);
-                        var end = part + 1 < parts ? BinaryPrimitives.ReadInt32LittleEndian(content[(48 + (part * 4))..]) : points;
-                        if (first < 0 || end > points || end < first)
-                        {
-                            throw Damaged(name, $"has a record {record} whose part {part + 1} runs from point {first} to {end} of {points}", offset);
-                        }
-
-                        var (x, y) = (new double[end - first], new double[end - first]);
-                        for (var i = first; i < end; i++)
-                        {
-                            (x[i - first], y[i - first]) = (Double(content, start + (i * 16)), Double(content, start + 8 + (i * 16)));
-                        }
-
-                        result.Add((x, y));
-                    }
-
-                    return result;
-                }
+                return ReadParts(content, name, record, offset);
         }
+    }
+
+    private static List<(double[] X, double[] Y)> ReadMultiPoint(ReadOnlySpan<byte> content, string name, int record, long offset)
+    {
+        Need(content, 40, name, record, offset);
+        var count = BinaryPrimitives.ReadInt32LittleEndian(content[36..]);
+        Need(content, 40 + (count * 16L), name, record, offset);
+        var (x, y) = (new double[count], new double[count]);
+        for (var i = 0; i < count; i++)
+        {
+            (x[i], y[i]) = (Double(content, 40 + (i * 16)), Double(content, 48 + (i * 16)));
+        }
+
+        return [(x, y)];
+    }
+
+    // Lines and polygons: the parts, each a run of the points.
+    private static List<(double[] X, double[] Y)> ReadParts(ReadOnlySpan<byte> content, string name, int record, long offset)
+    {
+        Need(content, 44, name, record, offset);
+        var parts = BinaryPrimitives.ReadInt32LittleEndian(content[36..]);
+        var points = BinaryPrimitives.ReadInt32LittleEndian(content[40..]);
+        if (parts < 0 || points < 0)
+        {
+            throw Damaged(name, $"has a record {record} with {parts} parts and {points} points", offset);
+        }
+
+        Need(content, 44 + (parts * 4L) + (points * 16L), name, record, offset);
+        var start = 44 + (parts * 4);
+        var result = new List<(double[], double[])>(parts);
+        for (var part = 0; part < parts; part++)
+        {
+            var first = BinaryPrimitives.ReadInt32LittleEndian(content[(44 + (part * 4))..]);
+            var end = part + 1 < parts ? BinaryPrimitives.ReadInt32LittleEndian(content[(48 + (part * 4))..]) : points;
+            if (first < 0 || end > points || end < first)
+            {
+                throw Damaged(name, $"has a record {record} whose part {part + 1} runs from point {first} to {end} of {points}", offset);
+            }
+
+            var (x, y) = (new double[end - first], new double[end - first]);
+            for (var i = first; i < end; i++)
+            {
+                (x[i - first], y[i - first]) = (Double(content, start + (i * 16)), Double(content, start + 8 + (i * 16)));
+            }
+
+            result.Add((x, y));
+        }
+
+        return result;
     }
 
     private static double Double(ReadOnlySpan<byte> content, int at) => BinaryPrimitives.ReadDoubleLittleEndian(content[at..]);

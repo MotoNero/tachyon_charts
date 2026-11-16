@@ -20,6 +20,8 @@ namespace Tachyon.Charts.Configurator.Wpf;
 /// </summary>
 internal sealed class ConfiguratorWindow : Window
 {
+    private const string RaisedName = "Raised";
+
     // Data, checks and code are made away from the window, which only shows the result.
     private readonly ConfiguratorSession _session = new(ChartCatalog.CreateWithAddOns(), new System.Windows.Threading.DispatcherSynchronizationContext(System.Windows.Threading.Dispatcher.CurrentDispatcher));
     private readonly Chart _preview = new();
@@ -418,7 +420,7 @@ internal sealed class ConfiguratorWindow : Window
                 editor = boxes;
                 break;
             case ParameterKind.File:
-                var path = new TextBox { Text = field.Text, Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2) };
+                var path = new TextBox { Text = field.Text, Background = (Brush)FindResource(RaisedName), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2) };
                 path.TextChanged += (_, _) => Report(field.SetText(path.Text));
                 var browse = new Button { Content = "…", Margin = new Thickness(4, 0, 0, 0), Padding = new Thickness(8, 0, 8, 0) };
                 browse.Click += (_, _) =>
@@ -437,7 +439,7 @@ internal sealed class ConfiguratorWindow : Window
                 break;
             case ParameterKind.Color:
                 // The hex field stays for typing; the swatch beside it opens the picker.
-                var hex = new TextBox { Text = field.Text, Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2) };
+                var hex = new TextBox { Text = field.Text, Background = (Brush)FindResource(RaisedName), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2) };
                 hex.TextChanged += (_, _) => Report(field.SetText(hex.Text));
                 var picker = new ColorPickerButton(hex);
                 var color = new DockPanel();
@@ -447,7 +449,7 @@ internal sealed class ConfiguratorWindow : Window
                 editor = color;
                 break;
             default:
-                var box = new TextBox { Text = field.Text, Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2) };
+                var box = new TextBox { Text = field.Text, Background = (Brush)FindResource(RaisedName), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2) };
                 box.TextChanged += (_, _) => Report(field.SetText(box.Text));
                 editor = box;
                 break;
@@ -606,8 +608,8 @@ internal sealed class ConfiguratorWindow : Window
     // The box to search above a list of the matches with their pictures; the value stays among them.
     private StackPanel SearchableChoice(FieldModel field, Action<string?> report)
     {
-        var search = new TextBox { Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2), ToolTip = "Type to search" };
-        var list = new ListBox { MaxHeight = 180, Margin = new Thickness(0, 3, 0, 0), Background = (Brush)FindResource("Raised"), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line") };
+        var search = new TextBox { Background = (Brush)FindResource(RaisedName), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line"), Padding = new Thickness(4, 2, 4, 2), ToolTip = "Type to search" };
+        var list = new ListBox { MaxHeight = 180, Margin = new Thickness(0, 3, 0, 0), Background = (Brush)FindResource(RaisedName), Foreground = (Brush)FindResource("Ink"), BorderBrush = (Brush)FindResource("Line") };
         VirtualizingPanel.SetIsVirtualizing(list, true);
         if (field.Info.ChoicePictures.Count > 0)
         {
