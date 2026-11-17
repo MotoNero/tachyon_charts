@@ -230,8 +230,9 @@ internal sealed class SkiaCommandList(SkiaRenderDevice device) : SkiaResource(de
         _usedBuffers.Add(buffer);
 
         var positions = MemoryMarshal.Cast<byte, Vector2>(buffer.Data).Slice(firstPoint, pointCount);
-        // Widths below one pixel get reduced coverage, like in the WebGPU line shader.
-        _strokePaint.StrokeWidth = Math.Max(widthInPixels, 1);
+        // Widths below one pixel get reduced coverage, like in the WebGPU line shader. Up to one pixel the line is a
+        // hairline of Skia, which draws many segments several times faster than a stroke and looks the same.
+        _strokePaint.StrokeWidth = widthInPixels <= 1 ? 0 : widthInPixels;
         _strokePaint.Color = ToSkia(color with { A = (byte)MathF.Round(color.A * Math.Min(widthInPixels, 1)) });
 
         // Separate segments, like the instanced quads of the WebGPU backend: both blend the overlaps.

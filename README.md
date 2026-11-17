@@ -458,7 +458,7 @@ Files larger than memory, on the internal SSD of the same laptop:
 | 3D cloud of 1 billion points (12 GB): first whole picture, turning | 0.8 s, 76–95 FPS |
 | Recording 1 h at 10 million values/s into a ring of 5.4 GB (36 billion values): rolling view of 1.3 billion, memory | 580–770 FPS, 330–380 MB throughout |
 
-Known gaps: the CPU fallback misses its targets for streaming (23 instead of 30 FPS at full HD) and for large scatter plots (9 instead of 10 FPS). Both are planned.
+On the CPU fallback (Skia, full HD): streaming 10 series of 100k points per second 42 FPS, a scatter of 10 million points 13 FPS, a line of 100 million points 34 FPS.
 
 ## Build
 
