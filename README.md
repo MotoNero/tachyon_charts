@@ -341,7 +341,7 @@ var chart = new Chart3D().Configure(c => c
 
 ## Try it
 
-The easiest way: download the showroom from [Releases](../../releases), unpack the zip and start the `.exe`. No .NET needed.
+The easiest way: download the showroom from [Releases](../../releases), unpack the zip and start the `.exe`. No .NET needed. The programs are not signed, so Windows may warn about an unknown publisher the first time; see [Downloads](docs/guide/downloads.md) for the checksums.
 
 From source, with the .NET 10 SDK:
 
@@ -486,7 +486,7 @@ dotnet run --project samples/Tachyon.Charts.Samples.Avalonia -c Release
 | [Polygons](docs/guide/polygons.md) | Polygons with holes, heatmaps inside an area |
 | [Your own theme](docs/guide/custom-themes.md) | Themes as JSON or XAML in WPF and Avalonia, where the files go, all keys |
 | [Moving from OxyPlot](docs/guide/migration-oxyplot.md) | Concepts and code side by side for a quick switch |
-| [Code signing policy](docs/guide/code-signing.md) | How the showroom apps are signed, who approves, privacy |
+| [Downloads](docs/guide/downloads.md) | The downloads are not signed: the warning of Windows, checksums, privacy |
 | [Medical data and privacy](docs/guide/medical.md) | Reading, MPR, segmentations, measurements, oblique and curved sections, sample and real data, large series, data minimisation and regulatory scope |
 | [docs/api](docs/api) | Public API lists |
 

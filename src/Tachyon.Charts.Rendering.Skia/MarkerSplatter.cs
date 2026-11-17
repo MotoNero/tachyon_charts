@@ -27,21 +27,8 @@ internal static class MarkerSplatter
     /// <param name="size">The size of the picture.</param>
     public static void Splat(byte[] data, int first, int count, MarkerStyle style, Rgba8[] pixels, PixelSize size)
     {
-        var clipLeft = 0;
-        var clipRight = size.Width;
-        var clipTop = 0;
-        var clipBottom = size.Height;
-        if (style.Clip is { } clip)
-        {
-            clipLeft = Math.Max((int)MathF.Ceiling(clip.X - 0.5f), 0);
-            clipRight = Math.Min((int)MathF.Ceiling(clip.X + clip.Width - 0.5f), size.Width);
-            clipTop = Math.Max((int)MathF.Ceiling(clip.Y - 0.5f), 0);
-            clipBottom = Math.Min((int)MathF.Ceiling(clip.Y + clip.Height - 0.5f), size.Height);
-        }
-
         var bands = Math.Max(Environment.ProcessorCount, 1);
-        var bandHeight = Math.Max((clipBottom - clipTop + bands - 1) / bands, 1);
-        var area = new Area(clipLeft, clipRight, clipTop, clipBottom, bandHeight, bands);
+        var area = AreaOf(style, size, bands);
 
         // Pieces of the markers in their order: each piece counts the markers per band, then writes their numbers
         // into the lists of the bands, piece after piece, so that each list keeps the order of the markers.
@@ -51,27 +38,89 @@ internal static class MarkerSplatter
         Parallel.For(0, pieces, piece =>
         {
             var markers = MemoryMarshal.Cast<byte, MarkerInstance>(data.AsSpan()).Slice(first, count);
-            var (from, to) = (count * (long)piece / pieces, count * (long)(piece + 1) / pieces);
-            var row = counts.AsSpan(piece * bands, bands);
-            for (var i = (int)from; i < to; i++)
+            CountPiece(markers, Piece(count, piece, pieces), area, style, counts.AsSpan(piece * bands, bands));
+        });
+
+        var starts = ArrayPool<int>.Shared.Rent((pieces * bands) + bands + 1);
+        var total = Offsets(counts, starts, pieces, bands);
+        var order = ArrayPool<int>.Shared.Rent(Math.Max(total, 1));
+        Parallel.For(0, pieces, piece =>
+        {
+            var markers = MemoryMarshal.Cast<byte, MarkerInstance>(data.AsSpan()).Slice(first, count);
+            OrderPiece(markers, Piece(count, piece, pieces), area, style, starts.AsSpan(piece * bands, bands), order);
+        });
+
+        Parallel.For(0, bands, band =>
+        {
+            var top = area.Top + (band * area.BandHeight);
+            var bottom = Math.Min(top + area.BandHeight, area.Bottom);
+            if (top < bottom)
             {
-                if (area.TryBands(markers[i], style, out var firstBand, out var lastBand))
-                {
-                    for (var band = firstBand; band <= lastBand; band++)
-                    {
-                        row[band]++;
-                    }
-                }
+                var markers = MemoryMarshal.Cast<byte, MarkerInstance>(data.AsSpan()).Slice(first, count);
+                var (start, end) = (starts[(pieces * bands) + band], starts[(pieces * bands) + band + 1]);
+                SplatBand(markers, order.AsSpan(start, end - start), style, pixels, size.Width, area.Left, area.Right, top, bottom);
             }
         });
 
-        // Where each piece writes in each band.
-        var starts = ArrayPool<int>.Shared.Rent((pieces * bands) + bands + 1);
-        var bandStarts = starts.AsSpan(pieces * bands, bands + 1);
+        ArrayPool<int>.Shared.Return(order);
+        ArrayPool<int>.Shared.Return(starts);
+        ArrayPool<int>.Shared.Return(counts);
+    }
+
+    // The clip of the picture in pixels, cut into bands of rows.
+    private static Area AreaOf(in MarkerStyle style, PixelSize size, int bands)
+    {
+        var (left, right, top, bottom) = (0, size.Width, 0, size.Height);
+        if (style.Clip is { } clip)
+        {
+            left = Math.Max((int)MathF.Ceiling(clip.X - 0.5f), 0);
+            right = Math.Min((int)MathF.Ceiling(clip.X + clip.Width - 0.5f), size.Width);
+            top = Math.Max((int)MathF.Ceiling(clip.Y - 0.5f), 0);
+            bottom = Math.Min((int)MathF.Ceiling(clip.Y + clip.Height - 0.5f), size.Height);
+        }
+
+        return new Area(left, right, top, bottom, Math.Max((bottom - top + bands - 1) / bands, 1), bands);
+    }
+
+    private static (int From, int To) Piece(int count, int piece, int pieces) =>
+        ((int)(count * (long)piece / pieces), (int)(count * (long)(piece + 1) / pieces));
+
+    private static void CountPiece(ReadOnlySpan<MarkerInstance> markers, (int From, int To) piece, in Area area, in MarkerStyle style, Span<int> counts)
+    {
+        for (var i = piece.From; i < piece.To; i++)
+        {
+            if (area.TryBands(markers[i], style, out var firstBand, out var lastBand))
+            {
+                for (var band = firstBand; band <= lastBand; band++)
+                {
+                    counts[band]++;
+                }
+            }
+        }
+    }
+
+    private static void OrderPiece(ReadOnlySpan<MarkerInstance> markers, (int From, int To) piece, in Area area, in MarkerStyle style, Span<int> next, int[] order)
+    {
+        for (var i = piece.From; i < piece.To; i++)
+        {
+            if (area.TryBands(markers[i], style, out var firstBand, out var lastBand))
+            {
+                for (var band = firstBand; band <= lastBand; band++)
+                {
+                    order[next[band]++] = i;
+                }
+            }
+        }
+    }
+
+    // Where each piece writes in each band, the pieces of a band one after the other; behind them where each band
+    // starts. Returns the number of entries.
+    private static int Offsets(int[] counts, int[] starts, int pieces, int bands)
+    {
         var total = 0;
         for (var band = 0; band < bands; band++)
         {
-            bandStarts[band] = total;
+            starts[(pieces * bands) + band] = total;
             for (var piece = 0; piece < pieces; piece++)
             {
                 starts[(piece * bands) + band] = total;
@@ -79,41 +128,8 @@ internal static class MarkerSplatter
             }
         }
 
-        bandStarts[bands] = total;
-        var order = ArrayPool<int>.Shared.Rent(Math.Max(total, 1));
-        Parallel.For(0, pieces, piece =>
-        {
-            var markers = MemoryMarshal.Cast<byte, MarkerInstance>(data.AsSpan()).Slice(first, count);
-            var (from, to) = (count * (long)piece / pieces, count * (long)(piece + 1) / pieces);
-            var next = starts.AsSpan(piece * bands, bands);
-            for (var i = (int)from; i < to; i++)
-            {
-                if (area.TryBands(markers[i], style, out var firstBand, out var lastBand))
-                {
-                    for (var band = firstBand; band <= lastBand; band++)
-                    {
-                        order[next[band]++] = i;
-                    }
-                }
-            }
-        });
-
-        Parallel.For(0, bands, band =>
-        {
-            var top = clipTop + (band * bandHeight);
-            var bottom = Math.Min(top + bandHeight, clipBottom);
-            if (top < bottom)
-            {
-                var markers = MemoryMarshal.Cast<byte, MarkerInstance>(data.AsSpan()).Slice(first, count);
-                var (start, end) = (starts[(pieces * bands) + band], starts[(pieces * bands) + band + 1]);
-                var indices = order.AsSpan(start, end - start);
-                SplatBand(markers, indices, style, pixels, size.Width, clipLeft, clipRight, top, bottom);
-            }
-        });
-
-        ArrayPool<int>.Shared.Return(order);
-        ArrayPool<int>.Shared.Return(starts);
-        ArrayPool<int>.Shared.Return(counts);
+        starts[(pieces * bands) + bands] = total;
+        return total;
     }
 
     // The clip of the picture and its bands: which bands a marker reaches into, by the same rows as it is drawn with.

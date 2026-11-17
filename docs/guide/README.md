@@ -37,6 +37,6 @@ Tachyon Charts draws large amounts of data in real time, in WPF and Avalonia, on
 | 3D charts: types, operation, themes | [3d.md](3d.md) |
 | Medical images, privacy, regulatory scope | [medical.md](medical.md) |
 | Moving from OxyPlot | [migration-oxyplot.md](migration-oxyplot.md) |
-| Code signing policy | [code-signing.md](code-signing.md) |
+| Downloads: unsigned, how to check them | [downloads.md](downloads.md) |
 
 The complete public API is listed in [`docs/api/`](../api/).
