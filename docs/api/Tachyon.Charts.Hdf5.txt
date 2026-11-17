@@ -1,0 +1,3 @@
+static class Tachyon.Charts.Hdf5.Hdf5ColumnConverter
+  static System.Int32 BlockValues
+  static System.ValueTuple<System.Int64, Tachyon.Charts.Core.Data.ColumnType> Convert(System.String hdf5Path, System.String datasetPath, System.String columnPath, System.Double xStart = 0, System.Double xStep = 1, System.IProgress<System.Double> progress = null, System.Threading.CancellationToken cancellation = null)

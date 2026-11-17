@@ -1,0 +1,31 @@
+sealed class Tachyon.Charts.Signal.BiquadFilter
+  System.Void Process(System.ReadOnlySpan<System.Single> input, System.Span<System.Single> output)
+  static Tachyon.Charts.Signal.BiquadFilter HighPass(System.Double cutoff, System.Double sampleRate, System.Double quality = 0,7071067811865476)
+  static Tachyon.Charts.Signal.BiquadFilter LowPass(System.Double cutoff, System.Double sampleRate, System.Double quality = 0,7071067811865476)
+  static Tachyon.Charts.Signal.BiquadFilter Notch(System.Double frequency, System.Double sampleRate, System.Double quality = 10)
+static class Tachyon.Charts.Signal.Fft
+  static System.Void Spectrum(System.ReadOnlySpan<System.Single> samples, System.Span<System.Single> decibels, Tachyon.Charts.Signal.WindowKind window = Hann)
+  static System.Void Transform(System.Span<System.Numerics.Complex> data, System.Boolean inverse = False)
+sealed class Tachyon.Charts.Signal.FirFilter
+  .ctor(System.Single[] coefficients)
+  System.Void Process(System.ReadOnlySpan<System.Single> input, System.Span<System.Single> output)
+  static Tachyon.Charts.Signal.FirFilter HighPass(System.Double cutoff, System.Double sampleRate, System.Int32 taps = 101)
+  static Tachyon.Charts.Signal.FirFilter LowPass(System.Double cutoff, System.Double sampleRate, System.Int32 taps = 101)
+static class Tachyon.Charts.Signal.SignalGenerator
+  static System.Void AddNoise(System.Span<System.Single> samples, System.Double deviation, System.Random random)
+  static System.Void Fill(System.Span<System.Single> samples, Tachyon.Charts.Signal.SignalShape shape, System.Double frequency, System.Double sampleRate, System.Double amplitude = 1, System.Double phase = 0)
+  static System.Void FillChirp(System.Span<System.Single> samples, System.Double startFrequency, System.Double stopFrequency, System.Double sampleRate, System.Double amplitude = 1)
+enum Tachyon.Charts.Signal.SignalShape : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Sawtooth = 3
+  Sine = 0
+  Square = 1
+  Triangle = 2
+enum Tachyon.Charts.Signal.WindowKind : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Blackman = 3
+  FlatTop = 4
+  Hamming = 2
+  Hann = 1
+  Rectangular = 0
+static class Tachyon.Charts.Signal.Windows
+  static System.Double CoherentGain(System.ReadOnlySpan<System.Single> window)
+  static System.Void Fill(System.Span<System.Single> window, Tachyon.Charts.Signal.WindowKind kind)

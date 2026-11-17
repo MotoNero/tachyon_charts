@@ -1,0 +1,104 @@
+sealed class Tachyon.Charts.Geo.AttributionOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
+  .ctor(System.String text)
+  System.String Text { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
+static class Tachyon.Charts.Geo.GeoCharts
+  static Tachyon.Charts.Core.Fluent.ChartBuilder Map(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Geo.GeoProjection projection, System.Action<Tachyon.Charts.Geo.GeoMapSeries> configure = null, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Geo.GeoMap> levels = null)
+  static Tachyon.Charts.Core.Fluent.ChartBuilder Tiles(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Geo.TileSource source)
+sealed class Tachyon.Charts.Geo.GeoMap
+  .ctor(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Geo.GeoRegion> regions)
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Geo.GeoRegion> Regions { get; }
+  System.Void Save(System.IO.Stream stream)
+  Tachyon.Charts.Geo.GeoRegion Find(System.String code)
+  static Tachyon.Charts.Geo.GeoMap FromShapefile(Tachyon.Charts.Geo.Shapefile file, System.String nameField = NAME, System.String codeField = ISO_A3)
+  static Tachyon.Charts.Geo.GeoMap Load(System.IO.Stream stream)
+sealed class Tachyon.Charts.Geo.GeoMapSeries : Tachyon.Charts.Core.Pipeline.ChartSeries, System.IDisposable
+  .ctor(System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Geo.GeoMap> levels, Tachyon.Charts.Geo.GeoProjection projection, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  System.Boolean KeepsAspect { get; set; }
+  System.Double BorderThickness { get; set; }
+  System.Int32 Level { get; }
+  System.Void Dispose()
+  System.Void SetColors(System.Collections.Generic.IReadOnlyDictionary<System.String, Tachyon.Charts.Rendering.Rgba8> colors)
+  Tachyon.Charts.Geo.GeoProjection Projection { get; }
+  Tachyon.Charts.Geo.GeoRegion RegionAt(System.Double longitude, System.Double latitude)
+  Tachyon.Charts.Rendering.Rgba8 Border { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Land { get; set; }
+  Tachyon.Charts.Rendering.Rgba8 Sea { get; set; }
+  protected virtual System.Boolean TryFindPoint(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Numerics.Vector2 pixel, System.Double maximumDistance, Tachyon.Charts.Core.HitTesting.HitTestMode mode, out System.Int64 index, out System.Double x, out System.Double y)
+  protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Int32 DrawnPointCount { get; }
+  protected virtual System.Int64 Version { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void ReleaseResources()
+  virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
+abstract class Tachyon.Charts.Geo.GeoProjection
+  System.ValueTuple<System.Double, System.Double, System.Double, System.Double> WorldBounds { get; }
+  System.ValueTuple<System.Double[], System.Double[]> Project(System.ReadOnlySpan<System.Double> longitudes, System.ReadOnlySpan<System.Double> latitudes)
+  abstract System.Boolean TryUnproject(System.Double x, System.Double y, out System.Double longitude, out System.Double latitude)
+  abstract System.String Name { get; }
+  abstract System.ValueTuple<System.Double, System.Double> Project(System.Double longitude, System.Double latitude)
+  static Tachyon.Charts.Geo.GeoProjection EqualEarth { get; }
+  static Tachyon.Charts.Geo.GeoProjection Equirectangular { get; }
+  static Tachyon.Charts.Geo.GeoProjection WebMercator { get; }
+sealed class Tachyon.Charts.Geo.GeoRegion
+  .ctor(System.String name, System.String code, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.Polygon> polygons)
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Data.Polygon> Polygons { get; }
+  System.String Code { get; }
+  System.String Name { get; }
+  System.ValueTuple<System.Double, System.Double, System.Double, System.Double> Bounds { get; }
+sealed class Tachyon.Charts.Geo.GeoShape : System.IEquatable<Tachyon.Charts.Geo.GeoShape>
+  .ctor(System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.Double[], System.Double[]>> Parts, System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Attributes)
+  System.Collections.Generic.IReadOnlyDictionary<System.String, System.String> Attributes { get; set; }
+  System.Collections.Generic.IReadOnlyList<System.ValueTuple<System.Double[], System.Double[]>> Parts { get; set; }
+enum Tachyon.Charts.Geo.MapDetail : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Coarse = 0
+  Fine = 2
+  Medium = 1
+static class Tachyon.Charts.Geo.PngDecoder
+  static Tachyon.Charts.Geo.TileImage Decode(System.ReadOnlySpan<System.Byte> bytes)
+enum Tachyon.Charts.Geo.ShapeKind : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Line = 1
+  MultiPoint = 3
+  Point = 0
+  Polygon = 2
+sealed class Tachyon.Charts.Geo.Shapefile : System.IEquatable<Tachyon.Charts.Geo.Shapefile>
+  .ctor(Tachyon.Charts.Geo.ShapeKind Kind, System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Geo.GeoShape> Shapes, System.Collections.Generic.IReadOnlyList<System.String> Fields)
+  System.Collections.Generic.IReadOnlyList<System.String> Fields { get; set; }
+  System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Geo.GeoShape> Shapes { get; set; }
+  Tachyon.Charts.Geo.ShapeKind Kind { get; set; }
+static class Tachyon.Charts.Geo.ShapefileReader
+  static Tachyon.Charts.Geo.Shapefile Read(System.ReadOnlySpan<System.Byte> shapes, System.ReadOnlySpan<System.Byte> table, System.String name = shapefile)
+  static Tachyon.Charts.Geo.Shapefile Read(System.String path)
+sealed class Tachyon.Charts.Geo.TileImage : System.IEquatable<Tachyon.Charts.Geo.TileImage>
+  .ctor(Tachyon.Charts.Rendering.Rgba8[] Pixels, System.Int32 Width, System.Int32 Height)
+  System.Int32 Height { get; set; }
+  System.Int32 Width { get; set; }
+  Tachyon.Charts.Rendering.Rgba8[] Pixels { get; set; }
+sealed class Tachyon.Charts.Geo.TileLayerSeries : Tachyon.Charts.Core.Pipeline.ChartSeries, System.IDisposable
+  .ctor(Tachyon.Charts.Geo.TileSource source, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
+  System.Int32 TileCount { get; }
+  System.Int32 Zoom { get; }
+  System.Void Dispose()
+  Tachyon.Charts.Geo.TileSource Source { get; }
+  protected virtual System.Boolean TryGetDataRange(out Tachyon.Charts.Core.Numerics.DoubleRange x, out Tachyon.Charts.Core.Numerics.DoubleRange y)
+  protected virtual System.Int64 Version { get; }
+  protected virtual System.Void Draw(Tachyon.Charts.Rendering.ICommandList commands, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void Prepare(Tachyon.Charts.Rendering.IRenderDevice device, in Tachyon.Charts.Core.Pipeline.SeriesFrame frame)
+  protected virtual System.Void ReleaseResources()
+sealed class Tachyon.Charts.Geo.TileSource
+  .ctor(System.String urlTemplate, System.String attribution)
+  System.Func<System.ReadOnlyMemory<System.Byte>, Tachyon.Charts.Geo.TileImage> Decode { get; set; }
+  System.Func<System.Uri, System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Byte[]>> Fetch { get; set; }
+  System.Int32 MaxZoom { get; set; }
+  System.Int32 MemoryTiles { get; set; }
+  System.String Attribution { get; }
+  System.String CacheFolder { get; set; }
+  System.String UrlTemplate { get; }
+  System.String UserAgent { get; set; }
+  System.Uri AddressOf(System.Int32 z, System.Int32 x, System.Int32 y)
+  static Tachyon.Charts.Geo.TileSource Grid()
+static class Tachyon.Charts.Geo.WorldMap
+  static System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Geo.GeoMap> CountryLevels { get; }
+  static System.String Attribution { get; }
+  static Tachyon.Charts.Geo.GeoMap Countries(Tachyon.Charts.Geo.MapDetail detail = Medium)

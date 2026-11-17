@@ -1,0 +1,9 @@
+static class Tachyon.Charts.Icons.MaterialSymbols
+  static System.Boolean TryGetGlyph(System.String name, out System.String glyph)
+  static System.Collections.Generic.IReadOnlyList<System.String> Names { get; }
+  static System.String Family
+  static System.String PathData(System.String name)
+  static System.String Version
+  static System.Void Register()
+  static Tachyon.Charts.Core.Annotations.AnnotationSymbol Symbol(System.String name, System.Nullable<System.Single> size = null)
+  static Tachyon.Charts.Rendering.TextFont Font { get; }
