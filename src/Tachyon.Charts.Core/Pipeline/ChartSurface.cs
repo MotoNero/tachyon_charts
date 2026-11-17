@@ -343,6 +343,13 @@ public sealed class ChartSurface
     /// <summary>Gets or sets a value indicating whether <see cref="Phases"/> counts. Off by default.</summary>
     public bool MeasuresPhases { get; set; }
 
+    // What the steps of a frame hand on to each other.
+    private long _frameStart;
+    private long _prepareStart;
+    private long _drawCallsBefore;
+    private long _uploadsBefore;
+    private long _prepareDataTicks;
+
     /// <summary>Gets the time spent in the steps of all frames while <see cref="MeasuresPhases"/> is on.</summary>
     public FramePhases Phases => _phases;
 
@@ -608,6 +615,18 @@ public sealed class ChartSurface
     /// <param name="target">A render target of this device.</param>
     public void Render(IRenderDevice device, IRenderTarget target)
     {
+        BeginRender(device, target);
+        PrepareData();
+        FinishRender(device, target);
+    }
+
+    /// <summary>
+    /// The first step of a frame, on the thread that owns the device: versions, snapshots, axes and layout.
+    /// </summary>
+    /// <param name="device">The device.</param>
+    /// <param name="target">A render target of this device.</param>
+    internal void BeginRender(IRenderDevice device, IRenderTarget target)
+    {
         ArgumentNullException.ThrowIfNull(device);
         ArgumentNullException.ThrowIfNull(target);
 
@@ -620,8 +639,7 @@ public sealed class ChartSurface
         Animator.Tick();
 
         var frameStart = Stopwatch.GetTimestamp();
-        var drawCallsBefore = device.DrawCallCount;
-        var uploadsBefore = device.UploadedByteCount;
+        (_frameStart, _drawCallsBefore, _uploadsBefore) = (frameStart, device.DrawCallCount, device.UploadedByteCount);
 
         // The versions come first: a change during the frame then leads to another frame, none gets lost.
         Volatile.Write(ref _invalidated, 0);
@@ -643,8 +661,49 @@ public sealed class ChartSurface
             Arrange(target);
         }
 
-        var prepareStart = Stopwatch.GetTimestamp();
+        // Resources of another device go before the work for the new one.
+        if (_lastDevice != device)
+        {
+            for (var i = 0; _lastDevice is not null && i < _series.Length; i++)
+            {
+                _series[i].ReleaseResources();
+            }
+
+            _lastDevice = device;
+        }
+
+        _prepareStart = Stopwatch.GetTimestamp();
+    }
+
+    /// <summary>
+    /// The second step of a frame: the work of the series that needs no device, such as resampling. Safe on another
+    /// thread than the device's, while no other step of this chart runs.
+    /// </summary>
+    internal void PrepareData()
+    {
+        var start = Stopwatch.GetTimestamp();
+        var series = _series;
+        for (var i = 0; i < series.Length; i++)
+        {
+            series[i].PrepareData(_seriesFrames[i]);
+        }
+
+        _prepareDataTicks = Stopwatch.GetTimestamp() - start;
+    }
+
+    /// <summary>
+    /// The last step of a frame, on the thread that owns the device: uploads, drawing and handing the frame over.
+    /// </summary>
+    /// <param name="device">The device.</param>
+    /// <param name="target">A render target of this device.</param>
+    internal void FinishRender(IRenderDevice device, IRenderTarget target)
+    {
+        var (frameStart, prepareStart) = (_frameStart, _prepareStart);
+        var (drawCallsBefore, uploadsBefore) = (_drawCallsBefore, _uploadsBefore);
         var arrangeTicks = prepareStart - frameStart;
+
+        // The steps of a chart may run apart while other charts take their turns; each counts only its own time.
+        var finishStart = Stopwatch.GetTimestamp();
         PrepareSeries(device);
 
         // Preparing can reveal new extremes. The axes then differ and lead to one more frame.
@@ -688,7 +747,7 @@ public sealed class ChartSurface
         if (MeasuresPhases)
         {
             var end = Stopwatch.GetTimestamp();
-            _phases += new FramePhases(arrangeTicks, drawStart - prepareStart, submitStart - drawStart, end - submitStart);
+            _phases += new FramePhases(arrangeTicks, _prepareDataTicks + (drawStart - finishStart), submitStart - drawStart, end - submitStart);
         }
 
 
@@ -704,16 +763,6 @@ public sealed class ChartSurface
     private void PrepareSeries(IRenderDevice device)
     {
         var series = _series;
-        if (_lastDevice != device)
-        {
-            for (var i = 0; _lastDevice is not null && i < series.Length; i++)
-            {
-                series[i].ReleaseResources();
-            }
-
-            _lastDevice = device;
-        }
-
         for (var i = 0; i < series.Length; i++)
         {
             series[i].Prepare(device, _seriesFrames[i]);

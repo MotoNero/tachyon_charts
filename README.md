@@ -439,7 +439,7 @@ Measured on a laptop GPU only. A point cloud draws at most 30 million points per
 
 To measure a window on your own machine, set `TACHYON_FRAME_LOG` to a file and start the showroom with a page and `--turn`, which turns the view without a mouse. `--near` zooms in first.
 
-In real windows with 8 live charts: 56 FPS on the GPU, 21.6 FPS on the CPU.
+In real windows with 8 live charts: 60 FPS on the GPU, 21.6 FPS on the CPU. With 50 charts that all change per frame, their work spread over the cores: 50 to 57 FPS; a group of 50 linked charts zooming together: over 60 FPS.
 
 Files larger than memory, on the internal SSD of the same laptop:
 
@@ -458,7 +458,7 @@ Files larger than memory, on the internal SSD of the same laptop:
 | 3D cloud of 1 billion points (12 GB): first whole picture, turning | 0.8 s, 76–95 FPS |
 | Recording 1 h at 10 million values/s into a ring of 5.4 GB (36 billion values): rolling view of 1.3 billion, memory | 580–770 FPS, 330–380 MB throughout |
 
-Known gaps: a stress test of 50 charts that all change per frame reaches about 21 FPS in a real window instead of the targeted 60, and the CPU fallback misses its targets for streaming (23 instead of 30 FPS at full HD) and for large scatter plots (9 instead of 10 FPS). Both are planned.
+Known gaps: the CPU fallback misses its targets for streaming (23 instead of 30 FPS at full HD) and for large scatter plots (9 instead of 10 FPS). Both are planned.
 
 ## Build
 

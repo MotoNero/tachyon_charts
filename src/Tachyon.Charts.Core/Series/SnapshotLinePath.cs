@@ -28,6 +28,10 @@ internal sealed class SnapshotLinePath<TX, TY>(IDataSource<TX, TY> source) : Lin
     private long _builtOptionsVersion = -1;
     private SeriesFrame _builtFrame;
 
+    // Computed but not yet on the GPU, and whether the dashed copy is what goes there.
+    private bool _isUploadPending;
+    private bool _isDashed;
+
     public override int DrawnPointCount => _count;
 
     protected override void OnBufferReleased() => _builtDataVersion = -1;
@@ -43,6 +47,23 @@ internal sealed class SnapshotLinePath<TX, TY>(IDataSource<TX, TY> source) : Lin
 
     public override void Update(IRenderDevice device, in SeriesFrame frame, AxisBase xAxis, AxisBase yAxis, in LineOptions options)
     {
+        Compute(frame, xAxis, yAxis, options);
+        if (!_isUploadPending)
+        {
+            return;
+        }
+
+        _isUploadPending = false;
+        if (_count > 0)
+        {
+            EnsureBuffer(device, _count * 8L, keepSize: false);
+            Buffer!.Write<Vector2>(0, (_isDashed ? _dashed : _vertices).AsSpan(0, _count));
+        }
+    }
+
+    // The vertices in pixels, without the GPU: safe on any thread, one line at a time.
+    public override void Compute(in SeriesFrame frame, AxisBase xAxis, AxisBase yAxis, in LineOptions options)
+    {
         var version = source.Version;
         if (version == _builtDataVersion && options.Version == _builtOptionsVersion && frame == _builtFrame)
         {
@@ -54,6 +75,8 @@ internal sealed class SnapshotLinePath<TX, TY>(IDataSource<TX, TY> source) : Lin
         _builtFrame = frame;
         _count = 0;
         _runLength = 0;
+        _isUploadPending = true;
+        _isDashed = false;
 
         var columns = Math.Max((int)MathF.Ceiling(frame.Bounds.Width), 1);
         if (_minima.Length != columns)
@@ -95,13 +118,7 @@ internal sealed class SnapshotLinePath<TX, TY>(IDataSource<TX, TY> source) : Lin
         if (options.DashPattern is { } pattern && result.Mode != ResamplingMode.MinMax)
         {
             _count = DashExpander.Expand(vertices, pattern, (float)frame.DpiScale, frame.Bounds, ref _dashed);
-            vertices = _dashed.AsSpan(0, _count);
-        }
-
-        if (_count > 0)
-        {
-            EnsureBuffer(device, _count * 8L, keepSize: false);
-            Buffer!.Write<Vector2>(0, vertices);
+            _isDashed = true;
         }
     }
 

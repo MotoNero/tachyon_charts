@@ -54,7 +54,14 @@ public sealed class RenderScheduler : IDisposable
     private readonly List<ManualResetEventSlim> _flushing = [];
     private readonly ManualResetEventSlim _wake = new(false);
     private readonly List<Attachment> _charts = [];
+
+    // The charts of a pass that take part in the shared work, and the threads for it, made on the first large pass.
+    private readonly List<Attachment> _due = [];
+    private PrepareWorkers? _workers;
     private bool _isLossReported;
+
+    // From this many charts in a pass, the work of their series runs on several threads; fewer would only wait.
+    private const int ParallelFrom = 4;
 
     private volatile bool _stopping;
     private bool _disposed;
@@ -261,6 +268,7 @@ public sealed class RenderScheduler : IDisposable
         {
             _thread.Join();
             _wake.Dispose();
+            _workers?.Dispose();
         }
     }
 
@@ -404,6 +412,114 @@ public sealed class RenderScheduler : IDisposable
         }
     }
 
+    private bool RenderEach(ref int frames, ref long points)
+    {
+        foreach (var attachment in _due)
+        {
+            if (!RenderOne(attachment, ref frames, ref points))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // Layout of each chart here, the work of all their series on several threads at once, then uploads and drawing
+    // here again, in the order of the charts.
+    private bool RenderShared(ref int frames, ref long points)
+    {
+        _workers ??= new PrepareWorkers(Math.Clamp((Environment.ProcessorCount / 2) - 1, 1, 15));
+        _workers.Clear();
+        foreach (var attachment in _due)
+        {
+            switch (Step(attachment, finish: false))
+            {
+                case StepResult.Lost:
+                    return false;
+                case StepResult.Done:
+                    _workers.Add(attachment.Chart);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        _workers.Run();
+        var next = 0;
+        foreach (var attachment in _due)
+        {
+            if (next >= _workers.Count || !ReferenceEquals(_workers.ChartAt(next), attachment.Chart))
+            {
+                continue;
+            }
+
+            if (_workers.ErrorAt(next++) is { } error)
+            {
+                Failed?.Invoke(error);
+                continue;
+            }
+
+            switch (Step(attachment, finish: true))
+            {
+                case StepResult.Lost:
+                    return false;
+                case StepResult.Done:
+                    frames++;
+                    points += attachment.Chart.DrawnPointCount;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return true;
+    }
+
+    // One step of a chart on this thread: its start or its end.
+    private StepResult Step(Attachment attachment, bool finish)
+    {
+        var (chart, target) = attachment;
+        try
+        {
+            if (finish)
+            {
+                chart.FinishRender(_device, target);
+            }
+            else
+            {
+                var interval = Interlocked.Read(ref _intervalTicks);
+                chart.FrameLimit = interval > 0 ? TimeSpan.TicksPerSecond / (double)interval : 0;
+                chart.BeginRender(_device, target);
+            }
+
+            return StepResult.Done;
+        }
+        catch (DeviceLostException)
+        {
+            ReportLoss();
+            return StepResult.Lost;
+        }
+        catch (Exception exception) when (_device.IsLost)
+        {
+            _ = exception;
+            ReportLoss();
+            return StepResult.Lost;
+        }
+        catch (Exception exception)
+        {
+            Failed?.Invoke(exception);
+            return StepResult.Failed;
+        }
+    }
+
+    private enum StepResult
+    {
+        Done,
+        Failed,
+        Lost,
+    }
+
     private bool RenderPass()
     {
         if (_device.IsLost)
@@ -420,12 +536,18 @@ public sealed class RenderScheduler : IDisposable
         var points = 0L;
 
         _device.BeginBatch();
+        _due.Clear();
         foreach (var attachment in _charts)
         {
-            if ((isContinuous || attachment.Chart.HasChanges(attachment.Target)) && !RenderOne(attachment, ref frames, ref points))
+            if (isContinuous || attachment.Chart.HasChanges(attachment.Target))
             {
-                return false;
+                _due.Add(attachment);
             }
+        }
+
+        if (!(_due.Count >= ParallelFrom ? RenderShared(ref frames, ref points) : RenderEach(ref frames, ref points)))
+        {
+            return false;
         }
 
         try

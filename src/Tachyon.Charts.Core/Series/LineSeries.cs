@@ -222,11 +222,12 @@ public sealed class LineSeries<TX, TY> : ChartSeries, IDisposable
         ActivePath.TryGetDataRange(XAxis, out x, out y);
 
     /// <inheritdoc />
-    protected internal override void Prepare(IRenderDevice device, in SeriesFrame frame)
-    {
-        var options = new LineOptions(_isStep, _resampling, _dashPattern, Volatile.Read(ref _appearanceVersion), _isSpline);
-        ActivePath.Update(device, frame, XAxis, YAxis, options);
-    }
+    internal override void PrepareData(in SeriesFrame frame) => ActivePath.Compute(frame, XAxis, YAxis, Options);
+
+    /// <inheritdoc />
+    protected internal override void Prepare(IRenderDevice device, in SeriesFrame frame) => ActivePath.Update(device, frame, XAxis, YAxis, Options);
+
+    private LineOptions Options => new(_isStep, _resampling, _dashPattern, Volatile.Read(ref _appearanceVersion), _isSpline);
 
     /// <inheritdoc />
     protected internal override void Draw(ICommandList commands, in SeriesFrame frame)
@@ -261,6 +262,12 @@ internal abstract class LinePath : IDisposable
     public abstract bool TryGetDataRange(AxisBase xAxis, out DoubleRange x, out DoubleRange y);
 
     public abstract void Update(IRenderDevice device, in SeriesFrame frame, AxisBase xAxis, AxisBase yAxis, in LineOptions options);
+
+    /// <summary>Does the work of <see cref="Update"/> that needs no device, ahead of it and on any thread.</summary>
+    public virtual void Compute(in SeriesFrame frame, AxisBase xAxis, AxisBase yAxis, in LineOptions options)
+    {
+        // Paths that write straight to the GPU do all their work in Update.
+    }
 
     public abstract void Draw(ICommandList commands, in SeriesFrame frame, AxisBase xAxis, in PolylineStyle style);
 

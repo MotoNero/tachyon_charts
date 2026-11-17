@@ -271,6 +271,16 @@ public abstract class ChartSeries(AxisBase xAxis, AxisBase yAxis)
     }
 
     /// <summary>
+    /// Does the work of <see cref="Prepare"/> that needs no device, such as resampling, before it. The scheduler runs
+    /// it for the charts of a pass on several threads at once, one chart per thread, so it touches only the series.
+    /// </summary>
+    /// <param name="frame">The place of the series.</param>
+    internal virtual void PrepareData(in SeriesFrame frame)
+    {
+        // Most series do all their work in Prepare.
+    }
+
+    /// <summary>
     /// Prepares the frame, for example by uploading data. No frame is open yet.
     /// </summary>
     /// <param name="device">The device.</param>
