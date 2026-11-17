@@ -773,7 +773,7 @@ internal static class DrawingJson
 public sealed class DrawingModifier : ChartModifier
 {
     /// <summary>The default dispatch priority, above editing annotations and panning.</summary>
-    public const int DefaultPriority = 30;
+    public static readonly int DefaultPriority = 30;
 
     private readonly DrawingLayer? _fixedLayer;
     private readonly List<DrawingShapes.Segment> _segments = [];

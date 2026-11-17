@@ -21,7 +21,7 @@ public abstract class AxisScaling
 /// </summary>
 /// <param name="logBase">The base, greater than one.</param>
 /// <param name="floor">The value that replaces everything below it, or zero to let such values vanish.</param>
-public sealed class LogScaling(double logBase, double floor = 0) : AxisScaling
+internal sealed class LogScaling(double logBase, double floor = 0) : AxisScaling
 {
     private readonly double _logOfBase = Math.Log(logBase);
 
@@ -45,7 +45,7 @@ public sealed class LogScaling(double logBase, double floor = 0) : AxisScaling
 /// </summary>
 /// <param name="logBase">The base, greater than one.</param>
 /// <param name="linearThreshold">The value up to which the scale stays linear, positive.</param>
-public sealed class SymLogScaling(double logBase, double linearThreshold) : AxisScaling
+internal sealed class SymLogScaling(double logBase, double linearThreshold) : AxisScaling
 {
     private readonly double _logOfBase = Math.Log(logBase);
 

@@ -267,7 +267,7 @@ public sealed class LegendOverlay(ChartSurface chart) : ChartOverlay
 public sealed class LegendModifier : ChartModifier
 {
     /// <summary>The default dispatch priority, above everything that acts on the plot.</summary>
-    public const int DefaultPriority = 35;
+    public static readonly int DefaultPriority = 35;
 
     private LegendOverlay? _overlay;
     private ChartSeries? _highlighted;

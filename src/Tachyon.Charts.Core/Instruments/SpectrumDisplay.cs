@@ -439,7 +439,7 @@ public sealed class SpectrumDisplay
 
 /// <summary>The screen of a spectrum analyzer: graticule, mask, peak marker and readouts.</summary>
 /// <param name="display">The state.</param>
-public sealed class SpectrumOverlay(SpectrumDisplay display) : ChartOverlay
+internal sealed class SpectrumOverlay(SpectrumDisplay display) : ChartOverlay
 {
     private const float LabelSize = 12;
     private const float MarkerSize = 7;

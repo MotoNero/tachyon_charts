@@ -58,7 +58,7 @@ public sealed class OverviewOverlay(Func<AxisBase?> targetAxis) : ChartOverlay
 public sealed class OverviewModifier : ChartModifier
 {
     /// <summary>The default dispatch priority, above everything else.</summary>
-    public const int DefaultPriority = 40;
+    public static readonly int DefaultPriority = 40;
 
     private readonly Func<ChartInteraction?> _target;
     private readonly OverviewOverlay _overlay;

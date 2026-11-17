@@ -96,7 +96,7 @@ public sealed class SelectionOverlay : ChartOverlay
 public sealed class SelectionModifier : ChartModifier
 {
     /// <summary>The default dispatch priority, above panning.</summary>
-    public const int DefaultPriority = 22;
+    public static readonly int DefaultPriority = 22;
 
     private readonly SelectionOverlay _overlay = new();
     private readonly List<Vector2> _outline = [];

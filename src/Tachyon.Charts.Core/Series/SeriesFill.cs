@@ -44,7 +44,7 @@ public sealed record ValueGradientFill(Colormap Colormap, DoubleRange Range) : S
 }
 
 /// <summary>Arithmetic on colors.</summary>
-public static class RgbaMath
+internal static class RgbaMath
 {
     /// <summary>Blends two colors.</summary>
     /// <param name="first">The color at 0.</param>

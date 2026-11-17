@@ -54,10 +54,10 @@ public sealed record RendererSelection(IRenderDevice Device, IReadOnlyList<Rende
 public static class RendererSelector
 {
     /// <summary>The smallest texture limit of a GPU renderer: the largest raster and the text atlas need it.</summary>
-    public const int MinimumTextureDimension = 4096;
+    public static readonly int MinimumTextureDimension = 4096;
 
     /// <summary>The smallest buffer limit of a GPU renderer.</summary>
-    public const long MinimumBufferSize = 256L * 1024 * 1024;
+    public static readonly long MinimumBufferSize = 256L * 1024 * 1024;
 
     private static readonly PixelSize _probeSize = new(1, 1);
 

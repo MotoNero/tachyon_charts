@@ -54,7 +54,7 @@ public sealed class CutMarkerOverlay(CutCurveFeed feed, AxisBase xAxis, AxisBase
 public sealed class CutMarkerModifier(CutCurveFeed feed) : ChartModifier(DefaultPriority)
 {
     /// <summary>The priority, before navigation.</summary>
-    public const int DefaultPriority = 26;
+    public static readonly int DefaultPriority = 26;
 
     private const float Reach = 10;
     private const float ClickReach = 4;

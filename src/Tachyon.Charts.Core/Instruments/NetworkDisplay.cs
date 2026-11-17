@@ -254,7 +254,7 @@ public sealed class NetworkDisplay(NetworkFormat format = NetworkFormat.LogMagni
 
 /// <summary>Limits, markers, the marker table and the pass or fail results.</summary>
 /// <param name="display">The state.</param>
-public sealed class NetworkOverlay(NetworkDisplay display) : ChartOverlay
+internal sealed class NetworkOverlay(NetworkDisplay display) : ChartOverlay
 {
     private const float LabelSize = 12;
     private const float MarkerSize = 5;

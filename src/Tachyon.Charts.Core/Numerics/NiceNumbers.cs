@@ -3,7 +3,7 @@ namespace Tachyon.Charts.Core.Numerics;
 /// <summary>
 /// Round numbers of the form 1, 2 or 5 times a power of ten, as used for axis ticks.
 /// </summary>
-public static class NiceNumbers
+internal static class NiceNumbers
 {
     /// <summary>
     /// Finds the nice tick step that divides a range into about the wanted number of intervals.

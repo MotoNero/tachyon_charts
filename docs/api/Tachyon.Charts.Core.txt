@@ -1212,14 +1212,6 @@ sealed class Tachyon.Charts.Core.Input.MeasureCursorModifier : Tachyon.Charts.Co
   protected virtual Tachyon.Charts.Core.Input.ModifierResult OnKey(in Tachyon.Charts.Core.Input.KeyInputEvent input)
   protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
   static System.Int32 DefaultPriority
-sealed class Tachyon.Charts.Core.Input.MeasureCursorOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
-  .ctor()
-  System.Nullable<Tachyon.Charts.Core.Input.MeasureResult> Result { get; }
-  System.Void Hide()
-  System.Void Show(Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis, Tachyon.Charts.Core.Input.MeasureResult result)
-  Tachyon.Charts.Rendering.Rgba8 FirstColor { get; set; }
-  Tachyon.Charts.Rendering.Rgba8 SecondColor { get; set; }
-  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
 struct Tachyon.Charts.Core.Input.MeasureResult : System.IEquatable<Tachyon.Charts.Core.Input.MeasureResult>
   .ctor(System.Double X1, System.Double Y1, System.Double X2, System.Double Y2)
   System.Double DeltaX { get; }
@@ -1465,11 +1457,6 @@ sealed class Tachyon.Charts.Core.Instruments.NetworkMarkerModifier : Tachyon.Cha
   .ctor(Tachyon.Charts.Core.Instruments.NetworkDisplay display)
   protected virtual System.Void OnCaptureLost(Tachyon.Charts.Core.Input.InputCapture capture)
   protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
-sealed class Tachyon.Charts.Core.Instruments.NetworkOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
-  .ctor(Tachyon.Charts.Core.Instruments.NetworkDisplay display)
-  Tachyon.Charts.Core.Pipeline.ChartSurface Chart { get; set; }
-  protected virtual System.Int64 ExternalVersion { get; }
-  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
 sealed class Tachyon.Charts.Core.Instruments.NetworkTrace
   System.Boolean Passes { get; }
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Instruments.LimitLine> Limits { get; }
@@ -1479,19 +1466,6 @@ sealed class Tachyon.Charts.Core.Instruments.NetworkTrace
   System.Void SetSweep(System.Double[] frequencies, System.Numerics.Complex[] values)
   Tachyon.Charts.Core.Data.DataSource<System.Double, System.Single> Data { get; }
   Tachyon.Charts.Rendering.Rgba8 Color { get; }
-sealed class Tachyon.Charts.Core.Instruments.ParallelAxesModifier : Tachyon.Charts.Core.Input.ChartModifier
-  .ctor()
-  protected virtual System.Void OnCaptureLost(Tachyon.Charts.Core.Input.InputCapture capture)
-  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
-sealed class Tachyon.Charts.Core.Instruments.PersistenceBuffer
-  .ctor(System.Int32 width, System.Int32 height)
-  System.Int32 Height { get; }
-  System.Int32 Width { get; }
-  System.ReadOnlySpan<System.Single> Hits { get; }
-  System.Single Maximum { get; }
-  System.Void Add(System.ReadOnlySpan<System.Numerics.Vector2> points)
-  System.Void Clear()
-  System.Void Fade(System.Single factor)
 sealed class Tachyon.Charts.Core.Instruments.ScopeChannel
   System.Double Position { get; set; }
   System.Double VoltsPerDivision { get; set; }
@@ -1503,9 +1477,6 @@ sealed class Tachyon.Charts.Core.Instruments.ScopeChannel
   Tachyon.Charts.Rendering.Rgba8 Color { get; }
 static class Tachyon.Charts.Core.Instruments.ScopeChart
   static Tachyon.Charts.Core.Fluent.ChartBuilder Oscilloscope(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Instruments.ScopeDisplay display)
-static class Tachyon.Charts.Core.Instruments.ScopeColormaps
-  static Tachyon.Charts.Core.Colors.Colormap Fade(Tachyon.Charts.Rendering.Rgba8 color)
-  static Tachyon.Charts.Core.Colors.Colormap Grade { get; }
 sealed class Tachyon.Charts.Core.Instruments.ScopeDisplay
   .ctor()
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Core.Instruments.ScopeChannel> Channels { get; }
@@ -1522,10 +1493,6 @@ sealed class Tachyon.Charts.Core.Instruments.ScopeDisplay
   Tachyon.Charts.Core.Numerics.DoubleRange GetTimeRange()
   static System.Int32 HorizontalDivisions
   static System.Int32 VerticalDivisions
-static class Tachyon.Charts.Core.Instruments.ScopeFormat
-  static System.Double Step(System.Double value, System.Int32 steps)
-  static System.String Value(System.Double value, System.String unit)
-  static System.String Value(System.Double value, System.String unit, System.Globalization.CultureInfo culture)
 struct Tachyon.Charts.Core.Instruments.ScopeMeasurements : System.IEquatable<Tachyon.Charts.Core.Instruments.ScopeMeasurements>
   .ctor(System.Double Minimum, System.Double Maximum, System.Double Mean, System.Double Rms, System.Double Frequency)
   System.Double Frequency { get; set; }
@@ -1535,15 +1502,6 @@ struct Tachyon.Charts.Core.Instruments.ScopeMeasurements : System.IEquatable<Tac
   System.Double PeakToPeak { get; }
   System.Double Rms { get; set; }
   static Tachyon.Charts.Core.Instruments.ScopeMeasurements Measure(System.ReadOnlySpan<System.Double> time, System.ReadOnlySpan<System.Single> values)
-sealed class Tachyon.Charts.Core.Instruments.ScopeModifier : Tachyon.Charts.Core.Input.ChartModifier
-  .ctor(Tachyon.Charts.Core.Instruments.ScopeDisplay display)
-  protected virtual System.Void OnCaptureLost(Tachyon.Charts.Core.Input.InputCapture capture)
-  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
-  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnWheel(in Tachyon.Charts.Core.Input.WheelInputEvent input)
-sealed class Tachyon.Charts.Core.Instruments.ScopeOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
-  .ctor(Tachyon.Charts.Core.Instruments.ScopeDisplay display)
-  protected virtual System.Int64 ExternalVersion { get; }
-  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
 enum Tachyon.Charts.Core.Instruments.ScopePersistence : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   ColorGrade = 3
   Infinite = 2
@@ -1559,10 +1517,6 @@ sealed class Tachyon.Charts.Core.Instruments.ScopeTrigger
   Tachyon.Charts.Core.Instruments.TriggerState Process(System.Double sampleInterval, System.Collections.Generic.IReadOnlyList<System.Single[]> channels)
   Tachyon.Charts.Core.Instruments.TriggerState State { get; }
   static System.Double FindEdge(System.ReadOnlySpan<System.Single> samples, System.Double level, System.Double hysteresis, Tachyon.Charts.Core.Instruments.TriggerSlope slope, System.Int32 start = 0)
-sealed class Tachyon.Charts.Core.Instruments.SmithMarkerModifier : Tachyon.Charts.Core.Input.ChartModifier
-  .ctor()
-  protected virtual System.Void OnCaptureLost(Tachyon.Charts.Core.Input.InputCapture capture)
-  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
 static class Tachyon.Charts.Core.Instruments.SpectrumChart
   static Tachyon.Charts.Core.Fluent.ChartBuilder Spectrum(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Instruments.SpectrumDisplay display)
   static Tachyon.Charts.Core.Fluent.ChartBuilder SpectrumHistory(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Instruments.SpectrumDisplay display)
@@ -1592,15 +1546,6 @@ sealed class Tachyon.Charts.Core.Instruments.SpectrumDisplay
   Tachyon.Charts.Core.Instruments.FrequencyMask Mask { get; set; }
   event System.Action<Tachyon.Charts.Core.Instruments.MaskViolation> MaskViolated
   static System.ValueTuple<System.Double, System.Double> FindPeak(System.ReadOnlySpan<System.Double> frequencies, System.ReadOnlySpan<System.Single> levels)
-sealed class Tachyon.Charts.Core.Instruments.SpectrumModifier : Tachyon.Charts.Core.Input.ChartModifier
-  .ctor(Tachyon.Charts.Core.Instruments.SpectrumDisplay display)
-  protected virtual System.Void OnCaptureLost(Tachyon.Charts.Core.Input.InputCapture capture)
-  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
-  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnWheel(in Tachyon.Charts.Core.Input.WheelInputEvent input)
-sealed class Tachyon.Charts.Core.Instruments.SpectrumOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
-  .ctor(Tachyon.Charts.Core.Instruments.SpectrumDisplay display)
-  protected virtual System.Int64 ExternalVersion { get; }
-  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
 enum Tachyon.Charts.Core.Instruments.TriggerMode : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Auto = 0
   Normal = 1
@@ -1705,15 +1650,8 @@ struct Tachyon.Charts.Core.Numerics.LinearAxisTransform : System.IEquatable<Tach
   System.Void ToPixels(System.ReadOnlySpan<System.Double> values, System.Span<System.Single> pixels)
   static System.Boolean op_Equality(Tachyon.Charts.Core.Numerics.LinearAxisTransform left, Tachyon.Charts.Core.Numerics.LinearAxisTransform right)
   static System.Boolean op_Inequality(Tachyon.Charts.Core.Numerics.LinearAxisTransform left, Tachyon.Charts.Core.Numerics.LinearAxisTransform right)
-sealed class Tachyon.Charts.Core.Numerics.LogScaling : Tachyon.Charts.Core.Numerics.AxisScaling
-  .ctor(System.Double logBase, System.Double floor = 0)
-  virtual System.Double Forward(System.Double value)
-  virtual System.Double Inverse(System.Double value)
 static class Tachyon.Charts.Core.Numerics.MarchingSquares
   static System.Void Generate(System.ReadOnlySpan<System.Single> values, System.Int32 width, System.Int32 height, System.ReadOnlySpan<System.Single> levels, System.Collections.Generic.List<Tachyon.Charts.Core.Numerics.ContourSegment> segments)
-static class Tachyon.Charts.Core.Numerics.NiceNumbers
-  static System.Double Step(System.Double length, System.Int32 targetIntervals)
-  static Tachyon.Charts.Core.Numerics.DoubleRange AlignToStep(Tachyon.Charts.Core.Numerics.DoubleRange range, System.Double step)
 struct Tachyon.Charts.Core.Numerics.RenderOrigin : System.IEquatable<Tachyon.Charts.Core.Numerics.RenderOrigin>
   System.Double Value { get; }
   System.Single ToRelative(System.Double value)
@@ -1726,10 +1664,6 @@ struct Tachyon.Charts.Core.Numerics.RenderOrigin : System.IEquatable<Tachyon.Cha
   static Tachyon.Charts.Core.Numerics.RenderOrigin ForRange(Tachyon.Charts.Core.Numerics.DoubleRange range)
   static Tachyon.Charts.Core.Numerics.RenderOrigin FromTicks(System.Int64 ticks)
   static Tachyon.Charts.Core.Numerics.RenderOrigin FromValue(System.Double value)
-sealed class Tachyon.Charts.Core.Numerics.SymLogScaling : Tachyon.Charts.Core.Numerics.AxisScaling
-  .ctor(System.Double logBase, System.Double linearThreshold)
-  virtual System.Double Forward(System.Double value)
-  virtual System.Double Inverse(System.Double value)
 abstract class Tachyon.Charts.Core.Overlays.ChartOverlay
   System.Int64 Version { get; }
   protected .ctor()
@@ -2016,11 +1950,6 @@ enum Tachyon.Charts.Core.Resampling.ResamplingMode : System.IComparable, System.
   Lttb = 3
   MinMax = 2
   None = 1
-sealed class Tachyon.Charts.Core.Resampling.SeriesResampler<TX, TY> : System.Threading.IThreadPoolWorkItem
-  .ctor(Tachyon.Charts.Core.Data.IDataSource<TX, TY> source, System.Int32 factor = 4)
-  System.Int64 PyramidByteCount { get; }
-  System.Void UpdateNow()
-  Tachyon.Charts.Core.Resampling.ResampleResult Resample(Tachyon.Charts.Core.Numerics.DoubleRange visible, Tachyon.Charts.Core.Resampling.ResamplingMode mode, System.Span<TY> minima, System.Span<TY> maxima, System.Span<System.Int32> indices)
 sealed class Tachyon.Charts.Core.Series.AreaSeries : Tachyon.Charts.Core.Series.RibbonSeries
   .ctor(Tachyon.Charts.Core.Data.IDataSource<System.Double, System.Double> source, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   System.Double Baseline { get; set; }
@@ -2085,13 +2014,6 @@ struct Tachyon.Charts.Core.Series.CandleLook : System.IEquatable<Tachyon.Charts.
   System.Boolean IsHollow { get; set; }
   Tachyon.Charts.Rendering.Rgba8 Body { get; set; }
   Tachyon.Charts.Rendering.Rgba8 Line { get; set; }
-sealed class Tachyon.Charts.Core.Series.CandleModifier : Tachyon.Charts.Core.Input.ChartModifier
-  .ctor()
-  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
-sealed class Tachyon.Charts.Core.Series.CandleReadoutOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
-  .ctor(Tachyon.Charts.Core.Series.CandleSeries series)
-  protected virtual System.Int64 ExternalVersion { get; }
-  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
 sealed class Tachyon.Charts.Core.Series.CandleSeries : Tachyon.Charts.Core.Pipeline.ChartSeries
   .ctor(Tachyon.Charts.Core.Data.CandleData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   System.Double BodyWidth { get; set; }
@@ -2194,13 +2116,6 @@ static class Tachyon.Charts.Core.Series.FinanceCharts
   static Tachyon.Charts.Core.Fluent.ChartBuilder Volume(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Data.CandleData data, System.String yAxis = null)
 static class Tachyon.Charts.Core.Series.GanttCharts
   static Tachyon.Charts.Core.Fluent.ChartBuilder Gantt(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Data.GanttData data, System.Action<Tachyon.Charts.Core.Series.GanttSeries> configure = null)
-sealed class Tachyon.Charts.Core.Series.GanttModifier : Tachyon.Charts.Core.Input.ChartModifier
-  .ctor()
-  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
-sealed class Tachyon.Charts.Core.Series.GanttOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
-  .ctor(Tachyon.Charts.Core.Series.GanttSeries series)
-  protected virtual System.Int64 ExternalVersion { get; }
-  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
 sealed class Tachyon.Charts.Core.Series.GanttSeries : Tachyon.Charts.Core.Pipeline.ChartSeries
   .ctor(Tachyon.Charts.Core.Data.GanttData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   System.Collections.Generic.IReadOnlyList<System.String> LineNames()
@@ -2283,9 +2198,6 @@ abstract class Tachyon.Charts.Core.Series.MarkSeries : Tachyon.Charts.Core.Serie
   virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
 static class Tachyon.Charts.Core.Series.MarketProfiles
   static Tachyon.Charts.Core.Fluent.ChartBuilder VolumeProfile(Tachyon.Charts.Core.Fluent.ChartBuilder builder, Tachyon.Charts.Core.Data.CandleData data, System.Action<Tachyon.Charts.Core.Series.VolumeProfileSeries> configure = null, System.String yAxis = null)
-static class Tachyon.Charts.Core.Series.MeshShapes
-  static System.Void AddRoundedRectangle(System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh, System.Single x, System.Single y, System.Single width, System.Single height, System.Single radius, Tachyon.Charts.Rendering.PixelRect pane, Tachyon.Charts.Core.Series.SeriesFill fill, System.Double value)
-  static System.Void AddSoftRectangle(System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh, System.Single x, System.Single y, System.Single width, System.Single height, System.Single blur, Tachyon.Charts.Rendering.Rgba8 color)
 sealed class Tachyon.Charts.Core.Series.ParallelAxesOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
   .ctor(Tachyon.Charts.Core.Series.ParallelCoordinatesSeries series, System.Collections.Generic.IReadOnlyList<System.String> names)
   protected virtual System.Int64 ExternalVersion { get; }
@@ -2309,19 +2221,12 @@ sealed class Tachyon.Charts.Core.Series.ParallelCoordinatesSeries : Tachyon.Char
   virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
 static class Tachyon.Charts.Core.Series.PieCharts
   static Tachyon.Charts.Core.Fluent.ChartBuilder Pie(Tachyon.Charts.Core.Fluent.ChartBuilder builder, System.Collections.Generic.IReadOnlyList<System.Double> values, System.Collections.Generic.IReadOnlyList<System.String> names = null, System.Action<Tachyon.Charts.Core.Series.PieSeries> configure = null)
-sealed class Tachyon.Charts.Core.Series.PieLabelOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
-  .ctor(Tachyon.Charts.Core.Series.PieSeries series)
-  protected virtual System.Int64 ExternalVersion { get; }
-  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
 enum Tachyon.Charts.Core.Series.PieLabels : System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
   Name = 1
   NameAndPercent = 4
   None = 0
   Percent = 2
   Value = 3
-sealed class Tachyon.Charts.Core.Series.PieModifier : Tachyon.Charts.Core.Input.ChartModifier
-  .ctor()
-  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
 sealed class Tachyon.Charts.Core.Series.PieSeries : Tachyon.Charts.Core.Pipeline.ChartSeries
   .ctor(System.Collections.Generic.IReadOnlyList<System.Double> values, System.Collections.Generic.IReadOnlyList<System.String> names, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   System.Collections.Generic.IReadOnlyList<Tachyon.Charts.Rendering.Rgba8> Colors { get; set; }
@@ -2440,8 +2345,6 @@ abstract class Tachyon.Charts.Core.Series.RasterSeries : Tachyon.Charts.Core.Pip
   protected virtual System.Void ReleaseResources()
   virtual Tachyon.Charts.Core.Axes.ColorAxis ColorAxis { get; }
   virtual Tachyon.Charts.Rendering.Rgba8 AccentColor { get; }
-static class Tachyon.Charts.Core.Series.RgbaMath
-  static Tachyon.Charts.Rendering.Rgba8 Mix(Tachyon.Charts.Rendering.Rgba8 first, Tachyon.Charts.Rendering.Rgba8 second, System.Double amount)
 abstract class Tachyon.Charts.Core.Series.RibbonSeries : Tachyon.Charts.Core.Pipeline.ChartSeries
   protected .ctor(Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   protected System.Int64 AppearanceVersion { get; }
@@ -2507,10 +2410,6 @@ sealed class Tachyon.Charts.Core.Series.SmithMarkerOverlay : Tachyon.Charts.Core
   System.Int32 Index { get; set; }
   protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
   static System.String[] Describe(System.Numerics.Complex impedance, System.Numerics.Complex reflection)
-static class Tachyon.Charts.Core.Series.SmithMath
-  static System.Double ToStandingWaveRatio(System.Numerics.Complex reflection)
-  static System.Numerics.Complex ToImpedance(System.Numerics.Complex reflection)
-  static System.Numerics.Complex ToReflection(System.Numerics.Complex impedance)
 struct Tachyon.Charts.Core.Series.SmithProjection : System.IEquatable<Tachyon.Charts.Core.Series.SmithProjection>
   .ctor(System.Double CenterX, System.Double CenterY, System.Double Radius)
   System.Double CenterX { get; set; }
@@ -2618,13 +2517,6 @@ sealed class Tachyon.Charts.Core.Series.ValueGradientFill : Tachyon.Charts.Core.
 sealed class Tachyon.Charts.Core.Series.ViolinSeries : Tachyon.Charts.Core.Series.SampleSeries
   .ctor(System.Collections.Generic.IReadOnlyList<System.Double[]> samples, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   protected virtual System.Void Build(in Tachyon.Charts.Core.Pipeline.SeriesFrame frame, System.Collections.Generic.List<Tachyon.Charts.Rendering.MeshVertex> mesh)
-sealed class Tachyon.Charts.Core.Series.VolumeProfileModifier : Tachyon.Charts.Core.Input.ChartModifier
-  .ctor()
-  protected virtual Tachyon.Charts.Core.Input.ModifierResult OnPointer(in Tachyon.Charts.Core.Input.PointerInputEvent input)
-sealed class Tachyon.Charts.Core.Series.VolumeProfileOverlay : Tachyon.Charts.Core.Overlays.ChartOverlay
-  .ctor(Tachyon.Charts.Core.Series.VolumeProfileSeries series)
-  protected virtual System.Int64 ExternalVersion { get; }
-  protected virtual System.Void Draw(Tachyon.Charts.Core.Overlays.OverlayCanvas canvas)
 sealed class Tachyon.Charts.Core.Series.VolumeProfileSeries : Tachyon.Charts.Core.Pipeline.ChartSeries
   .ctor(Tachyon.Charts.Core.Data.CandleData data, Tachyon.Charts.Core.Axes.AxisBase xAxis, Tachyon.Charts.Core.Axes.AxisBase yAxis)
   System.Double ValueAreaShare { get; set; }

@@ -32,7 +32,7 @@ public readonly record struct MeasureResult(double X1, double Y1, double X2, dou
 /// <summary>
 /// Two cursors with their distances.
 /// </summary>
-public sealed class MeasureCursorOverlay : ChartOverlay
+internal sealed class MeasureCursorOverlay : ChartOverlay
 {
     private AxisBase? _xAxis;
     private AxisBase? _yAxis;
@@ -125,7 +125,7 @@ public sealed class MeasureCursorOverlay : ChartOverlay
 public sealed class MeasureCursorModifier : ChartModifier
 {
     /// <summary>The default dispatch priority, above panning.</summary>
-    public const int DefaultPriority = 23;
+    public static readonly int DefaultPriority = 23;
 
     private readonly MeasureCursorOverlay _overlay = new();
     private PaneHit _pane;

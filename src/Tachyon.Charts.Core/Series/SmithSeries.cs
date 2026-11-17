@@ -12,7 +12,7 @@ using Tachyon.Charts.Rendering;
 namespace Tachyon.Charts.Core.Series;
 
 /// <summary>The calculation behind a Smith chart.</summary>
-public static class SmithMath
+internal static class SmithMath
 {
     /// <summary>Calculates the reflection of a normalized impedance.</summary>
     /// <param name="impedance">The impedance divided by the reference.</param>

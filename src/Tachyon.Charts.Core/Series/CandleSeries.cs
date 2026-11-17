@@ -462,7 +462,7 @@ internal static class CandleColumns
 
 /// <summary>Shows open, high, low, close and volume of the candle under the pointer, or of the last one, at the top left.</summary>
 /// <param name="series">The candles.</param>
-public sealed class CandleReadoutOverlay(CandleSeries series) : ChartOverlay
+internal sealed class CandleReadoutOverlay(CandleSeries series) : ChartOverlay
 {
     private const float LabelSize = 12;
 
@@ -498,7 +498,7 @@ public sealed class CandleReadoutOverlay(CandleSeries series) : ChartOverlay
 }
 
 /// <summary>Marks the candle under the pointer, in the price pane and in the volume pane.</summary>
-public sealed class CandleModifier : ChartModifier
+internal sealed class CandleModifier : ChartModifier
 {
     /// <inheritdoc />
     protected internal override ModifierResult OnPointer(in PointerInputEvent input)

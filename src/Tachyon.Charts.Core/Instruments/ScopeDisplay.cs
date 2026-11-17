@@ -83,7 +83,7 @@ public readonly record struct ScopeMeasurements(double Minimum, double Maximum, 
 }
 
 /// <summary>Writes values the way instruments do, such as 500 mV or 1.25 kHz.</summary>
-public static class ScopeFormat
+internal static class ScopeFormat
 {
     private static readonly string[] _prefixes = ["p", "n", "µ", "m", string.Empty, "k", "M", "G"];
 
@@ -397,7 +397,7 @@ public sealed class ScopeDisplay
 
 /// <summary>The screen of an oscilloscope: graticule, markers and readouts.</summary>
 /// <param name="display">The state.</param>
-public sealed class ScopeOverlay(ScopeDisplay display) : ChartOverlay
+internal sealed class ScopeOverlay(ScopeDisplay display) : ChartOverlay
 {
     private const float LabelSize = 12;
     private const float MarkerSize = 7;
@@ -537,7 +537,7 @@ public sealed class ScopeOverlay(ScopeDisplay display) : ChartOverlay
 /// or anywhere with Ctrl, always the nearest channel. Otherwise it changes the time base.
 /// </summary>
 /// <param name="display">The state.</param>
-public sealed class ScopeModifier(ScopeDisplay display) : ChartModifier(ZoomPanModifier.DefaultPriority)
+internal sealed class ScopeModifier(ScopeDisplay display) : ChartModifier(ZoomPanModifier.DefaultPriority)
 {
     private const float EdgeWidth = 60;
     private const double GrabReach = 14;

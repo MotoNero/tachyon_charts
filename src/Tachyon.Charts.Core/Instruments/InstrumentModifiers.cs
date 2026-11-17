@@ -7,7 +7,7 @@ using Tachyon.Charts.Core.Series;
 namespace Tachyon.Charts.Core.Instruments;
 
 /// <summary>Moves the marker of a Smith chart to the point of the curve next to the pointer.</summary>
-public sealed class SmithMarkerModifier() : ChartModifier(ZoomPanModifier.DefaultPriority)
+internal sealed class SmithMarkerModifier() : ChartModifier(ZoomPanModifier.DefaultPriority)
 {
     private bool _isDragging;
 
@@ -83,7 +83,7 @@ public sealed class SmithMarkerModifier() : ChartModifier(ZoomPanModifier.Defaul
 /// Operates parallel coordinates: dragging an axis at its name moves it, dragging along an axis keeps
 /// only the rows of that range, a double click anywhere shows all rows again.
 /// </summary>
-public sealed class ParallelAxesModifier() : ChartModifier(ZoomPanModifier.DefaultPriority)
+internal sealed class ParallelAxesModifier() : ChartModifier(ZoomPanModifier.DefaultPriority)
 {
     private const double HeaderHeight = 34;
     private const double Reach = 14;
@@ -256,7 +256,7 @@ public sealed class NetworkMarkerModifier(NetworkDisplay display) : ChartModifie
 /// removes the one at the pointer. Dragging the mask line moves the mask up or down.
 /// </summary>
 /// <param name="display">The state.</param>
-public sealed class SpectrumModifier(SpectrumDisplay display) : ChartModifier(ZoomPanModifier.DefaultPriority)
+internal sealed class SpectrumModifier(SpectrumDisplay display) : ChartModifier(ZoomPanModifier.DefaultPriority)
 {
     private const float EdgeWidth = 60;
     private const float ClickDistance = 4;

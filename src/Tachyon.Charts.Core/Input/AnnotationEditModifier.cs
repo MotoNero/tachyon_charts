@@ -13,7 +13,7 @@ namespace Tachyon.Charts.Core.Input;
 public sealed class AnnotationEditModifier : ChartModifier
 {
     /// <summary>The default dispatch priority, above panning, the rubber band and the gestures of instruments.</summary>
-    public const int DefaultPriority = 45;
+    public static readonly int DefaultPriority = 45;
 
     private static readonly KeyBinding _undoKey = new(ChartKey.Z, InputModifiers.Control);
     private static readonly KeyBinding _redoKey = new(ChartKey.Y, InputModifiers.Control);

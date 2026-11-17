@@ -27,7 +27,7 @@ public enum ScopePersistence
 /// <summary>Counts how often a waveform hit each pixel.</summary>
 /// <param name="width">The width in pixels.</param>
 /// <param name="height">The height in pixels.</param>
-public sealed class PersistenceBuffer(int width, int height)
+internal sealed class PersistenceBuffer(int width, int height)
 {
     private readonly float[] _hits = new float[width * height];
     private readonly int[] _marks = new int[width * height];
@@ -239,7 +239,7 @@ internal sealed class ScopePersistenceSeries(ScopeDisplay display, ScopeChannel 
 }
 
 /// <summary>The colors of persistence.</summary>
-public static class ScopeColormaps
+internal static class ScopeColormaps
 {
     /// <summary>Seven steps from rare to frequent, as on an instrument.</summary>
     public static Colormap Grade { get; } = CreateGrade();

@@ -341,7 +341,7 @@ public sealed class GanttSeries : ChartSeries
 
 /// <summary>Labels in the bars that fit, arrows of the dependencies, and start, end and duration of the task under the pointer.</summary>
 /// <param name="series">The Gantt chart.</param>
-public sealed class GanttOverlay(GanttSeries series) : ChartOverlay
+internal sealed class GanttOverlay(GanttSeries series) : ChartOverlay
 {
     private const float LabelSize = 11;
     private const int MostLabels = 1000;
@@ -507,7 +507,7 @@ public sealed class GanttOverlay(GanttSeries series) : ChartOverlay
 }
 
 /// <summary>Marks the task under the pointer; a click on the line of a group collapses or expands it.</summary>
-public sealed class GanttModifier : ChartModifier
+internal sealed class GanttModifier : ChartModifier
 {
     /// <inheritdoc />
     protected internal override ModifierResult OnPointer(in PointerInputEvent input)

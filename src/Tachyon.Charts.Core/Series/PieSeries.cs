@@ -472,7 +472,7 @@ public sealed class PieSeries : ChartSeries
 /// side are moved apart so that they never overlap. The slice under the pointer shows its name, value and share.
 /// </summary>
 /// <param name="series">The pie.</param>
-public sealed class PieLabelOverlay(PieSeries series) : ChartOverlay
+internal sealed class PieLabelOverlay(PieSeries series) : ChartOverlay
 {
     private const float LabelSize = 12;
     private const double InsideSweep = 0.5;
@@ -636,7 +636,7 @@ public sealed class PieLabelOverlay(PieSeries series) : ChartOverlay
 }
 
 /// <summary>Highlights the slice under the pointer; a click pulls a slice out, a second click puts it back.</summary>
-public sealed class PieModifier : ChartModifier
+internal sealed class PieModifier : ChartModifier
 {
     /// <inheritdoc />
     protected internal override ModifierResult OnPointer(in PointerInputEvent input)

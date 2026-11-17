@@ -400,7 +400,7 @@ public sealed class VolumeProfileSeries : ChartSeries
 
 /// <summary>Shows the price range and the volume of the level under the pointer.</summary>
 /// <param name="series">The profile.</param>
-public sealed class VolumeProfileOverlay(VolumeProfileSeries series) : ChartOverlay
+internal sealed class VolumeProfileOverlay(VolumeProfileSeries series) : ChartOverlay
 {
     private readonly VolumeProfileSeries _series = series ?? throw new ArgumentNullException(nameof(series));
 
@@ -431,7 +431,7 @@ public sealed class VolumeProfileOverlay(VolumeProfileSeries series) : ChartOver
 }
 
 /// <summary>Marks the level of a volume profile under the pointer.</summary>
-public sealed class VolumeProfileModifier : ChartModifier
+internal sealed class VolumeProfileModifier : ChartModifier
 {
     /// <inheritdoc />
     protected internal override ModifierResult OnPointer(in PointerInputEvent input)

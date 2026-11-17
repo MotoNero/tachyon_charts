@@ -48,7 +48,7 @@ public readonly record struct ResampleResult(ResamplingMode Mode, int Start, int
 /// <remarks>
 /// A <see cref="FifoDataSource{TX, TY}"/> overwrites points, so it gets no pyramid and every query scans.
 /// </remarks>
-public sealed class SeriesResampler<TX, TY> : IThreadPoolWorkItem
+internal sealed class SeriesResampler<TX, TY> : IThreadPoolWorkItem
     where TX : unmanaged, INumber<TX>
     where TY : unmanaged, INumber<TY>, IMinMaxValue<TY>
 {

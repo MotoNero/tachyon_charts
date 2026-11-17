@@ -11,7 +11,7 @@ namespace Tachyon.Charts.Core.Input;
 public sealed class ZoomPanModifier : ChartModifier
 {
     /// <summary>The default dispatch priority.</summary>
-    public const int DefaultPriority = 10;
+    public static readonly int DefaultPriority = 10;
 
     private PaneHit _pane;
     private Vector2 _last;
@@ -124,7 +124,7 @@ public sealed class ZoomPanModifier : ChartModifier
 public sealed class RubberBandZoomModifier : ChartModifier
 {
     /// <summary>The default dispatch priority, above panning.</summary>
-    public const int DefaultPriority = 20;
+    public static readonly int DefaultPriority = 20;
 
     private PaneHit _pane;
     private Vector2 _start;
@@ -255,7 +255,7 @@ public sealed class RubberBandZoomModifier : ChartModifier
 public sealed class AxisDragModifier : ChartModifier
 {
     /// <summary>The default dispatch priority, above everything that acts on the plot.</summary>
-    public const int DefaultPriority = 30;
+    public static readonly int DefaultPriority = 30;
 
     private const double ScaleSpeed = 0.01;
 

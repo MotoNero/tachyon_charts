@@ -13,7 +13,7 @@ namespace Tachyon.Charts.Core.Data;
 public sealed class ItemsDataSource : IDisposable
 {
     /// <summary>The number of items up to which this way is meant for.</summary>
-    public const int RecommendedLimit = 100_000;
+    public static readonly int RecommendedLimit = 100_000;
 
     private readonly IEnumerable _items;
     private readonly PropertyInfo?[][] _paths = new PropertyInfo?[2][];

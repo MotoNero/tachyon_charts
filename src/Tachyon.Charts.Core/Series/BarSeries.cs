@@ -483,7 +483,7 @@ public sealed class BarSeries : ChartSeries
 /// <summary>
 /// Shapes made of triangles for <see cref="ICommandList.FillMesh"/>.
 /// </summary>
-public static class MeshShapes
+internal static class MeshShapes
 {
     private const int CornerSegments = 6;
 
